@@ -43,8 +43,9 @@ if __name__ == "__main__":
    top = Problem()
    top.root = AeroGroup()
 
+
    top.setup()
-   top.run()
+   top.run_once()
 
    #data = top.check_total_derivatives()
    data = top.check_partial_derivatives()

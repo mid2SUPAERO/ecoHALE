@@ -4,7 +4,8 @@ import numpy
 from openmdao.api import Component
 from scipy.linalg import lu_factor
 
-
+def norm(vec): 
+    return numpy.sqrt(numpy.sum(vec**2))
 
 def _biot_savart(N, A, B, P, inf=False, rev=False, eps=1e-5):
     """
@@ -19,15 +20,18 @@ def _biot_savart(N, A, B, P, inf=False, rev=False, eps=1e-5):
     - eps : parameter used to avoid singularities when points are on a vortex line
     """
 
-    rPA = numpy.linalg.norm(A - P)
-    rPB = numpy.linalg.norm(B - P)
-    rAB = numpy.linalg.norm(B - A)
-    rH = numpy.linalg.norm(P - A - numpy.dot((B - A), (P - A)) / numpy.dot((B - A), (B - A)) * (B - A)) + eps
+    rPA = norm(A - P)
+    rPB = norm(B - P)
+    rAB = norm(B - A)
+    rH = norm(P - A - numpy.dot((B - A), (P - A)) / numpy.dot((B - A), (B - A)) * (B - A)) + eps
     cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
     cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
     C = numpy.cross(B - P, A - P)
-    C /= numpy.linalg.norm(C)
-
+    # v1 = (B-P)
+    # v2 = (A-P)
+    # C = numpy.array([0,0,v1[0]*v2[1]-v1[1]*v2[0]])
+    C /= norm(C)
+    # C /= numpy.sqrt(numpy.sum(C**2))
     if inf:
         vdn = -numpy.dot(N, C) / rH * (cosA + 1) / (4 * numpy.pi)
     else:
@@ -51,9 +55,10 @@ def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts):
     - b_pts[num_y, 3] : bound vortex coordinates
     """
     
-    mtx[:] = 0
     num_y = mesh.shape[1]
 
+    mtx[:, :] = 0.0
+            
     # Loop through control points
     for ind_i in xrange(num_y - 1):
         N = normals[ind_i]
@@ -173,7 +178,7 @@ class WeissingerCirculations(Component):
 
         self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.fd_options['extra_check_partials_form'] = "forward"
         self.fd_options['linearize'] = True # only for circulations
 
         size = n - 1
@@ -190,13 +195,8 @@ class WeissingerCirculations(Component):
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex") 
         self.rhs[:] = -params['normals'].dot(v_inf)
-
-        print 'aaaaaaaaaa'
-        print self.mtx
-        print 'bbbbbbbbbb'
         
-        circ = unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
-        resids['circulations'] = self.mtx.dot(circ) - self.rhs
+        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
         _assemble_AIC_mtx(self.mtx, params['mesh'], params['normals'],
