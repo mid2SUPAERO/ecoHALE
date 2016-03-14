@@ -51,6 +51,7 @@ def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts):
     - b_pts[num_y, 3] : bound vortex coordinates
     """
     
+    mtx[:] = 0
     num_y = mesh.shape[1]
 
     # Loop through control points
@@ -194,7 +195,8 @@ class WeissingerCirculations(Component):
         print self.mtx
         print 'bbbbbbbbbb'
         
-        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
+        circ = unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
+        resids['circulations'] = self.mtx.dot(circ) - self.rhs
 
     def apply_nonlinear(self, params, unknowns, resids):
         _assemble_AIC_mtx(self.mtx, params['mesh'], params['normals'],

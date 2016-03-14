@@ -39,10 +39,15 @@ class AeroGroup(Group):
 if __name__ == "__main__":
 #    numpy.seterr(all='raise')
 
-    top = Problem()
-    top.root = AeroGroup()
+    
+   top = Problem()
+   top.root = AeroGroup()
 
-    top.setup()
+   top.setup()
+   top.run()
 
-    #data = top.check_total_derivatives()
-    data = top.check_partial_derivatives()
+   #data = top.check_total_derivatives()
+   data = top.check_partial_derivatives()
+
+   print 'What the 2x2 should be:'
+   print top.root.circ.mtx
