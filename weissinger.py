@@ -2,7 +2,7 @@ from __future__ import division
 import numpy
 
 from openmdao.api import Component
-from scipy.linalg import lu_factor
+from scipy.linalg import lu_factor, lu_solve
 
 
 
@@ -279,3 +279,160 @@ class WeissingerForces(Component):
         # J['sec_forces', 'circulations'] =
         # J['sec_forces', 'widths'] =
         # J['sec_forces', 'normals'] =
+
+
+
+class WeissingerLift(Component):
+    """ Calculates total lift in force units """
+
+    def __init__(self, n):
+        super(WeissingerLift, self).__init__()
+
+        self.add_param('cos_dih', val=numpy.zeros((n-1)))
+        self.add_param('normals', val=numpy.zeros((n-1, 3)))
+        self.add_param('sec_forces', val=numpy.zeros((n-1, 3)))
+        self.add_output('L', val=0.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        cos_dih = params['cos_dih']
+        normals = params['normals']
+        sec_forces = params['sec_forces']
+
+        L = sec_forces[:, 2] / normals[:, 2]
+        unknowns['L'] = numpy.sum(L.T * cos_dih)
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for lift."""
+        J = {}
+        cos_dih = params['cos_dih']
+        normals = params['normals']
+        sec_forces = params['sec_forces']
+
+        # TODO:
+        # J['L', 'cos_dih'] =
+        # J['L', 'normals'] =
+        # J['L', 'sec_forces'] =
+
+        return J
+
+
+
+class WeissingerLiftCoeff(Component):
+    """ Computes lift coefficient """
+
+    def __init__(self, n):
+        super(WeissingerLiftCoeff, self).__init__()
+
+        self.add_param('S_ref', val=0.)
+        self.add_param('L', val=0.)
+        self.add_param('v', val=0.)
+        self.add_param('rho', val=0.)
+        self.add_output('CL', val=0.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        S_ref = params['S_ref']
+        rho = params['rho']
+        v = params['v']
+        unknowns['CL'] = params['L'] / (0.5*rho*v**2*S_ref)
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for lift."""
+        J = {}
+        J['CL', 'v'] = 0.
+        J['CL', 'rho'] = 0.
+        J['CL', 'S_ref'] = 0.
+        J['CL', 'L'] = 1. / (0.5*self.rho*self.v**2*params['S_ref'])
+
+        return J
+
+
+
+class WeissingerDragCoeff(Component):
+    """ Calculates induced drag coefficient """
+
+    def __init__(self, n):
+        super(WeissingerDragCoeff, self).__init__()
+        self.add_param('v', val=0.)
+        self.add_param('circulations', val=numpy.zeros((n-1)))
+        self.add_param('alpha', val=3.)
+        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('normals', val=numpy.zeros((n-1, 3)))
+        self.add_param('b_pts', val=numpy.zeros((n, 3)))
+        self.add_param('widths', val=numpy.zeros((n-1)))
+        self.add_param('S_ref', val=0.)
+        self.add_output('CD', val=0.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        self._trefftz_dist = 10000.
+        self.mtx = numpy.zeros((n - 1, n - 1), dtype="complex")
+        self.intersections = numpy.zeros((n - 1, 2, 3), dtype="complex")
+        self.new_normals = numpy.zeros((n - 1, 3), dtype="complex")
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        mesh = params['mesh']
+        b_pts = params['b_pts']
+        num_y = mesh.shape[1]
+        
+        alpha = params['alpha'] * numpy.pi / 180.
+        cosa = numpy.cos(alpha)
+        sina = numpy.sin(alpha)
+        trefftz_normal = numpy.array([cosa, 0., sina], dtype="complex")
+        a = [self._trefftz_dist, 0, 0]
+        
+        for ind in xrange(num_y - 1):
+            A = b_pts[ind + 0, :]
+            B = b_pts[ind + 1, :]
+            D = mesh[1, ind + 0, :]
+            E = mesh[1, ind + 1, :]
+
+            t = -numpy.dot(trefftz_normal, (A - a)) / numpy.dot(trefftz_normal, D - A)
+            self.intersections[ind, 0, :] = A + (D - A) * t
+
+            t = -numpy.dot(trefftz_normal, (B - a)) / numpy.dot(trefftz_normal, E - B)
+            self.intersections[ind, 1, :] = B + (E - B) * t
+            
+        trefftz_points = (self.intersections[:, 1, :] + self.intersections[:, 0, :]) / 2.
+
+        normals = params['normals']
+        for ind in xrange(num_y - 1):
+            self.new_normals[ind] = normals[ind] - numpy.dot(normals[ind], trefftz_normal) * trefftz_normal / norm(trefftz_normal)
+        _assemble_AIC_mtx(self.mtx, params['mesh'], self.new_normals,
+                          trefftz_points, params['b_pts'])
+        
+        velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
+        unknowns['CD'] = 1. / params['S_ref'] / params['v'] * numpy.sum(params['circulations'] * velocities * params['widths'])
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for drag."""
+        J = {}
+        circ = params['circulations']
+        v = params['v']
+        alpha = params['alpha']
+        b_pts = params['b_pts']
+        mesh = params['mesh']
+
+        n = mesh.shape[1]
+        J['CD', 'v'] = 0.
+        J['CD', 'alpha'] = 0.
+        J['CD', 'b_pts'] = numpy.zeros((1, n * 3))
+
+        # TODO:
+        # J['CD', 'circulations'] =
+        # J['CD', 'trefftz_dist'] =  # not sure if this one is needed
+        # J['CD', 'mesh'] =
+        # J['CD', 'normals'] =
+        # J['CD', 'widths'] =
+        # J['CD', 'S_ref'] =
+
+        return J

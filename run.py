@@ -1,23 +1,23 @@
 from __future__ import division
 import numpy
 
-from openmdao.api import IndepVarComp, Problem, Group
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
 from geometry import Mesh
-from weissinger import WeissingerPreproc, WeissingerCirculations, WeissingerForces
+from weissinger import WeissingerPreproc, WeissingerCirculations, WeissingerForces, WeissingerLift, WeissingerLiftCoeff, WeissingerDragCoeff
 
 
 class AeroGroup(Group):
 
-    def __init__(self):
+    def __init__(self, mesh_params, aero_params):
         super(AeroGroup, self).__init__()
 
-        num_y = 3
-        span = 50
-        chord = 5
-
-        v = 100.
-        alpha = 4.
-        rho = 1.
+        num_y = mesh_params['num_y']
+        span = mesh_params['span']
+        chord = mesh_params['chord']
+    
+        v = aero_params['v']
+        alpha = aero_params['alpha']
+        rho = aero_params['rho']
 
         self.add('twist',
                  IndepVarComp('twist', numpy.zeros((num_y))),
@@ -44,17 +44,64 @@ class AeroGroup(Group):
         self.add('forces',
                  WeissingerForces(num_y),
                  promotes=['*'])
+        self.add('lift',
+                 WeissingerLift(num_y),
+                 promotes=['*'])
+        self.add('CL',
+                 WeissingerLiftCoeff(num_y),
+                 promotes=['*'])
+        self.add('CD',
+                 WeissingerDragCoeff(num_y),
+                 promotes=['*'])
 
         
 
 if __name__ == "__main__":
 #    numpy.seterr(all='raise')
 
-    top = Problem()
-    top.root = AeroGroup()
+    mesh_params = {
+        'num_y': 3,
+        'span': 232.02,
+        'chord': 39.37,
+    }
 
-    top.setup()
-    top.run()
+    aero_params = {
+        'v': 200.,
+        'alpha': 3.,
+        'rho': 1.225,
+    }
 
-    #data = top.check_total_derivatives()
-    data = top.check_partial_derivatives()
+    if 1:
+        top = Problem()
+        top.root = AeroGroup(mesh_params, aero_params)
+        
+        top.setup()
+        top.run()
+
+        #data = top.check_total_derivatives()
+        data = top.check_partial_derivatives()
+        
+        top.run()
+        print top['CL'], top['CD']
+
+    if 0:
+        top = Problem()
+        top.root = AeroGroup(mesh_params, aero_params)
+
+        top.driver = ScipyOptimizer()
+        top.driver.options['optimizer'] = 'SLSQP'
+        top.driver.options['disp'] = True
+        # top.driver.options['tol'] = 1.0e-12
+
+        num_y = mesh_params['num_y']
+
+        top.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
+                              upper=numpy.ones((num_y)) * 10.)
+        top.driver.add_desvar('alpha', lower = -10., upper = 10., scaler=100)
+        
+        top.driver.add_objective('CD')
+
+        top.driver.add_constraint('CL', equals=0.5)
+
+        top.setup()
+        top.run()
