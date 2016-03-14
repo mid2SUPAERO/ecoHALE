@@ -53,6 +53,8 @@ def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts):
     
     num_y = mesh.shape[1]
 
+    mtx[:, :] = 0.0
+            
     # Loop through control points
     for ind_i in xrange(num_y - 1):
         N = normals[ind_i]
@@ -189,10 +191,6 @@ class WeissingerCirculations(Component):
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex") 
         self.rhs[:] = -params['normals'].dot(v_inf)
-
-        print 'aaaaaaaaaa'
-        print self.mtx
-        print 'bbbbbbbbbb'
         
         unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
 

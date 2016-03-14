@@ -43,6 +43,7 @@ if __name__ == "__main__":
     top.root = AeroGroup()
 
     top.setup()
+    top.run()
 
     #data = top.check_total_derivatives()
     data = top.check_partial_derivatives()
