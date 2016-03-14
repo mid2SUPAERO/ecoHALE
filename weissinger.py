@@ -6,6 +6,10 @@ from scipy.linalg import lu_factor
 
 
 
+def norm(vec): 
+    return numpy.sqrt(numpy.sum(vec**2))
+
+
 def _biot_savart(N, A, B, P, inf=False, rev=False, eps=1e-5):
     """
     Apply Biot-Savart's law to compute v*n
@@ -19,14 +23,14 @@ def _biot_savart(N, A, B, P, inf=False, rev=False, eps=1e-5):
     - eps : parameter used to avoid singularities when points are on a vortex line
     """
 
-    rPA = numpy.linalg.norm(A - P)
-    rPB = numpy.linalg.norm(B - P)
-    rAB = numpy.linalg.norm(B - A)
-    rH = numpy.linalg.norm(P - A - numpy.dot((B - A), (P - A)) / numpy.dot((B - A), (B - A)) * (B - A)) + eps
+    rPA = norm(A - P)
+    rPB = norm(B - P)
+    rAB = norm(B - A)
+    rH = norm(P - A - numpy.dot((B - A), (P - A)) / numpy.dot((B - A), (B - A)) * (B - A)) + eps
     cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
     cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
     C = numpy.cross(B - P, A - P)
-    C /= numpy.linalg.norm(C)
+    C /= norm(C)
 
     if inf:
         vdn = -numpy.dot(N, C) / rH * (cosA + 1) / (4 * numpy.pi)
@@ -223,3 +227,55 @@ class WeissingerCirculations(Component):
 
         for voi in vois:
             sol_vec[voi].vec[:] = lu_solve(self.lup, -rhs_vec[voi].vec, trans=t)
+
+
+
+class WeissingerForces(Component):
+    """ Computes section forces """
+
+    def __init__(self, n):
+        super(WeissingerForces, self).__init__()
+
+        self.add_param('circulations', val=numpy.zeros((n-1)))
+        self.add_param('v', val=10.)
+        self.add_param('rho', val=3.)
+        self.add_param('widths', val=numpy.zeros((n-1)))
+        self.add_param('normals', val=numpy.zeros((n-1, 3)))
+        self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        circ = params['circulations']
+        rho = params['rho']
+        v = params['v']
+        widths = params['widths']
+        normals = params['normals']
+
+        sec_forces = numpy.array(normals, dtype="complex")
+        for ind in xrange(3):
+            sec_forces[:, ind] *= rho * v * circ * widths
+        unknowns['sec_forces'] = sec_forces
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for lift."""
+        J = {}
+        circ = params['circulations']
+        rho = params['rho']
+        v = params['v']
+        widths = params['widths']
+        normals = params['normals']
+
+        n = widths.shape[0]
+        sec_forces = numpy.array(normals)
+        for ind in xrange(3):
+            sec_forces[:, ind] *= rho * v * circ * widths
+        J['sec_forces', 'v'] = sec_forces.reshape(n*3) / v * 2.
+        J['sec_forces', 'rho'] = sec_forces.reshape(n*3) / rho
+
+        # TODO:
+        # J['sec_forces', 'circulations'] =
+        # J['sec_forces', 'widths'] =
+        # J['sec_forces', 'normals'] =

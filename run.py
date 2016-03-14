@@ -3,7 +3,7 @@ import numpy
 
 from openmdao.api import IndepVarComp, Problem, Group
 from geometry import Mesh
-from weissinger import WeissingerPreproc, WeissingerCirculations
+from weissinger import WeissingerPreproc, WeissingerCirculations, WeissingerForces
 
 
 class AeroGroup(Group):
@@ -28,11 +28,22 @@ class AeroGroup(Group):
         self.add('alpha',
                  IndepVarComp('alpha', alpha),
                  promotes=['*'])
+        self.add('rho',
+                 IndepVarComp('rho', rho),
+                 promotes=['*'])
+        
         self.add('mesh',
                  Mesh(num_y, span, chord),
                  promotes=['*'])
-        self.add('preproc', WeissingerPreproc(num_y), promotes=['*'])
-        self.add('circ', WeissingerCirculations(num_y), promotes=['*'])
+        self.add('preproc',
+                 WeissingerPreproc(num_y),
+                 promotes=['*'])
+        self.add('circ',
+                 WeissingerCirculations(num_y),
+                 promotes=['*'])
+        self.add('forces',
+                 WeissingerForces(num_y),
+                 promotes=['*'])
 
         
 
