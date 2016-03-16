@@ -37,6 +37,8 @@ class SpatialBeamTube(Component):
         unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
         unknowns['J'] = pi * (r2**4 - r1**4) / 2.
 
+        print params['t']
+
 
 
 class SpatialBeamFEM(Component):
@@ -60,6 +62,7 @@ class SpatialBeamFEM(Component):
         self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
+        self.fd_options['linearize'] = True # only for circulations
 
         self.E = E
         self.G = G
@@ -251,3 +254,40 @@ class SpatialBeamDisp(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         n = self.n
         unknowns['disp'] = numpy.array(params['disp_aug'][:6*n].reshape((n, 6)))
+
+
+
+class SpatialBeamEnergy(Component):
+    """ Computes strain energy """
+
+    def __init__(self, n):
+        super(SpatialBeamEnergy, self).__init__()
+
+        self.add_param('disp', val=numpy.zeros((n, 6)))
+        self.add_param('loads', val=numpy.zeros((n, 6)))
+        self.add_output('energy', val=0.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        unknowns['energy'] = 1e-5*numpy.sum(params['disp'] * params['loads'])
+
+
+
+class SpatialBeamWeight(Component):
+    """ Computes total weight """
+
+    def __init__(self, n):
+        super(SpatialBeamWeight, self).__init__()
+
+        self.add_param('t', val=numpy.zeros((n-1)))
+        self.add_output('weight', val=0.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        unknowns['weight'] = numpy.sum(params['t'])

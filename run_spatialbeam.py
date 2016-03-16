@@ -3,7 +3,7 @@ import numpy
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
 from geometry import Mesh
-from spatialbeam import SpatialBeamTube, SpatialBeamFEM, SpatialBeamDisp
+from spatialbeam import SpatialBeamTube, SpatialBeamFEM, SpatialBeamDisp, SpatialBeamEnergy, SpatialBeamWeight
 
 import sys
 
@@ -27,6 +27,9 @@ class SpatialBeamGroup(Group):
 
         cons = numpy.array([int((num_y-1)/2)])
 
+        self.add('twist',
+                 IndepVarComp('twist', numpy.zeros((num_y))),
+                 promotes=['*'])
         self.add('r', IndepVarComp('r', r), promotes=['*'])
         self.add('t', IndepVarComp('t', t), promotes=['*'])
         self.add('loads', IndepVarComp('loads', loads), promotes=['*'])
@@ -43,11 +46,17 @@ class SpatialBeamGroup(Group):
         self.add('disp',
                  SpatialBeamDisp(num_y, cons),
                  promotes=['*'])
+        self.add('energy',
+                 SpatialBeamEnergy(num_y),
+                 promotes=['*'])
+        self.add('weight',
+                 SpatialBeamWeight(num_y),
+                 promotes=['*'])
 
 
 if __name__ == '__main__':
 
-    num_y = 3
+    num_y = 9
 
     mesh_params = {
         'num_y': num_y,
@@ -86,7 +95,7 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == '1':
         top = Problem()
-        top.root = WeissingerGroup(mesh_params, aero_params)
+        top.root = SpatialBeamGroup(mesh_params, mat_params, elem_params)
 
         top.driver = ScipyOptimizer()
         top.driver.options['optimizer'] = 'SLSQP'
@@ -95,13 +104,13 @@ if __name__ == '__main__':
 
         num_y = mesh_params['num_y']
 
-        top.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
-                              upper=numpy.ones((num_y)) * 10.)
-        top.driver.add_desvar('alpha', lower = -10., upper = 10., scaler=100)
+        top.driver.add_desvar('t',
+                              lower=numpy.ones((num_y)) * 0.005,
+                              upper=numpy.ones((num_y)) * 0.25)
 
-        top.driver.add_objective('CD')
-
-        top.driver.add_constraint('CL', equals=0.5)
+        top.driver.add_objective('energy')
+        top.driver.add_constraint('weight', upper = 0.05)
+#        top.driver.add_constraint('t', lower=numpy.ones((num_y)) * 0.005)
 
         top.setup()
         top.run()
