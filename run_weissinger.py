@@ -5,8 +5,8 @@ import sys
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
 from geometry import GeometryMesh
 from transfer import TransferDisplacements
-from weissinger import WeissingerGroup
 
+from weissinger import WeissingerGroup
 
 num_y = 3
 span = 232.02
