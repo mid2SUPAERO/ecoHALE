@@ -266,7 +266,6 @@ class WeissingerForces(Component):
         self.fd_options['extra_check_partials_form'] = "central"
 
         # pre-allocate memory is a little faster
-        self.J = {}
         n_segs = n-1
         self.J['sec_forces', 'normals'] = numpy.zeros((3*n_segs, 3*n_segs))
 
