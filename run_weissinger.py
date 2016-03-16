@@ -2,8 +2,9 @@ from __future__ import division
 import numpy
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
-from geometry import Mesh
+from geometry import GeometryMesh
 from weissinger import WeissingerPreproc, WeissingerCirculations, WeissingerForces, WeissingerLift, WeissingerLiftCoeff, WeissingerDragCoeff
+from transfer import TransferDisplacements
 
 import sys
 
@@ -20,6 +21,7 @@ class WeissingerGroup(Group):
         v = aero_params['v']
         alpha = aero_params['alpha']
         rho = aero_params['rho']
+        disp = numpy.zeros((num_y, 6))
 
         self.add('twist',
                  IndepVarComp('twist', numpy.zeros((num_y))),
@@ -33,9 +35,15 @@ class WeissingerGroup(Group):
         self.add('rho',
                  IndepVarComp('rho', rho),
                  promotes=['*'])
+        self.add('disp',
+                 IndepVarComp('disp', disp),
+                 promotes=['*'])
         
         self.add('mesh',
-                 Mesh(num_y, span, chord),
+                 GeometryMesh(num_y, span, chord),
+                 promotes=['*'])
+        self.add('def_mesh',
+                 TransferDisplacements(num_y),
                  promotes=['*'])
         self.add('preproc',
                  WeissingerPreproc(num_y),

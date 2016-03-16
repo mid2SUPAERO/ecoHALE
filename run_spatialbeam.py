@@ -2,7 +2,7 @@ from __future__ import division
 import numpy
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
-from geometry import Mesh
+from geometry import GeometryMesh
 from spatialbeam import SpatialBeamTube, SpatialBeamFEM, SpatialBeamDisp, SpatialBeamEnergy, SpatialBeamWeight
 
 import sys
@@ -36,7 +36,7 @@ class SpatialBeamGroup(Group):
         self.add('loads', IndepVarComp('loads', loads), promotes=['*'])
 
         self.add('mesh',
-                 Mesh(num_y, span, chord),
+                 GeometryMesh(num_y, span, chord),
                  promotes=['*'])
         self.add('tube',
                  SpatialBeamTube(num_y),
@@ -57,7 +57,7 @@ class SpatialBeamGroup(Group):
 
 if __name__ == '__main__':
 
-    num_y = 15
+    num_y = 3
 
     mesh_params = {
         'num_y': num_y,

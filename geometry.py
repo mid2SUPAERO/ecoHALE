@@ -5,11 +5,11 @@ from openmdao.api import Component
 
 
 
-class Mesh(Component):
+class GeometryMesh(Component):
     """ Creates an aero mesh based on high-level design parameters. """
 
     def __init__(self, n, span, chord):
-        super(Mesh, self).__init__()
+        super(GeometryMesh, self).__init__()
 
         self.n = n
         self.span = span

@@ -83,7 +83,7 @@ class WeissingerPreproc(Component):
     def __init__(self, n):
         super(WeissingerPreproc, self).__init__()
 
-        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
         self.add_output('normals', val=numpy.zeros((n-1, 3)))
         self.add_output('b_pts', val=numpy.zeros((n, 3)))
         self.add_output('c_pts', val=numpy.zeros((n-1, 3)))
@@ -99,7 +99,7 @@ class WeissingerPreproc(Component):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        mesh = params['mesh']
+        mesh = params['def_mesh']
         unknowns['b_pts'] = mesh[0, :, :] * .75 + mesh[1, :, :] * .25        
         unknowns['c_pts'] = \
                             0.5 * 0.25 * mesh[0, :-1, :] + \
@@ -124,11 +124,11 @@ class WeissingerPreproc(Component):
 
     def linearize(self, params, unknowns, resids):
         J = {}
-        mesh = params['mesh']
+        mesh = params['def_mesh']
 
         b_pts_size = numpy.prod(mesh.shape[1:])
         b_pts_eye = numpy.eye(b_pts_size)
-        J['b_pts', 'mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
+        J['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
 
         cols_size = mesh.shape[1] * 6
         rows_size = (mesh.shape[1] - 1) * 3
@@ -140,7 +140,7 @@ class WeissingerPreproc(Component):
         c_pts_mat = numpy.zeros((rows_size, cols_size))
         for i in range(rows_size):
             c_pts_mat[i, :] = numpy.roll(row, i)
-        J['c_pts', 'mesh'] = c_pts_mat
+        J['c_pts', 'def_mesh'] = c_pts_mat
 
         cols_size = numpy.prod(mesh.shape)
         rows_size = mesh.shape[1] - 1
@@ -152,12 +152,12 @@ class WeissingerPreproc(Component):
         widths_mat = numpy.zeros((rows_size, cols_size))
         for i in range(rows_size):
             widths_mat[i, :] = numpy.roll(row, i*3)
-        J['widths', 'mesh'] = widths_mat
+        J['widths', 'def_mesh'] = widths_mat
 
         # TODO:
-        # J['normals', 'mesh'] =
-        # J['cos_dih', 'mesh'] =
-        # J['S_ref', 'mesh'] =
+        # J['normals', 'def_mesh'] =
+        # J['cos_dih', 'def_mesh'] =
+        # J['S_ref', 'def_mesh'] =
 
         return J
 
@@ -170,7 +170,7 @@ class WeissingerCirculations(Component):
         super(WeissingerCirculations, self).__init__()
         self.add_param('v', val=10.)
         self.add_param('alpha', val=3.)
-        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
         self.add_param('normals', val=numpy.zeros((n-1, 3)))
         self.add_param('b_pts', val=numpy.zeros((n, 3)))
         self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
@@ -187,7 +187,7 @@ class WeissingerCirculations(Component):
         self.rhs = numpy.zeros((size), dtype="complex")
 
     def _assemble_system(self, params):
-        _assemble_AIC_mtx(self.mtx, params['mesh'], params['normals'],
+        _assemble_AIC_mtx(self.mtx, params['def_mesh'], params['normals'],
                           params['c_pts'], params['b_pts'])
         
         alpha = params['alpha'] * numpy.pi / 180.
@@ -359,7 +359,7 @@ class WeissingerDragCoeff(Component):
         self.add_param('v', val=0.)
         self.add_param('circulations', val=numpy.zeros((n-1)))
         self.add_param('alpha', val=3.)
-        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
         self.add_param('normals', val=numpy.zeros((n-1, 3)))
         self.add_param('b_pts', val=numpy.zeros((n, 3)))
         self.add_param('widths', val=numpy.zeros((n-1)))
@@ -376,7 +376,7 @@ class WeissingerDragCoeff(Component):
         self.new_normals = numpy.zeros((n - 1, 3), dtype="complex")
 
     def solve_nonlinear(self, params, unknowns, resids):
-        mesh = params['mesh']
+        mesh = params['def_mesh']
         b_pts = params['b_pts']
         num_y = mesh.shape[1]
         
@@ -403,7 +403,7 @@ class WeissingerDragCoeff(Component):
         normals = params['normals']
         for ind in xrange(num_y - 1):
             self.new_normals[ind] = normals[ind] - numpy.dot(normals[ind], trefftz_normal) * trefftz_normal / norm(trefftz_normal)
-        _assemble_AIC_mtx(self.mtx, params['mesh'], self.new_normals,
+        _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.new_normals,
                           trefftz_points, params['b_pts'])
         
         velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
@@ -416,7 +416,7 @@ class WeissingerDragCoeff(Component):
         v = params['v']
         alpha = params['alpha']
         b_pts = params['b_pts']
-        mesh = params['mesh']
+        mesh = params['def_mesh']
 
         n = mesh.shape[1]
         J['CD', 'v'] = 0.
@@ -426,7 +426,7 @@ class WeissingerDragCoeff(Component):
         # TODO:
         # J['CD', 'circulations'] =
         # J['CD', 'trefftz_dist'] =  # not sure if this one is needed
-        # J['CD', 'mesh'] =
+        # J['CD', 'def_mesh'] =
         # J['CD', 'normals'] =
         # J['CD', 'widths'] =
         # J['CD', 'S_ref'] =
