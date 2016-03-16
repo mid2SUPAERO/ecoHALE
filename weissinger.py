@@ -260,35 +260,33 @@ class WeissingerForces(Component):
         rho = params['rho']
         v = params['v']
         widths = params['widths']
-        normals = params['normals']
 
-        n = widths.shape[0]
-        sec_forces = numpy.array(normals)
-        for ind in xrange(3):
-            sec_forces[:, ind] *= rho * v * circ * widths
-        J['sec_forces', 'v'] = sec_forces.reshape(n*3) / v
-        J['sec_forces', 'rho'] = sec_forces.reshape(n*3) / rho
+        n_segs = widths.shape[0]
+        sec_forces = unknowns['sec_forces']
+        J['sec_forces', 'v'] = sec_forces.reshape(n_segs*3) / v
+        J['sec_forces', 'rho'] = sec_forces.reshape(n_segs*3) / rho
 
-        forces_circ = numpy.zeros((3*n, n))
-        for ix in xrange(n):
+        forces_circ = numpy.zeros((3*n_segs, n_segs))
+        for ix in xrange(n_segs):
             for iy in xrange(3):
                 forces_circ[iy + ix*3, ix] = sec_forces[ix, iy] / circ[ix]
         J['sec_forces', 'circulations'] = forces_circ
 
-        forces_widths = numpy.zeros((3*n, n))
-        for ix in xrange(n):
+        forces_widths = numpy.zeros((3*n_segs, n_segs))
+        for ix in xrange(n_segs):
             for iy in xrange(3):
                 forces_widths[iy + ix*3, ix] = sec_forces[ix, iy] / widths[ix]
         J['sec_forces', 'widths'] = forces_widths
 
-        forces_normals = numpy.zeros((3*n, 3*n))
-        for ix in xrange(n):
-            for iy in xrange(3):
-                forces_normals[iy + ix*3, iy + ix*3] = sec_forces[ix, iy] / normals[ix, iy]
-        J['sec_forces', 'normals'] = forces_normals
+        # forces_normals = numpy.zeros((3*n_segs, 3*n_segs))
+        tmp = J['sec_forces', 'normals'] = numpy.zeros((3*n_segs, 3*n_segs))
+        part = rho * v * circ * widths
+        for j in xrange(n_segs): 
+            for k in xrange(3): 
+                idx = 3*j + k
+                tmp[idx, idx] = part[j]
 
         return J
-
 
 
 class WeissingerLift(Component):

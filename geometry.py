@@ -3,8 +3,6 @@ import numpy
 
 from openmdao.api import Component
 
-
-
 class GeometryMesh(Component):
     """ Creates an aero mesh based on high-level design parameters. """
 

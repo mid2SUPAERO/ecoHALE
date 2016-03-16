@@ -103,7 +103,7 @@ if __name__ == '__main__':
         top.run_once()
 
         #data = top.check_total_derivatives()
-        data = top.check_partial_derivatives(comps=['circ', 'forces'])
+        data = top.check_partial_derivatives(comps=['forces'])
 
         # top.run()
 
