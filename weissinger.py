@@ -267,7 +267,6 @@ class WeissingerForces(Component):
 
         # pre-allocate memory is a little faster
         n_segs = n-1
-        self.J['sec_forces', 'normals'] = numpy.zeros((3*n_segs, 3*n_segs))
 
         self.arange = numpy.arange(n-1)
 
