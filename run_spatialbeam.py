@@ -14,7 +14,6 @@ cons = numpy.array([int((num_y-1)/2)])
 
 E = 200.e9
 G = 30.e9
-
 r = 0.3 * numpy.ones(num_y-1)
 t = 0.02 * numpy.ones(num_y-1)
 
@@ -23,12 +22,20 @@ loads[0, 2] = loads[-1, 2] = 1e3
 loads[:, 2] = 1e3
 
 root = Group()
+
 root.add('twist',
          IndepVarComp('twist', numpy.zeros((num_y))),
          promotes=['*'])
-root.add('r', IndepVarComp('r', r), promotes=['*'])
-root.add('t', IndepVarComp('t', t), promotes=['*'])
-root.add('loads', IndepVarComp('loads', loads), promotes=['*'])
+root.add('r',
+         IndepVarComp('r', r),
+         promotes=['*'])
+root.add('t',
+         IndepVarComp('t', t),
+         promotes=['*'])
+root.add('loads',
+         IndepVarComp('loads', loads),
+         promotes=['*'])
+
 root.add('mesh',
          GeometryMesh(num_y, span, chord),
          promotes=['*'])

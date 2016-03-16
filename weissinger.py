@@ -433,7 +433,7 @@ class WeissingerDragCoeff(Component):
         velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
         unknowns['CD'] = 1. / params['S_ref'] / params['v'] * numpy.sum(params['circulations'] * velocities * params['widths'])
 
-        print unknowns['CD']
+#        print unknowns['CD']
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for drag."""

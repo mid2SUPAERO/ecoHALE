@@ -58,7 +58,7 @@ class TransferLoads(Component):
     """ Performs load transfer """
 
     def __init__(self, n, fem_origin=0.35):
-        super(LoadTransfer, self).__init__()
+        super(TransferLoads, self).__init__()
 
         self.fem_origin = fem_origin
 
@@ -71,8 +71,7 @@ class TransferLoads(Component):
         self.fd_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
-
-        mesh = params['mesh']
+        mesh = params['def_mesh']
         sec_forces = params['sec_forces']
 
         num_x, num_y = mesh.shape[:2]

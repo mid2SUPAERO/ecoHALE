@@ -15,6 +15,7 @@ chord = 39.37
 v = 200.
 alpha = 3.
 rho = 1.225
+
 disp = numpy.zeros((num_y, 6))
 
 root = Group()
@@ -69,3 +70,5 @@ if sys.argv[1] == '0':
     print prob['CL'], prob['CD']
 elif sys.argv[1] == '1':
     prob.run()
+    print prob['alpha'], prob['CL'], prob['CD']
+    print prob['twist']
