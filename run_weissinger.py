@@ -71,37 +71,37 @@ if __name__ == '__main__':
         'rho': 1.225,
     }
 
-    if sys.argv[1] == '0':
-        top = Problem()
-        top.root = WeissingerGroup(mesh_params, aero_params)
+    top = Problem()
+    top.root = WeissingerGroup(mesh_params, aero_params)
 
-        top.setup()
-        top.run()
+    top.driver = ScipyOptimizer()
+    top.driver.options['optimizer'] = 'SLSQP'
+    top.driver.options['disp'] = True
+    # top.driver.options['tol'] = 1.0e-12
+
+    num_y = mesh_params['num_y']
+
+    top.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
+                          upper=numpy.ones((num_y)) * 10.)
+    top.driver.add_desvar('alpha', lower=-10., upper=10., scaler=100)
+
+    top.driver.add_objective('CD')
+
+    top.driver.add_constraint('CL', equals=0.5)
+
+    top.setup()
+
+    if sys.argv[1] == '0':
+        top.run_once()
 
         #data = top.check_total_derivatives()
-        data = top.check_partial_derivatives()
+        data = top.check_partial_derivatives(comps=['circ', 'forces'])
 
-        top.run()
-        print top['CL'], top['CD']
+        # top.run()
 
     elif sys.argv[1] == '1':
-        top = Problem()
-        top.root = WeissingerGroup(mesh_params, aero_params)
-
-        top.driver = ScipyOptimizer()
-        top.driver.options['optimizer'] = 'SLSQP'
-        top.driver.options['disp'] = True
-        # top.driver.options['tol'] = 1.0e-12
-
-        num_y = mesh_params['num_y']
-
-        top.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
-                              upper=numpy.ones((num_y)) * 10.)
-        top.driver.add_desvar('alpha', lower = -10., upper = 10., scaler=100)
-
-        top.driver.add_objective('CD')
-
-        top.driver.add_constraint('CL', equals=0.5)
-
-        top.setup()
+       
         top.run()
+
+    print top['CL'], top['CD']
+

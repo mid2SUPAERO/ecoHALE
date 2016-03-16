@@ -207,7 +207,11 @@ class WeissingerCirculations(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for circulations."""
 
+        # jac = self.complex_step_jacobian(params, unknowns, resids)
+
         self.lup = lu_factor(self.mtx.real)
+
+        return jac
 
     def solve_linear(self, dumat, drmat, vois, mode=None):
 
