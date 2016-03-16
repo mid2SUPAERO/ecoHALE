@@ -246,6 +246,8 @@ class WeissingerForces(Component):
         n_segs = n-1
         self.J['sec_forces', 'normals'] = numpy.zeros((3*n_segs, 3*n_segs))
 
+        self.arange = numpy.arange(n-1)
+
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
         rho = params['rho']
@@ -261,6 +263,7 @@ class WeissingerForces(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
         J = {}
+        arange = self.arange
         circ = params['circulations']
         rho = params['rho']
         v = params['v']
@@ -268,28 +271,23 @@ class WeissingerForces(Component):
 
         n_segs = widths.shape[0]
         sec_forces = unknowns['sec_forces']
-        J['sec_forces', 'v'] = sec_forces.reshape(n_segs*3) / v
-        J['sec_forces', 'rho'] = sec_forces.reshape(n_segs*3) / rho
+        J['sec_forces', 'v'] = sec_forces.flatten() / v
+        J['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
         forces_circ = numpy.zeros((3*n_segs, n_segs))
-        for ix in xrange(n_segs):
-            for iy in xrange(3):
-                forces_circ[iy + ix*3, ix] = sec_forces[ix, iy] / circ[ix]
+        for ind in xrange(3):
+            forces_circ[ind+3*arange, arange] = sec_forces[:, ind] / circ
         J['sec_forces', 'circulations'] = forces_circ
 
         forces_widths = numpy.zeros((3*n_segs, n_segs))
-        for ix in xrange(n_segs):
-            for iy in xrange(3):
-                forces_widths[iy + ix*3, ix] = sec_forces[ix, iy] / widths[ix]
+        for ind in xrange(3):
+            forces_widths[ind+3*arange, arange] = sec_forces[:, ind] / widths
         J['sec_forces', 'widths'] = forces_widths
 
-        # forces_normals = numpy.zeros((3*n_segs, 3*n_segs))
-        tmp = J['sec_forces', 'normals'] = numpy.zeros((3*n_segs, 3*n_segs))
-        part = rho * v * circ * widths
-        for j in xrange(n_segs): 
-            for k in xrange(3): 
-                idx = 3*j + k
-                tmp[idx, idx] = part[j]
+        forces_normals = numpy.zeros((3*n_segs, 3*n_segs))
+        for ind in xrange(3):
+            forces_normals[ind+3*arange, ind+3*arange] = rho * v * circ * widths
+        J['sec_forces', 'normals'] = forces_normals
 
         return J
 
