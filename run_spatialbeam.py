@@ -24,6 +24,7 @@ class SpatialBeamGroup(Group):
         t = elem_params['t']
         loads = numpy.zeros((num_y, 6))
         loads[0, 2] = loads[-1, 2] = 1e3
+        loads[:, 2] = 1e3
 
         cons = numpy.array([int((num_y-1)/2)])
 
@@ -56,7 +57,7 @@ class SpatialBeamGroup(Group):
 
 if __name__ == '__main__':
 
-    num_y = 9
+    num_y = 15
 
     mesh_params = {
         'num_y': num_y,
@@ -105,11 +106,11 @@ if __name__ == '__main__':
         num_y = mesh_params['num_y']
 
         top.driver.add_desvar('t',
-                              lower=numpy.ones((num_y)) * 0.005,
+                              lower=numpy.ones((num_y)) * 0.001,
                               upper=numpy.ones((num_y)) * 0.25)
 
         top.driver.add_objective('energy')
-        top.driver.add_constraint('weight', upper = 0.05)
+        top.driver.add_constraint('weight', upper = 0.5)
 #        top.driver.add_constraint('t', lower=numpy.ones((num_y)) * 0.005)
 
         top.setup()
