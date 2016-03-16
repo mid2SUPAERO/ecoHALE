@@ -342,7 +342,6 @@ class WeissingerLift(Component):
         return J
 
 
-
 class WeissingerLiftCoeff(Component):
     """ Computes lift coefficient """
 
@@ -374,7 +373,6 @@ class WeissingerLiftCoeff(Component):
         J['CL', 'L'] = 1. / (0.5*self.rho*self.v**2*params['S_ref'])
 
         return J
-
 
 
 class WeissingerDragCoeff(Component):
