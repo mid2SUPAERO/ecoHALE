@@ -255,7 +255,7 @@ class WeissingerForces(Component):
             sec_forces[:, ind] *= rho * v * circ * widths
         unknowns['sec_forces'] = sec_forces
 
-    def linearize(self, params, unknowns, resids):
+    def linearize(sel params, unknowns, resids):
         """ Jacobian for lift."""
         J = {}
         circ = params['circulations']
