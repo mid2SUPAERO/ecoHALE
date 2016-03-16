@@ -262,7 +262,8 @@ class WeissingerForces(Component):
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
-        J = {}
+
+        J = self.alloc_jacobian()
         arange = self.arange
         circ = params['circulations']
         rho = params['rho']
@@ -274,20 +275,17 @@ class WeissingerForces(Component):
         J['sec_forces', 'v'] = sec_forces.flatten() / v
         J['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
-        forces_circ = numpy.zeros((3*n_segs, n_segs))
+        forces_circ = J['sec_forces', 'circulations']
         for ind in xrange(3):
             forces_circ[ind+3*arange, arange] = sec_forces[:, ind] / circ
-        J['sec_forces', 'circulations'] = forces_circ
 
-        forces_widths = numpy.zeros((3*n_segs, n_segs))
+        forces_widths = J['sec_forces', 'widths']
         for ind in xrange(3):
             forces_widths[ind+3*arange, arange] = sec_forces[:, ind] / widths
-        J['sec_forces', 'widths'] = forces_widths
 
-        forces_normals = numpy.zeros((3*n_segs, 3*n_segs))
+        forces_normals = J['sec_forces', 'normals']
         for ind in xrange(3):
             forces_normals[ind+3*arange, ind+3*arange] = rho * v * circ * widths
-        J['sec_forces', 'normals'] = forces_normals
 
         return J
 
