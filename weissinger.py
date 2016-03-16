@@ -237,7 +237,7 @@ class WeissingerForces(Component):
         self.add_param('normals', val=numpy.zeros((n-1, 3)))
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
 
-        self.fd_options['force_fd'] = True
+        # self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -253,8 +253,7 @@ class WeissingerForces(Component):
             sec_forces[:, ind] *= rho * v * circ * widths
         unknowns['sec_forces'] = sec_forces
 
-
-    def linearize(sel params, unknowns, resids):
+    def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
         J = {}
         circ = params['circulations']
@@ -267,7 +266,7 @@ class WeissingerForces(Component):
         sec_forces = numpy.array(normals)
         for ind in xrange(3):
             sec_forces[:, ind] *= rho * v * circ * widths
-        J['sec_forces', 'v'] = sec_forces.reshape(n*3) / v * 2.
+        J['sec_forces', 'v'] = sec_forces.reshape(n*3) / v
         J['sec_forces', 'rho'] = sec_forces.reshape(n*3) / rho
 
         forces_circ = numpy.zeros((3*n, n))
@@ -287,6 +286,8 @@ class WeissingerForces(Component):
             for iy in xrange(3):
                 forces_normals[iy + ix*3, iy + ix*3] = sec_forces[ix, iy] / normals[ix, iy]
         J['sec_forces', 'normals'] = forces_normals
+
+        return J
 
 
 
