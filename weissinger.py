@@ -81,16 +81,31 @@ class WeissingerPreproc(Component):
         super(WeissingerPreproc, self).__init__()
 
         self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
-        self.add_output('normals', val=numpy.zeros((n-1, 3)))
         self.add_output('b_pts', val=numpy.zeros((n, 3)))
         self.add_output('c_pts', val=numpy.zeros((n-1, 3)))
         self.add_output('widths', val=numpy.zeros((n-1)))
         self.add_output('cos_dih', val=numpy.zeros((n-1)))
+        self.add_output('normals', val=numpy.zeros((n-1, 3)))
         self.add_output('S_ref', val=0.)
 
-        self.fd_options['force_fd'] = True
+        self.fd_options['force_fd'] = True   # Not worth doing manual partials
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
+
+        arange = numpy.arange(3*n)
+        bpts_mesh = numpy.zeros((3*n, 6*n))
+        bpts_mesh[arange, arange] = 0.75
+        bpts_mesh[arange, arange+3*n] = 0.25
+        self.bpts_mesh = bpts_mesh
+        
+        arange = numpy.arange(3*n-3)
+        imesh = numpy.arange(6*n).reshape((2, n, 3))
+        cpts_mesh = numpy.zeros((3*n-3, 6*n))
+        cpts_mesh[arange, imesh[0, :-1, :].flatten()] = 0.5 * 0.25
+        cpts_mesh[arange, imesh[1, :-1, :].flatten()] = 0.5 * 0.75
+        cpts_mesh[arange, imesh[0,  1:, :].flatten()] = 0.5 * 0.25
+        cpts_mesh[arange, imesh[1,  1:, :].flatten()] = 0.5 * 0.75
+        self.cpts_mesh = cpts_mesh
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
@@ -122,21 +137,8 @@ class WeissingerPreproc(Component):
         J = {}
         mesh = params['def_mesh']
 
-        b_pts_size = numpy.prod(mesh.shape[1:])
-        b_pts_eye = numpy.eye(b_pts_size)
-        J['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
-
-        cols_size = mesh.shape[1] * 6
-        rows_size = (mesh.shape[1] - 1) * 3
-        row = numpy.zeros((cols_size))
-        row[0] = .125
-        row[3] = .125
-        row[cols_size / 2 + 0] = .375
-        row[cols_size / 2 + 3] = .375
-        c_pts_mat = numpy.zeros((rows_size, cols_size))
-        for i in range(rows_size):
-            c_pts_mat[i, :] = numpy.roll(row, i)
-        J['c_pts', 'def_mesh'] = c_pts_mat
+        J['b_pts', 'def_mesh'] = self.bpts_mesh
+        J['c_pts', 'def_mesh'] = self.cpts_mesh
 
         cols_size = numpy.prod(mesh.shape)
         rows_size = mesh.shape[1] - 1
@@ -150,10 +152,14 @@ class WeissingerPreproc(Component):
             widths_mat[i, :] = numpy.roll(row, i*3)
         J['widths', 'def_mesh'] = widths_mat
 
-        # TODO:
-        # J['normals', 'def_mesh'] =
-        # J['cos_dih', 'def_mesh'] =
-        # J['S_ref', 'def_mesh'] =
+        def cs(plist, slist):
+            return self.complex_step_jacobian(params, unknowns, resids,
+                                              fd_params=plist,
+                                              fd_states=slist)
+
+#        J['normals', 'def_mesh'] = 
+#        J['cos_dih', 'def_mesh'] =
+#        J['S_ref', 'def_mesh'] =
 
         return J
 
@@ -171,7 +177,7 @@ class WeissingerCirculations(Component):
         self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
         self.add_state('circulations', val=numpy.zeros((n-1)))
 
-        self.fd_options['force_fd'] = True
+#        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "forward"
         self.fd_options['linearize'] = True # only for circulations
@@ -205,11 +211,29 @@ class WeissingerCirculations(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for circulations."""
 
-        # jac = self.complex_step_jacobian(params, unknowns, resids)
-
         self.lup = lu_factor(self.mtx.real)
+        
+        n = self.num_y
+        
+        jac = self.complex_step_jacobian(params, unknowns, resids,
+                                         fd_params=['normals', 'def_mesh',
+                                                    'b_pts', 'c_pts'],
+                                         fd_states=[])
+                                         
+        jac['circulations', 'circulations'] = self.mtx.real
 
-        # return jac
+        normals = params['normals'].real
+        alpha = params['alpha'].real * numpy.pi / 180.
+        cosa = numpy.cos(alpha)
+        sina = numpy.sin(alpha)
+        v_inf = params['v'].real * numpy.array([cosa, 0., sina], dtype="complex")
+
+        jac['circulations', 'v'] = -self.rhs.real / params['v'].real
+
+        dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
+        jac['circulations', 'alpha'] = normals.dot(dv_da)
+
+        return jac
 
     def solve_linear(self, dumat, drmat, vois, mode=None):
 
@@ -264,13 +288,13 @@ class WeissingerForces(Component):
         """ Jacobian for lift."""
         J = {}
         arange = self.arange
-        circ = params['circulations']
-        rho = params['rho']
-        v = params['v']
-        widths = params['widths']
+        circ = params['circulations'].real
+        rho = params['rho'].real
+        v = params['v'].real
+        widths = params['widths'].real
 
         n_segs = widths.shape[0]
-        sec_forces = unknowns['sec_forces']
+        sec_forces = unknowns['sec_forces'].real
         J['sec_forces', 'v'] = sec_forces.flatten() / v
         J['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
@@ -318,9 +342,9 @@ class WeissingerLift(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
         J = {}
-        cos_dih = params['cos_dih']
-        normals = params['normals']
-        sec_forces = params['sec_forces']
+        cos_dih = params['cos_dih'].real
+        normals = params['normals'].real
+        sec_forces = params['sec_forces'].real
 
         forces_circ = numpy.zeros((3*n, n))
         for ix in xrange(n):

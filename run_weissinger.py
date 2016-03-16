@@ -8,7 +8,7 @@ from transfer import TransferDisplacements
 
 from weissinger import WeissingerGroup
 
-num_y = 9
+num_y = 3
 span = 232.02
 chord = 39.37
 
@@ -64,7 +64,7 @@ prob.setup()
 prob.run_once()
 
 if sys.argv[1] == '0':
-    prob.check_partial_derivatives()
+    prob.check_partial_derivatives(compact_print=True)
     prob.run_once()
     print
     print prob['CL'], prob['CD']
