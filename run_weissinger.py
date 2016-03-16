@@ -8,7 +8,7 @@ from transfer import TransferDisplacements
 
 from weissinger import WeissingerGroup
 
-num_y = 3
+num_y = 9
 span = 232.02
 chord = 39.37
 

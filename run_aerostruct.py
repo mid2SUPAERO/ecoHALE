@@ -2,7 +2,7 @@ from __future__ import division
 import numpy
 import sys
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel
 from geometry import GeometryMesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
@@ -61,7 +61,12 @@ coupled.add('spatialbeam',
             SpatialBeamGroup(num_y, cons, E, G),
             promotes=['*'])
 coupled.nl_solver = Newton()
+coupled.nl_solver.options['iprint'] = 1
 coupled.ln_solver = ScipyGMRES()
+coupled.ln_solver.options['iprint'] = 1
+coupled.ln_solver.preconditioner = LinearGaussSeidel()
+coupled.weissinger.ln_solver = LinearGaussSeidel()
+coupled.spatialbeam.ln_solver = LinearGaussSeidel()
 
 root.add('coupled',
          coupled,
