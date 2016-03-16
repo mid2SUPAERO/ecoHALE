@@ -186,7 +186,7 @@ class WeissingerCirculations(Component):
         self.mtx = numpy.zeros((size, size), dtype="complex")
         self.rhs = numpy.zeros((size), dtype="complex")
 
-    def solve_nonlinear(self, params, unknowns, resids):
+    def _assemble_system(self, params):
         _assemble_AIC_mtx(self.mtx, params['mesh'], params['normals'],
                           params['c_pts'], params['b_pts'])
         
@@ -195,18 +195,14 @@ class WeissingerCirculations(Component):
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex") 
         self.rhs[:] = -params['normals'].dot(v_inf)
+        
+    def solve_nonlinear(self, params, unknowns, resids):
+        self._assemble_system(params)
         
         unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
-        _assemble_AIC_mtx(self.mtx, params['mesh'], params['normals'],
-                          params['c_pts'], params['b_pts'])
-        
-        alpha = params['alpha'] * numpy.pi / 180.
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
-        v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex") 
-        self.rhs[:] = -params['normals'].dot(v_inf)
+        self._assemble_system(params)
 
         circ = unknowns['circulations']
         resids['circulations'] = self.mtx.dot(circ) - self.rhs

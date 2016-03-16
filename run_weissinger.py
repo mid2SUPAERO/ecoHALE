@@ -5,11 +5,13 @@ from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
 from geometry import Mesh
 from weissinger import WeissingerPreproc, WeissingerCirculations, WeissingerForces, WeissingerLift, WeissingerLiftCoeff, WeissingerDragCoeff
 
+import sys
 
-class AeroGroup(Group):
+
+class WeissingerGroup(Group):
 
     def __init__(self, mesh_params, aero_params):
-        super(AeroGroup, self).__init__()
+        super(WeissingerGroup, self).__init__()
 
         num_y = mesh_params['num_y']
         span = mesh_params['span']
@@ -54,10 +56,8 @@ class AeroGroup(Group):
                  WeissingerDragCoeff(num_y),
                  promotes=['*'])
 
-        
 
-if __name__ == "__main__":
-#    numpy.seterr(all='raise')
+if __name__ == '__main__':
 
     mesh_params = {
         'num_y': 3,
@@ -71,22 +71,22 @@ if __name__ == "__main__":
         'rho': 1.225,
     }
 
-    if 1:
+    if sys.argv[1] == '0':
         top = Problem()
-        top.root = AeroGroup(mesh_params, aero_params)
-        
+        top.root = WeissingerGroup(mesh_params, aero_params)
+
         top.setup()
         top.run()
 
         #data = top.check_total_derivatives()
         data = top.check_partial_derivatives()
-        
+
         top.run()
         print top['CL'], top['CD']
 
-    if 0:
+    elif sys.argv[1] == '1':
         top = Problem()
-        top.root = AeroGroup(mesh_params, aero_params)
+        top.root = WeissingerGroup(mesh_params, aero_params)
 
         top.driver = ScipyOptimizer()
         top.driver.options['optimizer'] = 'SLSQP'
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         top.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
                               upper=numpy.ones((num_y)) * 10.)
         top.driver.add_desvar('alpha', lower = -10., upper = 10., scaler=100)
-        
+
         top.driver.add_objective('CD')
 
         top.driver.add_constraint('CL', equals=0.5)

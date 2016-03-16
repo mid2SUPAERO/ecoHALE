@@ -6,7 +6,7 @@ from openmdao.api import Component
 
 
 class Mesh(Component):
-    """ Creates mesh based on high-level design parameters. """
+    """ Creates an aero mesh based on high-level design parameters. """
 
     def __init__(self, n, span, chord):
         super(Mesh, self).__init__()
@@ -20,7 +20,7 @@ class Mesh(Component):
 
         self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "forward"
+        self.fd_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         n = self.n
