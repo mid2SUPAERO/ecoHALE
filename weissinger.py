@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy
 
-from openmdao.api import Component
+from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 
 
@@ -436,6 +436,8 @@ class WeissingerDragCoeff(Component):
         velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
         unknowns['CD'] = 1. / params['S_ref'] / params['v'] * numpy.sum(params['circulations'] * velocities * params['widths'])
 
+        print unknowns['CD']
+
     def linearize(self, params, unknowns, resids):
         """ Jacobian for drag."""
         J = {}
@@ -459,3 +461,29 @@ class WeissingerDragCoeff(Component):
         # J['CD', 'S_ref'] =
 
         return J
+
+
+
+class WeissingerGroup(Group):
+
+    def __init__(self, num_y):
+        super(WeissingerGroup, self).__init__()
+
+        self.add('preproc',
+                 WeissingerPreproc(num_y),
+                 promotes=['*'])
+        self.add('circ',
+                 WeissingerCirculations(num_y),
+                 promotes=['*'])
+        self.add('forces',
+                 WeissingerForces(num_y),
+                 promotes=['*'])
+        self.add('lift',
+                 WeissingerLift(num_y),
+                 promotes=['*'])
+        self.add('CL',
+                 WeissingerLiftCoeff(num_y),
+                 promotes=['*'])
+        self.add('CD',
+                 WeissingerDragCoeff(num_y),
+                 promotes=['*'])

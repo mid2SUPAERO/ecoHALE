@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy
 
-from openmdao.api import Component
+from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 
 
@@ -291,3 +291,26 @@ class SpatialBeamWeight(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['weight'] = numpy.sum(params['t'])
+
+
+
+class SpatialBeamGroup(Group):
+
+    def __init__(self, num_y, cons, E, G):
+        super(SpatialBeamGroup, self).__init__()
+
+        self.add('tube',
+                 SpatialBeamTube(num_y),
+                 promotes=['*'])
+        self.add('fem',
+                 SpatialBeamFEM(num_y, cons, E, G),
+                 promotes=['*'])
+        self.add('disp',
+                 SpatialBeamDisp(num_y, cons),
+                 promotes=['*'])
+        self.add('energy',
+                 SpatialBeamEnergy(num_y),
+                 promotes=['*'])
+        self.add('weight',
+                 SpatialBeamWeight(num_y),
+                 promotes=['*'])
