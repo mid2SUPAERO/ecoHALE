@@ -15,6 +15,7 @@ cons = numpy.array([int((num_y-1)/2)])
 E = 200.e9
 G = 30.e9
 stress = 20.e6
+mrho = 3.e3
 r = 0.3 * numpy.ones(num_y-1)
 t = 0.02 * numpy.ones(num_y-1)
 
@@ -41,7 +42,7 @@ root.add('mesh',
          GeometryMesh(num_y, span, chord),
          promotes=['*'])
 root.add('spatialbeam',
-         SpatialBeamGroup(num_y, cons, E, G, stress),
+         SpatialBeamGroup(num_y, cons, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()

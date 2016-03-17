@@ -336,18 +336,42 @@ class SpatialBeamEnergy(Component):
 class SpatialBeamWeight(Component):
     """ Computes total weight """
 
-    def __init__(self, n):
+    def __init__(self, n, mrho, fem_origin=0.35):
         super(SpatialBeamWeight, self).__init__()
 
-        self.add_param('t', val=numpy.zeros((n-1)))
+        self.add_param('A', val=numpy.zeros((n-1)))
+        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
         self.add_output('weight', val=0.)
 
-        #self.fd_options['force_fd'] = True
+        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
+        
+        elem_IDs = numpy.zeros((n-1, 2), int)
+        elem_IDs[:, 0] = numpy.arange(n-1)
+        elem_IDs[:, 1] = numpy.arange(n-1) + 1
+        self.elem_IDs = elem_IDs
+
+        self.mrho = mrho
+        self.fem_origin = fem_origin
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['weight'] = numpy.sum(params['t'])
+        mesh = params['mesh']
+        A = params['A']
+        num_elems = self.elem_IDs.shape[0]
+        
+        w = self.fem_origin
+        nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+        
+        volume = 0.
+        for ielem in xrange(num_elems):
+            in0, in1 = self.elem_IDs[ielem, :]
+            P0 = nodes[in0, :]
+            P1 = nodes[in1, :]
+            L = norm(P1 - P0)
+            volume += L * A[ielem]
+        
+        unknowns['weight'] = volume  * self.mrho * 9.81
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -463,7 +487,7 @@ class SpatialBeamFailureKS(Component):
 
 class SpatialBeamGroup(Group):
 
-    def __init__(self, num_y, cons, E, G, stress):
+    def __init__(self, num_y, cons, E, G, stress, mrho):
         super(SpatialBeamGroup, self).__init__()
 
         self.add('tube',
@@ -479,7 +503,7 @@ class SpatialBeamGroup(Group):
                  SpatialBeamEnergy(num_y),
                  promotes=['*'])
         self.add('weight',
-                 SpatialBeamWeight(num_y),
+                 SpatialBeamWeight(num_y, mrho),
                  promotes=['*'])
         self.add('vonmises',
                  SpatialBeamVonMisesTube(num_y, E, G),
