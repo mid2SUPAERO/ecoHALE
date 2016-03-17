@@ -39,3 +39,27 @@ class FunctionalBreguetRange(Component):
         Ws = params['weight']
 
         unknowns['fuelburn'] = (W0 + Ws) * (numpy.exp(R * CT / a / M * CD / CL) - 1)
+
+
+
+class FunctionalEquilibrium(Component):
+    """ L = W constraint """
+
+    def __init__(self, W0):
+        super(FunctionalEquilibrium, self).__init__()
+
+        self.add_param('L', val=1.)
+        self.add_param('weight', val=1.)
+
+        self.add_output('eq_con', val=0.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        self.W0 = W0
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        W0 = self.W0
+
+        unknowns['eq_con'] = params['weight'] + W0 - params['L']

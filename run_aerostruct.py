@@ -8,7 +8,7 @@ from geometry import GeometryMesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
 from spatialbeam import SpatialBeamGroup
-from functionals import FunctionalBreguetRange
+from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 #from gs_newton import HybridGSNewton
 
 num_y = 5
@@ -96,6 +96,9 @@ root.add('coupled',
          promotes=['*'])
 root.add('fuelburn',
          FunctionalBreguetRange(W0, CT, a, R, M),
+         promotes=['*'])
+root.add('eq_con',
+         FunctionalEquilibrium(W0),
          promotes=['*'])
 
 prob = Problem()
