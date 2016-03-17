@@ -36,3 +36,4 @@ for i,(t_vals, m_vals) in enumerate(zip(twist, mesh)):
     # m_vals[0,:,1].shape, t_vals.shape
     ax.plot(m_vals[0,:,1], t_vals, lw=2, c=plt.cm.jet(float(i)/n_cases))
 
+plt.show()
