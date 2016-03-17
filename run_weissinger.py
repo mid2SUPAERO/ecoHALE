@@ -2,7 +2,7 @@ from __future__ import division
 import numpy
 import sys
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh
 from transfer import TransferDisplacements, TransferLoads
 
@@ -62,6 +62,9 @@ prob.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
 prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=100)
 prob.driver.add_objective('CD')
 prob.driver.add_constraint('CL', equals=0.5)
+
+#setup data recording
+prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
 prob.setup()
 prob.run_once()
