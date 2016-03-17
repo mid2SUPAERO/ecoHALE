@@ -133,36 +133,6 @@ class WeissingerPreproc(Component):
 
         unknowns['S_ref'] = 0.5 * numpy.sum(norms)
 
-    def linearize(self, params, unknowns, resids):
-        J = {}
-        mesh = params['def_mesh']
-
-        J['b_pts', 'def_mesh'] = self.bpts_mesh
-        J['c_pts', 'def_mesh'] = self.cpts_mesh
-
-        cols_size = numpy.prod(mesh.shape)
-        rows_size = mesh.shape[1] - 1
-        row = numpy.zeros((cols_size))
-        row[1] = -.75
-        row[4] = .75
-        row[cols_size / 2 + 1] = -.25
-        row[cols_size / 2 + 4] = .25
-        widths_mat = numpy.zeros((rows_size, cols_size))
-        for i in range(rows_size):
-            widths_mat[i, :] = numpy.roll(row, i*3)
-        J['widths', 'def_mesh'] = widths_mat
-
-        def cs(plist, slist):
-            return self.complex_step_jacobian(params, unknowns, resids,
-                                              fd_params=plist,
-                                              fd_states=slist)
-
-#        J['normals', 'def_mesh'] = 
-#        J['cos_dih', 'def_mesh'] =
-#        J['S_ref', 'def_mesh'] =
-
-        return J
-
 
 class WeissingerCirculations(Component):
     """ Defines circulations """
@@ -411,7 +381,7 @@ class WeissingerDragCoeff(Component):
         self.add_param('S_ref', val=0.)
         self.add_output('CD', val=0.)
 
-        self.fd_options['force_fd'] = True
+        # self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -451,33 +421,26 @@ class WeissingerDragCoeff(Component):
         _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.new_normals,
                           trefftz_points, params['b_pts'])
 
-        velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
-        unknowns['CD'] = 1. / params['S_ref'] / params['v'] * numpy.sum(params['circulations'] * velocities * params['widths'])
-
-#        print unknowns['CD']
+        self.velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
+        unknowns['CD'] = 1. / params['S_ref'] / params['v'] * numpy.sum(params['circulations'] * self.velocities * params['widths'])
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for drag."""
-        J = {}
-        circ = params['circulations']
-        v = params['v']
-        alpha = params['alpha']
-        b_pts = params['b_pts']
-        mesh = params['def_mesh']
+        J = self.alloc_jacobian() 
 
-        n = mesh.shape[1]
-        J['CD', 'v'] = 0.
-        J['CD', 'alpha'] = 0.
-        J['CD', 'b_pts'] = numpy.zeros((1, n * 3))
+        circ = params['circulations'].real
+        widths = params['widths'].real
+        v = params['v'].real
+        S_ref = params['S_ref'].real
+        velocities = self.velocities.real
+ 
+        J['CD', 'v'] = (-2*unknowns['CD'].real/v)
+        J['CD', 'S_ref'] = (-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
+        J['CD', 'circulations'][:] = (1. / S_ref / v* numpy.sum(velocities*widths + circ*widths*self.mtx.real/v,))
+        J['CD', 'widths'][:] = (1. / S_ref / v* velocities*circ)
 
-        # TODO:
-        # J['CD', 'circulations'] =
-        # J['CD', 'trefftz_dist'] =  # not sure if this one is needed
-        # J['CD', 'def_mesh'] =
-        # J['CD', 'normals'] =
-        # J['CD', 'widths'] =
-        # J['CD', 'S_ref'] =
-
+        J.update(self.complex_step_jacobian(params, unknowns, resids, fd_params=['def_mesh', 'alpha', 'normals', 'b_pts']))
+        
         return J
 
 

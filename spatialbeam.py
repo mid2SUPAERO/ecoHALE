@@ -40,14 +40,13 @@ class SpatialBeamTube(Component):
 #        print params['t']
 
 
-
 class SpatialBeamFEM(Component):
     """ Computes the displacements and rotations """
 
     def __init__(self, n, cons, E, G, fem_origin=0.35):
         super(SpatialBeamFEM, self).__init__()
 
-        size = 6 * n + 6 * cons.shape[0]
+        self.size = size = 6 * n + 6 * cons.shape[0]
 
         self.add_param('A', val=numpy.zeros((n - 1)))
         self.add_param('Iy', val=numpy.zeros((n - 1)))
@@ -59,7 +58,7 @@ class SpatialBeamFEM(Component):
 
         self.add_state('disp_aug', val=numpy.zeros((size)), dtype="complex")
 
-        self.fd_options['force_fd'] = True
+        # self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
         self.fd_options['linearize'] = True # only for circulations
@@ -131,7 +130,7 @@ class SpatialBeamFEM(Component):
         nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
         num_elems = elem_IDs.shape[0]
-        num_nodes = nodes.shape[0]
+        self.num_nodes = num_nodes = nodes.shape[0]
         num_cons = cons.shape[0]
 
         elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
@@ -218,6 +217,19 @@ class SpatialBeamFEM(Component):
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
+
+        J = self.alloc_jacobian()
+
+        J['disp_aug', 'disp_aug'] = self.mtx.real
+        J['disp_aug', 'loads'][:6*self.num_nodes] = -numpy.eye(6*self.num_nodes)
+
+        J.update(self.complex_step_jacobian(params, unknowns, resids, fd_params=['A','Iy','Iz','J','mesh'], fd_states=[]))
+
+        self.lup = lu_factor(self.mtx)
+
+        return J
+
+
         self.lup = lu_factor(self.mtx.real)
 
     def solve_linear(self, dumat, drmat, vois, mode=None):

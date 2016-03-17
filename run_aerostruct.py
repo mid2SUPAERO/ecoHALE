@@ -1,13 +1,14 @@
 from __future__ import division
 import numpy
 import sys
+import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel
 from geometry import GeometryMesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
 from spatialbeam import SpatialBeamGroup
-
+from gs_newton import HybridGSNewton
 
 num_y = 3
 span = 60
@@ -60,6 +61,7 @@ coupled.add('loads',
 coupled.add('spatialbeam',
             SpatialBeamGroup(num_y, cons, E, G),
             promotes=['*'])
+
 coupled.nl_solver = Newton()
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.line_search.options['iprint'] = 1
@@ -69,10 +71,17 @@ coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissinger.ln_solver = LinearGaussSeidel()
 coupled.spatialbeam.ln_solver = LinearGaussSeidel()
 
-coupled.nl_solver = NLGaussSeidel()   ### Comment this out to use Newton
-coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.options['atol'] = 1e-12
-coupled.nl_solver.options['rtol'] = 1e-12
+# coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
+# coupled.nl_solver.options['iprint'] = 1
+# coupled.nl_solver.options['atol'] = 1e-12
+# coupled.nl_solver.options['rtol'] = 1e-12
+
+# coupled.nl_solver = HybridGSNewton()   ### Comment this out to use Hybrid GS Newton
+# coupled.nl_solver.nlgs.options['iprint'] = 1
+# coupled.nl_solver.nlgs.options['maxiter'] = 3
+# coupled.nl_solver.nlgs.options['atol'] = 1e-12
+# coupled.nl_solver.nlgs.options['rtol'] = 1e-12
+
 
 root.add('coupled',
          coupled,
@@ -80,6 +89,9 @@ root.add('coupled',
 
 prob = Problem()
 prob.root = root
-
+prob.print_all_convergence()
 prob.setup()
+
+st = time.time()
 prob.run_once()
+print "runtime: ", time.time() - st
