@@ -25,7 +25,8 @@ def _biot_savart(N, A, B, P, inf=False, rev=False, eps=1e-5):
     rPA = norm(A - P)
     rPB = norm(B - P)
     rAB = norm(B - A)
-    rH = norm(P - A - numpy.dot((B - A), (P - A)) / numpy.dot((B - A), (B - A)) * (B - A)) + eps
+    rH = norm(P - A - numpy.dot((B - A), (P - A)) / \
+              numpy.dot((B - A), (B - A)) * (B - A)) + eps
     cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
     cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
     C = numpy.cross(B - P, A - P)
@@ -252,6 +253,8 @@ class WeissingerForces(Component):
             sec_forces[:, ind] *= rho * v * circ * widths
         unknowns['sec_forces'] = sec_forces
 
+        print sec_forces.real[:, 2]
+
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
 
@@ -423,17 +426,20 @@ class WeissingerDragCoeff(Component):
 
         normals = params['normals']
         for ind in xrange(num_y - 1):
-            self.new_normals[ind] = normals[ind] - numpy.dot(normals[ind], trefftz_normal) * trefftz_normal / norm(trefftz_normal)
+            self.new_normals[ind] = normals[ind] - numpy.dot(normals[ind], trefftz_normal) \
+                                    * trefftz_normal / norm(trefftz_normal)
         _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.new_normals,
                           trefftz_points, params['b_pts'])
 
         self.velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
-        unknowns['CD'] = 1. / params['S_ref'] / params['v'] * numpy.sum(params['circulations'] * self.velocities * params['widths'])
+        unknowns['CD'] = 1. / params['S_ref'] / params['v'] * \
+                         numpy.sum(params['circulations'] * self.velocities * params['widths'])
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for drag."""
 
-        jac = self.complex_step_jacobian(params, unknowns, resids, fd_params=['def_mesh', 'alpha', 'normals', 'b_pts'])
+        jac = self.complex_step_jacobian(params, unknowns, resids,\
+                                         fd_params=['def_mesh', 'alpha', 'normals', 'b_pts'])
 
         circ = params['circulations'].real
         widths = params['widths'].real
@@ -442,11 +448,11 @@ class WeissingerDragCoeff(Component):
         CD = unknowns['CD'].real
         velocities = self.velocities.real
         
-        jac['CD', 'v'] = (-2*CD/v)
-        jac['CD', 'S_ref'] = -CD/S_ref # (-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
-        fact = 1. / S_ref / v * velocities
-        jac['CD', 'circulations'][0, :] = fact * widths - 1. / S_ref / v**2 * self.mtx.T.real.dot(circ * widths)
-        jac['CD', 'widths'][0, :] = fact*circ
+        jac['CD', 'v'] = -2 * CD / v
+        jac['CD', 'S_ref'] = -CD / S_ref
+        jac['CD', 'circulations'][0, :] = 1. / S_ref / v * velocities * widths \
+                                          - 1. / S_ref / v**2 * self.mtx.T.real.dot(circ * widths)
+        jac['CD', 'widths'][0, :] = 1. / S_ref / v * velocities * circ
         
         return jac
 

@@ -39,6 +39,8 @@ class SpatialBeamTube(Component):
         unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
         unknowns['J'] = pi * (r2**4 - r1**4) / 2.
 
+        print params['t'].real
+
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         
@@ -249,7 +251,9 @@ class SpatialBeamFEM(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
 
-        jac = self.complex_step_jacobian(params, unknowns, resids, fd_params=['A','Iy','Iz','J','mesh'], fd_states=[])
+        jac = self.complex_step_jacobian(params, unknowns, resids, \
+                                         fd_params=['A','Iy','Iz','J','mesh'], \
+                                         fd_states=[])
 
         jac['disp_aug', 'disp_aug'] = self.mtx.real
 
