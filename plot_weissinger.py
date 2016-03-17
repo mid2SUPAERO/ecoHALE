@@ -34,14 +34,5 @@ n_cases = len(twist)
 
 for i,(t_vals, m_vals) in enumerate(zip(twist, mesh)): 
     # m_vals[0,:,1].shape, t_vals.shape
-    ax.plot(m_vals[0,:,1], t_vals, lw=2, c=plt.cm.viridis(float(i)/n_cases))
+    ax.plot(m_vals[0,:,1], t_vals, lw=2, c=plt.cm.jet(float(i)/n_cases))
 
-fig, ax = plt.subplots()
-n_cases = len(twist)
-
-for i,(t_vals, m_vals) in enumerate(zip(twist, mesh)): 
-    # m_vals[0,:,1].shape, t_vals.shape
-    ax.plot(m_vals[0,:,1], t_vals, lw=2, c=plt.cm.viridis(float(i)/n_cases))
-ax.set_xlabel('span_wise location', fontsize=15)
-ax.set_ylabel('Twist\n(deg)', rotation="horizontal", ha="right", fontsize=15)
-plt.show()
