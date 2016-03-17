@@ -293,9 +293,11 @@ class WeissingerLift(Component):
         self.add_param('sec_forces', val=numpy.zeros((n-1, 3)))
         self.add_output('L', val=0.)
 
-        self.fd_options['force_fd'] = True
+#        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
+
+        self.num_y = n
 
     def solve_nonlinear(self, params, unknowns, resids):
         cos_dih = params['cos_dih']
@@ -307,30 +309,26 @@ class WeissingerLift(Component):
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
-        J = {}
+
+        jac = self.alloc_jacobian()
+
         cos_dih = params['cos_dih'].real
         normals = params['normals'].real
         sec_forces = params['sec_forces'].real
 
-        forces_circ = numpy.zeros((3*n, n))
-        for ix in xrange(n):
-            for iy in xrange(3):
-                forces_circ[iy + ix*3, ix] = sec_forces[ix, iy] / circ[ix]
-        J['sec_forces', 'circulations'] = forces_circ
+        n = self.num_y
+        arange = numpy.arange(n-1)
 
-        forces_widths = numpy.zeros((3*n, n))
-        for ix in xrange(n):
-            for iy in xrange(3):
-                forces_widths[iy + ix*3, ix] = sec_forces[ix, iy] / widths[ix]
-        J['sec_forces', 'widths'] = forces_widths
+        lift_cos = jac['L', 'cos_dih']
+        lift_cos[0, :] = sec_forces[:, 2] / normals[:, 2]
 
-        forces_normals = numpy.zeros((3*n, 3*n))
-        for ix in xrange(n):
-            for iy in xrange(3):
-                forces_normals[iy + ix*3, iy + ix*3] = sec_forces[ix, iy] / normals[ix, iy]
-        J['sec_forces', 'normals'] = forces_normals
+        lift_normals = jac['L', 'normals']
+        lift_normals[0, 3*arange+2] = -sec_forces[:, 2] / normals[:, 2]**2 * cos_dih
 
-        return J
+        lift_forces = jac['L', 'sec_forces']
+        lift_forces[0, 3*arange+2] = cos_dih / normals[:, 2]
+
+        return jac
 
 
 class WeissingerLiftCoeff(Component):
@@ -345,7 +343,7 @@ class WeissingerLiftCoeff(Component):
         self.add_param('rho', val=0.)
         self.add_output('CL', val=0.)
 
-        self.fd_options['force_fd'] = True
+        #self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -353,17 +351,25 @@ class WeissingerLiftCoeff(Component):
         S_ref = params['S_ref']
         rho = params['rho']
         v = params['v']
-        unknowns['CL'] = params['L'] / (0.5*rho*v**2*S_ref)
+        L = params['L']
+        unknowns['CL'] = L / (0.5*rho*v**2*S_ref)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
-        J = {}
-        J['CL', 'v'] = 0.
-        J['CL', 'rho'] = 0.
-        J['CL', 'S_ref'] = 0.
-        J['CL', 'L'] = 1. / (0.5*self.rho*self.v**2*params['S_ref'])
 
-        return J
+        jac = self.alloc_jacobian()
+        
+        S_ref = params['S_ref'].real
+        rho = params['rho'].real
+        v = params['v'].real
+        L = params['L'].real
+
+        jac['CL', 'S_ref'] = -L / (0.5*rho*v**2*S_ref**2)
+        jac['CL', 'L'] = 1.0 / (0.5*rho*v**2*S_ref)
+        jac['CL', 'v'] = -2 * L / (0.5*rho*v**3*S_ref)
+        jac['CL', 'rho'] = -L / (0.5*rho**2*v**2*S_ref)
+        
+        return jac
 
 
 class WeissingerDragCoeff(Component):

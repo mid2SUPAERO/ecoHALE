@@ -64,7 +64,7 @@ prob.setup()
 prob.run_once()
 
 if sys.argv[1] == '0':
-    prob.check_partial_derivatives(comps=['weissinger.CD'],compact_print=True)
+    prob.check_partial_derivatives(compact_print=True)
     prob.run_once()
     print
     print prob['CL'], prob['CD']
