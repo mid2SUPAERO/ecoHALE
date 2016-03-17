@@ -9,6 +9,10 @@ from scipy.linalg import lu_factor, lu_solve
 def norm(vec): 
     return numpy.sqrt(numpy.sum(vec**2))
 
+def unit(vec):
+    return vec / norm(vec)
+
+
 
 class SpatialBeamTube(Component):
     """ Computes geometric properties for a tube element """
@@ -150,9 +154,6 @@ class SpatialBeamFEM(Component):
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
     def _assemble_system(self, params):
-        def unit(vec):
-            return vec / norm(vec)
-
         elem_IDs = self.elem_IDs
         cons = self.cons
 
@@ -352,12 +353,117 @@ class SpatialBeamWeight(Component):
         jac = self.alloc_jacobian()
         jac['weight', 't'][0, :] = 1.0
         return jac
+
+
+
+class SpatialBeamVonMisesTube(Component):
+    """ Computes the max Von Mises stress in each element """
+
+    def __init__(self, n, E, G, fem_origin=0.35):
+        super(SpatialBeamVonMisesTube, self).__init__()
+
+        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('r', val=numpy.zeros((n-1)))
+        self.add_param('disp', val=numpy.zeros((n, 6)))
+
+        self.add_output('vonmises', val=numpy.zeros((n-1, 2)))
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        elem_IDs = numpy.zeros((n-1, 2), int)
+        elem_IDs[:, 0] = numpy.arange(n-1)
+        elem_IDs[:, 1] = numpy.arange(n-1) + 1
+        self.elem_IDs = elem_IDs
         
+        self.T_elem = numpy.zeros((12, 12), dtype='complex')
+        self.T = numpy.zeros((3, 3), dtype='complex')
+        self.x_gl = numpy.array([1, 0, 0], dtype='complex')
+
+        self.E = E
+        self.G = G
+        self.fem_origin = fem_origin
+        
+    def solve_nonlinear(self, params, unknowns, resids):
+        elem_IDs = self.elem_IDs
+
+        r = params['r']
+        mesh = params['mesh']
+        disp = params['disp']
+        vonmises = unknowns['vonmises']
+        
+        w = self.fem_origin
+        nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+
+        num_elems = elem_IDs.shape[0]
+        for ielem in xrange(num_elems):
+            in0, in1 = elem_IDs[ielem, :]
+
+            P0 = nodes[in0, :]
+            P1 = nodes[in1, :]
+            L = norm(P1 - P0)
+
+            d1 = disp[in0, :3]
+
+            x_loc = unit(P1 - P0)
+            y_loc = unit(numpy.cross(x_loc, self.x_gl))
+            z_loc = unit(numpy.cross(x_loc, y_loc))
+
+            self.T[0, :] = x_loc
+            self.T[1, :] = y_loc
+            self.T[2, :] = z_loc
+
+            u0x, u0y, u0z = self.T.dot(disp[in0, :3])
+            r0x, r0y, r0z = self.T.dot(disp[in0, 3:])
+            u1x, u1y, u1z = self.T.dot(disp[in1, :3])
+            r1x, r1y, r1z = self.T.dot(disp[in1, 3:])
+
+            tmp = numpy.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
+            sxx0 = self.E * (u1x - u0x) / L \
+                  + self.E * r[ielem] / L * tmp
+            sxx1 = self.E * (u0x - u1x) / L \
+                  + self.E * r[ielem] / L * tmp
+            sxt = self.G * r[ielem] * (r1x - r0x) / L
+
+            vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
+            vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
+
+
+
+class SpatialBeamFailureKS(Component):
+    """ Aggregates failure constraints from the structure """
+
+    def __init__(self, n, sigma, rho=100):
+        super(SpatialBeamFailureKS, self).__init__()
+
+        self.add_param('vonmises', val=numpy.zeros((n-1, 2)))
+
+        self.add_output('failure', val=0.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        self.sigma = sigma
+        self.rho = rho
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        sigma = self.sigma
+        rho = self.rho
+        vonmises = params['vonmises']
+
+        fmax = numpy.max(vonmises - sigma)
+
+        nlog, nsum, nexp = numpy.log, numpy.sum, numpy.exp
+        unknowns['failure'] = fmax + 1 / rho * \
+                              nlog(nsum(nexp(rho * (vonmises - sigma - fmax))))
+
 
 
 class SpatialBeamGroup(Group):
 
-    def __init__(self, num_y, cons, E, G):
+    def __init__(self, num_y, cons, E, G, stress):
         super(SpatialBeamGroup, self).__init__()
 
         self.add('tube',
@@ -374,4 +480,10 @@ class SpatialBeamGroup(Group):
                  promotes=['*'])
         self.add('weight',
                  SpatialBeamWeight(num_y),
+                 promotes=['*'])
+        self.add('vonmises',
+                 SpatialBeamVonMisesTube(num_y, E, G),
+                 promotes=['*'])
+        self.add('failure',
+                 SpatialBeamFailureKS(num_y, stress),
                  promotes=['*'])

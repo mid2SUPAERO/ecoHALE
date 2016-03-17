@@ -21,6 +21,7 @@ rho = 1.225
 
 E = 200.e9
 G = 30.e9
+stress = 20.e6
 r = 0.3 * numpy.ones(num_y-1)
 t = 0.05 * numpy.ones(num_y-1)
 
@@ -59,7 +60,7 @@ coupled.add('loads',
             TransferLoads(num_y),
             promotes=['*'])
 coupled.add('spatialbeam',
-            SpatialBeamGroup(num_y, cons, E, G),
+            SpatialBeamGroup(num_y, cons, E, G, stress),
             promotes=['*'])
 
 coupled.nl_solver = Newton()
@@ -103,7 +104,7 @@ prob.driver.add_constraint('CL', equals=0.5)
 
 prob.setup()
 
-if len(sys.argv[1]) == 1:
+if len(sys.argv) == 1:
     st = time.time()
     prob.run_once()
     print "runtime: ", time.time() - st
