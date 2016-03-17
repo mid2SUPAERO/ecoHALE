@@ -8,20 +8,28 @@ from geometry import GeometryMesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
 from spatialbeam import SpatialBeamGroup
+from functionals import FunctionalBreguetRange
 #from gs_newton import HybridGSNewton
 
-num_y = 3
+num_y = 5
 span = 60
 chord = 4
 cons = numpy.array([int((num_y-1)/2)])
 
-v = 200.
+W0 = 5.e5
+CT = 0.01
+a = 200
+M = 0.75
+R = 2000
+
+v = a * M
 alpha = 3.
 rho = 1.225
 
 E = 200.e9
 G = 30.e9
 stress = 20.e6
+mrho = 3.e3
 r = 0.3 * numpy.ones(num_y-1)
 t = 0.05 * numpy.ones(num_y-1)
 
@@ -60,7 +68,7 @@ coupled.add('loads',
             TransferLoads(num_y),
             promotes=['*'])
 coupled.add('spatialbeam',
-            SpatialBeamGroup(num_y, cons, E, G, stress),
+            SpatialBeamGroup(num_y, cons, E, G, stress, mrho),
             promotes=['*'])
 
 coupled.nl_solver = Newton()
@@ -86,6 +94,9 @@ coupled.nl_solver.options['rtol'] = 1e-12
 root.add('coupled',
          coupled,
          promotes=['*'])
+root.add('fuelburn',
+         FunctionalBreguetRange(W0, CT, a, R, M),
+         promotes=['*'])
 
 prob = Problem()
 prob.root = root
@@ -108,7 +119,6 @@ if len(sys.argv) == 1:
     st = time.time()
     prob.run_once()
     print "runtime: ", time.time() - st
-    prob.check_partial_derivatives(compact_print=True)
 elif sys.argv[1] == '0':
     prob.run_once()
     prob.check_partial_derivatives(compact_print=True)
