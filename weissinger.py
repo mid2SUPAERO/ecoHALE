@@ -255,7 +255,7 @@ class WeissingerForces(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
 
-        J = self.alloc_jacobian()
+        jac = self.alloc_jacobian()
 
         arange = self.arange
         circ = params['circulations'].real
@@ -264,22 +264,22 @@ class WeissingerForces(Component):
         widths = params['widths'].real
 
         sec_forces = unknowns['sec_forces'].real
-        J['sec_forces', 'v'] = sec_forces.flatten() / v
-        J['sec_forces', 'rho'] = sec_forces.flatten() / rho
+        jac['sec_forces', 'v'] = sec_forces.flatten() / v
+        jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
-        forces_circ = J['sec_forces', 'circulations']
+        forces_circ = jac['sec_forces', 'circulations']
         for ind in xrange(3):
             forces_circ[ind+3*arange, arange] = sec_forces[:, ind] / circ
 
-        forces_widths = J['sec_forces', 'widths']
+        forces_widths = jac['sec_forces', 'widths']
         for ind in xrange(3):
             forces_widths[ind+3*arange, arange] = sec_forces[:, ind] / widths
 
-        forces_normals = J['sec_forces', 'normals']
+        forces_normals = jac['sec_forces', 'normals']
         for ind in xrange(3):
             forces_normals[ind+3*arange, ind+3*arange] = rho * v * circ * widths
 
-        return J
+        return jac
 
 
 class WeissingerLift(Component):
@@ -432,7 +432,8 @@ class WeissingerDragCoeff(Component):
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for drag."""
-        J = self.alloc_jacobian() 
+
+        jac = self.complex_step_jacobian(params, unknowns, resids, fd_params=['def_mesh', 'alpha', 'normals', 'b_pts'])
 
         circ = params['circulations'].real
         widths = params['widths'].real
@@ -440,14 +441,12 @@ class WeissingerDragCoeff(Component):
         S_ref = params['S_ref'].real
         velocities = self.velocities.real
         
-        J['CD', 'v'] = (-2*unknowns['CD'].real/v)
-        J['CD', 'S_ref'] = (-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
-        J['CD', 'circulations'][:] = (1. / S_ref / v* numpy.sum(velocities*widths - circ*widths*self.mtx.real)/v)
-        J['CD', 'widths'][:] = (1. / S_ref / v* velocities*circ)
-
-        J.update(self.complex_step_jacobian(params, unknowns, resids, fd_params=['def_mesh', 'alpha', 'normals', 'b_pts']))
+        jac['CD', 'v'] = (-2*unknowns['CD'].real/v)
+        jac['CD', 'S_ref'] = (-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
+        jac['CD', 'circulations'] = (1. / S_ref / v* numpy.sum(velocities*widths - circ*widths*self.mtx.real)/v)
+        jac['CD', 'widths'] = (1. / S_ref / v* velocities*circ)
         
-        return J
+        return jac
 
 
 class WeissingerGroup(Group):
