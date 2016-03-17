@@ -4,7 +4,7 @@ import sys
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
 from geometry import GeometryMesh
-from transfer import TransferDisplacements
+from transfer import TransferDisplacements, TransferLoads
 
 from weissinger import WeissingerGroup
 
@@ -44,6 +44,9 @@ root.add('def_mesh',
          promotes=['*'])
 root.add('weissinger',
          WeissingerGroup(num_y),
+         promotes=['*'])
+root.add('loads',
+         TransferLoads(num_y),
          promotes=['*'])
 
 prob = Problem()

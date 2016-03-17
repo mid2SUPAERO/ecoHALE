@@ -253,8 +253,6 @@ class WeissingerForces(Component):
             sec_forces[:, ind] *= rho * v * circ * widths
         unknowns['sec_forces'] = sec_forces
 
-        print sec_forces.real[:, 2]
-
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
 

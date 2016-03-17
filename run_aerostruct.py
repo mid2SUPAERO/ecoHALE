@@ -89,8 +89,27 @@ root.add('coupled',
 prob = Problem()
 prob.root = root
 prob.print_all_convergence()
+
+prob.driver = ScipyOptimizer()
+prob.driver.options['optimizer'] = 'SLSQP'
+prob.driver.options['disp'] = True
+# prob.driver.options['tol'] = 1.0e-12
+
+prob.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
+                       upper=numpy.ones((num_y)) * 10.)
+prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=100)
+prob.driver.add_objective('CD')
+prob.driver.add_constraint('CL', equals=0.5)
+
 prob.setup()
 
-st = time.time()
-prob.run_once()
-print "runtime: ", time.time() - st
+if len(sys.argv[1]) == 1:
+    st = time.time()
+    prob.run_once()
+    print "runtime: ", time.time() - st
+    prob.check_partial_derivatives(compact_print=True)
+elif sys.argv[1] == '0':
+    prob.run_once()
+    prob.check_partial_derivatives(compact_print=True)
+elif sys.argv[1] == '1':
+    prob.run()

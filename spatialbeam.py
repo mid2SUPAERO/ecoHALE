@@ -39,8 +39,6 @@ class SpatialBeamTube(Component):
         unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
         unknowns['J'] = pi * (r2**4 - r1**4) / 2.
 
-        print params['t'].real
-
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         
