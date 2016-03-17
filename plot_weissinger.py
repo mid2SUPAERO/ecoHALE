@@ -1,6 +1,7 @@
 import sqlitedict
 
 import pylab as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 db = sqlitedict.SqliteDict('weissinger.db', 'openmdao')
 
@@ -35,5 +36,15 @@ n_cases = len(twist)
 for i,(t_vals, m_vals) in enumerate(zip(twist, mesh)): 
     # m_vals[0,:,1].shape, t_vals.shape
     ax.plot(m_vals[0,:,1], t_vals, lw=2, c=plt.cm.jet(float(i)/n_cases))
+
+
+mesh0 = mesh[0]
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+xs = mesh0[0,:,0]
+ys = mesh0[0,:,1]
+zs = mesh0[0,:,2]
+ax.scatter(xs, ys, zs)
 
 plt.show()
