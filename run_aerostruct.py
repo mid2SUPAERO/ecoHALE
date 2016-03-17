@@ -3,7 +3,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
 from geometry import GeometryMesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
@@ -110,17 +110,19 @@ prob.print_all_convergence()
 prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
-# prob.driver.options['tol'] = 1.0e-12
+prob.driver.options['tol'] = 1.0e-3
 
-prob.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
-                       upper=numpy.ones((num_y)) * 10.)
-prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=100)
+prob.driver.add_desvar('twist',lower= -10.,
+                       upper=10., scaler=1000)
+prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
 prob.driver.add_desvar('t',
-                       lower=numpy.ones((num_y)) * 0.001,
-                       upper=numpy.ones((num_y)) * 0.25)
+                       lower= 0.001,
+                       upper= 0.25, scaler=1000)
 prob.driver.add_objective('fuelburn')
 prob.driver.add_constraint('failure', upper=0.0)
 prob.driver.add_constraint('eq_con', equals=0.0)
+
+prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 
 prob.setup()
 
