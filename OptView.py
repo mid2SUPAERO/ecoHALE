@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import host_subplot
 import mpl_toolkits.axisartist as AA
 import numpy
-from pyoptsparse import SqliteDict
+from sqlitedict import SqliteDict
 
 class Display(object):
 
