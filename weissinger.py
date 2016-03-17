@@ -444,7 +444,6 @@ class WeissingerDragCoeff(Component):
         return J
 
 
-
 class WeissingerGroup(Group):
 
     def __init__(self, num_y):
