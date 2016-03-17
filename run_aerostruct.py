@@ -71,16 +71,15 @@ coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissinger.ln_solver = LinearGaussSeidel()
 coupled.spatialbeam.ln_solver = LinearGaussSeidel()
 
-coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
-coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.options['atol'] = 1e-12
-coupled.nl_solver.options['rtol'] = 1e-12
+# coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
+# coupled.nl_solver.options['iprint'] = 1
+# coupled.nl_solver.options['atol'] = 1e-12
+# coupled.nl_solver.options['rtol'] = 1e-12
 
-# coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
-# coupled.nl_solver.nlgs.options['iprint'] = 1
-# coupled.nl_solver.nlgs.options['maxiter'] = 3
-# coupled.nl_solver.nlgs.options['atol'] = 1e-12
-# coupled.nl_solver.nlgs.options['rtol'] = 1e-12
+coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
+coupled.nl_solver.nlgs.options['iprint'] = 1
+coupled.nl_solver.nlgs.options['maxiter'] = 3
+coupled.nl_solver.newton.options['rtol'] = 1e-9
 
 
 root.add('coupled',

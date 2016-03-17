@@ -433,10 +433,10 @@ class WeissingerDragCoeff(Component):
         v = params['v'].real
         S_ref = params['S_ref'].real
         velocities = self.velocities.real
- 
+        
         J['CD', 'v'] = (-2*unknowns['CD'].real/v)
         J['CD', 'S_ref'] = (-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
-        J['CD', 'circulations'][:] = (1. / S_ref / v* numpy.sum(velocities*widths + circ*widths*self.mtx.real/v,))
+        J['CD', 'circulations'][:] = (1. / S_ref / v* numpy.sum(velocities*widths - circ*widths*self.mtx.real)/v)
         J['CD', 'widths'][:] = (1. / S_ref / v* velocities*circ)
 
         J.update(self.complex_step_jacobian(params, unknowns, resids, fd_params=['def_mesh', 'alpha', 'normals', 'b_pts']))
