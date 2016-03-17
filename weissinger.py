@@ -198,10 +198,10 @@ class WeissingerCirculations(Component):
         sina = numpy.sin(alpha)
         v_inf = params['v'].real * numpy.array([cosa, 0., sina], dtype="complex")
 
-        jac['circulations', 'v'] = -self.rhs.real / params['v'].real
+        jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
 
         dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
-        jac['circulations', 'alpha'] = normals.dot(dv_da)
+        jac['circulations', 'alpha'][:, 0] = normals.dot(dv_da)
 
         return jac
 
@@ -262,8 +262,8 @@ class WeissingerForces(Component):
         rho = params['rho'].real
         v = params['v'].real
         widths = params['widths'].real
-
         sec_forces = unknowns['sec_forces'].real
+        
         jac['sec_forces', 'v'] = sec_forces.flatten() / v
         jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
@@ -439,12 +439,13 @@ class WeissingerDragCoeff(Component):
         widths = params['widths'].real
         v = params['v'].real
         S_ref = params['S_ref'].real
+        CD = unknowns['CD'].real
         velocities = self.velocities.real
         
-        jac['CD', 'v'] = (-2*unknowns['CD'].real/v)
-        jac['CD', 'S_ref'] = (-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
-        jac['CD', 'circulations'] = (1. / S_ref / v* numpy.sum(velocities*widths - circ*widths*self.mtx.real)/v)
-        jac['CD', 'widths'] = (1. / S_ref / v* velocities*circ)
+        jac['CD', 'v'] = (-2*CD/v)
+        jac['CD', 'S_ref'] = -CD/S_ref #(-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
+        jac['CD', 'circulations'][0, :] = 1. / params['S_ref'] / params['v'] * self.velocities * params['widths'] - 1. / params['S_ref'] / params['v']**2 * self.mtx.T.real.dot(params['circulations'] * params['widths'])
+        jac['CD', 'widths'][0, :] = 1. / params['S_ref'] / params['v'] * params['circulations'] * self.velocities
         
         return jac
 

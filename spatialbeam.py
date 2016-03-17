@@ -23,9 +23,11 @@ class SpatialBeamTube(Component):
         self.add_output('Iz', val=numpy.zeros((n - 1)))
         self.add_output('J', val=numpy.zeros((n - 1)))
 
-        self.fd_options['force_fd'] = True
+#        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
+        
+        self.arange = numpy.arange(n-1)
 
     def solve_nonlinear(self, params, unknowns, resids):
         pi = numpy.pi
@@ -37,7 +39,34 @@ class SpatialBeamTube(Component):
         unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
         unknowns['J'] = pi * (r2**4 - r1**4) / 2.
 
-#        print params['t']
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        
+        pi = numpy.pi
+        r = params['r'].real
+        t = params['t'].real
+        r1 = r - 0.5 * t
+        r2 = r + 0.5 * t
+
+        dr1_dr = 1.
+        dr2_dr = 1.
+        dr1_dt = -0.5
+        dr2_dt =  0.5
+
+        r1_3 = r1**3
+        r2_3 = r2**3
+
+        a = self.arange
+        jac['A', 'r'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
+        jac['A', 't'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
+        jac['Iy', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac['Iy', 't'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['Iz', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac['Iz', 't'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['J', 'r'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac['J', 't'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+
+        return jac
 
 
 class SpatialBeamFEM(Component):
@@ -62,6 +91,8 @@ class SpatialBeamFEM(Component):
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
         self.fd_options['linearize'] = True # only for circulations
+
+        self.arange = numpy.arange(6*n)
 
         self.E = E
         self.G = G
@@ -218,19 +249,16 @@ class SpatialBeamFEM(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
 
-        J = self.alloc_jacobian()
+        jac = self.complex_step_jacobian(params, unknowns, resids, fd_params=['A','Iy','Iz','J','mesh'], fd_states=[])
 
-        J['disp_aug', 'disp_aug'] = self.mtx.real
-        J['disp_aug', 'loads'][:6*self.num_nodes] = -numpy.eye(6*self.num_nodes)
+        jac['disp_aug', 'disp_aug'] = self.mtx.real
 
-        J.update(self.complex_step_jacobian(params, unknowns, resids, fd_params=['A','Iy','Iz','J','mesh'], fd_states=[]))
-
-        self.lup = lu_factor(self.mtx)
-
-        return J
-
+        arange = self.arange
+        jac['disp_aug', 'loads'][arange, arange] = -1.0
 
         self.lup = lu_factor(self.mtx.real)
+
+        return jac
 
     def solve_linear(self, dumat, drmat, vois, mode=None):
 
@@ -259,13 +287,21 @@ class SpatialBeamDisp(Component):
         self.add_param('disp_aug', val=numpy.zeros((size)))
         self.add_output('disp', val=numpy.zeros((n, 6)))
 
-        self.fd_options['force_fd'] = True
+        #self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
+
+        self.arange = numpy.arange(6*n)
 
     def solve_nonlinear(self, params, unknowns, resids):
         n = self.n
         unknowns['disp'] = numpy.array(params['disp_aug'][:6*n].reshape((n, 6)))
+
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        arange = self.arange
+        jac['disp', 'disp_aug'][arange, arange] = 1.
+        return jac
 
 
 
@@ -279,12 +315,18 @@ class SpatialBeamEnergy(Component):
         self.add_param('loads', val=numpy.zeros((n, 6)))
         self.add_output('energy', val=0.)
 
-        self.fd_options['force_fd'] = True
+#        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['energy'] = 1e-5*numpy.sum(params['disp'] * params['loads'])
+        unknowns['energy'] = numpy.sum(params['disp'] * params['loads'])
+
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        jac['energy', 'disp'][0, :] = params['loads'].real.flatten()
+        jac['energy', 'loads'][0, :] = params['disp'].real.flatten()
+        return jac
 
 
 
@@ -297,13 +339,18 @@ class SpatialBeamWeight(Component):
         self.add_param('t', val=numpy.zeros((n-1)))
         self.add_output('weight', val=0.)
 
-        self.fd_options['force_fd'] = True
+        #self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['weight'] = numpy.sum(params['t'])
 
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        jac['weight', 't'][0, :] = 1.0
+        return jac
+        
 
 
 class SpatialBeamGroup(Group):
