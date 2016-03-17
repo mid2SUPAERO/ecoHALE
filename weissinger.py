@@ -286,6 +286,7 @@ class WeissingerForces(Component):
         """ Jacobian for lift."""
 
         J = self.alloc_jacobian()
+
         arange = self.arange
         circ = params['circulations'].real
         rho = params['rho'].real
@@ -305,9 +306,12 @@ class WeissingerForces(Component):
         for ind in xrange(3):
             forces_widths[ind+3*arange, arange] = sec_forces[:, ind] / widths
 
-        forces_normals = J['sec_forces', 'normals']
-        for ind in xrange(3):
-            forces_normals[ind+3*arange, ind+3*arange] = rho * v * circ * widths
+        # forces_normals = J['sec_forces', 'normals']
+        # for ind in xrange(3):
+        #     forces_normals[ind+3*arange, ind+3*arange] = rho * v * circ * widths
+
+        cs_jac = self.complex_step_jacobian(params, unknowns, resids, fd_params=['normals'], fd_states=[])
+        J.update(cs_jac)
 
         return J
 
