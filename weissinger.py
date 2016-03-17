@@ -443,9 +443,10 @@ class WeissingerDragCoeff(Component):
         velocities = self.velocities.real
         
         jac['CD', 'v'] = (-2*CD/v)
-        jac['CD', 'S_ref'] = -CD/S_ref #(-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
-        jac['CD', 'circulations'][0, :] = 1. / params['S_ref'] / params['v'] * self.velocities * params['widths'] - 1. / params['S_ref'] / params['v']**2 * self.mtx.T.real.dot(params['circulations'] * params['widths'])
-        jac['CD', 'widths'][0, :] = 1. / params['S_ref'] / params['v'] * params['circulations'] * self.velocities
+        jac['CD', 'S_ref'] = -CD/S_ref # (-1. / S_ref**2 / v * numpy.sum(circ * velocities * widths))
+        fact = 1. / S_ref / v * velocities
+        jac['CD', 'circulations'][0, :] = fact * widths - 1. / S_ref / v**2 * self.mtx.T.real.dot(circ * widths)
+        jac['CD', 'widths'][0, :] = fact*circ
         
         return jac
 
