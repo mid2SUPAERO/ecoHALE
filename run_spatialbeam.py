@@ -7,7 +7,7 @@ from geometry import GeometryMesh
 from spatialbeam import SpatialBeamGroup
 
 
-num_y = 3
+num_y = 5
 span = 232.02
 chord = 39.37
 cons = numpy.array([int((num_y-1)/2)])
