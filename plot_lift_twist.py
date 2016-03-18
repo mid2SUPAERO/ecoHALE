@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
-db = sqlitedict.SqliteDict('weissinger.db', 'openmdao')
+db = sqlitedict.SqliteDict('aerostruct.db', 'openmdao')
 
 twist = []
 mesh = []
@@ -45,11 +45,11 @@ for i, (t_vals, l_vals, m_vals) in enumerate(zip(twist, lift, mesh)):
     ax2.plot(span_diff, l_vals, lw=2, c=plt.cm.jet(i/n_cases))
 
     ax2.set_xlabel('normalized span')
-    ax1.set_ylabel('twist')
-    ax2.set_ylabel('lift')
+    ax1.set_ylabel('twist', rotation="horizontal", ha="right")
+    ax2.set_ylabel('lift', rotation="horizontal", ha="right")
 
 # norm = plt.matplotlib.colors.Normalize(0,n_cases,clip=True)
-norm = plt.matplotlib.colors.BoundaryNorm(range(n_cases-1), plt.cm.jet.N)
+norm = plt.matplotlib.colors.BoundaryNorm(range(n_cases), plt.cm.jet.N)
 
 sm = plt.cm.ScalarMappable(norm,plt.cm.jet) 
 sm.set_array(numpy.arange(n_cases))  

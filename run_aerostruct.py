@@ -9,11 +9,12 @@ from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
 from spatialbeam import SpatialBeamGroup
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
-#from gs_newton import HybridGSNewton
 
-num_y = 5
-span = 60
-chord = 4
+from gs_newton import HybridGSNewton
+
+num_y = 9
+span = 60.
+chord = 4.
 cons = numpy.array([int((num_y-1)/2)])
 
 W0 = 5.e5
@@ -35,8 +36,15 @@ t = 0.05 * numpy.ones(num_y-1)
 
 root = Group()
 
+
+root.add('span',
+         IndepVarComp('span', span),
+         promotes=['*'])
+root.add('chord',
+         IndepVarComp('chord', numpy.ones(num_y)*chord),
+         promotes=['*'])
 root.add('twist',
-         IndepVarComp('twist', numpy.zeros((num_y))),
+         IndepVarComp('twist', numpy.zeros(num_y)),
          promotes=['*'])
 root.add('v',
          IndepVarComp('v', v),
@@ -56,7 +64,7 @@ root.add('t',
 
 coupled = Group()
 coupled.add('mesh',
-            GeometryMesh(num_y, span, chord),
+            GeometryMesh(num_y),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(num_y),
@@ -80,8 +88,8 @@ coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissinger.ln_solver = LinearGaussSeidel()
 coupled.spatialbeam.ln_solver = LinearGaussSeidel()
 
-if 1:
-    coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
+# if 1:
+#     coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
 
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
@@ -89,8 +97,10 @@ coupled.nl_solver.options['rtol'] = 1e-12
     
 # coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
 # coupled.nl_solver.nlgs.options['iprint'] = 1
-# coupled.nl_solver.nlgs.options['maxiter'] = 3
-# coupled.nl_solver.newton.options['rtol'] = 1e-9
+# coupled.nl_solver.nlgs.options['maxiter'] = 10
+# coupled.nl_solver.newton.options['atol'] = 1e-7
+# coupled.nl_solver.newton.options['rtol'] = 1e-7
+# coupled.nl_solver.newton.options['iprint'] = 1
 
 
 root.add('coupled',
