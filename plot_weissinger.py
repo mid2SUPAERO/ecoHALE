@@ -42,7 +42,7 @@ for case_name, case_data in db.iteritems():
 #     # m_vals[0,:,1].shape, t_vals.shape
 #     ax.plot(m_vals[0,:,1], t_vals, lw=2, c=plt.cm.jet(float(i)/n_cases))
 
-
+print mesh
 mesh0 = mesh[0]
 # fig = plt.figure()
 # ax = fig.add_subplot(111, projection='3d')

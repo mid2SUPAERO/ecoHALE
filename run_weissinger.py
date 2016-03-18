@@ -9,8 +9,9 @@ from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
 
 num_y = 5
-span = 232.02
-chord = 39.37
+# span = 232.02
+span = 40.
+chord = 10.
 
 v = 200.
 alpha = 3.
@@ -20,24 +21,40 @@ disp = numpy.zeros((num_y, 6))
 
 root = Group()
 
-root.add('twist',
-         IndepVarComp('twist', numpy.zeros((num_y))),
-         promotes=['*'])
-root.add('v',
-         IndepVarComp('v', v),
-         promotes=['*'])
-root.add('alpha',
-         IndepVarComp('alpha', alpha),
-         promotes=['*'])
-root.add('rho',
-         IndepVarComp('rho', rho),
-         promotes=['*'])
-root.add('disp',
-         IndepVarComp('disp', disp),
-         promotes=['*'])
+des_vars = [
+    ('twist', numpy.zeros(num_y)), 
+    ('span', span),
+    ('chord', numpy.array([.1, 5., 10, 5., .1])), # numpy.ones(num_y)*chord
+    ('v', v),
+    ('alpha', alpha), 
+    ('rho', rho), 
+    ('disp', numpy.zeros((num_y, 6)))
+]
 
+# root.add('twist',
+#          IndepVarComp('twist', numpy.zeros((num_y))),
+#          promotes=['*'])
+# root.add('span',
+#          IndepVarComp('span', span),
+#          promotes=['*'])
+# root.add('v',
+#          IndepVarComp('v', v),
+#          promotes=['*'])
+# root.add('alpha',
+#          IndepVarComp('alpha', alpha),
+#          promotes=['*'])
+# root.add('rho',
+#          IndepVarComp('rho', rho),
+#          promotes=['*'])
+# root.add('disp',
+#          IndepVarComp('disp', disp),
+#          promotes=['*'])
+
+root.add('des_vars', 
+         IndepVarComp(des_vars), 
+         promotes=['*'])
 root.add('mesh',
-         GeometryMesh(num_y, span, chord),
+         GeometryMesh(num_y),
          promotes=['*'])
 root.add('def_mesh',
          TransferDisplacements(num_y),
