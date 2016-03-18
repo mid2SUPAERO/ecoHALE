@@ -2,8 +2,7 @@ from __future__ import division
 import sqlitedict
 import numpy
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+
 
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
@@ -48,5 +47,14 @@ for i, (t_vals, l_vals, m_vals) in enumerate(zip(twist, lift, mesh)):
     ax2.set_xlabel('normalized span')
     ax1.set_ylabel('twist')
     ax2.set_ylabel('lift')
+
+# norm = plt.matplotlib.colors.Normalize(0,n_cases,clip=True)
+norm = plt.matplotlib.colors.BoundaryNorm(range(n_cases-1), plt.cm.jet.N)
+
+sm = plt.cm.ScalarMappable(norm,plt.cm.jet) 
+sm.set_array(numpy.arange(n_cases))  
+cbar_ax = fig.add_axes([.92, 0.15, 0.05, 0.7])
+
+fig.colorbar(sm, cax=cbar_ax)
 
 plt.show()
