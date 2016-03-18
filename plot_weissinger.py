@@ -10,7 +10,7 @@ from matplotlib import cm
 User-set options:
 """
 db_name = 'aerostruct.db'
-iteration = -1
+iteration = 0
 show_wing = True
 show_tube = True
 
@@ -37,48 +37,75 @@ for case_name, case_data in db.iteritems():
     except:
         pass
 
-def plot_wing(mesh, r=None, t=None, tube_only=False):
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
+def plot_wing(mesh, iteration):
+    az = ax.azim
+    el = ax.elev
+    dist = ax.dist
+
+    mesh0 = mesh[iteration]
+
     plt.tight_layout()
     ax.set_axis_off()
 
-    x = mesh[:, :, 0]
-    y = mesh[:, :, 1]
-    z = mesh[:, :, 2]
-    if not tube_only:
+    x = mesh0[:, :, 0]
+    y = mesh0[:, :, 1]
+    z = mesh0[:, :, 2]
+    if show_wing:
         ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-    max_dim = numpy.max(mesh)
 
-    chords = mesh[1, :, 0] - mesh[0, :, 0]
-
-    if r != None and t != None:
-        r = numpy.hstack((r, r[-1]))
-        t = numpy.hstack((t, t[-1]))
+    if show_tube:
+        r0 = r[iteration]
+        t0 = t[iteration]
+        r0 = numpy.hstack((r0, r0[-1]))
+        t0 = numpy.hstack((t0, t0[-1]))
+        n = mesh0.shape[1]
         num_circ = 40
         fem_origin = 0.35
         p = numpy.linspace(0, 2*numpy.pi, num_circ)
-        R, P = numpy.meshgrid(r, p)
+        R, P = numpy.meshgrid(r0, p)
         X, Z = R*numpy.cos(P), R*numpy.sin(P)
+        chords = mesh0[1, :, 0] - mesh0[0, :, 0]
         X[:] += fem_origin * chords
         Y = numpy.empty(X.shape)
-        Y[:] = numpy.linspace(0, max_dim, n)
+        Y[:] = numpy.linspace(0, mesh0[0, -1, 1], n)
         colors = numpy.empty(X.shape)
-        colors[:, :] = t
+        colors[:, :] = t0
         colors = colors / numpy.max(colors)
         ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=cm.YlOrRd(colors), linewidth=0, antialiased=False)
-    ax.auto_scale_xyz([-max_dim/2, max_dim/2], [0, max_dim], [-max_dim/2, max_dim/2])
-    plt.show()
+    max_dim = numpy.max(numpy.max(mesh0))
+    ax.auto_scale_xyz([-max_dim/4, max_dim/4], [max_dim/4, 3*max_dim/4], [-max_dim/4, max_dim/4])
+    ax.set_title("Iteration: {}".format(iteration))
 
-mesh0 = mesh[iteration]
+    ax.view_init(elev=el, azim=az) #Reproduce view
 
-if show_wing and not show_tube:
-    plot_wing(mesh0)
-if show_tube and not show_wing:
-    r0 = r[iteration]
-    t0 = t[iteration]
-    plot_wing(mesh0, r, t, tube_only=True)
-if show_tube and  show_wing:
-    r0 = r[iteration]
-    t0 = t[iteration]
-    plot_wing(mesh0, r, t)
+
+curr_pos = iteration
+
+def key_event(e):
+    global curr_pos
+
+    if e.key == "right":
+        curr_pos = curr_pos + 1
+    elif e.key == "left":
+        curr_pos = curr_pos - 1
+    else:
+        return
+    curr_pos = curr_pos % len(mesh)
+
+    ax.cla()
+    plot_wing(mesh, curr_pos)
+    fig.canvas.draw()
+
+fig = plt.figure()
+fig.canvas.mpl_connect('key_press_event', key_event)
+ax = fig.gca(projection='3d')
+# max_dim = numpy.max(numpy.max(mesh[0]))
+# # ax.auto_scale_xyz([-max_dim/2, max_dim/2], [0, max_dim], [-max_dim/2, max_dim/2])
+# ax.set_xlim([-max_dim/2, max_dim/2])
+# ax.set_ylim([0, max_dim])
+# ax.set_zlim([-max_dim/2, max_dim/2])
+
+
+iteration = iteration % len(mesh)
+plot_wing(mesh, iteration)
+plt.show()
