@@ -11,18 +11,24 @@ db = sqlitedict.SqliteDict('aerostruct.db', 'openmdao')
 
 variables = ['CL', 'CD', 'alpha', 'failure', 'fuelburn', 'eq_con']
 
+for name in variables:
+    print name,
+print
 
 for case_name, case_data in db.iteritems():
     if "metadata" in case_name or "derivs" in case_name:
         continue # don't plot these cases
 
-    if 0:
+    if 1:
         print case_name,
         for name in variables:
             print case_data['Unknowns'][name],
         print
 
     save = case_data
+
+exit()
+
 
 
 variables = ['v', 'circulations', 'alpha', 'def_mesh', 'normals', 'b_pts', 'widths', 'S_ref', 'CD']
