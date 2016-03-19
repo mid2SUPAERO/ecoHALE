@@ -7,13 +7,13 @@ from openmdao.api import Component
 class GeometryMesh(Component):
     """ Creates an aero mesh based on high-level design parameters. """
 
-    def __init__(self, n):
+    def __init__(self, n, chord):
         super(GeometryMesh, self).__init__()
 
         self.n = n
+        self.chord = chord
 
         self.add_param('span', val=0.)
-        self.add_param('chord', val=numpy.zeros(n))
         self.add_param('twist', val=numpy.zeros(n))
         self.add_output('mesh', val=numpy.zeros((2, n, 3)))
 
@@ -48,7 +48,7 @@ class GeometryMesh(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         n = self.n
         span = params['span']
-        chord = params['chord']
+        chord = self.chord
         twist = params['twist']
         mesh = numpy.zeros((2, n, 3), dtype='complex')
         for ind_x in xrange(2): # 0 for LE, 1 for TE
@@ -57,7 +57,7 @@ class GeometryMesh(Component):
             else: 
                 chord_sign = -1 
             for ind_y in xrange(n): # span-wise direction
-                mesh[ind_x, ind_y, :] = [chord_sign*chord[ind_y]/2., ind_y / (n-1) * span, 0]
+                mesh[ind_x, ind_y, :] = [ind_x*chord, ind_y / (n-1) * span, 0]
 
         mesh[1, :, 2] = -twist
         unknowns['mesh'] = mesh
@@ -69,9 +69,6 @@ class GeometryMesh(Component):
         dmesh_dspan = unknowns['mesh'][1,:,1].flatten() * 1/params['span']
         self.J['mesh', 'span'][self.span_idx_flat_te] = dmesh_dspan
 
-        dmesh_dchord = unknowns['mesh'][0,:,0].flatten()/params['chord']
-        self.J['mesh', 'chord'][self.chord_idx_flat_le] = dmesh_dchord
-        dmesh_dchord = unknowns['mesh'][1,:,0].flatten()/params['chord']
-        self.J['mesh', 'chord'][self.chord_idx_flat_te] = dmesh_dchord
+       
 
         return self.J
