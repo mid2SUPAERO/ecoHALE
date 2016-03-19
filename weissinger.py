@@ -387,7 +387,7 @@ class WeissingerDragCoeff(Component):
         self.add_param('b_pts', val=numpy.zeros((n, 3)))
         self.add_param('widths', val=numpy.zeros((n-1)))
         self.add_param('S_ref', val=0.)
-        self.add_output('CD_i', val=0., desc="induced drag coefficient")
+        self.add_output('CD', val=0., desc="induced drag coefficient")
 
         # self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
@@ -431,7 +431,7 @@ class WeissingerDragCoeff(Component):
                           trefftz_points, params['b_pts'])
 
         self.velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
-        unknowns['CD_i'] = 1. / params['S_ref'] / params['v'] * \
+        unknowns['CD'] = 1. / params['S_ref'] / params['v'] * \
                          numpy.sum(params['circulations'] * self.velocities * params['widths'])
 
     def linearize(self, params, unknowns, resids):
@@ -444,14 +444,14 @@ class WeissingerDragCoeff(Component):
         widths = params['widths'].real
         v = params['v'].real
         S_ref = params['S_ref'].real
-        CD = unknowns['CD_i'].real
+        CD = unknowns['CD'].real
         velocities = self.velocities.real
         
-        jac['CD_i', 'v'] = -2 * CD / v
-        jac['CD_i', 'S_ref'] = -CD / S_ref
-        jac['CD_i', 'circulations'][0, :] = 1. / S_ref / v * velocities * widths \
+        jac['CD', 'v'] = -2 * CD / v
+        jac['CD', 'S_ref'] = -CD / S_ref
+        jac['CD', 'circulations'][0, :] = 1. / S_ref / v * velocities * widths \
                                           - 1. / S_ref / v**2 * self.mtx.T.real.dot(circ * widths)
-        jac['CD_i', 'widths'][0, :] = 1. / S_ref / v * velocities * circ
+        jac['CD', 'widths'][0, :] = 1. / S_ref / v * velocities * circ
         
         return jac
 
