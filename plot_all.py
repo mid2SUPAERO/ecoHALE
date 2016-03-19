@@ -1,6 +1,7 @@
 from __future__ import division
 import tkFont
 import Tkinter as Tk
+from time import time
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -12,12 +13,23 @@ from matplotlib import cm
 import numpy
 import sqlitedict
 
+#####################
+# User-set parameters
+#####################
+
+db_name = 'aerostruct.db'
+show_wing = True
+show_tube = True
+initial_iteration = 0
+
+
+
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
 class Display(object):
     def __init__(self, db_name, show_wing, show_tube, initial_iteration):
-
+        self.s = time()
         self.root = Tk.Tk()
 
         self.f = plt.figure(dpi=100, figsize=(12, 6), facecolor='white')
@@ -47,7 +59,6 @@ class Display(object):
         self.show_wing = show_wing
         self.show_tube = show_tube
         self.curr_pos = initial_iteration
-
 
     def load_db(self):
         self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
@@ -136,14 +147,15 @@ class Display(object):
         if self.show_wing:
             self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
+        # TODO: will need to account for 3d geometry here
         if self.show_tube:
             r0 = self.r[self.curr_pos]
             t0 = self.t[self.curr_pos]
             r0 = numpy.hstack((r0, r0[-1]))
             t0 = numpy.hstack((t0, t0[-1]))
             n = mesh0.shape[1]
-            num_circ = 40
-            fem_origin = 0.35 #hard-coded, need to take this from the user
+            num_circ = 12
+            fem_origin = 0.35 # TODO: hard-coded, need to take this from the user
             p = numpy.linspace(0, 2*numpy.pi, num_circ)
             R, P = numpy.meshgrid(r0, p)
             X, Z = R*numpy.cos(P), R*numpy.sin(P)
@@ -162,15 +174,7 @@ class Display(object):
         self.ax.view_init(elev=el, azim=az) #Reproduce view
 
     def update_graphs(self, e):
-        try:
-            if e.key == "right":
-                self.curr_pos += 1
-            elif e.key == "left":
-                self.curr_pos -= 1
-            else:
-                return
-        except AttributeError:
-            self.curr_pos = int(e)
+        self.curr_pos = int(e)
 
         self.curr_pos = self.curr_pos % (self.num_iters + 1)
 
@@ -187,6 +191,7 @@ class Display(object):
         self.plot_sides()
 
         self.canvas.show()
+
 
     def quit(self):
         """
@@ -207,16 +212,16 @@ class Display(object):
             font=font)
         lab_font.grid(row=0, column=0, sticky=Tk.S)
 
-        w = Tk.Scale(self.options_frame, from_=0, to=self.num_iters, orient=Tk.HORIZONTAL,
-                     resolution=1, font=font, command=self.update_graphs)
-        w.set(0)
-        w.grid(row=0, column=1, padx=5, sticky=Tk.W)
+        self.w = Tk.Scale(self.options_frame, from_=0, to=self.num_iters, orient=Tk.HORIZONTAL,
+                     resolution=1, font=font, command=self.update_graphs, length=200)
+        self.w.set(0)
+        self.w.grid(row=0, column=1, padx=5, sticky=Tk.W)
 
 if __name__ == '__main__':
-    disp = Display('aerostruct.db', True, True, 0)
+    disp = Display(db_name, show_wing=show_wing,
+        show_tube=show_tube, initial_iteration=initial_iteration)
     disp.load_db()
     disp.draw_GUI()
     plt.tight_layout()
     disp.root.protocol("WM_DELETE_WINDOW", disp.quit)
-    disp.f.canvas.mpl_connect('key_press_event', disp.update_graphs)
     Tk.mainloop()
