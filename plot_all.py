@@ -22,8 +22,6 @@ show_wing = True
 show_tube = True
 initial_iteration = 0
 
-
-
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
@@ -86,8 +84,6 @@ class Display(object):
             except:
                 pass
             try:
-                self.cl.append(case_data['Unknowns']['CL'])
-                self.cd.append(case_data['Unknowns']['CD_i'])
                 self.twist.append(case_data['Unknowns']['twist'])
                 normals.append(case_data['Unknowns']['normals'])
                 cos_dih.append(case_data['Unknowns']['cos_dih'])
