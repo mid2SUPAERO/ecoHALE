@@ -19,13 +19,13 @@ for case_name, case_data in db.iteritems():
         continue # don't plot these cases
 
     cl.append(case_data['Unknowns']['CL'])
-    cd.append(case_data['Unknowns']['CD'])
+    cd.append(case_data['Unknowns']['CD_i'])
     twist.append(case_data['Unknowns']['twist'])
     mesh.append(case_data['Unknowns']['mesh'])
     # r.append(case_data['Unknowns']['r'])
     # t.append(case_data['Unknowns']['t'])
 
-mesh0 = mesh[0]
+mesh0 = mesh[-1]
 
 def plot_wing(mesh, r=None, t=None, tube_only=False):
     fig = plt.figure()

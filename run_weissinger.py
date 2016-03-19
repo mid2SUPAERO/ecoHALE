@@ -8,7 +8,7 @@ from transfer import TransferDisplacements, TransferLoads
 
 from weissinger import WeissingerGroup
 
-num_y = 5
+num_y = 11
 # span = 232.02
 span = 100.
 chord = 10.
@@ -24,7 +24,6 @@ root = Group()
 des_vars = [
     ('twist', numpy.zeros(num_y)), 
     ('span', span),
-    ('chord', numpy.ones(num_y)*chord),
     ('v', v),
     ('alpha', alpha), 
     ('rho', rho), 
@@ -54,7 +53,7 @@ root.add('des_vars',
          IndepVarComp(des_vars), 
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(num_y),
+         GeometryMesh(num_y, chord),
          promotes=['*'])
 root.add('def_mesh',
          TransferDisplacements(num_y),
@@ -74,13 +73,13 @@ prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 # prob.driver.options['tol'] = 1.0e-12
 
-prob.driver.add_desvar('twist',lower=numpy.ones((num_y)) * -10.,
-                       upper=numpy.ones((num_y)) * 10.)
+prob.driver.add_desvar('twist',lower=-5.,
+                       upper=5., scaler=5.)
 # prob.driver.add_desvar('chord',lower=numpy.ones((num_y)) * 1,
 #                        upper=numpy.ones((num_y)) * 12)
 prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD')
-prob.driver.add_constraint('CL', equals=0.8)
+prob.driver.add_constraint('CL', equals=0.3)
 
 #setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
@@ -96,6 +95,5 @@ if sys.argv[1] == '0':
     print prob['CL'], prob['CD']
 elif sys.argv[1] == '1':
     prob.run()
-    print prob['alpha'], prob['CL'], prob['CD']
+    print 'alpha', prob['alpha'], "; CL ", prob['CL'], "; CD ", prob['CD']
     print prob['twist']
-    print prob['chord']

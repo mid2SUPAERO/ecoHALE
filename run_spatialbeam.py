@@ -25,6 +25,9 @@ loads[:, 2] = 1e3
 
 root = Group()
 
+root.add('span',
+         IndepVarComp('span', span),
+         promotes=['*'])
 root.add('twist',
          IndepVarComp('twist', numpy.zeros((num_y))),
          promotes=['*'])
@@ -39,7 +42,7 @@ root.add('loads',
          promotes=['*'])
 
 root.add('mesh',
-         GeometryMesh(num_y, span, chord),
+         GeometryMesh(num_y, chord),
          promotes=['*'])
 root.add('spatialbeam',
          SpatialBeamGroup(num_y, cons, E, G, stress, mrho),

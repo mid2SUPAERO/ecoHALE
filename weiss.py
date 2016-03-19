@@ -49,6 +49,7 @@ class VLM(object):
                     P = points[ind_iy, :]
                 else:
                     N = normals[ind_ix, ind_iy]
+
                     rhs[ind_iy] = -numpy.dot(N, v_inf)
                     P = points[ind_ix, ind_iy, :]
 
@@ -66,7 +67,6 @@ class VLM(object):
 
         alpha = self.alpha * numpy.pi / 180.
         v_inf = self.v * numpy.array([numpy.cos(alpha), 0, numpy.sin(alpha)])
-
         mesh = self.mesh
         num_x, num_y = mesh.shape[:2]
         chords = get_lengths(mesh[0, :, :], mesh[-1, :, :], 1)
@@ -104,6 +104,7 @@ class VLM(object):
         sec_lift = self.rho * self.v * sol.reshape((num_x - 1, num_y - 1)) * widths * cos_dih
         L = numpy.sum(sec_lift)
         self.L = L
+        print "lift", self.L
         CL = L / (0.5*self.rho*self.v**2*S_ref)
 
         CL = 2. / S_ref / self.v * numpy.sum(sol.reshape((num_x - 1, num_y - 1)) * widths * cos_dih)
@@ -138,6 +139,7 @@ class VLM(object):
         vels = -numpy.dot(mtx, sol) / self.v
         CD = 1. / S_ref / self.v * numpy.sum(sol * vels * widths)
         self.CD = CD
+        # exit()
 
         # pylab.plot(numpy.linspace(0, 1, sol.shape[0]), sol)
         # pylab.show()
