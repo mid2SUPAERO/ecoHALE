@@ -1,7 +1,6 @@
 from __future__ import division
 import sqlitedict
 import numpy
-import sys
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
@@ -85,7 +84,7 @@ def plot_wing(mesh, iteration):
         R, P = numpy.meshgrid(r0, p)
         X, Z = R*numpy.cos(P), R*numpy.sin(P)
         chords = mesh0[1, :, 0] - mesh0[0, :, 0]
-        X[:] += fem_origin * chords
+        X[:] += -fem_origin * chords + mesh0[1, :, 0]
         Y = numpy.empty(X.shape)
         Y[:] = numpy.linspace(0, mesh0[0, -1, 1], n)
         colors = numpy.empty(X.shape)
@@ -162,7 +161,7 @@ def key_event(e):
 
 curr_pos = start_iteration % len(mesh)
 
-fig = plt.figure(figsize=(12, 6))
+fig = plt.figure(figsize=(12, 6), facecolor='white')
 ax = plt.subplot2grid((4,8), (0,0), rowspan=4, colspan=4, projection='3d')
 n_cases = len(twist)
 

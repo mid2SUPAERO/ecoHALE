@@ -40,9 +40,6 @@ root = Group()
 root.add('span',
          IndepVarComp('span', span),
          promotes=['*'])
-root.add('chord',
-         IndepVarComp('chord', numpy.ones(num_y)*chord),
-         promotes=['*'])
 root.add('twist',
          IndepVarComp('twist', numpy.zeros(num_y)),
          promotes=['*'])
@@ -64,7 +61,7 @@ root.add('t',
 
 coupled = Group()
 coupled.add('mesh',
-            GeometryMesh(num_y),
+            GeometryMesh(num_y, chord),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(num_y),

@@ -127,6 +127,7 @@ class WeissingerPreproc(Component):
             mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
             mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
             axis=2)
+
         norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
         for ind in xrange(3):
             normals[:, :, ind] /= norms
@@ -386,7 +387,7 @@ class WeissingerDragCoeff(Component):
         self.add_param('b_pts', val=numpy.zeros((n, 3)))
         self.add_param('widths', val=numpy.zeros((n-1)))
         self.add_param('S_ref', val=0.)
-        self.add_output('CD', val=0.)
+        self.add_output('CD', val=0., desc="induced drag coefficient")
 
         # self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
