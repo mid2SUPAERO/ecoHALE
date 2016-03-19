@@ -184,13 +184,15 @@ class WeissingerCirculations(Component):
         """ Jacobian for circulations."""
 
         self.lup = lu_factor(self.mtx.real)
+        jac = self.alloc_jacobian()
         
         n = self.num_y
         
-        jac = self.complex_step_jacobian(params, unknowns, resids,
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['normals', 'def_mesh',
                                                     'b_pts', 'c_pts'],
                                          fd_states=[])
+        jac.update(fd_jac)
                                          
         jac['circulations', 'circulations'] = self.mtx.real
 
@@ -437,9 +439,11 @@ class WeissingerDragCoeff(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for drag."""
 
-        jac = self.complex_step_jacobian(params, unknowns, resids,\
+        jac = self.alloc_jacobian()
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,\
                                          fd_params=['def_mesh', 'alpha', 'normals', 'b_pts'])
-
+        jac.update(fd_jac)
+        
         circ = params['circulations'].real
         widths = params['widths'].real
         v = params['v'].real
