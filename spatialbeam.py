@@ -250,10 +250,11 @@ class SpatialBeamFEM(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
 
-        jac = self.complex_step_jacobian(params, unknowns, resids, \
+        jac = self.alloc_jacobian()
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
                                          fd_params=['A','Iy','Iz','J','mesh'], \
                                          fd_states=[])
-
+        fd_jac.update(jac)
         jac['disp_aug', 'disp_aug'] = self.mtx.real
 
         arange = self.arange
