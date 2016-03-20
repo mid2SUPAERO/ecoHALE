@@ -1,15 +1,16 @@
 from __future__ import division
 import numpy
 import sys
+import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, mesh_gen
 from spatialbeam import SpatialBeamGroup
 
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+mesh = mesh_gen(n_points_inboard=10, n_points_outboard=10)
 num_y = mesh.shape[1]
 
-span = 1.
+span = 58.7630524 # baseline CRM
 cons = numpy.array([int((num_y-1)/2)])
 
 E = 200.e9
@@ -55,13 +56,17 @@ prob.driver.add_desvar('t',
                        lower=numpy.ones((num_y)) * 0.001,
                        upper=numpy.ones((num_y)) * 0.25)
 prob.driver.add_objective('energy')
-prob.driver.add_constraint('weight', upper=0.5)
+prob.driver.add_constraint('weight', upper=5.e4)
+prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
+# prob.root.fd_options['force_fd'] = True
+
 
 prob.setup()
 prob.run_once()
 
 if sys.argv[1] == '0':
     prob.check_partial_derivatives(compact_print=True)
+    # prob.check_total_derivatives()
     prob.run_once()
     print
     print prob['A']
@@ -71,4 +76,8 @@ if sys.argv[1] == '0':
     print
     print prob['disp']
 elif sys.argv[1] == '1':
+
+    st = time.time()
     prob.run()
+    print "weight", prob['weight']
+    print "run time", time.time()-st

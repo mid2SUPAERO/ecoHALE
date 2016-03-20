@@ -58,9 +58,8 @@ def sweep(mesh, angle):
     return mesh
         
 
-def stretch(mesh, factor): 
-    """proportional change to span. 
-    1.1 give a 10% increase in span""" 
+def stretch(mesh, length): 
+    """strech mesh in span-wise direction to reach specified length"""
 
     le = mesh[0]
     te = mesh[1]
@@ -68,7 +67,7 @@ def stretch(mesh, factor):
     n_points = len(le)
 
     y_max = le[-1,1]
-    dy = y_max*(factor-1)/(n_points-1)*np.arange(1,n_points)
+    dy = length/(n_points-1)*np.arange(1,n_points)
 
     le[1:,1] += dy
     te[1:,1] += dy
@@ -160,11 +159,12 @@ class GeometryMesh(Component):
         super(GeometryMesh, self).__init__()
         
         self.mesh = mesh
+
         self.new_mesh = np.empty(mesh.shape, dtype=complex)
         self.new_mesh[:] = mesh
         n = self.mesh.shape[1]
 
-        self.add_param('span', val=1.)
+        self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
         self.add_param('twist', val=np.zeros(n))
         self.add_output('mesh', val=self.mesh)
@@ -193,6 +193,8 @@ if __name__ == "__main__":
     thetas[10:] += 10
 
     mesh = mesh_gen(3,3)
+    print mesh[0,-1,1]
+    exit()
 
     # new_mesh = rotate(mesh, thetas)
 

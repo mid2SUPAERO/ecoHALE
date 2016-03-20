@@ -15,7 +15,7 @@ from gs_newton import HybridGSNewton
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 
-span = 1.
+span = 58.7630524 # baseline CRM
 cons = numpy.array([int((num_y-1)/2)])
 
 W0 = 5.e5
