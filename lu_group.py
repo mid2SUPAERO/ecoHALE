@@ -26,11 +26,11 @@ class LUSolver(ScipyGMRES):
             self.var_owners[var] = sub._subsystem(owner_path)
 
         self.jacobian = np.eye(self.u_vec.vec.size)
+        self.lup = dict()
             
     def solve(self, rhs_mat, system, mode):
 
         sol_buf = OrderedDict()
-        self.lup = dict()
 
         for voi, rhs in rhs_mat.items():
             self.voi = None
@@ -39,8 +39,7 @@ class LUSolver(ScipyGMRES):
 
             u_vec = self.u_vec
 
-            if system.regen_lu: 
-                
+            if system.regen_lu:
                 for out_var in self.var_names: 
                     owner = self.var_owners[out_var]
                     jac = owner._jacobian_cache
@@ -75,9 +74,9 @@ class LUGroup(Group):
         self.ln_solver = LUSolver()
 
     def linearize(self, params, unknowns, resids): 
+        self.regen_lu = True
         super(LUGroup, self).linearize(params, unknowns, resids)
 
-        self.regen_lu = True
 
 
 

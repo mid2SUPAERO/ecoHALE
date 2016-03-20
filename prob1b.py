@@ -10,14 +10,16 @@ from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
+from lu_group import LUGroup, LUSolver
 
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
+# control problem size here, by chaning number of mesh points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+
 num_y = mesh.shape[1]
 
-span = 58.7630524 # baseline CRM
 cons = numpy.array([int((num_y-1)/2)])
 
 W0 = 1.e5
@@ -27,6 +29,7 @@ M = 0.75
 R = 2000
 
 v = a * M
+span = 58.7630524 # baseline CRM
 alpha = 1.
 rho = 1.225
 
@@ -59,7 +62,7 @@ root.add('tube',
          MaterialsTube(num_y),
          promotes=['*'])
 
-coupled = Group() # LU_Group
+coupled = LUGroup() # add components for MDA to this group
 coupled.add('mesh',
             GeometryMesh(mesh),
             promotes=['*'])
@@ -76,27 +79,28 @@ coupled.add('spatialbeamstates',
             SpatialBeamStates(num_y, cons, E, G),
             promotes=['*'])
 
-coupled.nl_solver = Newton()
-coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.line_search.options['iprint'] = 1
-coupled.ln_solver = ScipyGMRES()
-coupled.ln_solver.options['iprint'] = 1
-coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissingerstates.ln_solver = LinearGaussSeidel()
-coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
-
-
-coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
+Nonlinear Gauss Seidel 
+coupled.nl_solver = NLGaussSeidel()   
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
+
+# coupled.nl_solver = Newton()
+# coupled.nl_solver.options['iprint'] = 1
+# coupled.nl_solver.line_search.options['iprint'] = 1
+# coupled.ln_solver = ScipyGMRES()
+# coupled.ln_solver.options['iprint'] = 1
+# coupled.ln_solver.preconditioner = LinearGaussSeidel()
+# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+# coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
     
-coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
-coupled.nl_solver.nlgs.options['iprint'] = 1
-coupled.nl_solver.nlgs.options['maxiter'] = 5
-coupled.nl_solver.newton.options['atol'] = 1e-7
-coupled.nl_solver.newton.options['rtol'] = 1e-7
-coupled.nl_solver.newton.options['iprint'] = 1
+# Hybrid NLGS-Newton
+# coupled.nl_solver = HybridGSNewton()   
+# coupled.nl_solver.nlgs.options['iprint'] = 1
+# coupled.nl_solver.nlgs.options['maxiter'] = 5
+# coupled.nl_solver.newton.options['atol'] = 1e-7
+# coupled.nl_solver.newton.options['rtol'] = 1e-7
+# coupled.nl_solver.newton.options['iprint'] = 1
 
 
 root.add('coupled',
@@ -117,34 +121,17 @@ root.add('eq_con',
 
 prob = Problem()
 prob.root = root
-prob.print_all_convergence()
+prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
-prob.driver = ScipyOptimizer()
-prob.driver.options['optimizer'] = 'SLSQP'
-prob.driver.options['disp'] = True
-prob.driver.options['tol'] = 1.0e-3
 
-prob.driver.add_desvar('twist',lower= -10.,
-                       upper=10., scaler=1000)
-prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
-prob.driver.add_desvar('t',
-                       lower= 0.003,
-                       upper= 0.25, scaler=1000)
-prob.driver.add_objective('fuelburn')
-prob.driver.add_constraint('failure', upper=0.0)
-prob.driver.add_constraint('eq_con', equals=0.0)
-
-prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
+prob.driver.add_recorder(SqliteRecorder('prob1b.db'))
 
 prob.setup()
-view_tree(prob, outfile="aerostruct_n2.html", show_browser=True)
+# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
-if len(sys.argv) == 1:
-    st = time.time()
-    prob.run_once()
-    print "runtime: ", time.time() - st
-elif sys.argv[1] == '0':
-    prob.run_once()
-    prob.check_partial_derivatives(compact_print=True)
-elif sys.argv[1] == '1':
-    prob.run()
+
+st = time.time()
+prob.run_once()
+print "runtime: ", time.time() - st
+
+
