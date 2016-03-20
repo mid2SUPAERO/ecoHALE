@@ -2,11 +2,11 @@ from __future__ import division
 import numpy
 import sys
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, mesh_gen
 from spatialbeam import SpatialBeamGroup
 
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+mesh = mesh_gen(n_points_inboard=3, n_points_outboard=5)
 num_y = mesh.shape[1]
 
 span = 1.
@@ -52,10 +52,12 @@ prob.driver.options['disp'] = True
 # prob.driver.options['tol'] = 1.0e-12
 
 prob.driver.add_desvar('t',
-                       lower=numpy.ones((num_y)) * 0.001,
+                       lower=numpy.ones((num_y)) * 0.003,
                        upper=numpy.ones((num_y)) * 0.25)
 prob.driver.add_objective('energy')
-prob.driver.add_constraint('weight', upper=0.5)
+prob.driver.add_constraint('weight', upper=1e5)
+
+prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 
 prob.setup()
 prob.run_once()

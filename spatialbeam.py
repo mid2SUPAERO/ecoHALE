@@ -252,8 +252,8 @@ class SpatialBeamFEM(Component):
 
         jac = self.alloc_jacobian()
         fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
-                                         fd_params=['A','Iy','Iz','J','mesh'], \
-                                         fd_states=[])
+                                            fd_params=['A','Iy','Iz','J','mesh'], \
+                                            fd_states=[])
         jac.update(fd_jac)
         jac['disp_aug', 'disp_aug'] = self.mtx.real
 
