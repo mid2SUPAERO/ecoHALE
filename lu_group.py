@@ -5,9 +5,6 @@ from scipy.linalg import lu_factor, lu_solve
 
 from openmdao.api import Group, ScipyGMRES
 
-import time
-
-
 
 class LUSolver(ScipyGMRES): 
     """ only works with LUGroup, assumes that an LU factorization was made during linearize""" 
@@ -57,11 +54,14 @@ class LUSolver(ScipyGMRES):
                         except KeyError: 
                             pass # that deriv doesn't exist
 
-                # self.lup[voi] = lu_factor(self.jacobian)
+                self.lup[voi] = lu_factor(self.jacobian)
 
-            # don't need to explicitly handle transpose, because mode takes care of it in mult            
-            # sol_buf[voi] = lu_solve(self.lup[voi], rhs) 
-            sol_buf[voi] = np.linalg.solve(self.ja)
+            if mode == "fwd": 
+                sol_buf[voi] = lu_solve(self.lup[voi], rhs) 
+                # sol_buf[voi] = np.linalg.solve(self.jacobian, rhs) # direct solve method
+            else: 
+                sol_buf[voi] = lu_solve(self.lup[voi], rhs, trans=1) 
+                # sol_buf[voi] = np.linalg.solve(self.jacobian.T, rhs) # direct solve method
 
         system.regen_lu = False
         return sol_buf

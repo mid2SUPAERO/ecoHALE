@@ -37,6 +37,8 @@ mesh = np.empty((2,20,3))
 mesh[0,:,:] = le.T
 mesh[1,:,:] = te.T
 
+
+# pull out the 3 key y-locations to define the two linear regions of the wing
 crm_base_points = raw_crm_points[(0,6,19),:]
 
 le_base = np.vstack((crm_base_points[:,1], 
@@ -51,51 +53,4 @@ crm_base_mesh = np.empty((2,3,3))
 crm_base_mesh[0,:,:] = le_base.T
 crm_base_mesh[1,:,:] = te_base.T
 crm_base_mesh[:,:,2] = 0 # get rid of the z deflection
-
-
-if __name__=="__main__": 
-
-    import plotly.offline as plt
-    import plotly.graph_objs as go
-
-    lines = []
-    line_marker = dict(color='#0066FF', width=2)
-    for i in xrange(20): 
-        s = go.Scatter3d(x=[le[0,i],te[0,i]], y=[le[1,i],te[1,i]], z=[le[2,i],te[2,i]], mode='lines', line=line_marker)
-        lines.append(s)
-
-        if i < 19: 
-            s = go.Scatter3d(x=[le[0,i],le[0,i+1]], y=[le[1,i],le[1,i+1]], z=[le[2,i],le[2,i+1]], mode='lines', line=line_marker)
-            lines.append(s)
-            s = go.Scatter3d(x=[te[0,i],te[0,i+1]], y=[te[1,i],te[1,i+1]], z=[te[2,i],te[2,i+1]], mode='lines', line=line_marker)
-            lines.append(s)
-    
-    layout = go.Layout(
-        title='Wireframe Plot',
-        scene=dict(
-            xaxis=dict(
-                gridcolor='rgb(255, 255, 255)',
-                zerolinecolor='rgb(255, 255, 255)',
-                showbackground=True,
-                backgroundcolor='rgb(230, 230,230)'
-            ),
-            yaxis=dict(
-                gridcolor='rgb(255, 255, 255)',
-                zerolinecolor='rgb(255, 255, 255)',
-                showbackground=True,
-                backgroundcolor='rgb(230, 230,230)'
-            ),
-            zaxis=dict(
-                gridcolor='rgb(255, 255, 255)',
-                zerolinecolor='rgb(255, 255, 255)',
-                showbackground=True,
-                backgroundcolor='rgb(230, 230,230)'
-            ),
-            aspectmode="data"
-
-        ),
-        showlegend=False,
-    )
-    fig = go.Figure(data=lines, layout=layout)
-    plt.plot(fig, filename="wing_top_view.html")
 

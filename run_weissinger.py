@@ -3,18 +3,20 @@ import numpy
 import sys
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh
+from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 
 from weissinger import WeissingerGroup
 
-num_y = 5
+mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+num_y = mesh.shape[1]
+
 # span = 232.02
 span = 100.
 chord = 10.
 
 v = 200.
-alpha = 3.
+alpha = 0.5
 rho = 1.225
 
 disp = numpy.zeros((num_y, 6))
@@ -30,30 +32,11 @@ des_vars = [
     ('disp', numpy.zeros((num_y, 6)))
 ]
 
-# root.add('twist',
-#          IndepVarComp('twist', numpy.zeros((num_y))),
-#          promotes=['*'])
-# root.add('span',
-#          IndepVarComp('span', span),
-#          promotes=['*'])
-# root.add('v',
-#          IndepVarComp('v', v),
-#          promotes=['*'])
-# root.add('alpha',
-#          IndepVarComp('alpha', alpha),
-#          promotes=['*'])
-# root.add('rho',
-#          IndepVarComp('rho', rho),
-#          promotes=['*'])
-# root.add('disp',
-#          IndepVarComp('disp', disp),
-#          promotes=['*'])
-
 root.add('des_vars', 
          IndepVarComp(des_vars), 
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(num_y, chord),
+         GeometryMesh(mesh),
          promotes=['*'])
 root.add('def_mesh',
          TransferDisplacements(num_y),
@@ -87,16 +70,14 @@ prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 # prob.root.fd_options['force_fd'] = True
 
 prob.setup()
-prob.root.list_connections()
-exit()
+
 prob.run_once()
 import time
 if sys.argv[1] == '0':
-    # prob.check_partial_derivatives(compact_print=True)
     st = time.time()
-    prob.check_total_derivatives()
+    prob.check_partial_derivatives(compact_print=True)
+    # prob.check_total_derivatives()
     print "run time", time.time() - st
-    prob.run_once()
     print
     print prob['CL'], prob['CD']
 elif sys.argv[1] == '1':
