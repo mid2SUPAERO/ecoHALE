@@ -6,7 +6,7 @@ from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRec
 from geometry import GeometryMesh, mesh_gen
 from spatialbeam import SpatialBeamGroup
 
-mesh = mesh_gen(n_points_inboard=3, n_points_outboard=5)
+mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 
 span = 1.
