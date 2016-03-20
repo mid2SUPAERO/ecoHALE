@@ -8,7 +8,7 @@ from transfer import TransferDisplacements, TransferLoads
 
 from weissinger import WeissingerGroup
 
-num_y = 11
+num_y = 5
 # span = 232.02
 span = 100.
 chord = 10.
@@ -84,12 +84,16 @@ prob.driver.add_constraint('CL', equals=0.3)
 #setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
+# prob.root.fd_options['force_fd'] = True
+
 prob.setup()
 prob.run_once()
-
+import time
 if sys.argv[1] == '0':
     # prob.check_partial_derivatives(compact_print=True)
+    st = time.time()
     prob.check_total_derivatives()
+    print "run time", time.time() - st
     prob.run_once()
     print
     print prob['CL'], prob['CD']
