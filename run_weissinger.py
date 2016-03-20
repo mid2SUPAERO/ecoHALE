@@ -87,6 +87,8 @@ prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 # prob.root.fd_options['force_fd'] = True
 
 prob.setup()
+prob.root.list_connections()
+exit()
 prob.run_once()
 import time
 if sys.argv[1] == '0':
