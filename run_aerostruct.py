@@ -10,6 +10,7 @@ from weissinger import WeissingerGroup
 from spatialbeam import SpatialBeamGroup
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
+from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
@@ -126,13 +127,7 @@ prob.driver.add_constraint('eq_con', equals=0.0)
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 
 prob.setup()
-from model_helpers import var_dump
-
-var_dump(prob)
-exit()
-# from openmdao.devtools.d3graph import view_tree
-# view_tree(prob)
-# exit()
+view_tree(prob, outfile="aerostruct_n2.html", show_browser=True)
 
 if len(sys.argv) == 1:
     st = time.time()
