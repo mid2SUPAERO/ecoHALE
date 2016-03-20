@@ -5,8 +5,7 @@ import sys
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
-
-from weissinger import WeissingerGroup
+from weissinger import WeissingerStates, WeissingerFunctionals
 
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
@@ -39,8 +38,11 @@ root.add('mesh',
 root.add('def_mesh',
          TransferDisplacements(num_y),
          promotes=['*'])
-root.add('weissinger',
-         WeissingerGroup(num_y),
+root.add('weissingerstates',
+         WeissingerStates(num_y),
+         promotes=['*'])
+root.add('weissingerfuncs',
+         WeissingerFunctionals(num_y),
          promotes=['*'])
 root.add('loads',
          TransferLoads(num_y),
@@ -55,9 +57,9 @@ prob.driver.options['disp'] = True
 # prob.driver.options['tol'] = 1.0e-12
 
 prob.driver.add_desvar('twist',lower=-5.,
-                       upper=5., scaler=5.)
+                       upper=5.)
 prob.driver.add_desvar('alpha', lower=-10., upper=10.)
-prob.driver.add_objective('CD')
+prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.3)
 
 # setup data recording

@@ -62,4 +62,4 @@ class FunctionalEquilibrium(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         W0 = self.W0
 
-        unknowns['eq_con'] = params['weight'] + W0 - params['L']
+        unknowns['eq_con'] = (params['weight'] + W0 - params['L']) / W0
