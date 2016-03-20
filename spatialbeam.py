@@ -257,15 +257,9 @@ class SpatialBeamFEM(Component):
         """ Jacobian for disp."""
 
         jac = self.alloc_jacobian()
-<<<<<<< HEAD
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids, 
-                                         fd_params=['A','Iy','Iz','J','mesh'], 
-                                         fd_states=[])
-=======
         fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
                                             fd_params=['A','Iy','Iz','J','mesh'], \
                                             fd_states=[])
->>>>>>> 9adabed50487f1a4cd3caff39c1eec419d23dfd9
         jac.update(fd_jac)
         jac['disp_aug', 'disp_aug'] = self.mtx.real
 
@@ -290,6 +284,7 @@ class SpatialBeamFEM(Component):
                 sol_vec[voi].vec[:] = lu_solve(self.lup, -rhs_vec[voi].vec, trans=1)
 
 
+
 class SpatialBeamDisp(Component):
     """ Selects displacements from augmented vector """
 
@@ -302,7 +297,7 @@ class SpatialBeamDisp(Component):
         self.add_param('disp_aug', val=numpy.zeros((size)))
         self.add_output('disp', val=numpy.zeros((n, 6)))
 
-        # self.fd_options['force_fd'] = True
+        #self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -317,6 +312,7 @@ class SpatialBeamDisp(Component):
         arange = self.arange
         jac['disp', 'disp_aug'][arange, arange] = 1.
         return jac
+
 
 
 class SpatialBeamEnergy(Component):
@@ -341,6 +337,7 @@ class SpatialBeamEnergy(Component):
         jac['energy', 'disp'][0, :] = params['loads'].real.flatten()
         jac['energy', 'loads'][0, :] = params['disp'].real.flatten()
         return jac
+
 
 
 class SpatialBeamWeight(Component):
