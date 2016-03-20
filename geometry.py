@@ -67,7 +67,7 @@ def stretch(mesh, length):
     n_points = len(le)
 
     y_max = le[-1,1]
-    dy = length/(n_points-1)*np.arange(1,n_points)
+    dy = (length-y_max)/(n_points-1)*np.arange(1,n_points)
 
     le[1:,1] += dy
     te[1:,1] += dy
@@ -193,14 +193,12 @@ if __name__ == "__main__":
     thetas[10:] += 10
 
     mesh = mesh_gen(3,3)
-    print mesh[0,-1,1]
-    exit()
 
     # new_mesh = rotate(mesh, thetas)
 
     # new_mesh = sweep(mesh, 20)
 
-    # new_mesh = stretch(mesh, 10)
+    new_mesh = stretch(mesh, 100)
 
 
     # wireframe_orig = wire_mesh(mesh)
