@@ -5,7 +5,8 @@ import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, mesh_gen
-from spatialbeam import SpatialBeamGroup, radii
+from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
+from materials import MaterialsTube
 
 mesh = mesh_gen(n_points_inboard=10, n_points_outboard=10)
 num_y = mesh.shape[1]
@@ -17,9 +18,9 @@ E = 200.e9
 G = 30.e9
 stress = 20.e6
 mrho = 3.e3
-r = 0.3 * numpy.ones(num_y-1)
 r = radii(mesh)
 t = 0.02 * numpy.ones(num_y-1)
+t = r/20
 
 loads = numpy.zeros((num_y, 6))
 loads[0, 2] = loads[-1, 2] = 1e3
@@ -41,8 +42,14 @@ root.add('des_vars',
 root.add('mesh',
          GeometryMesh(mesh),
          promotes=['*'])
-root.add('spatialbeam',
-         SpatialBeamGroup(num_y, cons, E, G, stress, mrho),
+root.add('tube',
+         MaterialsTube(num_y),
+         promotes=['*'])
+root.add('spatialbeamstates',
+         SpatialBeamStates(num_y, cons, E, G),
+         promotes=['*'])
+root.add('spatialbeamfuncs',
+         SpatialBeamFunctionals(num_y, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()

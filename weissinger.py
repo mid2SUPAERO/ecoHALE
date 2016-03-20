@@ -75,11 +75,11 @@ def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts):
             mtx[ind_i, ind_j] += _biot_savart(N, A, D, P, inf=True,  rev=True)
 
 
-class WeissingerPreproc(Component):
+class WeissingerGeom(Component):
     """ Computes various geometric properties for Weissinger analysis """
 
     def __init__(self, n):
-        super(WeissingerPreproc, self).__init__()
+        super(WeissingerGeom, self).__init__()
 
         self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
         self.add_output('b_pts', val=numpy.zeros((n, 3)))
@@ -460,13 +460,14 @@ class WeissingerDragCoeff(Component):
         return jac
 
 
-class WeissingerGroup(Group):
+
+class WeissingerStates(Group):
 
     def __init__(self, num_y):
-        super(WeissingerGroup, self).__init__()
+        super(WeissingerStates, self).__init__()
 
-        self.add('preproc',
-                 WeissingerPreproc(num_y),
+        self.add('wgeom',
+                 WeissingerGeom(num_y),
                  promotes=['*'])
         self.add('circ',
                  WeissingerCirculations(num_y),
@@ -474,6 +475,13 @@ class WeissingerGroup(Group):
         self.add('forces',
                  WeissingerForces(num_y),
                  promotes=['*'])
+
+
+
+class WeissingerFunctionals(Group):
+
+    def __init__(self, num_y):
+        super(WeissingerFunctionals, self).__init__()
         self.add('lift',
                  WeissingerLift(num_y),
                  promotes=['*'])
