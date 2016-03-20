@@ -86,7 +86,6 @@ coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 
 coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
-
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
