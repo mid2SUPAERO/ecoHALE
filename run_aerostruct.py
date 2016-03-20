@@ -59,7 +59,7 @@ root.add('t',
          IndepVarComp('t', t),
          promotes=['*'])
 
-coupled = Group()
+coupled = Group() # LU_Group
 coupled.add('mesh',
             GeometryMesh(num_y, chord),
             promotes=['*'])
