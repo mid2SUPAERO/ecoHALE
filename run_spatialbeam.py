@@ -3,11 +3,12 @@ import numpy
 import sys
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer
-from geometry import GeometryMesh
+from geometry import GeometryMesh, mesh_gen
 from spatialbeam import SpatialBeamGroup
 
+mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+num_y = mesh.shape[1]
 
-num_y = 5
 span = 232.02
 chord = 39.37
 cons = numpy.array([int((num_y-1)/2)])
@@ -25,24 +26,19 @@ loads[:, 2] = 1e3
 
 root = Group()
 
-root.add('span',
-         IndepVarComp('span', span),
-         promotes=['*'])
-root.add('twist',
-         IndepVarComp('twist', numpy.zeros((num_y))),
-         promotes=['*'])
-root.add('r',
-         IndepVarComp('r', r),
-         promotes=['*'])
-root.add('t',
-         IndepVarComp('t', t),
-         promotes=['*'])
-root.add('loads',
-         IndepVarComp('loads', loads),
-         promotes=['*'])
+des_vars = [
+    ('twist', numpy.zeros(num_y)), 
+    ('span', span),
+    ('r', r), 
+    ('t', t), 
+    ('loads', loads) 
+]
 
+root.add('des_vars', 
+         IndepVarComp(des_vars), 
+         promotes=['*'])
 root.add('mesh',
-         GeometryMesh(num_y, chord),
+         GeometryMesh(mesh),
          promotes=['*'])
 root.add('spatialbeam',
          SpatialBeamGroup(num_y, cons, E, G, stress, mrho),
@@ -60,13 +56,13 @@ prob.driver.add_desvar('t',
                        lower=numpy.ones((num_y)) * 0.001,
                        upper=numpy.ones((num_y)) * 0.25)
 prob.driver.add_objective('energy')
-prob.driver.add_constraint('weight', upper = 0.5)
+prob.driver.add_constraint('weight', upper=0.5)
 
 prob.setup()
 prob.run_once()
 
 if sys.argv[1] == '0':
-    prob.check_partial_derivatives(compact_print=True)
+    prob.check_partial_derivatives(comps=['spatialbeam.fem'], compact_print=True)
     prob.run_once()
     print
     print prob['A']
