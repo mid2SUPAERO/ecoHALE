@@ -1,105 +1,38 @@
-from __future__ import division
 import sqlitedict
-import numpy
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+import sys
 
 
+if len(sys.argv) > 1:
+    filename = sys.argv[1]
+else:
+    filename = 'aerostruct'
 
-db = sqlitedict.SqliteDict('aerostruct.db', 'openmdao')
+with open (filename + '.vars', 'r') as myfile:
+    lines = myfile.readlines()
+    lines[-1] += '\n'
 
-variables = ['CL', 'CD', 'alpha', 'failure', 'fuelburn', 'eq_con']
+    width = lines[0][:-1]
+    variables = [name[:-1] for name in lines[1:]]
 
+print_str = '%5s'
+print_tup = ('Itn',)
 for name in variables:
-    print name,
-print
+    print_str = print_str + '%' + width + 's'
+    print_tup = print_tup + (name,)
+print print_str % print_tup
 
+db = sqlitedict.SqliteDict(filename + '.db', 'openmdao')
+
+counter = 0
 for case_name, case_data in db.iteritems():
     if "metadata" in case_name or "derivs" in case_name:
         continue # don't plot these cases
+    
+    print_str = '%5i'
+    print_tup = (counter,)
+    for name in variables:
+        print_str = print_str + '%' + width + 'e'
+        print_tup = print_tup + (case_data['Unknowns'][name],)
+    print print_str % print_tup
 
-    if 1:
-        print case_name,
-        for name in variables:
-            print case_data['Unknowns'][name],
-        print
-
-    save = case_data
-
-exit()
-
-
-
-variables = ['v', 'circulations', 'alpha', 'def_mesh', 'normals', 'b_pts', 'widths', 'S_ref', 'CD']
-for name in variables:
-    print name
-    print save['Unknowns'][name]
-
-params = {}
-for name in variables:
-    params[name] = save['Unknowns'][name]
-unknowns = {}
-resids = {}
-
-from weissinger import WeissingerDragCoeff
-
-import pylab
-
-alphas = numpy.linspace(-20, 25, 20)
-CDs = numpy.zeros((20))
-for i, alpha in enumerate(alphas):
-    params['alpha'] = alpha
-    w = WeissingerDragCoeff(5)
-    w.solve_nonlinear(params, unknowns, resids)
-    CDs[i] = unknowns['CD'].real
-
-    print 'alpha:', alpha, 'CD:', unknowns['CD'].real
-
-
-pylab.plot(alphas, CDs)
-pylab.xlabel('$ \\alpha $', fontsize=24)
-pylab.ylabel('$C_D$', fontsize=24)
-pylab.show()
-
-#w = WeissingerDragCoeff(5)
-#w.solve_nonlinear(params, unknowns, resids)
-#print unknowns
-
-print
-print
-print
-
-from weiss import VLM
-
-n = 20
-CLs = numpy.zeros((n))
-CDs = numpy.zeros((n))
-alphas = numpy.linspace(-3, 15, n)
-for i, alpha in enumerate(alphas):
-    v = VLM()
-    v.mesh = save['Unknowns']['def_mesh']
-    v.alpha = alpha
-    v.v = save['Unknowns']['v']*1e3
-    v.assemble()
-    CLs[i] = v.CL
-    CDs[i] = v.CD# + .009364 # extra factor added from paper
-    print v.CD
-
-'''
-import pylab
-pylab.plot(alphas, CLs)
-pylab.xlabel('$ \\alpha $', fontsize=24)
-pylab.ylabel('$C_L$', fontsize=24)
-pylab.show()
-
-pylab.plot(CDs, CLs)
-pylab.xlabel('$C_D$', fontsize=24)
-pylab.ylabel('$C_L$', fontsize=24)
-pylab.show()
-'''
-
-pylab.plot(alphas, CDs)
-pylab.xlabel('$ \\alpha $', fontsize=24)
-pylab.ylabel('$C_D$', fontsize=24)
-pylab.show()
+    counter += 1

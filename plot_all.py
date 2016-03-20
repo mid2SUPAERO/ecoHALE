@@ -22,8 +22,6 @@ show_wing = True
 show_tube = True
 initial_iteration = 0
 
-
-
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 

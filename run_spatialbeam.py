@@ -5,7 +5,7 @@ import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, mesh_gen
-from spatialbeam import SpatialBeamGroup
+from spatialbeam import SpatialBeamGroup, radii
 
 mesh = mesh_gen(n_points_inboard=10, n_points_outboard=10)
 num_y = mesh.shape[1]
@@ -18,6 +18,7 @@ G = 30.e9
 stress = 20.e6
 mrho = 3.e3
 r = 0.3 * numpy.ones(num_y-1)
+r = radii(mesh)
 t = 0.02 * numpy.ones(num_y-1)
 
 loads = numpy.zeros((num_y, 6))
@@ -53,13 +54,13 @@ prob.driver.options['disp'] = True
 # prob.driver.options['tol'] = 1.0e-12
 
 prob.driver.add_desvar('t',
-                       lower=numpy.ones((num_y)) * 0.001,
+                       lower=numpy.ones((num_y)) * 0.003,
                        upper=numpy.ones((num_y)) * 0.25)
 prob.driver.add_objective('energy')
-prob.driver.add_constraint('weight', upper=5.e4)
-prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
+prob.driver.add_constraint('weight', upper=1e5)
 # prob.root.fd_options['force_fd'] = True
 
+prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 
 prob.setup()
 prob.run_once()

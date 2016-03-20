@@ -18,14 +18,14 @@ num_y = mesh.shape[1]
 span = 58.7630524 # baseline CRM
 cons = numpy.array([int((num_y-1)/2)])
 
-W0 = 5.e5
+W0 = 1.e5
 CT = 0.01
 a = 200
 M = 0.75
 R = 2000
 
 v = a * M
-alpha = 3.
+alpha = 1.
 rho = 1.225
 
 E = 200.e10
@@ -117,7 +117,7 @@ prob.driver.add_desvar('twist',lower= -10.,
                        upper=10., scaler=1000)
 prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
 prob.driver.add_desvar('t',
-                       lower= 0.001,
+                       lower= 0.003,
                        upper= 0.25, scaler=1000)
 prob.driver.add_objective('fuelburn')
 prob.driver.add_constraint('failure', upper=0.0)

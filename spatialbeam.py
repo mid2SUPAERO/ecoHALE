@@ -12,6 +12,12 @@ def norm(vec):
 def unit(vec):
     return vec / norm(vec)
 
+def radii(mesh, t_c=0.15):
+    vectors = mesh[1, :, :] - mesh[0, :, :]
+    chords = numpy.sqrt(numpy.sum(vectors**2, axis=1))
+    chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
+    return t_c * chords
+
 
 
 class SpatialBeamTube(Component):
@@ -251,9 +257,15 @@ class SpatialBeamFEM(Component):
         """ Jacobian for disp."""
 
         jac = self.alloc_jacobian()
+<<<<<<< HEAD
         fd_jac = self.complex_step_jacobian(params, unknowns, resids, 
                                          fd_params=['A','Iy','Iz','J','mesh'], 
                                          fd_states=[])
+=======
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
+                                            fd_params=['A','Iy','Iz','J','mesh'], \
+                                            fd_states=[])
+>>>>>>> 9adabed50487f1a4cd3caff39c1eec419d23dfd9
         jac.update(fd_jac)
         jac['disp_aug', 'disp_aug'] = self.mtx.real
 
@@ -456,7 +468,7 @@ class SpatialBeamVonMisesTube(Component):
 class SpatialBeamFailureKS(Component):
     """ Aggregates failure constraints from the structure """
 
-    def __init__(self, n, sigma, rho=100):
+    def __init__(self, n, sigma, rho=10):
         super(SpatialBeamFailureKS, self).__init__()
 
         self.add_param('vonmises', val=numpy.zeros((n-1, 2)))
@@ -475,11 +487,11 @@ class SpatialBeamFailureKS(Component):
         rho = self.rho
         vonmises = params['vonmises']
 
-        fmax = numpy.max(vonmises - sigma)
+        fmax = numpy.max(vonmises/sigma - 1)
 
         nlog, nsum, nexp = numpy.log, numpy.sum, numpy.exp
         unknowns['failure'] = fmax + 1 / rho * \
-                              nlog(nsum(nexp(rho * (vonmises - sigma - fmax))))
+                              nlog(nsum(nexp(rho * (vonmises/sigma - 1 - fmax))))
 
 
 
