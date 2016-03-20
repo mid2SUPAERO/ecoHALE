@@ -459,7 +459,7 @@ class SpatialBeamVonMisesTube(Component):
 class SpatialBeamFailureKS(Component):
     """ Aggregates failure constraints from the structure """
 
-    def __init__(self, n, sigma, rho=100):
+    def __init__(self, n, sigma, rho=10):
         super(SpatialBeamFailureKS, self).__init__()
 
         self.add_param('vonmises', val=numpy.zeros((n-1, 2)))
@@ -478,11 +478,11 @@ class SpatialBeamFailureKS(Component):
         rho = self.rho
         vonmises = params['vonmises']
 
-        fmax = numpy.max(vonmises - sigma)
+        fmax = numpy.max(vonmises/sigma - 1)
 
         nlog, nsum, nexp = numpy.log, numpy.sum, numpy.exp
         unknowns['failure'] = fmax + 1 / rho * \
-                              nlog(nsum(nexp(rho * (vonmises - sigma - fmax))))
+                              nlog(nsum(nexp(rho * (vonmises/sigma - 1 - fmax))))
 
 
 
