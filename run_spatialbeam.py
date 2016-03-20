@@ -4,7 +4,7 @@ import sys
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, mesh_gen
-from spatialbeam import SpatialBeamGroup
+from spatialbeam import SpatialBeamGroup, radii
 
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
@@ -17,6 +17,7 @@ G = 30.e9
 stress = 20.e6
 mrho = 3.e3
 r = 0.3 * numpy.ones(num_y-1)
+r = radii(mesh)
 t = 0.02 * numpy.ones(num_y-1)
 
 loads = numpy.zeros((num_y, 6))
