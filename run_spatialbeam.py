@@ -65,9 +65,9 @@ prob.driver.add_desvar('t',
                        upper=numpy.ones((num_y)) * 0.25)
 prob.driver.add_objective('energy')
 prob.driver.add_constraint('weight', upper=1e5)
-# prob.root.fd_options['force_fd'] = True
+prob.root.fd_options['force_fd'] = True
 
-prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
+prob.driver.add_recorder(SqliteRecorder('spatialbeam_fd.db'))
 
 prob.setup()
 prob.run_once()
