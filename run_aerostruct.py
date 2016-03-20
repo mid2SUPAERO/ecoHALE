@@ -6,8 +6,9 @@ import time
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerGroup
-from spatialbeam import SpatialBeamGroup
+from weissinger import WeissingerStates, WeissingerFunctionals
+from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
+from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
 from gs_newton import HybridGSNewton
@@ -28,13 +29,14 @@ v = a * M
 alpha = 1.
 rho = 1.225
 
-E = 200.e10
-G = 60.e9
+E = 200.e9
+G = 30.e9
 stress = 20.e6
 mrho = 3.e3
-r = 0.3 * numpy.ones(num_y-1)
+r = radii(mesh)
 # t = 0.05 * numpy.ones(num_y-1)
 t = 0.05 * numpy.ones(num_y-1)
+t = r/10
 
 root = Group()
 
@@ -52,6 +54,9 @@ des_vars = [
 root.add('des_vars', 
          IndepVarComp(des_vars), 
          promotes=['*'])
+root.add('tube',
+         MaterialsTube(num_y),
+         promotes=['*'])
 
 coupled = Group() # LU_Group
 coupled.add('mesh',
@@ -60,14 +65,14 @@ coupled.add('mesh',
 coupled.add('def_mesh',
             TransferDisplacements(num_y),
             promotes=['*'])
-coupled.add('weissinger',
-            WeissingerGroup(num_y),
+coupled.add('weissingerstates',
+            WeissingerStates(num_y),
             promotes=['*'])
 coupled.add('loads',
             TransferLoads(num_y),
             promotes=['*'])
-coupled.add('spatialbeam',
-            SpatialBeamGroup(num_y, cons, E, G, stress, mrho),
+coupled.add('spatialbeamstates',
+            SpatialBeamStates(num_y, cons, E, G),
             promotes=['*'])
 
 coupled.nl_solver = Newton()
@@ -76,8 +81,8 @@ coupled.nl_solver.line_search.options['iprint'] = 1
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissinger.ln_solver = LinearGaussSeidel()
-coupled.spatialbeam.ln_solver = LinearGaussSeidel()
+coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 
 coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
@@ -96,6 +101,12 @@ coupled.nl_solver.newton.options['iprint'] = 1
 
 root.add('coupled',
          coupled,
+         promotes=['*'])
+root.add('weissingerfuncs',
+         WeissingerFunctionals(num_y),
+         promotes=['*'])
+root.add('spatialbeamfuncs',
+         SpatialBeamFunctionals(num_y, E, G, stress, mrho),
          promotes=['*'])
 root.add('fuelburn',
          FunctionalBreguetRange(W0, CT, a, R, M),
