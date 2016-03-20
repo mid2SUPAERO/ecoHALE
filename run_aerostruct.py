@@ -4,7 +4,7 @@ import sys
 import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
-from geometry import GeometryMesh
+from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerGroup
 from spatialbeam import SpatialBeamGroup
@@ -12,9 +12,10 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
 from gs_newton import HybridGSNewton
 
-num_y = 9
-span = 60.
-chord = 4.
+mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+num_y = mesh.shape[1]
+
+span = 1.
 cons = numpy.array([int((num_y-1)/2)])
 
 W0 = 5.e5
@@ -27,41 +28,34 @@ v = a * M
 alpha = 3.
 rho = 1.225
 
-E = 200.e9
-G = 30.e9
+E = 200.e10
+G = 60.e9
 stress = 20.e6
 mrho = 3.e3
 r = 0.3 * numpy.ones(num_y-1)
+# t = 0.05 * numpy.ones(num_y-1)
 t = 0.05 * numpy.ones(num_y-1)
 
 root = Group()
 
 
-root.add('span',
-         IndepVarComp('span', span),
-         promotes=['*'])
-root.add('twist',
-         IndepVarComp('twist', numpy.zeros(num_y)),
-         promotes=['*'])
-root.add('v',
-         IndepVarComp('v', v),
-         promotes=['*'])
-root.add('alpha',
-         IndepVarComp('alpha', alpha),
-         promotes=['*'])
-root.add('rho',
-         IndepVarComp('rho', rho),
-         promotes=['*'])
-root.add('r',
-         IndepVarComp('r', r),
-         promotes=['*'])
-root.add('t',
-         IndepVarComp('t', t),
+des_vars = [
+    ('span', span),
+    ('twist', numpy.zeros(num_y)), 
+    ('v', v),
+    ('alpha', alpha), 
+    ('rho', rho),
+    ('r', r),  
+    ('t', t), 
+]
+
+root.add('des_vars', 
+         IndepVarComp(des_vars), 
          promotes=['*'])
 
-coupled = Group()
+coupled = Group() # LU_Group
 coupled.add('mesh',
-            GeometryMesh(num_y, chord),
+            GeometryMesh(mesh),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(num_y),
@@ -85,19 +79,19 @@ coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissinger.ln_solver = LinearGaussSeidel()
 coupled.spatialbeam.ln_solver = LinearGaussSeidel()
 
-# if 1:
-#     coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
+
+coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
 
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
     
-# coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
-# coupled.nl_solver.nlgs.options['iprint'] = 1
-# coupled.nl_solver.nlgs.options['maxiter'] = 10
-# coupled.nl_solver.newton.options['atol'] = 1e-7
-# coupled.nl_solver.newton.options['rtol'] = 1e-7
-# coupled.nl_solver.newton.options['iprint'] = 1
+coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
+coupled.nl_solver.nlgs.options['iprint'] = 1
+coupled.nl_solver.nlgs.options['maxiter'] = 5
+coupled.nl_solver.newton.options['atol'] = 1e-7
+coupled.nl_solver.newton.options['rtol'] = 1e-7
+coupled.nl_solver.newton.options['iprint'] = 1
 
 
 root.add('coupled',
