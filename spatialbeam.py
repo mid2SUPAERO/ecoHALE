@@ -450,6 +450,7 @@ class SpatialBeamFunctionals(Group):
 
     def __init__(self, num_y, E, G, stress, mrho):
         super(SpatialBeamFunctionals, self).__init__()
+        
         self.add('energy',
                  SpatialBeamEnergy(num_y),
                  promotes=['*'])
