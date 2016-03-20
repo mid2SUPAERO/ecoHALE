@@ -97,6 +97,10 @@ def mirror(mesh, right_side=True):
         new_mesh[:,:n_points,:] = mesh[:,::-1,:]
         new_mesh[:,n_points:,:] = mesh[:,1:,:]*mirror_y[:,1:,:]
 
+    # shift so 0 is at the left wing tip (structures wants it that way)
+    y0 = new_mesh[0,0,1]
+    new_mesh[:,:,1] -= y0
+
     return new_mesh
 
 
