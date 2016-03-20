@@ -10,7 +10,7 @@ from weissinger import WeissingerStates, WeissingerFunctionals
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 
-span = 1.
+span = 58.7630524 # baseline CRM
 
 v = 200.
 alpha = 0.5
