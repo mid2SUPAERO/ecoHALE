@@ -11,9 +11,7 @@ from weissinger import WeissingerGroup
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 
-# span = 232.02
-span = 100.
-chord = 10.
+span = 1.
 
 v = 200.
 alpha = 0.5
@@ -58,13 +56,11 @@ prob.driver.options['disp'] = True
 
 prob.driver.add_desvar('twist',lower=-5.,
                        upper=5., scaler=5.)
-# prob.driver.add_desvar('chord',lower=numpy.ones((num_y)) * 1,
-#                        upper=numpy.ones((num_y)) * 12)
 prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD')
 prob.driver.add_constraint('CL', equals=0.3)
 
-#setup data recording
+# setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
 # prob.root.fd_options['force_fd'] = True

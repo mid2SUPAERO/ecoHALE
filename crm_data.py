@@ -37,6 +37,10 @@ mesh = np.empty((2,20,3))
 mesh[0,:,:] = le.T
 mesh[1,:,:] = te.T
 
+mesh *= 0.0254 # convert to meters
+
+
+
 
 # pull out the 3 key y-locations to define the two linear regions of the wing
 crm_base_points = raw_crm_points[(0,6,19),:]
@@ -53,4 +57,5 @@ crm_base_mesh = np.empty((2,3,3))
 crm_base_mesh[0,:,:] = le_base.T
 crm_base_mesh[1,:,:] = te_base.T
 crm_base_mesh[:,:,2] = 0 # get rid of the z deflection
+crm_base_mesh *= 0.0254 # convert to meters
 

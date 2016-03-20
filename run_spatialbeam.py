@@ -9,8 +9,7 @@ from spatialbeam import SpatialBeamGroup
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 
-span = 232.02
-chord = 39.37
+span = 1.
 cons = numpy.array([int((num_y-1)/2)])
 
 E = 200.e9
