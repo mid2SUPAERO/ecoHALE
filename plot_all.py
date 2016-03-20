@@ -84,6 +84,8 @@ class Display(object):
             except:
                 pass
             try:
+                self.cl.append(case_data['Unknowns']['CL'])
+                self.cd.append(case_data['Unknowns']['CD'])
                 self.twist.append(case_data['Unknowns']['twist'])
                 normals.append(case_data['Unknowns']['normals'])
                 cos_dih.append(case_data['Unknowns']['cos_dih'])

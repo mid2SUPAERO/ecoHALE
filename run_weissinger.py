@@ -3,18 +3,18 @@ import numpy
 import sys
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh
+from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 
 from weissinger import WeissingerGroup
 
-num_y = 11
-# span = 232.02
-span = 100.
-chord = 10.
+mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+num_y = mesh.shape[1]
+
+span = 1.
 
 v = 200.
-alpha = 3.
+alpha = 0.5
 rho = 1.225
 
 disp = numpy.zeros((num_y, 6))
@@ -30,30 +30,11 @@ des_vars = [
     ('disp', numpy.zeros((num_y, 6)))
 ]
 
-# root.add('twist',
-#          IndepVarComp('twist', numpy.zeros((num_y))),
-#          promotes=['*'])
-# root.add('span',
-#          IndepVarComp('span', span),
-#          promotes=['*'])
-# root.add('v',
-#          IndepVarComp('v', v),
-#          promotes=['*'])
-# root.add('alpha',
-#          IndepVarComp('alpha', alpha),
-#          promotes=['*'])
-# root.add('rho',
-#          IndepVarComp('rho', rho),
-#          promotes=['*'])
-# root.add('disp',
-#          IndepVarComp('disp', disp),
-#          promotes=['*'])
-
 root.add('des_vars', 
          IndepVarComp(des_vars), 
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(num_y, chord),
+         GeometryMesh(mesh),
          promotes=['*'])
 root.add('def_mesh',
          TransferDisplacements(num_y),
@@ -75,22 +56,24 @@ prob.driver.options['disp'] = True
 
 prob.driver.add_desvar('twist',lower=-5.,
                        upper=5., scaler=5.)
-# prob.driver.add_desvar('chord',lower=numpy.ones((num_y)) * 1,
-#                        upper=numpy.ones((num_y)) * 12)
 prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD')
 prob.driver.add_constraint('CL', equals=0.3)
 
-#setup data recording
+# setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
-prob.setup()
-prob.run_once()
+# prob.root.fd_options['force_fd'] = True
 
+prob.setup()
+
+prob.run_once()
+import time
 if sys.argv[1] == '0':
-    # prob.check_partial_derivatives(compact_print=True)
-    prob.check_total_derivatives()
-    prob.run_once()
+    st = time.time()
+    prob.check_partial_derivatives(compact_print=True)
+    # prob.check_total_derivatives()
+    print "run time", time.time() - st
     print
     print prob['CL'], prob['CD']
 elif sys.argv[1] == '1':
