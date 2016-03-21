@@ -20,13 +20,12 @@ import sqlitedict
 db_name = 'aerostruct.db'
 show_wing = True
 show_tube = True
-initial_iteration = 0
 
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
 class Display(object):
-    def __init__(self, db_name, show_wing, show_tube, initial_iteration):
+    def __init__(self, db_name, show_wing, show_tube):
         self.s = time()
         self.root = Tk.Tk()
         self.root.wm_title("Viewer")
@@ -57,7 +56,7 @@ class Display(object):
         self.db_name = db_name
         self.show_wing = show_wing
         self.show_tube = show_tube
-        self.curr_pos = initial_iteration
+        self.curr_pos = 0
 
     def load_db(self):
         self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
@@ -93,7 +92,7 @@ class Display(object):
             except:
                 pass
 
-        self.num_iters = len(self.mesh) - 1
+        self.num_iters = numpy.max([len(self.mesh) - 1, 1])
 
         if self.show_wing:
             for i in range(self.num_iters + 1):
@@ -108,8 +107,8 @@ class Display(object):
 
     def plot_sides(self):
         m_vals = self.mesh[self.curr_pos]
-        span = (m_vals[0, :, 1] / (m_vals[0, -1, 1]) - 0.5) * 2
-        span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1])/2 / (m_vals[0, -1, 1]) - 0.5) * 2
+        span = m_vals[0, :, 1] / m_vals[0, -1, 1]
+        span_diff = (m_vals[0, :-1, 1] + m_vals[0, 1:, 1])/2 / m_vals[0, -1, 1]
 
         if self.show_wing:
             self.ax2.cla()
@@ -156,33 +155,45 @@ class Display(object):
             x = mesh0[:, :, 0]
             y = mesh0[:, :, 1]
             z = mesh0[:, :, 2]
+
             self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
             if self.show_def_mesh.get() == 1:
-                x = def_mesh0[:, :, 0]
-                y = def_mesh0[:, :, 1]
-                z = def_mesh0[:, :, 2]
-                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='b')
+                x_def = def_mesh0[:, :, 0]
+                y_def = def_mesh0[:, :, 1]
+                z_def = def_mesh0[:, :, 2]
+
+                self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+                if self.ex_def.get() == 1:
+                    z_def = (z_def - z) * 40 + z_def
+                self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='b')
+            else:
+                self.c2.grid_forget()
 
         if self.show_tube:
             r0 = self.r[self.curr_pos]
             t0 = self.t[self.curr_pos]
-            r0 = numpy.hstack((r0, r0[-1]))
-            t0 = numpy.hstack((t0, t0[-1]))
-            n = mesh0.shape[1]
+            colors = t0
+            colors = colors / numpy.max(colors)
             num_circ = 12
             fem_origin = 0.35
+            n = mesh0.shape[1]
             p = numpy.linspace(0, 2*numpy.pi, num_circ)
-            R, P = numpy.meshgrid(r0, p)
-            X, Z = R*numpy.cos(P), R*numpy.sin(P)
-            chords = mesh0[1, :, 0] - mesh0[0, :, 0]
-            X[:] += fem_origin * chords + mesh0[0, :, 0]
-            Z[:] += fem_origin * mesh0[1, :, 2]
-            Y = numpy.empty(X.shape)
-            Y[:] = numpy.linspace(mesh0[0, 0, 1], mesh0[0, -1, 1], n)
-            colors = numpy.empty(X.shape)
-            colors[:, :] = t0
-            colors = colors / numpy.max(colors)
-            self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=cm.YlOrRd(colors), linewidth=0, antialiased=False)
+            for i, thick in enumerate(t0):
+                r = numpy.array((r0[i], r0[i]))
+                R, P = numpy.meshgrid(r, p)
+                X, Z = R*numpy.cos(P), R*numpy.sin(P)
+                chords = mesh0[1, :, 0] - mesh0[0, :, 0]
+                comp = fem_origin * chords + mesh0[0, :, 0]
+                X[:, 0] += comp[i]
+                X[:, 1] += comp[i+1]
+                Z[:, 0] += fem_origin * mesh0[1, i, 2]
+                Z[:, 1] += fem_origin * mesh0[1, i+1, 2]
+                Y = numpy.empty(X.shape)
+                Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
+                col = numpy.zeros(X.shape)
+                col[:] = colors[i]
+                self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                    facecolors=cm.YlOrRd(col), linewidth=0)
         lim = numpy.max(numpy.max(mesh0)) / 3
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Iteration: {}".format(self.curr_pos))
@@ -252,31 +263,31 @@ class Display(object):
             font=font)
         c1.grid(row=0, column=2, padx=5, sticky=Tk.W)
 
+        # checkbox to exaggerated deformed mesh
+        self.ex_def = Tk.IntVar()
+        self.c2 = Tk.Checkbutton(
+            self.options_frame,
+            text="Exaggerate deformed mesh",
+            variable=self.ex_def,
+            command=self.update_graphs,
+            font=font)
+        self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+
         # button to save html
         button = Tk.Button(
             self.options_frame,
             text='Export 3D view to html',
             command=self.save_3D,
             font=font)
-        button.grid(row=0, column=3, padx=5, sticky=Tk.W)
+        button.grid(row=0, column=4, padx=5, sticky=Tk.W)
 
-        # Plot options
-        # self.var = Tk.IntVar()
-        # c1 = Tk.Radiobutton(
-        #     options_frame, text="Shared axes", variable=self.var,
-        #     command=self.update_graph, font=font, value=0)
-        # c1.grid(row=0, column=0, sticky=Tk.W)
-        #
-        # c2 = Tk.Radiobutton(
-        #     options_frame, text="Multiple axes", variable=self.var,
-        #     command=self.update_graph, font=font, value=1)
-        # c2.grid(row=1, column=0, sticky=Tk.W)
-
-if __name__ == '__main__':
-    disp = Display(db_name, show_wing=show_wing,
-        show_tube=show_tube, initial_iteration=initial_iteration)
+def disp_plot(db_name, show_wing, show_tube):
+    disp = Display(db_name, show_wing=show_wing, show_tube=show_tube)
     disp.load_db()
     disp.draw_GUI()
     plt.tight_layout()
     disp.root.protocol("WM_DELETE_WINDOW", disp.quit)
     Tk.mainloop()
+
+if __name__ == '__main__':
+    disp_plot(db_name, show_wing=show_wing, show_tube=show_tube)
