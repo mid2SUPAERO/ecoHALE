@@ -12,7 +12,9 @@ num_y = mesh.shape[1]
 
 span = 58.7630524 # baseline CRM
 
-v = 200.
+a = 200
+M = 0.75
+v = a * M
 alpha = 0.5
 rho = 1.225
 
@@ -54,7 +56,7 @@ prob.root = root
 prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
-# prob.driver.options['tol'] = 1.0e-12
+prob.driver.options['tol'] = 1.0e-2
 
 prob.driver.add_desvar('twist',lower=-5.,
                        upper=5.)

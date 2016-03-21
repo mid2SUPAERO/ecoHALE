@@ -118,31 +118,16 @@ prob.run_once()
 
 prob.root.fd_options['force_fd'] = True
 prob.root.fd_options['step_type'] = 'relative'
+prob.root.fd_options['form'] = 'forward'
+prob.root.fd_options['step_size'] = 1e-6
 
-step_sizes = [1e-3, 1e-4, 1e-5, 1e-6,]
-# step_sizes = [1e-3, 1e-4, ]
-run_times = []
-for step in step_sizes: 
-    print "#############################################"
-    print  "fd step size: %.1e"%step
-    print "#############################################"
-    prob.root.fd_options['step_size'] = step
-    st = time.time()
-    jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn'])
-    # jac = prob.calc_gradient(['alpha'], ['fuelburn'])
-    run_time = time.time() - st
-    run_times.append(run_time)
-    print "runtime: ", run_time
-    print 
-    print 
+st = time.time()
+jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn'], return_format="dict")
+run_time = time.time() - st
 
-print "Step Sizes: ", step_sizes
-print "Run Times", run_times
+print "runtime: ", run_time
+print 
+print "d_fuelburn/d_alpha", jac['fuelburn']['alpha']
+print "norm(d_fuelburn/twist)", numpy.linalg.norm(jac['fuelburn']['twist'])
 
-fig, ax = plt.subplots()
-ax.semilogx(step_sizes, run_times, lw=2)
-ax.set_xlabel('ln(step size)', fontsize=15)
-ax.set_ylabel('Run\nTime\n(sec)', rotation="horizontal", ha="right", fontsize=15)
-fig.savefig('fd_step_vs_time.pdf', bbox_inches="tight")
-plt.show()
 

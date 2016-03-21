@@ -83,19 +83,19 @@ coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.line_search.options['iprint'] = 1
 
 # LNGS Solver
-coupled.ln_solver = LinearGaussSeidel()
-coupled.ln_solver.options['maxiter'] = 100
+# coupled.ln_solver = LinearGaussSeidel()
+# coupled.ln_solver.options['maxiter'] = 100
 
 # Krylov Solver - No preconditioning
 # coupled.ln_solver = ScipyGMRES()
 # coupled.ln_solver.options['iprint'] = 1
 
 # Krylov Solver - LNGS preconditioning
-# coupled.ln_solver = ScipyGMRES()
-# coupled.ln_solver.options['iprint'] = 1
-# coupled.ln_solver.preconditioner = LinearGaussSeidel()
-# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
-# coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+coupled.ln_solver = ScipyGMRES()
+coupled.ln_solver.options['iprint'] = 1
+coupled.ln_solver.preconditioner = LinearGaussSeidel()
+coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 # Direct Inversion Solver
 # coupled.ln_solver = DirectSolver()
@@ -132,11 +132,14 @@ prob.setup()
 prob.run_once() 
 
 st = time.time()
-jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn'], mode="fwd")
+jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn'], mode="fwd", return_format="dict")
 # jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn' ], mode="rev")
 
 # Let OpenMDAO pick fwd or rev mode for you, based on jacobian size
 # jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn' ], mode="auto")
 print "runtime: ", time.time() - st
+
+print "d_fuelburn/d_alpha", jac['fuelburn']['alpha']
+print "norm(d_fuelburn/twist)", numpy.linalg.norm(jac['fuelburn']['twist'])
 
 
