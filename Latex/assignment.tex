@@ -1,0 +1,76 @@
+\documentclass{article}
+\usepackage{fullpage}
+
+\title{MDO assignment; v. 1.0}
+%\subtitle{Aerostructural optimization}
+\author{John T. Hwang, Justin S. Gray, and John Jasa}
+
+\newcommand\be{\begin{enumerate}}
+\newcommand\ee{\end{enumerate}}
+\newcommand\code[1]{\texttt{#1}}
+
+\begin{document}
+	
+	\maketitle
+
+	\be
+
+		\item \textbf{Structural optimization.} For this problem, we will use 
+		\code{prob1.py} as our starting point.
+		\be
+			\item This script performs structural analysis and optimization of 
+			a tubular beam clamped in the middle. 
+			Run the optimization, first with uniform loading
+			and then again with tip loads applied.
+			What optimized thickness distributions do you see?
+			\item Run the optimization with tip loads applied for 
+			a range of different mesh sizes (num\_y).
+			Plot the computation time vs num\_y.
+			\item The script produces an html file, \code{prob1.html},
+			that can be useful for studying the problem structure.
+			What is the physical interpretation of this problem?
+			That is, what are we minimizing and subject to what constraint?
+		\ee
+		
+		\item \textbf{Multidisciplinary analysis.} We now want to couple
+		aerodynamics and structures together. We will use 
+		\code{prob2.py} for this problem.
+		\be
+			\item Assemble the aerostructural analysis group following
+			\code{aerostruct.html}, and use the nonlinear Gauss--Seidel
+			solver to converge the coupled system.
+			\item Try NLGS and Newton, and Hybrid NLGS/Newton for 
+			mesh sizes (2,3), (4,5), (5,6) and compare run times. 
+			Why do we put the nonlinear solver on the `coupled` group, 
+			instead of the `root` group?
+			\item (Bonus) Try LNGS, Krylov, Krylov-PC-GS, and direct linear solvers 
+			with the Newton nonlinear solver. 
+			Which ones can successfully converge the linear problem? 
+			Which one gives the fastest convergence for the Newton solver?
+		\ee
+		
+		\item \textbf{Multidisciplinary optimization.} We will first compute
+		derivatives and the perform optimization of the aerostructural system.
+		\be
+			\item Compute the derivatives of the multidisciplinary system
+			using finite differences by running \code{prob3a.py}.
+			\item Now compute the same derivatives using the adjoint method
+			and compare the timings for different mesh sizes.
+			\item We will now perform aerostructural optimization.
+			Edit \code{prob3c.py} by adding the following design variables:
+			\begin{itemize}
+				\item `twist', lower = -10, upper = 10, scaler = 1000
+				\item `alpha', lower = -10, upper = 10, scaler = 1000
+				\item `t', lower = 0.003, upper = 0.025, scaler = 1000
+			\end{itemize}
+			and the follow objective and constraints:
+			\begin{itemize}
+				\item `fuelburn'
+				\item `failure', upper = 0
+				\item `eq\_con', equals = 0
+			\end{itemize}
+		\ee
+		
+	\ee
+
+\end{document}

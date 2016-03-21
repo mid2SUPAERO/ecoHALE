@@ -2,3 +2,7 @@
 *.py~
 *.db
 *~
+*.aux
+*.log
+*.pdf
+*.synctex.gz
