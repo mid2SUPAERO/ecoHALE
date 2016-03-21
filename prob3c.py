@@ -86,8 +86,8 @@ coupled.add('loads',
 coupled.nl_solver = HybridGSNewton()   
 coupled.nl_solver.nlgs.options['iprint'] = 1
 coupled.nl_solver.nlgs.options['maxiter'] = 5
-coupled.nl_solver.newton.options['atol'] = 1e-8
-coupled.nl_solver.newton.options['rtol'] = 1e-8
+coupled.nl_solver.newton.options['atol'] = 1e-6
+coupled.nl_solver.newton.options['rtol'] = 1e-6
 coupled.nl_solver.newton.options['iprint'] = 1
 
 
@@ -125,7 +125,7 @@ prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 prob.driver.options['tol'] = 1.0e-3
-prob.driver.options['maxiter'] = 100
+prob.driver.options['maxiter'] = 40
 
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 
