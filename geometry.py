@@ -23,23 +23,8 @@ def rotate(mesh, thetas):
     mats[:,2,0] = -sin(rad_thetas)
     mats[:,2,2] = cos(rad_thetas)
 
-#    te[:] = np.einsum("ikj, ij -> ik", mats, te-le)
-#    te += le
-
     le[:] = np.einsum("ikj, ij -> ik", mats, le-te)
     le += te
-   
-    # equivalent loop
-    # for i,theta in enumerate(rad_thetas): 
-    #     mat = np.zeros((3,3))
-    #     mat[0,0] = cos(theta)
-    #     mat[0,2] = sin(theta)
-    #     mat[1,1] = 1
-    #     mat[2,0] = -sin(theta)
-    #     mat[2,2] = cos(theta)
-
-    #     te[i][:] = mat.dot(te[i]-le[i])
-    #     te[i] += le[i]
 
     return mesh
 
@@ -174,7 +159,6 @@ class GeometryMesh(Component):
 
         self.fd_options['force_fd']=True
         self.fd_options['form'] = 'complex_step'
-        self.fd_options['form'] = 'complex_step'
         self.fd_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -184,6 +168,37 @@ class GeometryMesh(Component):
         sweep(self.new_mesh, params['sweep'])
         rotate(self.new_mesh, params['twist'])
         unknowns['mesh'] = self.new_mesh
+
+
+
+class LinearInterp(Component):
+
+    def __init__(self, num_y, name):
+        super(LinearInterp, self).__init__()
+
+        self.add_param('linear_'+name, val=np.zeros(2))
+        self.add_output(name, val=np.zeros(num_y))
+
+        self.fd_options['force_fd']=True
+        self.fd_options['form'] = 'complex_step'
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        self.num_y = num_y
+        self.vname = name
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        a, b = params['linear_'+self.vname]
+
+        if self.num_y % 2 == 0:
+            imax = int(self.num_y/2)
+        else:
+            imax = int((self.num_y+1)/2)
+        for ind in xrange(imax):
+            w = 1.0*ind/(imax-1)
+            
+            unknowns[self.vname][ind] = a*(1-w) + b*w
+            unknowns[self.vname][-1-ind] = a*(1-w) + b*w
+
 
 
 if __name__ == "__main__": 

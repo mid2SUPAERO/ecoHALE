@@ -75,11 +75,12 @@ def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts):
             mtx[ind_i, ind_j] += _biot_savart(N, A, D, P, inf=True,  rev=True)
 
 
-class WeissingerGeom(Component):
+            
+class WeissingerGeometry(Component):
     """ Computes various geometric properties for Weissinger analysis """
 
     def __init__(self, n):
-        super(WeissingerGeom, self).__init__()
+        super(WeissingerGeometry, self).__init__()
 
         self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
         self.add_output('b_pts', val=numpy.zeros((n, 3)))
@@ -345,7 +346,7 @@ class WeissingerLiftCoeff(Component):
         self.add_param('L', val=0.)
         self.add_param('v', val=0.)
         self.add_param('rho', val=0.)
-        self.add_output('CL', val=0.)
+        self.add_output('CL1', val=0.)
 
         #self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
@@ -356,7 +357,7 @@ class WeissingerLiftCoeff(Component):
         rho = params['rho']
         v = params['v']
         L = params['L']
-        unknowns['CL'] = L / (0.5*rho*v**2*S_ref)
+        unknowns['CL1'] = L / (0.5*rho*v**2*S_ref)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift."""
@@ -368,10 +369,10 @@ class WeissingerLiftCoeff(Component):
         v = params['v'].real
         L = params['L'].real
 
-        jac['CL', 'S_ref'] = -L / (0.5*rho*v**2*S_ref**2)
-        jac['CL', 'L'] = 1.0 / (0.5*rho*v**2*S_ref)
-        jac['CL', 'v'] = -2 * L / (0.5*rho*v**3*S_ref)
-        jac['CL', 'rho'] = -L / (0.5*rho**2*v**2*S_ref)
+        jac['CL1', 'S_ref'] = -L / (0.5*rho*v**2*S_ref**2)
+        jac['CL1', 'L'] = 1.0 / (0.5*rho*v**2*S_ref)
+        jac['CL1', 'v'] = -2 * L / (0.5*rho*v**3*S_ref)
+        jac['CL1', 'rho'] = -L / (0.5*rho**2*v**2*S_ref)
         
         return jac
 
@@ -389,7 +390,7 @@ class WeissingerDragCoeff(Component):
         self.add_param('b_pts', val=numpy.zeros((n, 3)))
         self.add_param('widths', val=numpy.zeros((n-1)))
         self.add_param('S_ref', val=0.)
-        self.add_output('CD', val=0., desc="induced drag coefficient")
+        self.add_output('CDi', val=0., desc="induced drag coefficient")
 
         # self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
@@ -425,6 +426,17 @@ class WeissingerDragCoeff(Component):
 
         trefftz_points = (self.intersections[:, 1, :] + self.intersections[:, 0, :]) / 2.
 
+        '''
+        # Equation of trefftz plane is P*N = T*N
+        # (P+sN)*N = T*N
+        N = trefftz_normal
+        T = numpy.array([self._trefftz_dist, 0, 0], dtype="complex")
+        for ind in xrange(num_y - 1):
+            P = 0.5 * mesh[1, ind + 0, :] + 0.5 * mesh[1, ind + 1, :]
+            s = numpy.dot(T-P, N)
+            trefftz_points[ind] = P + s * N
+        '''
+
         normals = params['normals']
         for ind in xrange(num_y - 1):
             self.new_normals[ind] = normals[ind] - numpy.dot(normals[ind], trefftz_normal) \
@@ -433,7 +445,7 @@ class WeissingerDragCoeff(Component):
                           trefftz_points, params['b_pts'])
 
         self.velocities = -numpy.dot(self.mtx, params['circulations']) / params['v']
-        unknowns['CD'] = 1. / params['S_ref'] / params['v'] * \
+        unknowns['CDi'] = 1. / params['S_ref'] / params['v'] * \
                          numpy.sum(params['circulations'] * self.velocities * params['widths'])
 
     def linearize(self, params, unknowns, resids):
@@ -448,16 +460,54 @@ class WeissingerDragCoeff(Component):
         widths = params['widths'].real
         v = params['v'].real
         S_ref = params['S_ref'].real
-        CD = unknowns['CD'].real
+        CD = unknowns['CDi'].real
         velocities = self.velocities.real
         
-        jac['CD', 'v'] = -2 * CD / v
-        jac['CD', 'S_ref'] = -CD / S_ref
-        jac['CD', 'circulations'][0, :] = 1. / S_ref / v * velocities * widths \
+        jac['CDi', 'v'] = -2 * CD / v
+        jac['CDi', 'S_ref'] = -CD / S_ref
+        jac['CDi', 'circulations'][0, :] = 1. / S_ref / v * velocities * widths \
                                           - 1. / S_ref / v**2 * self.mtx.T.real.dot(circ * widths)
-        jac['CD', 'widths'][0, :] = 1. / S_ref / v * velocities * circ
+        jac['CDi', 'widths'][0, :] = 1. / S_ref / v * velocities * circ
         
         return jac
+
+
+
+class TotalLift(Component):
+
+    def __init__(self, CL0):
+        super(TotalLift, self).__init__()
+        
+        self.add_param('CL1', val=1.)
+        self.add_output('CL', val=1.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        self.CL0 = CL0
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        unknowns['CL'] = params['CL1'] + self.CL0
+
+
+
+class TotalDrag(Component):
+
+    def __init__(self, CD0):
+        super(TotalDrag, self).__init__()
+        
+        self.add_param('CDi', val=1.)
+        self.add_output('CD', val=1.)
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        self.CD0 = CD0
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        unknowns['CD'] = params['CDi'] + self.CD0
 
 
 
@@ -467,7 +517,7 @@ class WeissingerStates(Group):
         super(WeissingerStates, self).__init__()
 
         self.add('wgeom',
-                 WeissingerGeom(num_y),
+                 WeissingerGeometry(num_y),
                  promotes=['*'])
         self.add('circ',
                  WeissingerCirculations(num_y),
@@ -480,14 +530,22 @@ class WeissingerStates(Group):
 
 class WeissingerFunctionals(Group):
 
-    def __init__(self, num_y):
+    def __init__(self, num_y, CL0, CD0):
         super(WeissingerFunctionals, self).__init__()
+        
         self.add('lift',
                  WeissingerLift(num_y),
                  promotes=['*'])
-        self.add('CL',
+        self.add('CL1',
                  WeissingerLiftCoeff(num_y),
                  promotes=['*'])
-        self.add('CD',
+        self.add('CDi',
                  WeissingerDragCoeff(num_y),
                  promotes=['*'])
+        self.add('CL',
+                 TotalLift(CL0),
+                 promotes=['*'])
+        self.add('CD',
+                 TotalDrag(CD0),
+                 promotes=['*'])
+                 

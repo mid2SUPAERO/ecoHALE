@@ -15,7 +15,7 @@ elif sys.argv[1] == 'a':
 elif sys.argv[1] == 's':
     filename = 'spatialbeam'
 else:
-    raise Exception('Please choose as, a, or s')
+    filename = sys.argv[1]
 varname = sys.argv[2]
 
 db = sqlitedict.SqliteDict(filename + '.db', 'openmdao')

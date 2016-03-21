@@ -4,27 +4,25 @@ import sys
 import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh, mesh_gen
+from geometry import GeometryMesh, mesh_gen, LinearInterp
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 
-mesh = mesh_gen(n_points_inboard=10, n_points_outboard=10)
+# Create the mesh with 2 inboard points and 3 outboard points
+mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6)
 num_y = mesh.shape[1]
-
-span = 58.7630524 # baseline CRM
-cons = numpy.array([int((num_y-1)/2)])
-
-E = 200.e9
-G = 30.e9
-stress = 20.e6
-mrho = 3.e3
 r = radii(mesh)
-t = 0.02 * numpy.ones(num_y-1)
-t = r/20
+t = r/10
 
+# Define the material properties
+execfile('aluminum.py')
+
+# Define the loads
 loads = numpy.zeros((num_y, 6))
-loads[0, 2] = loads[-1, 2] = 1e3
-loads[:, 2] = 1e3
+loads[0, 2] = loads[-1, 2] = 1e3 # tip load of 1 kN
+loads[:, 2] = 1e3 # load of 1 kN at each node
+
+span = 58.7630524 # [m] baseline CRM
 
 root = Group()
 
@@ -46,7 +44,7 @@ root.add('tube',
          MaterialsTube(num_y),
          promotes=['*'])
 root.add('spatialbeamstates',
-         SpatialBeamStates(num_y, cons, E, G),
+         SpatialBeamStates(num_y, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
          SpatialBeamFunctionals(num_y, E, G, stress, mrho),
@@ -65,9 +63,10 @@ prob.driver.add_desvar('t',
                        upper=numpy.ones((num_y)) * 0.25)
 prob.driver.add_objective('energy')
 prob.driver.add_constraint('weight', upper=1e5)
+
 prob.root.fd_options['force_fd'] = True
 
-prob.driver.add_recorder(SqliteRecorder('spatialbeam_fd.db'))
+prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 
 prob.setup()
 prob.run_once()
