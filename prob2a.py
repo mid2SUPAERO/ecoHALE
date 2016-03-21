@@ -14,6 +14,11 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
+from plot_tools import adjust_spines
+import matplotlib as mpl
+mpl.rcParams['lines.linewidth'] = 3
+mpl.rcParams['axes.edgecolor'] = 'gray'
+mpl.rcParams['axes.linewidth'] = 0.5
 
 # control problem size here, by chaning number of mesh points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
@@ -47,16 +52,16 @@ root = Group()
 
 des_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('v', v),
-    ('alpha', alpha), 
+    ('alpha', alpha),
     ('rho', rho),
-    ('r', r),  
-    ('t', t), 
+    ('r', r),
+    ('t', t),
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+root.add('des_vars',
+         IndepVarComp(des_vars),
          promotes=['*'])
 root.add('tube',
          MaterialsTube(num_y),
@@ -90,7 +95,7 @@ coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
-    
+
 root.add('coupled',
          coupled,
          promotes=['*'])
@@ -113,8 +118,8 @@ prob.root = root
 prob.setup()
 # view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
-# always need to run before you compute derivatives! 
-prob.run_once() 
+# always need to run before you compute derivatives!
+prob.run_once()
 
 prob.root.fd_options['force_fd'] = True
 prob.root.fd_options['step_type'] = 'relative'
@@ -122,7 +127,7 @@ prob.root.fd_options['step_type'] = 'relative'
 step_sizes = [1e-3, 1e-4, 1e-5, 1e-6,]
 # step_sizes = [1e-3, 1e-4, ]
 run_times = []
-for step in step_sizes: 
+for step in step_sizes:
     print "#############################################"
     print  "fd step size: %.1e"%step
     print "#############################################"
@@ -133,16 +138,16 @@ for step in step_sizes:
     run_time = time.time() - st
     run_times.append(run_time)
     print "runtime: ", run_time
-    print 
-    print 
+    print
+    print
 
 print "Step Sizes: ", step_sizes
 print "Run Times", run_times
 
 fig, ax = plt.subplots()
-ax.semilogx(step_sizes, run_times, lw=2)
+ax.semilogx(step_sizes, run_times, lw=4, clip_on=False)
 ax.set_xlabel('ln(step size)', fontsize=15)
 ax.set_ylabel('Run\nTime\n(sec)', rotation="horizontal", ha="right", fontsize=15)
+adjust_spines(ax)
 fig.savefig('fd_step_vs_time.pdf', bbox_inches="tight")
 plt.show()
-
