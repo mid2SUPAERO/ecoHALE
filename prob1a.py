@@ -10,7 +10,6 @@ from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
-from lu_group import LUGroup, LUSolver
 
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton

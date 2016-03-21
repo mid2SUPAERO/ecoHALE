@@ -10,7 +10,6 @@ from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
-from lu_group import LUGroup, LUSolver
 
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
@@ -62,7 +61,7 @@ root.add('tube',
          MaterialsTube(num_y),
          promotes=['*'])
 
-coupled = LUGroup() # add components for MDA to this group
+coupled = Group() # add components for MDA to this group
 coupled.add('mesh',
             GeometryMesh(mesh),
             promotes=['*'])
@@ -84,12 +83,8 @@ coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.line_search.options['iprint'] = 1
 
 # LNGS Solver
-# coupled.ln_solver = LinearGaussSeidel()
-# coupled.ln_solver.options['maxiter'] = 100
-# coupled.weissingerstates.ln_solver = ScipyGMRES()
-# coupled.spatialbeamstates.ln_solver = ScipyGMRES()
-# coupled.weissingerstates.ln_solver.options['maxiter'] = 10
-# coupled.spatialbeamstates.ln_solver.options['maxiter'] = 10
+coupled.ln_solver = LinearGaussSeidel()
+coupled.ln_solver.options['maxiter'] = 100
 
 # Krylov Solver - No preconditioning
 # coupled.ln_solver = ScipyGMRES()
@@ -105,8 +100,6 @@ coupled.nl_solver.line_search.options['iprint'] = 1
 # Direct Inversion Solver
 # coupled.ln_solver = DirectSolver()
 
-# LU Based Solver
-coupled.ln_solver = LUSolver()
     
 root.add('coupled',
          coupled,
@@ -130,7 +123,7 @@ coupled.nl_solver.options['iprint'] = 1 # makes OpenMDAO print out solver conver
 coupled.ln_solver.options['iprint'] = 1 # makes OpenMDAO print out solver convergence data
 
 
-prob.driver.add_recorder(SqliteRecorder('prob1c.db'))
+prob.driver.add_recorder(SqliteRecorder('prob1d.db'))
 
 prob.setup()
 # view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
