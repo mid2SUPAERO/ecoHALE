@@ -44,10 +44,11 @@
 		\be
 			\item Open \code{aerostruct.html} to use a guide. 
 			Assemble the aerostructural analysis group following the layout presented 
-			there. 
+			there. For this problem start with \code{prob2a.py}. 
 			\item Try NLGS and Newton, and Hybrid NLGS/Newton for 
-			mesh sizes (2,3), (4,5) and compare run times. 
-			Why do we put the nonlinear solver on the `coupled` group, 
+			mesh sizes (2,3), (4,5) and compare run times. Then try to run 
+			the problem with the newton solver on the root group instead For this problem work 
+			with \code{prob2b.py}. Why do we put the nonlinear solver on the `coupled` group, 
 			instead of the `root` group?
 			\item (Bonus) Try LNGS, Krylov, Krylov-PC-GS, and direct linear solvers 
 			with the Newton nonlinear solver. 
@@ -55,8 +56,9 @@
 			Which one gives the fastest convergence for the Newton solver?
 		\ee
 		
-		\item \textbf{Multidisciplinary optimization.} We will first compute
-		derivatives and the perform optimization of the aerostructural system.
+		\item \textbf{Multidisciplinary optimization.} Now that you've worked 
+		with the aerostructural analysis, you're ready to try aerostructural 
+		optimization. 
 		\be
 			\item Compute the derivatives of the multidisciplinary system
 			using finite differences by running \code{prob3a.py}.

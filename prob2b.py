@@ -88,27 +88,36 @@ coupled.add('loads',
 # nonlinear solver methods
 ############################################################
 
-## Nonlinear Gauss Seidel 
-# coupled.nl_solver = NLGaussSeidel()   
-# coupled.nl_solver.options['iprint'] = 1
-# coupled.nl_solver.options['atol'] = 1e-5
-# coupled.nl_solver.options['rtol'] = 1e-12
+## Nonlinear Gauss Seidel on the coupled group
+coupled.nl_solver = NLGaussSeidel()   
+coupled.nl_solver.options['iprint'] = 1
+coupled.nl_solver.options['atol'] = 1e-5
+coupled.nl_solver.options['rtol'] = 1e-12
 
-## Newton Solver
+## Newton Solver on the coupled group
 # coupled.nl_solver = Newton()
 # coupled.nl_solver.options['iprint'] = 1
 # coupled.nl_solver.line_search.options['iprint'] = 1
 
     
-## Hybrid NLGS-Newton
-coupled.nl_solver = HybridGSNewton()   
-coupled.nl_solver.nlgs.options['iprint'] = 1
-coupled.nl_solver.nlgs.options['maxiter'] = 5
-coupled.nl_solver.newton.options['atol'] = 1e-7
-coupled.nl_solver.newton.options['rtol'] = 1e-7
-coupled.nl_solver.newton.options['iprint'] = 1
+## Hybrid NLGS-Newton on the coupled group
+# coupled.nl_solver = HybridGSNewton()   
+# coupled.nl_solver.nlgs.options['iprint'] = 1
+# coupled.nl_solver.nlgs.options['maxiter'] = 5
+# coupled.nl_solver.newton.options['atol'] = 1e-7
+# coupled.nl_solver.newton.options['rtol'] = 1e-7
+# coupled.nl_solver.newton.options['iprint'] = 1
+
+## Newton solver on the root group
+# root.nl_solver = Newton()
+# root.nl_solver.options['iprint'] = 1
+# root.nl_solver.line_search.options['iprint'] = 1
 
 
+
+###############################################
+# Don't change the linear solver confuguration
+###############################################
 # linear solver configuration
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
