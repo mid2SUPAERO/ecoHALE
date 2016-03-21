@@ -2,6 +2,7 @@ from __future__ import division
 import tkFont
 import Tkinter as Tk
 from time import time
+import sys
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -17,7 +18,16 @@ import sqlitedict
 # User-set parameters
 #####################
 
-db_name = 'aerostruct.db'
+if sys.argv[1] == 'as':
+    filename = 'aerostruct'
+elif sys.argv[1] == 'a':
+    filename = 'weissinger'
+elif sys.argv[1] == 's':
+    filename = 'spatialbeam'
+else:
+    filename = sys.argv[1]
+
+db_name = filename + '.db'
 show_wing = True
 show_tube = True
 
