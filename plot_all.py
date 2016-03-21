@@ -6,6 +6,9 @@ import sys
 
 import matplotlib
 matplotlib.use('TkAgg')
+matplotlib.rcParams['lines.linewidth'] = 2
+matplotlib.rcParams['axes.edgecolor'] = 'gray'
+matplotlib.rcParams['axes.linewidth'] = 0.5
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
     NavigationToolbar2TkAgg
 import matplotlib.pyplot as plt
@@ -186,8 +189,9 @@ class Display(object):
             self.ax5.locator_params(axis='x',nbins=3)
             self.ax5.set_ylim([self.min_vm, self.max_vm])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
-            self.ax5.axhline(aluminum.stress, c='r', ls='-.')
-            self.ax5.text(-1.58, 0, 'failure limit', color='r')
+            self.ax5.axhline(aluminum.stress, c='r', lw=3, ls='--')
+            self.ax5.text(0.05, 0.8, 'failure limit',
+                transform=self.ax5.transAxes, color='r')
 
     def plot_wing(self):
         self.ax.cla()
