@@ -23,23 +23,8 @@ def rotate(mesh, thetas):
     mats[:,2,0] = -sin(rad_thetas)
     mats[:,2,2] = cos(rad_thetas)
 
-#    te[:] = np.einsum("ikj, ij -> ik", mats, te-le)
-#    te += le
-
     le[:] = np.einsum("ikj, ij -> ik", mats, le-te)
     le += te
-   
-    # equivalent loop
-    # for i,theta in enumerate(rad_thetas): 
-    #     mat = np.zeros((3,3))
-    #     mat[0,0] = cos(theta)
-    #     mat[0,2] = sin(theta)
-    #     mat[1,1] = 1
-    #     mat[2,0] = -sin(theta)
-    #     mat[2,2] = cos(theta)
-
-    #     te[i][:] = mat.dot(te[i]-le[i])
-    #     te[i] += le[i]
 
     return mesh
 

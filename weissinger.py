@@ -75,11 +75,12 @@ def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts):
             mtx[ind_i, ind_j] += _biot_savart(N, A, D, P, inf=True,  rev=True)
 
 
-class WeissingerGeom(Component):
+            
+class WeissingerGeometry(Component):
     """ Computes various geometric properties for Weissinger analysis """
 
     def __init__(self, n):
-        super(WeissingerGeom, self).__init__()
+        super(WeissingerGeometry, self).__init__()
 
         self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
         self.add_output('b_pts', val=numpy.zeros((n, 3)))
@@ -425,6 +426,17 @@ class WeissingerDragCoeff(Component):
 
         trefftz_points = (self.intersections[:, 1, :] + self.intersections[:, 0, :]) / 2.
 
+        '''
+        # Equation of trefftz plane is P*N = T*N
+        # (P+sN)*N = T*N
+        N = trefftz_normal
+        T = numpy.array([self._trefftz_dist, 0, 0], dtype="complex")
+        for ind in xrange(num_y - 1):
+            P = 0.5 * (mesh[1, ind + 0, :] + mesh[1, ind + 1, :])
+            s = numpy.dot(T-P, N)
+            trefftz_points[ind] = P + s * N
+        '''
+
         normals = params['normals']
         for ind in xrange(num_y - 1):
             self.new_normals[ind] = normals[ind] - numpy.dot(normals[ind], trefftz_normal) \
@@ -467,7 +479,7 @@ class WeissingerStates(Group):
         super(WeissingerStates, self).__init__()
 
         self.add('wgeom',
-                 WeissingerGeom(num_y),
+                 WeissingerGeometry(num_y),
                  promotes=['*'])
         self.add('circ',
                  WeissingerCirculations(num_y),
@@ -482,6 +494,7 @@ class WeissingerFunctionals(Group):
 
     def __init__(self, num_y):
         super(WeissingerFunctionals, self).__init__()
+        
         self.add('lift',
                  WeissingerLift(num_y),
                  promotes=['*'])
