@@ -14,37 +14,26 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
-# control problem size here, by chaning number of mesh points
+############################################################
+# Change mesh size here
+############################################################
+# Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
-
 num_y = mesh.shape[1]
-
-cons = numpy.array([int((num_y-1)/2)])
-
-W0 = 1.e5
-CT = 0.01
-a = 200
-M = 0.75
-R = 2000
-
-v = a * M
-span = 58.7630524 # baseline CRM
-alpha = 1.
-rho = 1.225
-
-E = 200.e9
-G = 30.e9
-stress = 20.e6
-mrho = 3.e3
 r = radii(mesh)
-# t = 0.05 * numpy.ones(num_y-1)
-t = 0.05 * numpy.ones(num_y-1)
 t = r/10
 
+# Define the aircraft properties
+execfile('CRM.py')
+
+# Define the material properties
+execfile('aluminum.py')
+
+# Create the top-level system
 root = Group()
 
-
-des_vars = [
+# Define the independent variables
+indep_vars = [
     ('span', span),
     ('twist', numpy.zeros(num_y)), 
     ('v', v),
@@ -54,36 +43,58 @@ des_vars = [
     ('t', t), 
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+indep_vars_comp = IndepVarComp(indep_vars)
+tube_comp = MaterialsTube(num_y)
+
+mesh_comp = GeometryMesh(mesh)
+spatialbeamstates_comp = SpatialBeamStates(num_y, E, G)
+def_mesh_comp = TransferDisplacements(num_y)
+weissingerstates_comp = WeissingerStates(num_y)
+loads_comp = TransferLoads(num_y)
+
+weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
+spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
+fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
+eq_con_comp = FunctionalEquilibrium(W0)
+
+root.add('indep_vars', 
+         indep_vars_comp,
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(num_y),
+         tube_comp,
          promotes=['*'])
 
-coupled = Group() # add components for MDA to this group
-coupled.add('mesh',
-            GeometryMesh(mesh),
-            promotes=['*'])
-coupled.add('def_mesh',
-            TransferDisplacements(num_y),
-            promotes=['*'])
-coupled.add('weissingerstates',
-            WeissingerStates(num_y),
-            promotes=['*'])
-coupled.add('loads',
-            TransferLoads(num_y),
-            promotes=['*'])
-coupled.add('spatialbeamstates',
-            SpatialBeamStates(num_y, cons, E, G),
-            promotes=['*'])
+# Add components to the MDA here
+coupled = Group()
+coupled.add('mesh', 
+    mesh_comp, 
+    promotes=["*"])
+coupled.add('spatialbeamstates', 
+    spatialbeamstates_comp, 
+    promotes=["*"])
+coupled.add('def_mesh', 
+    def_mesh_comp, 
+    promotes=["*"])
+coupled.add('weissingerstates', 
+    weissingerstates_comp, 
+    promotes=["*"])
+coupled.add('loads', 
+    loads_comp, 
+    promotes=["*"])
 
-# Nonlinear Gauss Seidel 
+
+############################################################
+# Comment/uncomment these solver blocks to try different 
+# nonlinear solver methods
+############################################################
+
+## Nonlinear Gauss Seidel 
 coupled.nl_solver = NLGaussSeidel()   
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
 
+## Newton Solver
 # coupled.nl_solver = Newton()
 # coupled.nl_solver.options['iprint'] = 1
 # coupled.nl_solver.line_search.options['iprint'] = 1
@@ -93,7 +104,7 @@ coupled.nl_solver.options['rtol'] = 1e-12
 # coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 # coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
     
-# Hybrid NLGS-Newton
+## Hybrid NLGS-Newton
 # coupled.nl_solver = HybridGSNewton()   
 # coupled.nl_solver.nlgs.options['iprint'] = 1
 # coupled.nl_solver.nlgs.options['maxiter'] = 5
@@ -102,35 +113,46 @@ coupled.nl_solver.options['rtol'] = 1e-12
 # coupled.nl_solver.newton.options['iprint'] = 1
 
 
+# linear solver configuration
+coupled.ln_solver = ScipyGMRES()
+coupled.ln_solver.options['iprint'] = 1
+coupled.ln_solver.preconditioner = LinearGaussSeidel()
+coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+    
+# adds the MDA to root (do not remove!)
 root.add('coupled',
          coupled,
          promotes=['*'])
-root.add('weissingerfuncs',
-         WeissingerFunctionals(num_y),
-         promotes=['*'])
-root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(num_y, E, G, stress, mrho),
-         promotes=['*'])
-root.add('fuelburn',
-         FunctionalBreguetRange(W0, CT, a, R, M),
-         promotes=['*'])
-root.add('eq_con',
-         FunctionalEquilibrium(W0),
-         promotes=['*'])
+
+# Add functional components here
+root.add('weissingerfuncs', 
+        weissingerfuncs_comp, 
+        promotes=['*'])
+root.add('spatialbeamfuncs', 
+        spatialbeamfuncs_comp, 
+        promotes=['*'])
+root.add('fuelburn', 
+        fuelburn_comp, 
+        promotes=['*'])
+root.add('eq_con', 
+        eq_con_comp, 
+        promotes=['*'])
 
 prob = Problem()
 prob.root = root
 prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
-
-prob.driver.add_recorder(SqliteRecorder('prob1b.db'))
+# change file name to save data from each experiment separately
+prob.driver.add_recorder(SqliteRecorder('prob1a.db')) 
 
 prob.setup()
-# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
-
+# uncomment this to see an n2 diagram of your problem
+# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) 
 
 st = time.time()
 prob.run_once()
 print "runtime: ", time.time() - st
+
 
 
