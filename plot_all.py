@@ -31,9 +31,6 @@ else:
 
 db_name = filename + '.db'
 
-# TODO: ad theline
-print aluminum.stress
-
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
@@ -189,6 +186,8 @@ class Display(object):
             self.ax5.locator_params(axis='x',nbins=3)
             self.ax5.set_ylim([self.min_vm, self.max_vm])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
+            self.ax5.axhline(aluminum.stress, c='r', ls='-.')
+            self.ax5.text(-1.58, 0, 'failure limit', color='r')
 
     def plot_wing(self):
         self.ax.cla()
