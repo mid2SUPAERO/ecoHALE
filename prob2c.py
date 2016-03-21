@@ -3,7 +3,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -108,6 +108,9 @@ coupled.ln_solver.options['maxiter'] = 100
 # coupled.ln_solver.preconditioner = LinearGaussSeidel()
 # coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 # coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+
+##Direct Solver
+# coupled.ln_solver = DirectSolver()
     
 
     

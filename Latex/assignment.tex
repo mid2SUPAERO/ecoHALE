@@ -47,13 +47,14 @@
 			there. For this problem start with \code{prob2a.py}. 
 			\item Try NLGS and Newton, and Hybrid NLGS/Newton for 
 			mesh sizes (2,3), (4,5) and compare run times. Then try to run 
-			the problem with the newton solver on the root group instead For this problem work 
-			with \code{prob2b.py}. Why do we put the nonlinear solver on the `coupled` group, 
+			the problem with the newton solver in the \code{root} group instead of the \code{coupled} group. 
+			For this problem work with \code{prob2b.py}. Why do we put the nonlinear solver on the `coupled` group, 
 			instead of the `root` group?
 			\item (Bonus) Try LNGS, Krylov, Krylov-PC-GS, and direct linear solvers 
 			with the Newton nonlinear solver. 
 			Which ones can successfully converge the linear problem? 
 			Which one gives the fastest convergence for the Newton solver?
+			Why shouldn't we use the \code{DirectSolver} with high-fidelity problems? 
 		\ee
 		
 		\item \textbf{Multidisciplinary optimization.} Now that you've worked 
