@@ -73,9 +73,20 @@ root.add('tube',
 # Add components to the MDA here
 coupled = Group()
 coupled.add('mesh', 
-    <insert mesh_comp here>, 
+    mesh_comp, 
     promotes=["*"])
-<add more components here>
+coupled.add('spatialbeamstates', 
+    spatialbeamstates_comp, 
+    promotes=["*"])
+coupled.add('def_mesh', 
+    def_mesh_comp, 
+    promotes=["*"])
+coupled.add('weissingerstates', 
+    weissingerstates_comp, 
+    promotes=["*"])
+coupled.add('loads', 
+    loads_comp, 
+    promotes=["*"])
 
 # Nonlinear Gauss Seidel 
 coupled.nl_solver = NLGaussSeidel()   
@@ -97,10 +108,17 @@ root.add('coupled',
 
 # Add functional components here
 root.add('weissingerfuncs', 
-        weiss_func_comp, 
+        weissingerfuncs_comp, 
         promotes=['*'])
-<add more components here>
-
+root.add('spatialbeamfuncs', 
+        spatialbeamfuncs_comp, 
+        promotes=['*'])
+root.add('fuelburn', 
+        fuelburn_comp, 
+        promotes=['*'])
+root.add('eq_con', 
+        eq_con_comp, 
+        promotes=['*'])
 
 prob = Problem()
 prob.root = root

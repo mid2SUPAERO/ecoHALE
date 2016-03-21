@@ -78,7 +78,7 @@ coupled.add('spatialbeamstates',
             SpatialBeamStates(num_y, cons, E, G),
             promotes=['*'])
 
-Nonlinear Gauss Seidel 
+# Nonlinear Gauss Seidel 
 coupled.nl_solver = NLGaussSeidel()   
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5

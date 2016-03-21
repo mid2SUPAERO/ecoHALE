@@ -2,6 +2,7 @@ from __future__ import division
 import numpy
 import sys
 import time
+import pylab as plt
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
 from geometry import GeometryMesh, mesh_gen
@@ -13,6 +14,11 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
+from plot_tools import adjust_spines
+import matplotlib as mpl
+mpl.rcParams['lines.linewidth'] = 3
+mpl.rcParams['axes.edgecolor'] = 'gray'
+mpl.rcParams['axes.linewidth'] = 0.5
 
 # control problem size here, by chaning number of mesh points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
@@ -46,16 +52,16 @@ root = Group()
 
 des_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('v', v),
-    ('alpha', alpha), 
+    ('alpha', alpha),
     ('rho', rho),
-    ('r', r),  
-    ('t', t), 
+    ('r', r),
+    ('t', t),
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+root.add('des_vars',
+         IndepVarComp(des_vars),
          promotes=['*'])
 root.add('tube',
          MaterialsTube(num_y),
@@ -78,51 +84,18 @@ coupled.add('spatialbeamstates',
             SpatialBeamStates(num_y, cons, E, G),
             promotes=['*'])
 
-#######################################################
-# Newton solver on the root group (comment out when using newton on coupled)
-#######################################################
-
-# root.nl_solver = Newton()
-# root.nl_solver.options['iprint'] = 1
-# root.nl_solver.line_search.options['iprint'] = 1
-# root.ln_solver = ScipyGMRES()
-# root.ln_solver.options['iprint'] = 1
-# root.ln_solver.preconditioner = LinearGaussSeidel()
-# coupled.ln_solver.options['maxiter'] = 2
-# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
-# coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
-
-#######################################################
-# Newton Solver just on the coupled group (comment out when using newton root)
-#######################################################
 coupled.nl_solver = Newton()
 coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.line_search.options['iprint'] = 1
-
-#######################################################
-# Linear Solver Options for Newton
-#######################################################
-
-# # Linear Gauss Seidel Solver
-# coupled.ln_solver = LinearGaussSeidel()
-# coupled.ln_solver.options['maxiter'] = 100
-
-# Krylov Solver - No preconditioning
-# coupled.ln_solver = ScipyGMRES()
-# coupled.ln_solver.options['iprint'] = 1
+coupled.nl_solver.options['atol'] = 1e-8
+coupled.nl_solver.options['rtol'] = 1e-8
 
 # Krylov Solver - LNGS preconditioning
 coupled.ln_solver = ScipyGMRES()
-coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
-#######################################################
 
-# Direct Inversion Solver
-# coupled.ln_solver = DirectSolver()
-    
 root.add('coupled',
          coupled,
          promotes=['*'])
@@ -141,18 +114,24 @@ root.add('eq_con',
 
 prob = Problem()
 prob.root = root
-coupled.nl_solver.options['iprint'] = 1 # makes OpenMDAO print out solver convergence data
-coupled.ln_solver.options['iprint'] = 1 # makes OpenMDAO print out solver convergence data
-
-
-prob.driver.add_recorder(SqliteRecorder('prob1c.db'))
 
 prob.setup()
-# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
+# view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
+# always need to run before you compute derivatives!
+prob.run_once()
+
+prob.root.fd_options['force_fd'] = True
+prob.root.fd_options['step_type'] = 'relative'
+prob.root.fd_options['form'] = 'forward'
+prob.root.fd_options['step_size'] = 1e-6
 
 st = time.time()
-prob.run_once()
-print "runtime: ", time.time() - st
+jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn'], return_format="dict")
+run_time = time.time() - st
 
+print "runtime: ", run_time
+print 
+print "d_fuelburn/d_alpha", jac['fuelburn']['alpha']
+print "norm(d_fuelburn/twist)", numpy.linalg.norm(jac['fuelburn']['twist'])
 

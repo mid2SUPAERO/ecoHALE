@@ -27,7 +27,7 @@ execfile('aluminum.py')
 # Define the loads
 loads = numpy.zeros((num_y, 6))
 loads[0, 2] = loads[-1, 2] = 1e4 # tip load of 1 kN
-#loads[:, 2] = 1e4 # load of 1 kN at each node
+# loads[:, 2] = 1e4 # load of 1 kN at each node
 
 span = 58.7630524 # [m] baseline CRM
 
@@ -71,16 +71,16 @@ prob.driver.add_desvar('t',
 prob.driver.add_objective('energy')
 prob.driver.add_constraint('weight', upper=1e5)
 
-prob.root.fd_options['force_fd'] = True
+# prob.root.fd_options['force_fd'] = True
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 
 prob.setup()
 
-view_tree(prob, outfile="prob0.html", show_browser=False)
+view_tree(prob, outfile="prob1.html", show_browser=False)
 
 prob.run_once()
 
-#prob.check_partial_derivatives(compact_print=True)
+# prob.check_partial_derivatives(compact_print=True)
 
 prob.run()

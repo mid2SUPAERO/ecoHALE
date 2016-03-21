@@ -22,22 +22,29 @@
 			a tubular beam clamped in the middle. 
 			Run the optimization, first with uniform loading
 			and then again with tip loads applied.
-			What optimized thickness distributions do you see?
+			What optimized thickness distributions do you see?\\
+			Commands: 
+			\be
+				\item run the optimization: \code{python prob1.py}
+				\item view the results: \code{python plot\_all.py s}
+			\ee
+
 			\item Run the optimization with tip loads applied for 
 			a range of different mesh sizes (num\_y).
 			Plot the computation time vs num\_y.
 			\item The script produces an html file, \code{prob1.html},
-			that can be useful for studying the problem structure.
+			that can be useful for studying the problem structure. You can 
+			open this file in any web-browser. 
 			What is the physical interpretation of this problem?
 			That is, what are we minimizing and subject to what constraint?
 		\ee
 		
 		\item \textbf{Multidisciplinary analysis.} We now want to couple
-		aerodynamics and structures together. We will use 
-		\code{prob2.py} for this problem.
+		aerodynamics and structures together.
 		\be
-			\item Assemble the aerostructural analysis group following
-			\code{aerostruct.html}, and use the nonlinear Gauss--Seidel
+			\item Open \code{aerostruct.html} to use a guide. 
+			Assemble the aerostructural analysis group following the layout presented 
+			there. Use the nonlinear Gauss--Seidel
 			solver to converge the coupled system.
 			\item Try NLGS and Newton, and Hybrid NLGS/Newton for 
 			mesh sizes (2,3), (4,5), (5,6) and compare run times. 
