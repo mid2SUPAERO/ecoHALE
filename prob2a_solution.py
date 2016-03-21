@@ -42,8 +42,8 @@ indep_vars = [
 
 
 ############################################################
-# These are your components, Put them in the correct groups
-# des_vars_comp, tube_comp, and weiss_func_comp have been 
+# These are your components, put them in the correct groups.
+# indep_vars_comp, tube_comp, and weiss_func_comp have been 
 # done for you as examples
 ############################################################
 

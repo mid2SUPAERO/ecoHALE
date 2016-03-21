@@ -14,6 +14,9 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
+############################################################
+# Change mesh size here
+############################################################
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
@@ -40,105 +43,107 @@ indep_vars = [
     ('t', t), 
 ]
 
+indep_vars_comp = IndepVarComp(indep_vars)
+tube_comp = MaterialsTube(num_y)
+
+mesh_comp = GeometryMesh(mesh)
+spatialbeamstates_comp = SpatialBeamStates(num_y, E, G)
+def_mesh_comp = TransferDisplacements(num_y)
+weissingerstates_comp = WeissingerStates(num_y)
+loads_comp = TransferLoads(num_y)
+
+weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
+spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
+fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
+eq_con_comp = FunctionalEquilibrium(W0)
+
 root.add('indep_vars', 
-         IndepVarComp(indep_vars), 
+         indep_vars_comp,
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(num_y),
+         tube_comp,
          promotes=['*'])
 
-coupled = Group() # add components for MDA to this group
-coupled.add('mesh',
-            GeometryMesh(mesh),
-            promotes=['*'])
-coupled.add('def_mesh',
-            TransferDisplacements(num_y),
-            promotes=['*'])
-coupled.add('weissingerstates',
-            WeissingerStates(num_y),
-            promotes=['*'])
-coupled.add('loads',
-            TransferLoads(num_y),
-            promotes=['*'])
-coupled.add('spatialbeamstates',
-            SpatialBeamStates(num_y, cons, E, G),
-            promotes=['*'])
+# Add components to the MDA here
+coupled = Group()
+coupled.add('mesh', 
+    mesh_comp, 
+    promotes=["*"])
+coupled.add('spatialbeamstates', 
+    spatialbeamstates_comp, 
+    promotes=["*"])
+coupled.add('def_mesh', 
+    def_mesh_comp, 
+    promotes=["*"])
+coupled.add('weissingerstates', 
+    weissingerstates_comp, 
+    promotes=["*"])
+coupled.add('loads', 
+    loads_comp, 
+    promotes=["*"])
 
-#######################################################
-# Newton solver on the root group (comment out when using newton on coupled)
-#######################################################
 
-# root.nl_solver = Newton()
-# root.nl_solver.options['iprint'] = 1
-# root.nl_solver.line_search.options['iprint'] = 1
-# root.ln_solver = ScipyGMRES()
-# root.ln_solver.options['iprint'] = 1
-# root.ln_solver.preconditioner = LinearGaussSeidel()
-# coupled.ln_solver.options['maxiter'] = 2
-# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
-# coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
-
-#######################################################
-# Newton Solver just on the coupled group (comment out when using newton root)
-#######################################################
+## Newton Solver
 coupled.nl_solver = Newton()
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.line_search.options['iprint'] = 1
 
-#######################################################
-# Linear Solver Options for Newton
-#######################################################
 
-# # Linear Gauss Seidel Solver
-# coupled.ln_solver = LinearGaussSeidel()
-# coupled.ln_solver.options['maxiter'] = 100
+############################################################
+# Comment/uncomment these solver blocks to try different 
+# linear solvers
+############################################################
 
-# Krylov Solver - No preconditioning
+## Linear Gauss Seidel Solver
+coupled.ln_solver = LinearGaussSeidel()
+coupled.ln_solver.options['maxiter'] = 100
+
+## Krylov Solver - No preconditioning
 # coupled.ln_solver = ScipyGMRES()
 # coupled.ln_solver.options['iprint'] = 1
 
-# Krylov Solver - LNGS preconditioning
-coupled.ln_solver = ScipyGMRES()
-coupled.ln_solver.options['iprint'] = 1
-coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissingerstates.ln_solver = LinearGaussSeidel()
-coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
-
-#######################################################
-
-# Direct Inversion Solver
-# coupled.ln_solver = DirectSolver()
+## Krylov Solver - LNGS preconditioning
+# coupled.ln_solver = ScipyGMRES()
+# coupled.ln_solver.options['iprint'] = 1
+# coupled.ln_solver.preconditioner = LinearGaussSeidel()
+# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+# coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
     
+
+    
+# adds the MDA to root (do not remove!)
 root.add('coupled',
          coupled,
          promotes=['*'])
-root.add('weissingerfuncs',
-         WeissingerFunctionals(num_y),
-         promotes=['*'])
-root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(num_y, E, G, stress, mrho),
-         promotes=['*'])
-root.add('fuelburn',
-         FunctionalBreguetRange(W0, CT, a, R, M),
-         promotes=['*'])
-root.add('eq_con',
-         FunctionalEquilibrium(W0),
-         promotes=['*'])
+
+# Add functional components here
+root.add('weissingerfuncs', 
+        weissingerfuncs_comp, 
+        promotes=['*'])
+root.add('spatialbeamfuncs', 
+        spatialbeamfuncs_comp, 
+        promotes=['*'])
+root.add('fuelburn', 
+        fuelburn_comp, 
+        promotes=['*'])
+root.add('eq_con', 
+        eq_con_comp, 
+        promotes=['*'])
 
 prob = Problem()
 prob.root = root
-coupled.nl_solver.options['iprint'] = 1 # makes OpenMDAO print out solver convergence data
-coupled.ln_solver.options['iprint'] = 1 # makes OpenMDAO print out solver convergence data
+prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
-
-prob.driver.add_recorder(SqliteRecorder('prob1c.db'))
+# change file name to save data from each experiment separately
+prob.driver.add_recorder(SqliteRecorder('prob1a.db')) 
 
 prob.setup()
-# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
-
+# uncomment this to see an n2 diagram of your implementation
+# view_tree(prob, outfile="prob2c_aerostruct.html", show_browser=True) 
 
 st = time.time()
 prob.run_once()
 print "runtime: ", time.time() - st
+
 
 
