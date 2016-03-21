@@ -3,7 +3,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -19,7 +19,6 @@ from gs_newton import HybridGSNewton
 ############################################################
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
-
 num_y = mesh.shape[1]
 r = radii(mesh)
 t = r/10
@@ -44,13 +43,6 @@ indep_vars = [
     ('t', t), 
 ]
 
-
-############################################################
-# These are your components, put them in the correct groups.
-# indep_vars_comp, tube_comp, and weiss_func_comp have been 
-# done for you as examples
-############################################################
-
 indep_vars_comp = IndepVarComp(indep_vars)
 tube_comp = MaterialsTube(num_y)
 
@@ -64,8 +56,6 @@ weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
 spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
 eq_con_comp = FunctionalEquilibrium(W0)
-############################################################
-############################################################
 
 root.add('indep_vars', 
          indep_vars_comp,
@@ -77,22 +67,52 @@ root.add('tube',
 # Add components to the MDA here
 coupled = Group()
 coupled.add('mesh', 
-    <insert mesh_comp here>, 
+    mesh_comp, 
     promotes=["*"])
-<add more components here>
+coupled.add('spatialbeamstates', 
+    spatialbeamstates_comp, 
+    promotes=["*"])
+coupled.add('def_mesh', 
+    def_mesh_comp, 
+    promotes=["*"])
+coupled.add('weissingerstates', 
+    weissingerstates_comp, 
+    promotes=["*"])
+coupled.add('loads', 
+    loads_comp, 
+    promotes=["*"])
 
-# Nonlinear Gauss Seidel 
-coupled.nl_solver = NLGaussSeidel()   
+
+## Newton Solver
+coupled.nl_solver = Newton()
 coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.options['atol'] = 1e-5
-coupled.nl_solver.options['rtol'] = 1e-12
+coupled.nl_solver.line_search.options['iprint'] = 1
 
-# linear solver configuration
-coupled.ln_solver = ScipyGMRES()
-coupled.ln_solver.options['iprint'] = 1
-coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissingerstates.ln_solver = LinearGaussSeidel()
-coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+
+############################################################
+# Comment/uncomment these solver blocks to try different 
+# linear solvers
+############################################################
+
+## Linear Gauss Seidel Solver
+coupled.ln_solver = LinearGaussSeidel()
+coupled.ln_solver.options['maxiter'] = 100
+
+## Krylov Solver - No preconditioning
+# coupled.ln_solver = ScipyGMRES()
+# coupled.ln_solver.options['iprint'] = 1
+
+## Krylov Solver - LNGS preconditioning
+# coupled.ln_solver = ScipyGMRES()
+# coupled.ln_solver.options['iprint'] = 1
+# coupled.ln_solver.preconditioner = LinearGaussSeidel()
+# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+# coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+
+##Direct Solver
+# coupled.ln_solver = DirectSolver()
+    
+
     
 # adds the MDA to root (do not remove!)
 root.add('coupled',
@@ -103,8 +123,15 @@ root.add('coupled',
 root.add('weissingerfuncs', 
         weissingerfuncs_comp, 
         promotes=['*'])
-<add more components here>
-
+root.add('spatialbeamfuncs', 
+        spatialbeamfuncs_comp, 
+        promotes=['*'])
+root.add('fuelburn', 
+        fuelburn_comp, 
+        promotes=['*'])
+root.add('eq_con', 
+        eq_con_comp, 
+        promotes=['*'])
 
 prob = Problem()
 prob.root = root
@@ -115,7 +142,7 @@ prob.driver.add_recorder(SqliteRecorder('prob1a.db'))
 
 prob.setup()
 # uncomment this to see an n2 diagram of your implementation
-# view_tree(prob, outfile="prob2a_aerostruct.html", show_browser=True) 
+# view_tree(prob, outfile="prob2c_aerostruct.html", show_browser=True) 
 
 st = time.time()
 prob.run_once()

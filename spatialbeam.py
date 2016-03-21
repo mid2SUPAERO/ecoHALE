@@ -397,13 +397,8 @@ class SpatialBeamVonMisesTube(Component):
                   + self.E * r[ielem] / L * tmp
             sxt = self.G * r[ielem] * (r1x - r0x) / L
 
-            # avoid complex step warning during regular execution
-            if numpy.any(numpy.iscomplex(vonmises)): 
-                vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
-                vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
-            else: 
-                vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2).real
-                vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2).real
+            vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
+            vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
 
 
 

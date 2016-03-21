@@ -14,12 +14,8 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
-############################################################
-# Change mesh size here
-############################################################
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
-
 num_y = mesh.shape[1]
 r = radii(mesh)
 t = r/10
@@ -77,9 +73,20 @@ root.add('tube',
 # Add components to the MDA here
 coupled = Group()
 coupled.add('mesh', 
-    <insert mesh_comp here>, 
+    mesh_comp, 
     promotes=["*"])
-<add more components here>
+coupled.add('spatialbeamstates', 
+    spatialbeamstates_comp, 
+    promotes=["*"])
+coupled.add('def_mesh', 
+    def_mesh_comp, 
+    promotes=["*"])
+coupled.add('weissingerstates', 
+    weissingerstates_comp, 
+    promotes=["*"])
+coupled.add('loads', 
+    loads_comp, 
+    promotes=["*"])
 
 # Nonlinear Gauss Seidel 
 coupled.nl_solver = NLGaussSeidel()   
@@ -103,8 +110,15 @@ root.add('coupled',
 root.add('weissingerfuncs', 
         weissingerfuncs_comp, 
         promotes=['*'])
-<add more components here>
-
+root.add('spatialbeamfuncs', 
+        spatialbeamfuncs_comp, 
+        promotes=['*'])
+root.add('fuelburn', 
+        fuelburn_comp, 
+        promotes=['*'])
+root.add('eq_con', 
+        eq_con_comp, 
+        promotes=['*'])
 
 prob = Problem()
 prob.root = root
@@ -114,8 +128,8 @@ prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 prob.driver.add_recorder(SqliteRecorder('prob1a.db')) 
 
 prob.setup()
-# uncomment this to see an n2 diagram of your implementation
-# view_tree(prob, outfile="prob2a_aerostruct.html", show_browser=True) 
+# uncomment this to see an n2 diagram of your problem
+# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) 
 
 st = time.time()
 prob.run_once()

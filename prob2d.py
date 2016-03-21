@@ -3,7 +3,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -78,30 +78,29 @@ coupled.add('spatialbeamstates',
             SpatialBeamStates(num_y, cons, E, G),
             promotes=['*'])
 
-Nonlinear Gauss Seidel 
-coupled.nl_solver = NLGaussSeidel()   
+coupled.nl_solver = Newton()
 coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.options['atol'] = 1e-5
-coupled.nl_solver.options['rtol'] = 1e-12
+coupled.nl_solver.line_search.options['iprint'] = 1
 
-# coupled.nl_solver = Newton()
-# coupled.nl_solver.options['iprint'] = 1
-# coupled.nl_solver.line_search.options['iprint'] = 1
+# LNGS Solver
+# coupled.ln_solver = LinearGaussSeidel()
+# coupled.ln_solver.options['maxiter'] = 100
+
+# Krylov Solver - No preconditioning
 # coupled.ln_solver = ScipyGMRES()
 # coupled.ln_solver.options['iprint'] = 1
-# coupled.ln_solver.preconditioner = LinearGaussSeidel()
-# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
-# coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+
+# Krylov Solver - LNGS preconditioning
+coupled.ln_solver = ScipyGMRES()
+coupled.ln_solver.options['iprint'] = 1
+coupled.ln_solver.preconditioner = LinearGaussSeidel()
+coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+
+# Direct Inversion Solver
+# coupled.ln_solver = DirectSolver()
+
     
-# Hybrid NLGS-Newton
-# coupled.nl_solver = HybridGSNewton()   
-# coupled.nl_solver.nlgs.options['iprint'] = 1
-# coupled.nl_solver.nlgs.options['maxiter'] = 5
-# coupled.nl_solver.newton.options['atol'] = 1e-7
-# coupled.nl_solver.newton.options['rtol'] = 1e-7
-# coupled.nl_solver.newton.options['iprint'] = 1
-
-
 root.add('coupled',
          coupled,
          promotes=['*'])
@@ -120,17 +119,27 @@ root.add('eq_con',
 
 prob = Problem()
 prob.root = root
-prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
+coupled.nl_solver.options['iprint'] = 1 # makes OpenMDAO print out solver convergence data
+coupled.ln_solver.options['iprint'] = 1 # makes OpenMDAO print out solver convergence data
 
 
-prob.driver.add_recorder(SqliteRecorder('prob1b.db'))
+prob.driver.add_recorder(SqliteRecorder('prob1d.db'))
 
 prob.setup()
-# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
+# view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
+# always need to run before you compute derivatives! 
+prob.run_once() 
 
 st = time.time()
-prob.run_once()
+jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn'], mode="fwd", return_format="dict")
+# jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn' ], mode="rev")
+
+# Let OpenMDAO pick fwd or rev mode for you, based on jacobian size
+# jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn' ], mode="auto")
 print "runtime: ", time.time() - st
+
+print "d_fuelburn/d_alpha", jac['fuelburn']['alpha']
+print "norm(d_fuelburn/twist)", numpy.linalg.norm(jac['fuelburn']['twist'])
 
 

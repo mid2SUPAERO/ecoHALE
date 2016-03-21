@@ -22,35 +22,44 @@
 			a tubular beam clamped in the middle. 
 			Run the optimization, first with uniform loading
 			and then again with tip loads applied.
-			What optimized thickness distributions do you see?
+			What optimized thickness distributions do you see?\\
+			Commands: 
+			\be
+				\item run the optimization: \code{python prob1.py}
+				\item view the results: \code{python plot\_all.py s}
+			\ee
+
 			\item Run the optimization with tip loads applied for 
 			a range of different mesh sizes (num\_y).
 			Plot the computation time vs num\_y.
 			\item The script produces an html file, \code{prob1.html},
-			that can be useful for studying the problem structure.
+			that can be useful for studying the problem structure. You can 
+			open this file in any web-browser. 
 			What is the physical interpretation of this problem?
 			That is, what are we minimizing and subject to what constraint?
 		\ee
 		
 		\item \textbf{Multidisciplinary analysis.} We now want to couple
-		aerodynamics and structures together. We will use 
-		\code{prob2.py} for this problem.
+		aerodynamics and structures together.
 		\be
-			\item Assemble the aerostructural analysis group following
-			\code{aerostruct.html}, and use the nonlinear Gauss--Seidel
-			solver to converge the coupled system.
+			\item Open \code{aerostruct.html} to use a guide. 
+			Assemble the aerostructural analysis group following the layout presented 
+			there. For this problem start with \code{prob2a.py}. 
 			\item Try NLGS and Newton, and Hybrid NLGS/Newton for 
-			mesh sizes (2,3), (4,5), (5,6) and compare run times. 
-			Why do we put the nonlinear solver on the `coupled` group, 
+			mesh sizes (2,3), (4,5) and compare run times. Then try to run 
+			the problem with the newton solver in the \code{root} group instead of the \code{coupled} group. 
+			For this problem work with \code{prob2b.py}. Why do we put the nonlinear solver on the `coupled` group, 
 			instead of the `root` group?
 			\item (Bonus) Try LNGS, Krylov, Krylov-PC-GS, and direct linear solvers 
 			with the Newton nonlinear solver. 
 			Which ones can successfully converge the linear problem? 
 			Which one gives the fastest convergence for the Newton solver?
+			Why shouldn't we use the \code{DirectSolver} with high-fidelity problems? 
 		\ee
 		
-		\item \textbf{Multidisciplinary optimization.} We will first compute
-		derivatives and the perform optimization of the aerostructural system.
+		\item \textbf{Multidisciplinary optimization.} Now that you've worked 
+		with the aerostructural analysis, you're ready to try aerostructural 
+		optimization. 
 		\be
 			\item Compute the derivatives of the multidisciplinary system
 			using finite differences by running \code{prob3a.py}.

@@ -123,7 +123,7 @@ prob.driver.add_constraint('eq_con', equals=0.0)
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 
 prob.setup()
-view_tree(prob, outfile="aerostruct_n2.html", show_browser=False)
+view_tree(prob, outfile="aerostruct.html", show_browser=False)
 
 if len(sys.argv) == 1:
     st = time.time()

@@ -19,7 +19,6 @@ from gs_newton import HybridGSNewton
 ############################################################
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
-
 num_y = mesh.shape[1]
 r = radii(mesh)
 t = r/10
@@ -44,13 +43,6 @@ indep_vars = [
     ('t', t), 
 ]
 
-
-############################################################
-# These are your components, put them in the correct groups.
-# indep_vars_comp, tube_comp, and weiss_func_comp have been 
-# done for you as examples
-############################################################
-
 indep_vars_comp = IndepVarComp(indep_vars)
 tube_comp = MaterialsTube(num_y)
 
@@ -64,8 +56,6 @@ weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
 spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
 eq_con_comp = FunctionalEquilibrium(W0)
-############################################################
-############################################################
 
 root.add('indep_vars', 
          indep_vars_comp,
@@ -77,16 +67,57 @@ root.add('tube',
 # Add components to the MDA here
 coupled = Group()
 coupled.add('mesh', 
-    <insert mesh_comp here>, 
+    mesh_comp, 
     promotes=["*"])
-<add more components here>
+coupled.add('spatialbeamstates', 
+    spatialbeamstates_comp, 
+    promotes=["*"])
+coupled.add('def_mesh', 
+    def_mesh_comp, 
+    promotes=["*"])
+coupled.add('weissingerstates', 
+    weissingerstates_comp, 
+    promotes=["*"])
+coupled.add('loads', 
+    loads_comp, 
+    promotes=["*"])
 
-# Nonlinear Gauss Seidel 
+
+############################################################
+# Comment/uncomment these solver blocks to try different 
+# nonlinear solver methods
+############################################################
+
+## Nonlinear Gauss Seidel on the coupled group
 coupled.nl_solver = NLGaussSeidel()   
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
 
+## Newton Solver on the coupled group
+# coupled.nl_solver = Newton()
+# coupled.nl_solver.options['iprint'] = 1
+# coupled.nl_solver.line_search.options['iprint'] = 1
+
+    
+## Hybrid NLGS-Newton on the coupled group
+# coupled.nl_solver = HybridGSNewton()   
+# coupled.nl_solver.nlgs.options['iprint'] = 1
+# coupled.nl_solver.nlgs.options['maxiter'] = 5
+# coupled.nl_solver.newton.options['atol'] = 1e-7
+# coupled.nl_solver.newton.options['rtol'] = 1e-7
+# coupled.nl_solver.newton.options['iprint'] = 1
+
+## Newton solver on the root group
+# root.nl_solver = Newton()
+# root.nl_solver.options['iprint'] = 1
+# root.nl_solver.line_search.options['iprint'] = 1
+
+
+
+###############################################
+# Don't change the linear solver confuguration
+###############################################
 # linear solver configuration
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
@@ -103,8 +134,15 @@ root.add('coupled',
 root.add('weissingerfuncs', 
         weissingerfuncs_comp, 
         promotes=['*'])
-<add more components here>
-
+root.add('spatialbeamfuncs', 
+        spatialbeamfuncs_comp, 
+        promotes=['*'])
+root.add('fuelburn', 
+        fuelburn_comp, 
+        promotes=['*'])
+root.add('eq_con', 
+        eq_con_comp, 
+        promotes=['*'])
 
 prob = Problem()
 prob.root = root
