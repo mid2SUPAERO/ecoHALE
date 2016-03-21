@@ -14,6 +14,8 @@ from matplotlib import cm
 import numpy
 import sqlitedict
 
+import aluminum
+
 #####################
 # User-set parameters
 #####################
@@ -39,8 +41,7 @@ class Display(object):
         self.root = Tk.Tk()
         self.root.wm_title("Viewer")
 
-        # CHANGE FIGSIZE to 12,8
-        self.f = plt.figure(dpi=100, figsize=(8, 4), facecolor='white')
+        self.f = plt.figure(dpi=100, figsize=(12, 6), facecolor='white')
         self.canvas = FigureCanvasTkAgg(self.f, master=self.root)
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
@@ -128,11 +129,22 @@ class Display(object):
 
         if self.show_wing:
             self.min_twist, self.max_twist = numpy.min(self.twist), numpy.max(self.twist)
+            diff = (self.max_twist - self.min_twist) * 0.05
+            self.min_twist -= diff
+            self.max_twist += diff
             self.min_l, self.max_l = numpy.min(self.lift), numpy.max(self.lift)
+            diff = (self.max_l - self.min_l) * 0.05
+            self.min_l -= diff
+            self.max_l += diff
         if self.show_tube:
             self.min_t, self.max_t = numpy.min(self.t), numpy.max(self.t)
+            diff = (self.max_t - self.min_t) * 0.05
+            self.min_t -= diff
+            self.max_t += diff
             self.min_vm, self.max_vm = numpy.min(self.vonmises), numpy.max(self.vonmises)
-
+            diff = (self.max_vm - self.min_vm) * 0.05
+            self.min_vm -= diff
+            self.max_vm += diff
 
     def plot_sides(self):
         m_vals = self.mesh[self.curr_pos]
@@ -146,13 +158,13 @@ class Display(object):
             l_vals = self.lift[self.curr_pos]
 
             self.ax2.plot(span, t_vals, lw=2, c='b')
-            self.ax2.locator_params(axis='y',nbins=3)
+            self.ax2.locator_params(axis='y',nbins=4)
             self.ax2.locator_params(axis='x',nbins=3)
             self.ax2.set_ylim([self.min_twist, self.max_twist])
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
             self.ax3.plot(span_diff, l_vals, lw=2, c='b')
-            self.ax3.locator_params(axis='y',nbins=3)
+            self.ax3.locator_params(axis='y',nbins=4)
             self.ax3.locator_params(axis='x',nbins=3)
             self.ax3.set_ylim([self.min_l, self.max_l])
             self.ax3.set_ylabel('lift', rotation="horizontal", ha="right")
@@ -164,23 +176,25 @@ class Display(object):
             vm_vals = self.vonmises[self.curr_pos]
 
             self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
-            self.ax4.locator_params(axis='y',nbins=3)
+            self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             self.ax4.set_ylim([self.min_t, self.max_t])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
             self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
-            self.ax5.locator_params(axis='y',nbins=3)
+            self.ax5.locator_params(axis='y',nbins=4)
             self.ax5.locator_params(axis='x',nbins=3)
             self.ax5.set_ylim([self.min_vm, self.max_vm])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
+            self.ax5.axhline(aluminum.stress, c='r', ls='-.')
+            self.ax5.text(-1.58, 0, 'failure limit', color='r')
 
     def plot_wing(self):
         self.ax.cla()
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
-        mesh0 = self.mesh[self.curr_pos]
+        mesh0 = self.mesh[self.curr_pos].copy()
 
         self.ax.set_axis_off()
 
@@ -199,6 +213,8 @@ class Display(object):
                 if self.ex_def.get():
                     z_def = (z_def - z) * 10 + z_def
                     def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
+                else:
+                    def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
                 self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='b')
                 self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.5)
             else:

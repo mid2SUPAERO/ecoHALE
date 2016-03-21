@@ -867,7 +867,6 @@ class Display(object):
             old_vars.append(key)
 
         self.OptimizationHistory()
-        self.update_graph()
 
         new_funcs = []
         for key in self.func_data:
@@ -879,21 +878,19 @@ class Display(object):
         if not (old_funcs == new_funcs and old_vars == new_vars):
             self.var_search('dummy')
 
+    def refresh_history_init(self):
+        self.refresh_history()
+        self.set_mask()
+
     def auto_ref(self):
         """
         Automatically refreshes the history file, which is
         useful if examining a running optimization.
         """
         if self.var_ref.get():
-            self.root.after(10000, self.auto_ref)
+            self.root.after(1000, self.auto_ref)
             self.refresh_history()
-
-    def update_all(self):
-        """
-        Updates the history and graph.
-        """
-        self.refresh_history(self.plotAll.get())
-        self.update_graph()
+            self.set_mask()
 
     def clear_selections(self):
         """
@@ -1037,7 +1034,7 @@ class Display(object):
         button1 = Tk.Button(
             options_frame,
             text='Refresh history',
-            command=self.refresh_history,
+            command=self.refresh_history_init,
             font=font)
         button1.grid(row=1, column=2, padx=5, sticky=Tk.W)
 
