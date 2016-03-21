@@ -126,6 +126,14 @@ class Display(object):
             center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
             self.mesh[i] = self.mesh[i] - center
 
+        if self.show_wing:
+            self.min_twist, self.max_twist = numpy.min(self.twist), numpy.max(self.twist)
+            self.min_l, self.max_l = numpy.min(self.lift), numpy.max(self.lift)
+        if self.show_tube:
+            self.min_t, self.max_t = numpy.min(self.t), numpy.max(self.t)
+            self.min_vm, self.max_vm = numpy.min(self.vonmises), numpy.max(self.vonmises)
+
+
     def plot_sides(self):
         m_vals = self.mesh[self.curr_pos]
         span = m_vals[0, :, 1] / m_vals[0, -1, 1]
@@ -140,13 +148,13 @@ class Display(object):
             self.ax2.plot(span, t_vals, lw=2, c='b')
             self.ax2.locator_params(axis='y',nbins=3)
             self.ax2.locator_params(axis='x',nbins=3)
-            self.ax2.set_ylim([-.5, .5])
+            self.ax2.set_ylim([self.min_twist, self.max_twist])
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
             self.ax3.plot(span_diff, l_vals, lw=2, c='b')
             self.ax3.locator_params(axis='y',nbins=3)
             self.ax3.locator_params(axis='x',nbins=3)
-            self.ax3.set_ylim([0, 150000])
+            self.ax3.set_ylim([self.min_l, self.max_l])
             self.ax3.set_ylabel('lift', rotation="horizontal", ha="right")
 
         if self.show_tube:
@@ -158,13 +166,13 @@ class Display(object):
             self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
             self.ax4.locator_params(axis='y',nbins=3)
             self.ax4.locator_params(axis='x',nbins=3)
-            self.ax4.set_ylim([0, .3])
+            self.ax4.set_ylim([self.min_t, self.max_t])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
             self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
             self.ax5.locator_params(axis='y',nbins=3)
             self.ax5.locator_params(axis='x',nbins=3)
-            self.ax5.set_ylim([0, 3e7])
+            self.ax5.set_ylim([self.min_vm, self.max_vm])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
 
     def plot_wing(self):
@@ -189,8 +197,8 @@ class Display(object):
 
                 self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
                 if self.ex_def.get():
-                    z_def = (z_def - z) * 40 + z_def
-                    def_mesh0 = (def_mesh0 - mesh0) * 120 + def_mesh0
+                    z_def = (z_def - z) * 10 + z_def
+                    def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
                 self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='b')
                 self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.5)
             else:
@@ -208,7 +216,7 @@ class Display(object):
             p = numpy.linspace(0, 2*numpy.pi, num_circ)
             if self.show_wing:
                 if self.show_def_mesh.get():
-                    mesh0 = def_mesh0
+                    mesh0[:, :, 2] = def_mesh0[:, :, 2]
             for i, thick in enumerate(t0):
                 r = numpy.array((r0[i], r0[i]))
                 R, P = numpy.meshgrid(r, p)
@@ -287,7 +295,7 @@ class Display(object):
             self.ex_def = Tk.IntVar()
             self.c2 = Tk.Checkbutton(
                 self.options_frame,
-                text="Exaggerate deformed mesh",
+                text="Exaggerate deformations",
                 variable=self.ex_def,
                 command=self.update_graphs,
                 font=font)
