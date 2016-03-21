@@ -28,19 +28,19 @@ else:
     filename = sys.argv[1]
 
 db_name = filename + '.db'
-show_wing = True
-show_tube = True
 
 def _get_lengths(self, A, B, axis):
     return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
 class Display(object):
-    def __init__(self, db_name, show_wing, show_tube):
+    def __init__(self, db_name):
+
         self.s = time()
         self.root = Tk.Tk()
         self.root.wm_title("Viewer")
 
-        self.f = plt.figure(dpi=100, figsize=(12, 6), facecolor='white')
+        # CHANGE FIGSIZE to 12,8
+        self.f = plt.figure(dpi=100, figsize=(8, 4), facecolor='white')
         self.canvas = FigureCanvasTkAgg(self.f, master=self.root)
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
@@ -50,23 +50,25 @@ class Display(object):
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
         self.ax = plt.subplot2grid((4,8), (0,0), rowspan=4, colspan=4, projection='3d')
 
-        if show_wing and not show_tube:
+        self.num_iters = 0
+        self.db_name = db_name
+        self.show_wing = True
+        self.show_tube = True
+        self.curr_pos = 0
+
+        self.load_db()
+
+        if self.show_wing and not self.show_tube:
             self.ax2 = plt.subplot2grid((4,8), (0,4), rowspan=2, colspan=4)
             self.ax3 = plt.subplot2grid((4,8), (2,4), rowspan=2, colspan=4)
-        if show_tube and not show_wing:
+        if self.show_tube and not self.show_wing:
             self.ax4 = plt.subplot2grid((4,8), (0,4), rowspan=2, colspan=4)
             self.ax5 = plt.subplot2grid((4,8), (2,4), rowspan=2, colspan=4)
-        if show_wing and show_tube:
+        if self.show_wing and self.show_tube:
             self.ax2 = plt.subplot2grid((4,8), (0,4), colspan=4)
             self.ax3 = plt.subplot2grid((4,8), (1,4), colspan=4)
             self.ax4 = plt.subplot2grid((4,8), (2,4), colspan=4)
             self.ax5 = plt.subplot2grid((4,8), (3,4), colspan=4)
-
-        self.num_iters = 0
-        self.db_name = db_name
-        self.show_wing = show_wing
-        self.show_tube = show_tube
-        self.curr_pos = 0
 
     def load_db(self):
         self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
@@ -86,20 +88,25 @@ class Display(object):
                 continue # don't plot these cases
 
             self.mesh.append(case_data['Unknowns']['mesh'])
-            self.def_mesh.append(case_data['Unknowns']['def_mesh'])
+
             try:
                 self.r.append(case_data['Unknowns']['r'])
                 self.t.append(case_data['Unknowns']['t'])
                 self.vonmises.append(
                     numpy.max(case_data['Unknowns']['vonmises'], axis=1))
+                self.show_tube = True
             except:
+                self.show_tube = False
                 pass
             try:
+                self.def_mesh.append(case_data['Unknowns']['def_mesh'])
                 self.twist.append(case_data['Unknowns']['twist'])
                 normals.append(case_data['Unknowns']['normals'])
                 cos_dih.append(case_data['Unknowns']['cos_dih'])
                 sec_forces.append(case_data['Unknowns']['sec_forces'])
+                self.show_wing = True
             except:
+                self.show_wing = False
                 pass
 
         self.num_iters = numpy.max([len(self.mesh) - 1, 1])
@@ -109,11 +116,15 @@ class Display(object):
                 L = sec_forces[i][:, 2] / normals[i][:, 2]
                 self.lift.append(L.T * cos_dih[i])
 
+            # recenter def_mesh points for better viewing
+            for i in range(self.num_iters + 1):
+                center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+                self.def_mesh[i] = self.def_mesh[i] - center
+
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
             center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
             self.mesh[i] = self.mesh[i] - center
-            self.def_mesh[i] = self.def_mesh[i] - center
 
     def plot_sides(self):
         m_vals = self.mesh[self.curr_pos]
@@ -129,11 +140,13 @@ class Display(object):
             self.ax2.plot(span, t_vals, lw=2, c='b')
             self.ax2.locator_params(axis='y',nbins=3)
             self.ax2.locator_params(axis='x',nbins=3)
+            self.ax2.set_ylim([-.5, .5])
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
             self.ax3.plot(span_diff, l_vals, lw=2, c='b')
             self.ax3.locator_params(axis='y',nbins=3)
             self.ax3.locator_params(axis='x',nbins=3)
+            self.ax3.set_ylim([0, 150000])
             self.ax3.set_ylabel('lift', rotation="horizontal", ha="right")
 
         if self.show_tube:
@@ -145,11 +158,13 @@ class Display(object):
             self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
             self.ax4.locator_params(axis='y',nbins=3)
             self.ax4.locator_params(axis='x',nbins=3)
+            self.ax4.set_ylim([0, .3])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
             self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
             self.ax5.locator_params(axis='y',nbins=3)
             self.ax5.locator_params(axis='x',nbins=3)
+            self.ax5.set_ylim([0, 3e7])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
 
     def plot_wing(self):
@@ -158,25 +173,28 @@ class Display(object):
         el = self.ax.elev
         dist = self.ax.dist
         mesh0 = self.mesh[self.curr_pos]
-        def_mesh0 = self.def_mesh[self.curr_pos]
+
         self.ax.set_axis_off()
 
         if self.show_wing:
+            def_mesh0 = self.def_mesh[self.curr_pos]
             x = mesh0[:, :, 0]
             y = mesh0[:, :, 1]
             z = mesh0[:, :, 2]
 
-            self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-            if self.show_def_mesh.get() == 1:
+            if self.show_def_mesh.get():
                 x_def = def_mesh0[:, :, 0]
                 y_def = def_mesh0[:, :, 1]
                 z_def = def_mesh0[:, :, 2]
 
                 self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
-                if self.ex_def.get() == 1:
+                if self.ex_def.get():
                     z_def = (z_def - z) * 40 + z_def
+                    def_mesh0 = (def_mesh0 - mesh0) * 120 + def_mesh0
                 self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='b')
+                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.5)
             else:
+                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
                 self.c2.grid_forget()
 
         if self.show_tube:
@@ -188,6 +206,9 @@ class Display(object):
             fem_origin = 0.35
             n = mesh0.shape[1]
             p = numpy.linspace(0, 2*numpy.pi, num_circ)
+            if self.show_wing:
+                if self.show_def_mesh.get():
+                    mesh0 = def_mesh0
             for i, thick in enumerate(t0):
                 r = numpy.array((r0[i], r0[i]))
                 R, P = numpy.meshgrid(r, p)
@@ -220,18 +241,6 @@ class Display(object):
         self.plot_sides()
         self.canvas.show()
 
-    def save_3D(self):
-            import plotly.offline as plt
-            import plotly.graph_objs as go
-            from plot_tools import wire_mesh, build_layout
-
-            mesh0 = self.mesh[self.curr_pos]
-            wireframe_new = wire_mesh(mesh0)
-            layout = build_layout()
-
-            fig = go.Figure(data=wireframe_new, layout=layout)
-            plt.plot(fig, filename="wing_3d.html")
-
     def quit(self):
         """
         Destroy GUI window cleanly if quit button pressed.
@@ -263,41 +272,34 @@ class Display(object):
         self.w.set(0)
         self.w.grid(row=0, column=1, padx=5, sticky=Tk.W)
 
-        # checkbox to show deformed mesh
-        self.show_def_mesh = Tk.IntVar()
-        c1 = Tk.Checkbutton(
-            self.options_frame,
-            text="Show deformed mesh",
-            variable=self.show_def_mesh,
-            command=self.update_graphs,
-            font=font)
-        c1.grid(row=0, column=2, padx=5, sticky=Tk.W)
+        if self.show_wing:
+            # checkbox to show deformed mesh
+            self.show_def_mesh = Tk.IntVar()
+            c1 = Tk.Checkbutton(
+                self.options_frame,
+                text="Show deformed mesh",
+                variable=self.show_def_mesh,
+                command=self.update_graphs,
+                font=font)
+            c1.grid(row=0, column=2, padx=5, sticky=Tk.W)
 
-        # checkbox to exaggerated deformed mesh
-        self.ex_def = Tk.IntVar()
-        self.c2 = Tk.Checkbutton(
-            self.options_frame,
-            text="Exaggerate deformed mesh",
-            variable=self.ex_def,
-            command=self.update_graphs,
-            font=font)
-        self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+            # checkbox to exaggerated deformed mesh
+            self.ex_def = Tk.IntVar()
+            self.c2 = Tk.Checkbutton(
+                self.options_frame,
+                text="Exaggerate deformed mesh",
+                variable=self.ex_def,
+                command=self.update_graphs,
+                font=font)
+            self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
 
-        # button to save html
-        button = Tk.Button(
-            self.options_frame,
-            text='Export 3D view to html',
-            command=self.save_3D,
-            font=font)
-        button.grid(row=0, column=4, padx=5, sticky=Tk.W)
 
-def disp_plot(db_name, show_wing, show_tube):
-    disp = Display(db_name, show_wing=show_wing, show_tube=show_tube)
-    disp.load_db()
+def disp_plot(db_name):
+    disp = Display(db_name)
     disp.draw_GUI()
     plt.tight_layout()
     disp.root.protocol("WM_DELETE_WINDOW", disp.quit)
     Tk.mainloop()
 
 if __name__ == '__main__':
-    disp_plot(db_name, show_wing=show_wing, show_tube=show_tube)
+    disp_plot(db_name)
