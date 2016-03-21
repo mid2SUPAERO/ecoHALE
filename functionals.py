@@ -50,6 +50,7 @@ class FunctionalEquilibrium(Component):
 
         self.add_param('L', val=1.)
         self.add_param('weight', val=1.)
+        self.add_param('fuelburn', val=1.)
 
         self.add_output('eq_con', val=0.)
 
@@ -62,4 +63,4 @@ class FunctionalEquilibrium(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         W0 = self.W0
 
-        unknowns['eq_con'] = (params['weight'] + W0 - params['L']) / W0
+        unknowns['eq_con'] = (params['weight'] + params['fuelburn'] + W0 - params['L']) / W0

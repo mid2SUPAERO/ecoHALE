@@ -434,8 +434,10 @@ class SpatialBeamFailureKS(Component):
 
 class SpatialBeamStates(Group):
 
-    def __init__(self, num_y, cons, E, G):
+    def __init__(self, num_y, E, G):
         super(SpatialBeamStates, self).__init__()
+        
+        cons = numpy.array([int((num_y-1)/2)])
 
         self.add('fem',
                  SpatialBeamFEM(num_y, cons, E, G),

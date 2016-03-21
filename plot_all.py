@@ -17,7 +17,7 @@ import sqlitedict
 # User-set parameters
 #####################
 
-db_name = 'probl1a.db'
+db_name = 'aerostruct.db'
 show_wing = True
 show_tube = True
 

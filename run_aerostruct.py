@@ -14,35 +14,23 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
+# Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
-
-span = 58.7630524 # baseline CRM
-cons = numpy.array([int((num_y-1)/2)])
-
-W0 = 1.e5
-CT = 0.01
-a = 200
-M = 0.75
-R = 2000
-
-v = a * M
-alpha = 1.
-rho = 1.225
-
-E = 200.e9
-G = 30.e9
-stress = 20.e6
-mrho = 3.e3
 r = radii(mesh)
-# t = 0.05 * numpy.ones(num_y-1)
-t = 0.05 * numpy.ones(num_y-1)
 t = r/10
 
+# Define the aircraft properties
+execfile('CRM.py')
+
+# Define the material properties
+execfile('aluminum.py')
+
+# Create the top-level system
 root = Group()
 
-
-des_vars = [
+# Define the independent variables
+indep_vars = [
     ('span', span),
     ('twist', numpy.zeros(num_y)), 
     ('v', v),
@@ -52,14 +40,14 @@ des_vars = [
     ('t', t), 
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+root.add('indep_vars', 
+         IndepVarComp(indep_vars), 
          promotes=['*'])
 root.add('tube',
          MaterialsTube(num_y),
          promotes=['*'])
 
-coupled = Group() # LU_Group
+coupled = Group()
 coupled.add('mesh',
             GeometryMesh(mesh),
             promotes=['*'])
@@ -73,7 +61,7 @@ coupled.add('loads',
             TransferLoads(num_y),
             promotes=['*'])
 coupled.add('spatialbeamstates',
-            SpatialBeamStates(num_y, cons, E, G),
+            SpatialBeamStates(num_y, E, G),
             promotes=['*'])
 
 coupled.nl_solver = Newton()
@@ -84,7 +72,6 @@ coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
-
 
 coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
 coupled.nl_solver.options['iprint'] = 1
@@ -98,12 +85,11 @@ coupled.nl_solver.newton.options['atol'] = 1e-7
 coupled.nl_solver.newton.options['rtol'] = 1e-7
 coupled.nl_solver.newton.options['iprint'] = 1
 
-
 root.add('coupled',
          coupled,
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(num_y),
+         WeissingerFunctionals(num_y, CL0, CD0),
          promotes=['*'])
 root.add('spatialbeamfuncs',
          SpatialBeamFunctionals(num_y, E, G, stress, mrho),
@@ -137,7 +123,7 @@ prob.driver.add_constraint('eq_con', equals=0.0)
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 
 prob.setup()
-view_tree(prob, outfile="aerostruct_n2.html", show_browser=True)
+view_tree(prob, outfile="aerostruct_n2.html", show_browser=False)
 
 if len(sys.argv) == 1:
     st = time.time()
