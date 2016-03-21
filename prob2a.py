@@ -114,8 +114,8 @@ prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 prob.driver.add_recorder(SqliteRecorder('prob1a.db')) 
 
 prob.setup()
-# uncomment this to see an n2 diagram of your problem
-# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True) 
+# uncomment this to see an n2 diagram of your implementation
+# view_tree(prob, outfile="prob2a_aerostruct.html", show_browser=True) 
 
 st = time.time()
 prob.run_once()
