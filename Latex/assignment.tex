@@ -3,7 +3,7 @@
 
 \title{MDO assignment; v. 1.0}
 %\subtitle{Aerostructural optimization}
-\author{John T. Hwang, Justin S. Gray, and John Jasa}
+\author{John T. Hwang, Justin S. Gray, John P. Jasa, and Joaquim R. R. A. Martins}
 
 \newcommand\be{\begin{enumerate}}
 \newcommand\ee{\end{enumerate}}
@@ -62,9 +62,12 @@
 		optimization. 
 		\be
 			\item Compute the derivatives of the multidisciplinary system
-			using finite differences by running \code{prob3a.py}.
+			using finite differences by running \code{prob3ab.py}. Take note of the 
+			run times and derivatives values output by the run script. 
 			\item Now compute the same derivatives using the adjoint method
-			and compare the timings for different mesh sizes.
+			and compare the timings for different mesh sizes. Use \code{prob3ab.py} again,
+			but comment out the settings at the bottom of the file to switch on 
+			analytic derivatives. 
 			\item We will now perform aerostructural optimization.
 			Edit \code{prob3c.py} by adding the following design variables:
 			\begin{itemize}
