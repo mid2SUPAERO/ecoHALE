@@ -12,7 +12,7 @@ if len(sys.argv) > 1:
     elif sys.argv[1] == 's':
         filename = 'spatialbeam'
     else:
-        raise Exception('Please choose as, a, or s')
+        filename = sys.argv[1]
 else:
     filename = 'aerostruct'
 
