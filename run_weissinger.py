@@ -57,8 +57,8 @@ prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 # prob.driver.options['tol'] = 1.0e-12
 
-prob.driver.add_desvar('linear_twist',lower=-5.,
-#prob.driver.add_desvar('alpha', lower=-10., upper=10.)
+prob.driver.add_desvar('linear_twist',lower=-5., upper=10.)
+prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
 

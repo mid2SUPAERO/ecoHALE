@@ -3,6 +3,7 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
+from openmdao.api import AnalysisError
 
 
 def norm(vec):
@@ -172,7 +173,6 @@ class WeissingerCirculations(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
-
         unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):

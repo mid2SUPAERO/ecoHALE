@@ -121,6 +121,9 @@ root.add('eq_con',
 prob = Problem()
 prob.root = root
 
+prob.root.fd_options['force_fd'] = True
+prob.root.fd_options['form'] = 'complex_step'
+
 prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
