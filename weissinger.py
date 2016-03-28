@@ -3,7 +3,6 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
-from openmdao.api import AnalysisError
 
 
 def norm(vec):
