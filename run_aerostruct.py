@@ -112,7 +112,7 @@ prob.driver.options['tol'] = 1.0e-3
 
 prob.driver.add_desvar('twist',lower= -10.,
                        upper=10., scaler=1000)
-prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
+#prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
 prob.driver.add_desvar('t',
                        lower= 0.003,
                        upper= 0.25, scaler=1000)

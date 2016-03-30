@@ -286,6 +286,61 @@ class WeissingerForces(Component):
         return jac
 
 
+class WeissingerLiftDrag(Component):
+    """ Calculates total lift in force units """
+
+    def __init__(self, n):
+        super(WeissingerLiftDrag, self).__init__()
+
+        self.add_param('sec_forces', val=numpy.zeros((n-1, 3)))
+        self.add_param('alpha', val=3.)
+        self.add_output('L', val=0.)
+        self.add_output('D', val=0.)
+
+        self.fd_options['force_fd'] = True                                                     
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+        self.num_y = n
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        alpha = params['alpha'] * numpy.pi / 180.
+        forces = params['sec_forces']
+
+        cosa = numpy.cos(alpha)
+        sina = numpy.sin(alpha)
+        unknowns['L'] = numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
+        unknowns['D'] = numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
+
+
+class WeissingerCoeffs(Component):
+    """ Computes lift coefficient """
+
+    def __init__(self, n):
+        super(WeissingerCoeffs, self).__init__()
+
+        self.add_param('S_ref', val=0.)
+        self.add_param('L', val=0.)
+        self.add_param('D', val=0.)
+        self.add_param('v', val=0.)
+        self.add_param('rho', val=0.)
+        self.add_output('CL1', val=0.)
+        self.add_output('CDi', val=0.)
+
+        self.fd_options['force_fd'] = True                                                     
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "central"
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        S_ref = params['S_ref']
+        rho = params['rho']
+        v = params['v']
+        L = params['L']
+        D = params['D']
+        unknowns['CL1'] = L / (0.5*rho*v**2*S_ref)
+        unknowns['CDi'] = D / (0.5*rho*v**2*S_ref)
+
+
 class WeissingerLift(Component):
     """ Calculates total lift in force units """
 
@@ -531,7 +586,8 @@ class WeissingerFunctionals(Group):
 
     def __init__(self, num_y, CL0, CD0):
         super(WeissingerFunctionals, self).__init__()
-        
+
+        '''        
         self.add('lift',
                  WeissingerLift(num_y),
                  promotes=['*'])
@@ -540,6 +596,13 @@ class WeissingerFunctionals(Group):
                  promotes=['*'])
         self.add('CDi',
                  WeissingerDragCoeff(num_y),
+                 promotes=['*'])
+        '''
+        self.add('liftdrag',
+                 WeissingerLiftDrag(num_y),
+                 promotes=['*'])
+        self.add('coeffs',
+                 WeissingerCoeffs(num_y),
                  promotes=['*'])
         self.add('CL',
                  TotalLift(CL0),
