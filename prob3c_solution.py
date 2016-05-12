@@ -35,12 +35,12 @@ root = Group()
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('v', v),
-    ('alpha', alpha), 
+    ('alpha', alpha),
     ('rho', rho),
-    ('r', r),  
-    ('t', t), 
+    ('r', r),
+    ('t', t),
 ]
 
 indep_vars_comp = IndepVarComp(indep_vars)
@@ -57,7 +57,7 @@ spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
 eq_con_comp = FunctionalEquilibrium(W0)
 
-root.add('indep_vars', 
+root.add('indep_vars',
          indep_vars_comp,
          promotes=['*'])
 root.add('tube',
@@ -66,24 +66,24 @@ root.add('tube',
 
 # Add components to the MDA here
 coupled = Group()
-coupled.add('mesh', 
-    mesh_comp, 
+coupled.add('mesh',
+    mesh_comp,
     promotes=["*"])
-coupled.add('spatialbeamstates', 
-    spatialbeamstates_comp, 
+coupled.add('spatialbeamstates',
+    spatialbeamstates_comp,
     promotes=["*"])
-coupled.add('def_mesh', 
-    def_mesh_comp, 
+coupled.add('def_mesh',
+    def_mesh_comp,
     promotes=["*"])
-coupled.add('weissingerstates', 
-    weissingerstates_comp, 
+coupled.add('weissingerstates',
+    weissingerstates_comp,
     promotes=["*"])
-coupled.add('loads', 
-    loads_comp, 
+coupled.add('loads',
+    loads_comp,
     promotes=["*"])
 
 ## Hybrid NLGS-Newton on the coupled group
-coupled.nl_solver = HybridGSNewton()   
+coupled.nl_solver = HybridGSNewton()
 coupled.nl_solver.nlgs.options['iprint'] = 1
 coupled.nl_solver.nlgs.options['maxiter'] = 5
 coupled.nl_solver.newton.options['atol'] = 1e-6
@@ -98,24 +98,24 @@ coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
-    
+
 # adds the MDA to root (do not remove!)
 root.add('coupled',
          coupled,
          promotes=['*'])
 
 # Add functional components here
-root.add('weissingerfuncs', 
-        weissingerfuncs_comp, 
+root.add('weissingerfuncs',
+        weissingerfuncs_comp,
         promotes=['*'])
-root.add('spatialbeamfuncs', 
-        spatialbeamfuncs_comp, 
+root.add('spatialbeamfuncs',
+        spatialbeamfuncs_comp,
         promotes=['*'])
-root.add('fuelburn', 
-        fuelburn_comp, 
+root.add('fuelburn',
+        fuelburn_comp,
         promotes=['*'])
-root.add('eq_con', 
-        eq_con_comp, 
+root.add('eq_con',
+        eq_con_comp,
         promotes=['*'])
 
 prob = Problem()
@@ -143,7 +143,7 @@ prob.driver.add_desvar('t',
                        upper= 0.25, scaler=1000)
 
 ###############################################################
-# Add constraints, and objectives 
+# Add constraints, and objectives
 ###############################################################
 prob.driver.add_objective('fuelburn')
 prob.driver.add_constraint('failure', upper=0.0)
