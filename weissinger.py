@@ -75,6 +75,69 @@ def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts):
             mtx[ind_i, ind_j] += _biot_savart(N, A, D, P, inf=True,  rev=True)
 
 
+def _biot_savart2(A, B, P, inf=False, rev=False, eps=1e-5):
+    """
+    Apply Biot-Savart's law to compute v*n
+    induced at a control point by a vortex line
+    - A[3], B[3] : coordinates associated with the vortex line
+    - inf : the vortex line is semi-infinite, originating at A
+    - rev : signifies the following about the direction of the vortex line:
+       If False, points from A to B
+       If True,  points from B to A
+    - eps : parameter used to avoid singularities when points are on a vortex line
+    """
+
+    rPA = norm(A - P)
+    rPB = norm(B - P)
+    rAB = norm(B - A)
+    rH = norm(P - A - numpy.dot((B - A), (P - A)) / \
+              numpy.dot((B - A), (B - A)) * (B - A)) + eps
+    cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
+    cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
+    C = numpy.cross(B - P, A - P)
+    C /= norm(C)
+
+    if inf:
+        v = -C / rH * (cosA + 1) / (4 * numpy.pi)
+    else:
+        v = -C / rH * (cosA + cosB) / (4 * numpy.pi)
+
+    if rev:
+        v = -v
+
+    return v
+
+
+def _assemble_AIC_mtx2(mtx, mesh, points, b_pts):
+    """
+    Compute the aerodynamic influence coefficient matrix
+    either for the circulation linear system or Trefftz-plane drag computation
+    - mtx[num_y-1, num_y-1, 3] : derivative of v*n w.r.t. circulation
+    - mesh[2, num_y, 3] : contains LE and TE coordinates at each section
+    - points[num_y-1, 3] : control points
+    - b_pts[num_y, 3] : bound vortex coordinates
+    """
+
+    num_y = mesh.shape[1]
+
+    mtx[:, :, :] = 0.0
+
+    # Loop through control points
+    for ind_i in xrange(num_y - 1):
+        P = points[ind_i]
+
+        # Loop through elements
+        for ind_j in xrange(num_y - 1):
+            A = b_pts[ind_j + 0, :]
+            B = b_pts[ind_j + 1, :]
+            D = mesh[-1, ind_j + 0, :]
+            E = mesh[-1, ind_j + 1, :]
+
+            mtx[ind_i, ind_j, :] += _biot_savart2(A, B, P, inf=False, rev=False)
+            mtx[ind_i, ind_j, :] += _biot_savart2(B, E, P, inf=True,  rev=False)
+            mtx[ind_i, ind_j, :] += _biot_savart2(A, D, P, inf=True,  rev=True)
+
+
             
 class WeissingerGeometry(Component):
     """ Computes various geometric properties for Weissinger analysis """
@@ -93,21 +156,6 @@ class WeissingerGeometry(Component):
         self.fd_options['force_fd'] = True   # Not worth doing manual partials
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
-
-        arange = numpy.arange(3*n)
-        bpts_mesh = numpy.zeros((3*n, 6*n))
-        bpts_mesh[arange, arange] = 0.75
-        bpts_mesh[arange, arange+3*n] = 0.25
-        self.bpts_mesh = bpts_mesh
-        
-        arange = numpy.arange(3*n-3)
-        imesh = numpy.arange(6*n).reshape((2, n, 3))
-        cpts_mesh = numpy.zeros((3*n-3, 6*n))
-        cpts_mesh[arange, imesh[0, :-1, :].flatten()] = 0.5 * 0.25
-        cpts_mesh[arange, imesh[1, :-1, :].flatten()] = 0.5 * 0.75
-        cpts_mesh[arange, imesh[0,  1:, :].flatten()] = 0.5 * 0.25
-        cpts_mesh[arange, imesh[1,  1:, :].flatten()] = 0.5 * 0.75
-        self.cpts_mesh = cpts_mesh
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
@@ -223,6 +271,65 @@ class WeissingerCirculations(Component):
 
 
 class WeissingerForces(Component):
+    """ Defines circulations """
+
+    def __init__(self, n):
+        super(WeissingerForces, self).__init__()
+        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('b_pts', val=numpy.zeros((n, 3)))
+        self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
+        self.add_param('circulations', val=numpy.zeros((n-1)))
+        self.add_param('alpha', val=3.)
+        self.add_param('v', val=10.)
+        self.add_param('rho', val=3.)
+        self.add_param('widths', val=numpy.zeros((n-1)))
+        self.add_param('normals', val=numpy.zeros((n-1, 3)))
+        self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
+
+        self.fd_options['force_fd'] = True
+        self.fd_options['form'] = "complex_step"
+        self.fd_options['extra_check_partials_form'] = "forward"
+
+        size = n - 1
+        self.num_y = n
+        self.mtx = numpy.zeros((size, size, 3), dtype="complex")
+        self.v = numpy.zeros((size, 3), dtype="complex")
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        circ = params['circulations']
+
+        _assemble_AIC_mtx2(self.mtx, params['def_mesh'],
+                          params['c_pts'], params['b_pts'])
+
+        alpha = params['alpha'] * numpy.pi / 180.
+        cosa = numpy.cos(alpha)
+        sina = numpy.sin(alpha)
+
+        for ind in xrange(3):
+            self.v[:, ind] = self.mtx[:, :, ind].dot(params['circulations'])
+        self.v[:, 0] += cosa * params['v']
+        self.v[:, 2] += sina * params['v']
+
+        bound = params['b_pts'][1:, :] - params['b_pts'][:-1, :]
+
+        cross = numpy.cross(self.v, bound)
+        for ind in xrange(3):
+            unknowns['sec_forces'][:, ind] = params['rho'] * circ * cross[:, ind]
+
+        sec_forces = numpy.array(params['normals'], dtype="complex")
+        for ind in xrange(3):
+            sec_forces[:, ind] *= params['rho'] * circ * self.v[:, ind] * params['widths']
+
+        print unknowns['sec_forces']
+        print sec_forces
+        print 'Rel error:', numpy.linalg.norm(sec_forces - unknowns['sec_forces']) / numpy.linalg.norm(sec_forces)
+        print 'Mesh:', numpy.linalg.norm(params['def_mesh'])
+        print 'Forces:', numpy.linalg.norm(sec_forces)
+        print
+
+        
+
+class WeissingerForces2(Component):
     """ Computes section forces """
 
     def __init__(self, n):

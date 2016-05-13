@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import numpy
 import sqlitedict
-
+import traceback
 import aluminum
 
 #####################
@@ -83,9 +83,14 @@ class Display(object):
         self.t = []
         sec_forces = []
         normals = []
+        widths = []
         cos_dih = []
         self.lift = []
+        self.lift_ell = []
         self.vonmises = []
+        alpha = []
+        rho = []
+        v = []
 
         for case_name, case_data in self.db.iteritems():
             if "metadata" in case_name or "derivs" in case_name:
@@ -106,19 +111,46 @@ class Display(object):
                 self.def_mesh.append(case_data['Unknowns']['def_mesh'])
                 self.twist.append(case_data['Unknowns']['twist'])
                 normals.append(case_data['Unknowns']['normals'])
+                widths.append(case_data['Unknowns']['widths'])
                 cos_dih.append(case_data['Unknowns']['cos_dih'])
                 sec_forces.append(case_data['Unknowns']['sec_forces'])
+                alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
+                rho.append(case_data['Unknowns']['rho'])
+                v.append(case_data['Unknowns']['v'])
                 self.show_wing = True
             except:
+                traceback.print_exc()
                 self.show_wing = False
                 pass
 
         self.num_iters = numpy.max([len(self.mesh) - 1, 1])
 
         if self.show_wing:
+
             for i in range(self.num_iters + 1):
-                L = sec_forces[i][:, 2] / normals[i][:, 2]
-                self.lift.append(L.T * cos_dih[i])
+                cvec = self.mesh[i][0, :, :] - self.mesh[i][1, :, :]
+                chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
+                chords = 0.5 * (chords[1:] + chords[:-1])                
+                #L = sec_forces[i][:, 2] / normals[i][:, 2]
+                #self.lift.append(L.T * cos_dih[i])
+                a = alpha[i]
+                cosa = numpy.cos(a)
+                sina = numpy.sin(a)
+                forces = sec_forces[i]
+                
+                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/widths[i]/0.5/rho[i]/v[i]**2
+                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
+                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
+
+                m_vals = self.mesh[i]
+                span = m_vals[0, :, 1] / m_vals[0, -1, 1]
+
+                lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
+
+                lift_ell = 4 * lift_area / numpy.pi * numpy.sqrt(1 - (2*span-1)**2)
+
+                self.lift.append(lift)
+                self.lift_ell.append(lift_ell)
 
             # recenter def_mesh points for better viewing
             for i in range(self.num_iters + 1):
@@ -136,6 +168,8 @@ class Display(object):
             self.min_twist -= diff
             self.max_twist += diff
             self.min_l, self.max_l = numpy.min(self.lift), numpy.max(self.lift)
+            self.min_le, self.max_le = numpy.min(self.lift_ell), numpy.max(self.lift_ell)
+            self.min_l, self.max_l = min(self.min_l, self.min_le), max(self.max_l, self.max_le)
             diff = (self.max_l - self.min_l) * 0.05
             self.min_l -= diff
             self.max_l += diff
@@ -159,6 +193,7 @@ class Display(object):
             self.ax3.cla()
             t_vals = self.twist[self.curr_pos]
             l_vals = self.lift[self.curr_pos]
+            le_vals = self.lift_ell[self.curr_pos]
 
             self.ax2.plot(span, t_vals, lw=2, c='b')
             self.ax2.locator_params(axis='y',nbins=4)
@@ -167,9 +202,11 @@ class Display(object):
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
             self.ax3.plot(span_diff, l_vals, lw=2, c='b')
+            self.ax3.plot(span, le_vals, lw=2, c='b')
             self.ax3.locator_params(axis='y',nbins=4)
             self.ax3.locator_params(axis='x',nbins=3)
             self.ax3.set_ylim([self.min_l, self.max_l])
+            self.ax3.set_ylim([0, self.max_l])
             self.ax3.set_ylabel('lift', rotation="horizontal", ha="right")
 
         if self.show_tube:

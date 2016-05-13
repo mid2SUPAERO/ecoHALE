@@ -11,6 +11,16 @@ from weissinger import WeissingerStates, WeissingerFunctionals
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 
+if 1:
+    num_x = 2
+    num_y = 11
+    span = 10.
+    chord = 1.
+    mesh = numpy.zeros((num_x, num_y, 3))
+    for ind_x in xrange(num_x):
+        for ind_y in xrange(num_y):
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, ind_y / (num_y - 1) * span, 0]
+
 # Define the aircraft properties
 execfile('CRM.py')
 
@@ -19,7 +29,7 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    ('linear_twist', numpy.zeros(2)), 
+    ('twist', numpy.zeros(num_y)), 
     ('span', span),
     ('v', v),
     ('alpha', alpha), 
@@ -30,9 +40,9 @@ des_vars = [
 root.add('des_vars', 
          IndepVarComp(des_vars), 
          promotes=['*'])
-root.add('linear_twist',
-         LinearInterp(num_y, 'twist'),
-         promotes=['*'])
+#root.add('linear_twist',
+#         LinearInterp(num_y, 'twist'),
+#         promotes=['*'])
 root.add('mesh',
          GeometryMesh(mesh),
          promotes=['*'])
@@ -57,8 +67,8 @@ prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 # prob.driver.options['tol'] = 1.0e-12
 
-prob.driver.add_desvar('linear_twist',lower=-5., upper=10.)
-prob.driver.add_desvar('alpha', lower=-10., upper=10.)
+prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e4)
+#prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
 
