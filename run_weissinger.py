@@ -17,7 +17,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 5
+    num_y = 41
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
