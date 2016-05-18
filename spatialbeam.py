@@ -214,14 +214,13 @@ class SpatialBeamFEM(Component):
 
         if mode == 'fwd':
             sol_vec, rhs_vec = self.dumat, self.drmat
+            t = 0
         else:
             sol_vec, rhs_vec = self.drmat, self.dumat
+            t = 1
 
         for voi in vois:
-            if mode == "fwd":
-                sol_vec[voi].vec[:] = lu_solve(self.lup, -rhs_vec[voi].vec)
-            else:
-                sol_vec[voi].vec[:] = lu_solve(self.lup, -rhs_vec[voi].vec, trans=1)
+            sol_vec[voi].vec[:] = lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
 
 
 

@@ -267,7 +267,7 @@ class WeissingerCirculations(Component):
             t = 1
 
         for voi in vois:
-            sol_vec[voi].vec[:] = lu_solve(self.lup, -rhs_vec[voi].vec, trans=t)
+            sol_vec[voi].vec[:] = lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
 
 
 class WeissingerForces(Component):
