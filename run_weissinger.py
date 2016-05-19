@@ -17,7 +17,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 21
+    num_y = 31
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -29,9 +29,9 @@ if 1:
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
-            # mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord + numpy.random.rand(),
-            #                          full_wing[ind_y] * span,
-            #                          0 + numpy.random.rand()]
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord + numpy.random.rand(),
+                                     full_wing[ind_y] * span,
+                                     0 + numpy.random.rand()]
 
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y] * span, 0]
 if 0:
@@ -52,12 +52,15 @@ root = Group()
 
 des_vars = [
     ('twist', numpy.zeros(num_y)),
+    # ('twist', 12*(numpy.random.rand((num_y))-.5)),
     ('span', span),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
+
+# print numpy.random.rand((num_y))
 
 root.add('des_vars',
          IndepVarComp(des_vars),
