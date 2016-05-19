@@ -11,79 +11,7 @@ def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
 
 
-def _biot_savart(N, A, B, P, inf=False, rev=False, eps=1e-5):
-    """
-    Apply Biot-Savart's law to compute v*n
-    induced at a control point by a vortex line
-    - N[3] : the normal vector
-    - A[3], B[3] : coordinates associated with the vortex line
-    - inf : the vortex line is semi-infinite, originating at A
-    - rev : signifies the following about the direction of the vortex line:
-       If False, points from A to B
-       If True,  points from B to A
-    - eps : parameter used to avoid singularities when points are on a vortex line
-    """
-
-    rPA = norm(A - P)
-    rPB = norm(B - P)
-    rAB = norm(B - A)
-    rH = norm(P - A - numpy.dot((B - A), (P - A)) / \
-              numpy.dot((B - A), (B - A)) * (B - A)) + eps
-    cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
-    cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
-    C = numpy.cross(B - P, A - P)
-    C /= norm(C)
-
-    if inf:
-        vdn = -numpy.dot(N, C) / rH * (cosA + 1) / (4 * numpy.pi)
-    else:
-        vdn = -numpy.dot(N, C) / rH * (cosA + cosB) / (4 * numpy.pi)
-
-    if rev:
-        vdn = -vdn
-
-    return vdn
-
-
-def _assemble_AIC_mtx(mtx, mesh, normals, points, b_pts, alpha):
-    """
-    Compute the aerodynamic influence coefficient matrix
-    either for the circulation linear system or Trefftz-plane drag computation
-    - mtx[num_y-1, num_y-1, 3] : derivative of v*n w.r.t. circulation
-    - mesh[2, num_y, 3] : contains LE and TE coordinates at each section
-    - normals[num_y-1, 3] : normals vectors for the v*n for each control point
-    - points[num_y-1, 3] : control points
-    - b_pts[num_y, 3] : bound vortex coordinates
-    """
-
-    num_y = mesh.shape[1]
-    mtx[:, :] = 0.0
-    alpha = alpha * numpy.pi / 180.
-    cosa = numpy.cos(alpha)
-    sina = numpy.sin(alpha)
-
-    # Loop through control points
-    for ind_i in xrange(num_y - 1):
-        N = normals[ind_i]
-        P = points[ind_i]
-
-        # Loop through elements
-        for ind_j in xrange(num_y - 1):
-            A = b_pts[ind_j + 0, :]
-            B = b_pts[ind_j + 1, :]
-            D = mesh[-1, ind_j + 0, :]
-            E = mesh[-1, ind_j + 1, :]
-            F = D + numpy.array([cosa, 0, sina])
-            G = E + numpy.array([cosa, 0, sina])
-
-            mtx[ind_i, ind_j] += _biot_savart(N, A, B, P, inf=False, rev=False)
-            mtx[ind_i, ind_j] += _biot_savart(N, B, E, P, inf=False, rev=False)
-            mtx[ind_i, ind_j] += _biot_savart(N, A, D, P, inf=False, rev=True)
-            mtx[ind_i, ind_j] += _biot_savart(N, E, G, P, inf=True,  rev=False)
-            mtx[ind_i, ind_j] += _biot_savart(N, D, F, P, inf=True,  rev=True)
-
-
-def _biot_savart2(A, B, P, inf=False, rev=False, eps=1e-5):
+def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
     """
     Apply Biot-Savart's law to compute v
     induced at a control point by a vortex line
@@ -116,7 +44,7 @@ def _biot_savart2(A, B, P, inf=False, rev=False, eps=1e-5):
     return v
 
 
-def _assemble_AIC_mtx2(mtx, mesh, points, b_pts, alpha):
+def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
     """
     Compute the aerodynamic influence coefficient matrix
     either for the circulation linear system or Trefftz-plane drag computation
@@ -150,11 +78,11 @@ def _assemble_AIC_mtx2(mtx, mesh, points, b_pts, alpha):
                 F = D + numpy.array([cosa, 0, sina])
                 G = E + numpy.array([cosa, 0, sina])
 
-                mtx[ind_i, ind_j, :] += _biot_savart2(A, B, P, inf=False, rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart2(B, E, P, inf=False, rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart2(A, D, P, inf=False, rev=True)
-                mtx[ind_i, ind_j, :] += _biot_savart2(E, G, P, inf=True,  rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart2(D, F, P, inf=True,  rev=True)
+                mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
+                mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
+                mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
+                mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
+                mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
 
 
 class WeissingerGeometry(Component):
@@ -230,8 +158,8 @@ class WeissingerCirculations(Component):
         self.rhs = numpy.zeros((size), dtype="complex")
 
     def _assemble_system(self, params):
-        _assemble_AIC_mtx2(self.mtx2, params['def_mesh'],
-                           params['c_pts'], params['b_pts'], params['alpha'])
+        _assemble_AIC_mtx(self.mtx2, params['def_mesh'],
+                          params['c_pts'], params['b_pts'], params['alpha'])
             
         self.mtx[:, :] = 0.
         for ind in xrange(3):
@@ -314,8 +242,6 @@ class WeissingerForces(Component):
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_param('widths', val=numpy.zeros((n-1)))
-        self.add_param('normals', val=numpy.zeros((n-1, 3)))
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
 
         # self.fd_options['force_fd'] = True
@@ -330,8 +256,8 @@ class WeissingerForces(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
 
-        _assemble_AIC_mtx2(self.mtx, params['def_mesh'],
-                           params['c_pts'], params['b_pts'], params['alpha'])
+        _assemble_AIC_mtx(self.mtx, params['def_mesh'],
+                          params['c_pts'], params['b_pts'], params['alpha'])
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
@@ -348,10 +274,6 @@ class WeissingerForces(Component):
         for ind in xrange(3):
             unknowns['sec_forces'][:, ind] = params['rho'] * circ * cross[:, ind]
 
-        sec_forces = numpy.array(params['normals'], dtype="complex")
-        for ind in xrange(3):
-            sec_forces[:, ind] *= params['rho'] * circ * self.v[:, ind] * params['widths']
-
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
 
@@ -362,9 +284,8 @@ class WeissingerForces(Component):
         n = self.num_y
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['def_mesh', 'b_pts', 'c_pts',
-                                                    'alpha', 'circulations', 'v',
-                                                    'widths', 'normals'],
+                                         fd_params=['def_mesh', 'b_pts',
+                                                    'c_pts', 'alpha'],
                                          fd_states=[])
         jac.update(fd_jac)
 
@@ -375,20 +296,12 @@ class WeissingerForces(Component):
         widths = params['widths'].real
         sec_forces = unknowns['sec_forces'].real
 
-        # jac['sec_forces', 'v'] = sec_forces.flatten() / v
+        jac['sec_forces', 'v'] = sec_forces.flatten() / v
         jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
-        # forces_circ = jac['sec_forces', 'circulations']
-        # for ind in xrange(3):
-        #     forces_circ[ind+3*arange, arange] = sec_forces[:, ind] / circ
-
-        forces_widths = jac['sec_forces', 'widths']
+        forces_circ = jac['sec_forces', 'circulations']
         for ind in xrange(3):
-            forces_widths[ind+3*arange, arange] = sec_forces[:, ind] / widths
-
-        forces_normals = jac['sec_forces', 'normals']
-        for ind in xrange(3):
-            forces_normals[ind+3*arange, ind+3*arange] = rho * v * circ * widths
+             forces_circ[ind+3*arange, arange] = sec_forces[:, ind] / circ
 
         print '### Time: {} secs'.format(numpy.round(time()-s, 6))
 

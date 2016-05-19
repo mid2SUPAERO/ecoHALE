@@ -65,7 +65,7 @@ subroutine biotsavart(A, B, P, inf, rev, out)
   ! Working
   complex*16 :: rPA, rPB, rAB, rH
   complex*16 :: cosA, cosB, C(3)
-  complex*16 :: norm, pi, eps, tmp(3)
+  complex*16 :: norm, dot, pi, eps, tmp(3)
 
   pi = 4.*atan(1.)
   eps = 1e-5
@@ -73,10 +73,10 @@ subroutine biotsavart(A, B, P, inf, rev, out)
   rPA = norm(A - P)
   rPB = norm(B - P)
   rAB = norm(B - A)
-  rH = norm(P - A - dot_product(B - A, P - A) / &
-       dot_product(B - A, B - A) * (B - A)) + eps
-  cosA = dot_product(P - A, B - A) / (rPA * rAB)
-  cosB = dot_product(P - B, A - B) / (rPB * rAB)
+  rH = norm(P - A - dot(B - A, P - A) / &
+       dot(B - A, B - A) * (B - A)) + eps
+  cosA = dot(P - A, B - A) / (rPA * rAB)
+  cosB = dot(P - B, A - B) / (rPB * rAB)
   call cross(B - P, A - P, C)
   C(:) = C(:) / norm(C)
 
@@ -101,10 +101,28 @@ complex*16 function norm(v)
   implicit none
 
   complex*16, intent(in) :: v(3)
+  complex*16 :: dot
+  
+  !norm = sqrt(dot_product(v, v))
+  norm = dot(v, v) ** 0.5
 
-  norm = sqrt(dot_product(v, v))
+  return
 
 end function norm
+
+
+
+complex*16 function dot(a, b)
+
+  implicit none
+
+  complex*16, intent(in) :: a(3), b(3)
+
+  dot = a(1) * b(1) + a(2) * b(2) + a(3) * b(3)
+
+  return
+
+end function dot
 
 
 

@@ -17,14 +17,14 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 41
+    num_y = 21
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
-    half_wing = .5 * numpy.cos(beta)
+    half_wing = (.5 * numpy.cos(beta))**1
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
 
     for ind_x in xrange(num_x):
@@ -89,7 +89,13 @@ prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 prob.driver.options['tol'] = 1.0e-8
 
-prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e4) # test
+if 1:
+    prob.driver = pyOptSparseDriver()
+    prob.driver.options['optimizer'] = "SNOPT"
+    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
+                                'Major feasibility tolerance': 1.0e-7}
+
+prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e0) # test
 #prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
