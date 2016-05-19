@@ -3,7 +3,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, setup_profiling, activate_profiling, pyOptSparseDriver
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -15,7 +15,7 @@ from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+mesh = mesh_gen(n_points_inboard=5, n_points_outboard=6)
 num_y = mesh.shape[1]
 r = radii(mesh)
 t = r/10
@@ -32,16 +32,16 @@ root = Group()
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('v', v),
-    ('alpha', alpha), 
+    ('alpha', alpha),
     ('rho', rho),
-    ('r', r),  
-    ('t', t), 
+    ('r', r),
+    ('t', t),
 ]
 
-root.add('indep_vars', 
-         IndepVarComp(indep_vars), 
+root.add('indep_vars',
+         IndepVarComp(indep_vars),
          promotes=['*'])
 root.add('tube',
          MaterialsTube(num_y),
@@ -77,7 +77,7 @@ coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
-    
+
 coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
 coupled.nl_solver.nlgs.options['iprint'] = 1
 coupled.nl_solver.nlgs.options['maxiter'] = 5
@@ -105,13 +105,15 @@ prob = Problem()
 prob.root = root
 prob.print_all_convergence()
 
-prob.driver = ScipyOptimizer()
-prob.driver.options['optimizer'] = 'SLSQP'
-prob.driver.options['disp'] = True
-prob.driver.options['tol'] = 1.0e-3
+prob.driver = pyOptSparseDriver()
+prob.driver.options['optimizer'] = 'SNOPT'
+prob.driver.opt_settings['Iterations limit'] = 100
+
+# prob.driver.options['disp'] = True
+# prob.driver.options['tol'] = 1.0e-3
 
 prob.driver.add_desvar('twist',lower= -10.,
-                       upper=10., scaler=1000)
+                       upper=10., scaler=1e0)
 #prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
 prob.driver.add_desvar('t',
                        lower= 0.003,
@@ -121,6 +123,9 @@ prob.driver.add_constraint('failure', upper=0.0)
 prob.driver.add_constraint('eq_con', equals=0.0)
 
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
+
+setup_profiling(prob)
+activate_profiling()
 
 prob.setup()
 view_tree(prob, outfile="aerostruct.html", show_browser=False)

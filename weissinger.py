@@ -5,7 +5,6 @@ from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 import lib
 
-
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
 
@@ -190,7 +189,7 @@ class WeissingerCirculations(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['normals', 'def_mesh',
-                                                    'b_pts', 'c_pts', 'alpha'],
+                                                    'b_pts', 'c_pts'],
                                          fd_states=[])
         jac.update(fd_jac)
 
@@ -206,6 +205,7 @@ class WeissingerCirculations(Component):
 
         dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
         jac['circulations', 'alpha'][:, 0] = normals.dot(dv_da)
+
 
         return jac
 
@@ -293,8 +293,6 @@ class WeissingerForces(Component):
         # for ind in xrange(3):
         #      forces_circ[ind+3*arange, arange] = sec_forces[:, ind] / circ
 
-        # print jac['sec_forces', 'circulations']
-        # exit()
 
         return jac
 

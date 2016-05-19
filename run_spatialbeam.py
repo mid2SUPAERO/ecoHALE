@@ -3,7 +3,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, setup_profiling, activate_profiling
 from geometry import GeometryMesh, mesh_gen, LinearInterp
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
@@ -27,15 +27,15 @@ span = 58.7630524 # [m] baseline CRM
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('span', span),
-    ('r', r), 
-    ('t', t), 
-    ('loads', loads) 
+    ('r', r),
+    ('t', t),
+    ('loads', loads)
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+root.add('des_vars',
+         IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
          GeometryMesh(mesh),
@@ -67,6 +67,9 @@ prob.driver.add_constraint('weight', upper=1e5)
 prob.root.fd_options['force_fd'] = True
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
+
+setup_profiling(prob)
+activate_profiling()
 
 prob.setup()
 prob.run_once()

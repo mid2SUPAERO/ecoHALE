@@ -102,7 +102,6 @@ prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e0) # test
 #prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
-prob.print_all_convergence()
 # setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
