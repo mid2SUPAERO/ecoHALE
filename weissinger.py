@@ -264,7 +264,6 @@ class WeissingerForces(Component):
         self.v[:, 2] += sina * params['v']
 
         bound = params['b_pts'][1:, :] - params['b_pts'][:-1, :]
-        bound =
 
         cross = numpy.cross(self.v, bound)
 
