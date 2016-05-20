@@ -3,7 +3,7 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
-from time import time
+import lib
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -17,6 +17,93 @@ def radii(mesh, t_c=0.15):
     chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
     return t_c * chords
 
+def _assemble_system(mesh, A, J, Iy, Iz, loads,
+                     M_a, M_t, M_y, M_z,
+                     elem_IDs, cons, fem_origin,
+                     E, G, x_gl, T,
+                     K_elem, S_a, S_t, S_y, S_z, T_elem,
+                     const2, const_y, const_z, n, size, mtx, rhs):
+
+    w = fem_origin
+    nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+
+    num_elems = elem_IDs.shape[0]
+    num_nodes = nodes.shape[0]
+    num_cons = cons.shape[0]
+
+    print num_elems, num_nodes, num_cons
+
+    elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
+
+    for ielem in xrange(num_elems):
+        in0, in1 = elem_IDs[ielem, :]
+        elem_nodes[ielem, 0, :] = nodes[in0, :]
+        elem_nodes[ielem, 1, :] = nodes[in1, :]
+
+    E, G = E * numpy.ones(num_nodes - 1), G * numpy.ones(num_nodes - 1)
+
+    mtx[:] = 0.
+    for ielem in xrange(num_elems):
+        P0 = elem_nodes[ielem, 0, :]
+        P1 = elem_nodes[ielem, 1, :]
+
+        x_loc = unit(P1 - P0)
+        y_loc = unit(numpy.cross(x_loc, x_gl))
+        z_loc = unit(numpy.cross(x_loc, y_loc))
+
+        T[0, :] = x_loc
+        T[1, :] = y_loc
+        T[2, :] = z_loc
+
+        for ind in xrange(4):
+            T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
+
+        L = norm(P1 - P0)
+        EA_L = E[ielem] * A[ielem] / L
+        GJ_L = G[ielem] * J[ielem] / L
+        EIy_L3 = E[ielem] * Iy[ielem] / L**3
+        EIz_L3 = E[ielem] * Iz[ielem] / L**3
+
+        M_a[:, :] = EA_L * const2
+        M_t[:, :] = GJ_L * const2
+
+        M_y[:, :] = EIy_L3 * const_y
+        M_y[1, :] *= L
+        M_y[3, :] *= L
+        M_y[:, 1] *= L
+        M_y[:, 3] *= L
+
+        M_z[:, :] = EIz_L3 * const_z
+        M_z[1, :] *= L
+        M_z[3, :] *= L
+        M_z[:, 1] *= L
+        M_z[:, 3] *= L
+
+        K_elem[:] = 0
+        K_elem += S_a.T.dot(M_a).dot(S_a)
+        K_elem += S_t.T.dot(M_t).dot(S_t)
+        K_elem += S_y.T.dot(M_y).dot(S_y)
+        K_elem += S_z.T.dot(M_z).dot(S_z)
+
+        res = T_elem.T.dot(K_elem).dot(T_elem)
+
+        in0, in1 = elem_IDs[ielem, :]
+
+        mtx[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
+        mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
+        mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
+        mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
+
+
+    for ind in xrange(num_cons):
+        for k in xrange(6):
+            mtx[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
+            mtx[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
+
+    rhs[:] = 0.0
+    rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
+
+
 
 class SpatialBeamFEM(Component):
     """ Computes the displacements and rotations """
@@ -25,7 +112,7 @@ class SpatialBeamFEM(Component):
         super(SpatialBeamFEM, self).__init__()
 
         self.size = size = 6 * n + 6 * cons.shape[0]
-        self.beep = 0
+        self.n = n
 
         self.add_param('A', val=numpy.zeros((n - 1)))
         self.add_param('Iy', val=numpy.zeros((n - 1)))
@@ -99,101 +186,32 @@ class SpatialBeamFEM(Component):
         self.S_z = numpy.zeros((4, 12), dtype='complex')
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
-    def _assemble_system(self,
-                         mesh, A, J, Iy, Iz, loads,
-                         rhs, M_a, M_t, M_y, M_z,
-                         elem_IDs, cons, fem_origin,
-                         E, G, mtx, x_gl, T,
-                         K_elem, S_a, S_t, S_y, S_z, T_elem, const2):
-
-        w = fem_origin
-        nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
-
-        num_elems = elem_IDs.shape[0]
-        num_nodes = nodes.shape[0]
-        num_cons = cons.shape[0]
-
-        elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
-
-        for ielem in xrange(num_elems):
-            in0, in1 = elem_IDs[ielem, :]
-            elem_nodes[ielem, 0, :] = nodes[in0, :]
-            elem_nodes[ielem, 1, :] = nodes[in1, :]
-
-        E, G = E * numpy.ones(num_nodes - 1), G * numpy.ones(num_nodes - 1)
-
-        mtx[:] = 0.
-        for ielem in xrange(num_elems):
-            P0 = elem_nodes[ielem, 0, :]
-            P1 = elem_nodes[ielem, 1, :]
-
-            x_loc = unit(P1 - P0)
-            y_loc = unit(numpy.cross(x_loc, x_gl))
-            z_loc = unit(numpy.cross(x_loc, y_loc))
-
-            T[0, :] = x_loc
-            T[1, :] = y_loc
-            T[2, :] = z_loc
-
-            for ind in xrange(4):
-                T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
-
-            L = norm(P1 - P0)
-            EA_L = E[ielem] * A[ielem] / L
-            GJ_L = G[ielem] * J[ielem] / L
-            EIy_L3 = E[ielem] * Iy[ielem] / L**3
-            EIz_L3 = E[ielem] * Iz[ielem] / L**3
-
-            M_a[:, :] = EA_L * const2
-            M_t[:, :] = GJ_L * const2
-
-            self.M_y[:, :] = EIy_L3 * self.const_y
-            self.M_y[1, :] *= L
-            self.M_y[3, :] *= L
-            self.M_y[:, 1] *= L
-            self.M_y[:, 3] *= L
-
-            self.M_z[:, :] = EIz_L3 * self.const_z
-            self.M_z[1, :] *= L
-            self.M_z[3, :] *= L
-            self.M_z[:, 1] *= L
-            self.M_z[:, 3] *= L
-
-            self.K_elem[:] = 0
-            self.K_elem += self.S_a.T.dot(self.M_a).dot(self.S_a)
-            self.K_elem += self.S_t.T.dot(self.M_t).dot(self.S_t)
-            self.K_elem += self.S_y.T.dot(self.M_y).dot(self.S_y)
-            self.K_elem += self.S_z.T.dot(self.M_z).dot(self.S_z)
-
-            res = self.T_elem.T.dot(self.K_elem).dot(self.T_elem)
-
-            in0, in1 = elem_IDs[ielem, :]
-
-            self.mtx[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
-            self.mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
-            self.mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
-            self.mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
-
-
-        for ind in xrange(num_cons):
-            for k in xrange(6):
-                self.mtx[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
-                self.mtx[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
-
-        self.rhs[:] = 0.0
-        self.rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        self._assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                            self.rhs, self.M_a, self.M_t, self.M_y, self.M_z,
+        print 'fortran'
+        self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                            self.M_a, self.M_t, self.M_y, self.M_z,
                             self.elem_IDs, self.cons, self.fem_origin,
-                            self.E, self.G, self.mtx, self.x_gl, self.T,
-                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem, self.const2)
+                            self.E, self.G, self.x_gl, self.T,
+                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                            self.const2, self.const_y, self.const_z, self.n, self.size)
+        print 'python'
+        _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                            self.M_a, self.M_t, self.M_y, self.M_z,
+                            self.elem_IDs, self.cons, self.fem_origin,
+                            self.E, self.G, self.x_gl, self.T,
+                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                            self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
 
         unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
-        self._assemble_system(params)
+        _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                            self.M_a, self.M_t, self.M_y, self.M_z,
+                            self.elem_IDs, self.cons, self.fem_origin,
+                            self.E, self.G, self.x_gl, self.T,
+                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                            self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
 
         disp_aug = unknowns['disp_aug']
         resids['disp_aug'] = self.mtx.dot(disp_aug) - self.rhs
@@ -442,6 +460,7 @@ class SpatialBeamStates(Group):
         super(SpatialBeamStates, self).__init__()
 
         cons = numpy.array([int((num_y-1)/2)])
+        print cons
 
         self.add('fem',
                  SpatialBeamFEM(num_y, cons, E, G),
