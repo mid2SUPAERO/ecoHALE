@@ -17,7 +17,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 41
+    num_y = 21
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -25,29 +25,15 @@ if 1:
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
     half_wing = (.5 * numpy.cos(beta))**2
+    half_wing = numpy.linspace(0, 10, ny2) + .5*numpy.random.rand(ny2)
+    half_wing = half_wing[::-1] / numpy.max(half_wing) / 2
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
+    print full_wing
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord + numpy.random.rand(),
-                                     full_wing[ind_y] * span,
-                                     0 + numpy.random.rand()]
-
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y] * span, 0]
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, ind_y / (num_y-1) * span, 0]
-
-
-
-if 0:
-    num_x = 2
-    num_y = 3
-    span = 10.
-    chord = 2.
-    mesh = numpy.zeros((num_x, num_y, 3))
-
-    for ind_x in xrange(num_x):
-        for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, ind_y / (num_y-1), 0]
+            # mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, ind_y / (num_y-1) * span, 0]
 
 
 disp = numpy.zeros((num_y, 6))
@@ -84,9 +70,9 @@ root.add('weissingerstates',
 root.add('weissingerfuncs',
          WeissingerFunctionals(num_y, CL0, CD0),
          promotes=['*'])
-root.add('loads',
-         TransferLoads(num_y),
-         promotes=['*'])
+# root.add('loads',
+#          TransferLoads(num_y),
+#          promotes=['*'])
 
 prob = Problem()
 prob.root = root

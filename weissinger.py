@@ -192,7 +192,7 @@ class WeissingerCirculations(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['normals', 'def_mesh',
-                                                    'b_pts', 'c_pts'],
+                                                    'b_pts', 'c_pts', 'alpha'],
                                          fd_states=[])
         jac.update(fd_jac)
 
@@ -207,7 +207,7 @@ class WeissingerCirculations(Component):
         jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
 
         dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
-        jac['circulations', 'alpha'][:, 0] = normals.dot(dv_da)
+        # jac['circulations', 'alpha'][:, 0] = normals.dot(dv_da)
 
 
         return jac
@@ -264,19 +264,13 @@ class WeissingerForces(Component):
         self.v[:, 2] += sina * params['v']
 
         bound = params['b_pts'][1:, :] - params['b_pts'][:-1, :]
+        bound =
 
         cross = numpy.cross(self.v, bound)
 
         for ind in xrange(3):
             unknowns['sec_forces'][:, ind] = params['rho'] * circ * cross[:, ind]
 
-        # print circ
-        # print self.v
-        # print bound
-        # print cross
-        # print unknowns['sec_forces']
-        # print unknowns['sec_forces'][:, 2] / numpy.linalg.norm(bound, axis=1) / circ
-        # exit()
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
