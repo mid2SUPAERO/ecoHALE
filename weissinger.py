@@ -3,7 +3,11 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
-import lib
+try:
+    import lib
+    fortran_flag = True
+except:
+    fortran_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -53,12 +57,11 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
     """
 
     num_y = mesh.shape[1]
+    mtx[:, :, :] = 0.0
 
-    if 1:
-        mtx[:, :, :] = 0.0
+    if fortran_flag:
         mtx[:, :, :] = lib.assembleaeromtx(num_y, alpha, mesh, points, b_pts)
     else:
-        mtx[:, :, :] = 0.0
         alpha = alpha * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
