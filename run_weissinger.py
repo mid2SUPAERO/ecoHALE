@@ -17,7 +17,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 10
+    num_y = 41
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -29,12 +29,13 @@ if 1:
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
-            # mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord + numpy.random.rand(),
-            #                          full_wing[ind_y] * span,
-            #                          0 + numpy.random.rand()]
-            #
-            # mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y] * span, 0]
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord + numpy.random.rand(),
+                                     full_wing[ind_y] * span,
+                                     0 + numpy.random.rand()]
+
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y] * span, 0]
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, ind_y / (num_y-1) * span, 0]
+
 
 
 if 0:
