@@ -256,15 +256,24 @@ class WeissingerForces(Component):
         sina = numpy.sin(alpha)
 
         for ind in xrange(3):
-            self.v[:, ind] = self.mtx[:, :, ind].dot(params['circulations'])
+            self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
         self.v[:, 0] += cosa * params['v']
         self.v[:, 2] += sina * params['v']
 
         bound = params['b_pts'][1:, :] - params['b_pts'][:-1, :]
 
         cross = numpy.cross(self.v, bound)
+
         for ind in xrange(3):
             unknowns['sec_forces'][:, ind] = params['rho'] * circ * cross[:, ind]
+
+        # print circ
+        # print self.v
+        # print bound
+        # print cross
+        # print unknowns['sec_forces']
+        # print unknowns['sec_forces'][:, 2] / numpy.linalg.norm(bound, axis=1) / circ
+        # exit()
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""

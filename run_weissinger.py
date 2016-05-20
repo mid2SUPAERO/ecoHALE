@@ -6,7 +6,7 @@ from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRec
 from geometry import GeometryMesh, mesh_gen, LinearInterp
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
@@ -17,14 +17,14 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 31
+    num_y = 11
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
-    half_wing = (.5 * numpy.cos(beta))**1
+    half_wing = (.5 * numpy.cos(beta))**2
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
 
     for ind_x in xrange(num_x):
@@ -34,6 +34,7 @@ if 1:
                                      0 + numpy.random.rand()]
 
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y] * span, 0]
+
 if 0:
     num_x = 2
     num_y = 3

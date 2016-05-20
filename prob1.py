@@ -7,7 +7,7 @@ from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRec
 from geometry import GeometryMesh, mesh_gen, LinearInterp
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 
 num_y = 10
 span = 60
@@ -34,15 +34,15 @@ span = 58.7630524 # [m] baseline CRM
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('span', span),
-    ('r', r), 
-    ('t', t), 
-    ('loads', loads) 
+    ('r', r),
+    ('t', t),
+    ('loads', loads)
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+root.add('des_vars',
+         IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
          GeometryMesh(mesh),

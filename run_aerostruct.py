@@ -11,7 +11,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 # Create the mesh with 2 inboard points and 3 outboard points

@@ -127,6 +127,10 @@ class Display(object):
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
                 self.show_wing = True
+                print case_data['Unknowns']['loads']
+                print case_data['Unknowns']['sec_forces']
+
+                print '##########'
             except:
                 traceback.print_exc()
                 self.show_wing = False
