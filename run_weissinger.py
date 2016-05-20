@@ -17,7 +17,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 21
+    num_y = 11
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -25,8 +25,8 @@ if 1:
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
     half_wing = (.5 * numpy.cos(beta))**2
-    half_wing = numpy.linspace(0, 10, ny2) + .5*numpy.random.rand(ny2)
-    half_wing = half_wing[::-1] / numpy.max(half_wing) / 2
+    # half_wing = numpy.linspace(0, 10, ny2) + .5*numpy.random.rand(ny2)
+    # half_wing = half_wing[::-1] / numpy.max(half_wing) / 2
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
     print full_wing
 

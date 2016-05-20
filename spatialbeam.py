@@ -3,10 +3,9 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
+from time import time
 
-
-
-def norm(vec): 
+def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
 
 def unit(vec):
@@ -26,6 +25,7 @@ class SpatialBeamFEM(Component):
         super(SpatialBeamFEM, self).__init__()
 
         self.size = size = 6 * n + 6 * cons.shape[0]
+        self.beep = 0
 
         self.add_param('A', val=numpy.zeros((n - 1)))
         self.add_param('Iy', val=numpy.zeros((n - 1)))
@@ -99,16 +99,18 @@ class SpatialBeamFEM(Component):
         self.S_z = numpy.zeros((4, 12), dtype='complex')
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
-    def _assemble_system(self, params):
-        elem_IDs = self.elem_IDs
-        cons = self.cons
+    def _assemble_system(self,
+                         mesh, A, J, Iy, Iz, loads,
+                         rhs, M_a, M_t, M_y, M_z,
+                         elem_IDs, cons, fem_origin,
+                         E, G, mtx, x_gl, T,
+                         K_elem, S_a, S_t, S_y, S_z, T_elem, const2):
 
-        mesh = params['mesh']
-        w = self.fem_origin
+        w = fem_origin
         nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
         num_elems = elem_IDs.shape[0]
-        self.num_nodes = num_nodes = nodes.shape[0]
+        num_nodes = nodes.shape[0]
         num_cons = cons.shape[0]
 
         elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
@@ -118,25 +120,23 @@ class SpatialBeamFEM(Component):
             elem_nodes[ielem, 0, :] = nodes[in0, :]
             elem_nodes[ielem, 1, :] = nodes[in1, :]
 
-        E, G = self.E * numpy.ones(num_nodes - 1), self.G * numpy.ones(num_nodes - 1)
-        A, J = params['A'], params['J']
-        Iy, Iz = params['Iy'], params['Iz']
+        E, G = E * numpy.ones(num_nodes - 1), G * numpy.ones(num_nodes - 1)
 
-        self.mtx[:] = 0.
+        mtx[:] = 0.
         for ielem in xrange(num_elems):
             P0 = elem_nodes[ielem, 0, :]
             P1 = elem_nodes[ielem, 1, :]
 
             x_loc = unit(P1 - P0)
-            y_loc = unit(numpy.cross(x_loc, self.x_gl))
+            y_loc = unit(numpy.cross(x_loc, x_gl))
             z_loc = unit(numpy.cross(x_loc, y_loc))
 
-            self.T[0, :] = x_loc
-            self.T[1, :] = y_loc
-            self.T[2, :] = z_loc
+            T[0, :] = x_loc
+            T[1, :] = y_loc
+            T[2, :] = z_loc
 
             for ind in xrange(4):
-                self.T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = self.T
+                T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
 
             L = norm(P1 - P0)
             EA_L = E[ielem] * A[ielem] / L
@@ -144,8 +144,8 @@ class SpatialBeamFEM(Component):
             EIy_L3 = E[ielem] * Iy[ielem] / L**3
             EIz_L3 = E[ielem] * Iz[ielem] / L**3
 
-            self.M_a[:, :] = EA_L * self.const2
-            self.M_t[:, :] = GJ_L * self.const2
+            M_a[:, :] = EA_L * const2
+            M_t[:, :] = GJ_L * const2
 
             self.M_y[:, :] = EIy_L3 * self.const_y
             self.M_y[1, :] *= L
@@ -174,19 +174,24 @@ class SpatialBeamFEM(Component):
             self.mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
             self.mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
 
+
         for ind in xrange(num_cons):
             for k in xrange(6):
                 self.mtx[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
                 self.mtx[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
 
         self.rhs[:] = 0.0
-        self.rhs[:6*num_nodes] = params['loads'].reshape((6*num_nodes))
-        
+        self.rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
+
     def solve_nonlinear(self, params, unknowns, resids):
-        self._assemble_system(params)
+        self._assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                            self.rhs, self.M_a, self.M_t, self.M_y, self.M_z,
+                            self.elem_IDs, self.cons, self.fem_origin,
+                            self.E, self.G, self.mtx, self.x_gl, self.T,
+                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem, self.const2)
 
         unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
-        
+
     def apply_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
 
@@ -232,7 +237,7 @@ class SpatialBeamDisp(Component):
 
         size = 6 * n + 6 * cons.shape[0]
         self.n = n
-        
+
         self.add_param('disp_aug', val=numpy.zeros((size)))
         self.add_output('disp', val=numpy.zeros((n, 6)))
 
@@ -292,7 +297,7 @@ class SpatialBeamWeight(Component):
         self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
-        
+
         elem_IDs = numpy.zeros((n-1, 2), int)
         elem_IDs[:, 0] = numpy.arange(n-1)
         elem_IDs[:, 1] = numpy.arange(n-1) + 1
@@ -305,10 +310,10 @@ class SpatialBeamWeight(Component):
         mesh = params['mesh']
         A = params['A']
         num_elems = self.elem_IDs.shape[0]
-        
+
         w = self.fem_origin
         nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
-        
+
         volume = 0.
         for ielem in xrange(num_elems):
             in0, in1 = self.elem_IDs[ielem, :]
@@ -316,7 +321,7 @@ class SpatialBeamWeight(Component):
             P1 = nodes[in1, :]
             L = norm(P1 - P0)
             volume += L * A[ielem]
-        
+
         unknowns['weight'] = volume  * self.mrho * 9.81
 
     def linearize(self, params, unknowns, resids):
@@ -346,7 +351,7 @@ class SpatialBeamVonMisesTube(Component):
         elem_IDs[:, 0] = numpy.arange(n-1)
         elem_IDs[:, 1] = numpy.arange(n-1) + 1
         self.elem_IDs = elem_IDs
-        
+
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
         self.x_gl = numpy.array([1, 0, 0], dtype='complex')
@@ -354,7 +359,7 @@ class SpatialBeamVonMisesTube(Component):
         self.E = E
         self.G = G
         self.fem_origin = fem_origin
-        
+
     def solve_nonlinear(self, params, unknowns, resids):
         elem_IDs = self.elem_IDs
 
@@ -362,7 +367,7 @@ class SpatialBeamVonMisesTube(Component):
         mesh = params['mesh']
         disp = params['disp']
         vonmises = unknowns['vonmises']
-        
+
         w = self.fem_origin
         nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
@@ -435,7 +440,7 @@ class SpatialBeamStates(Group):
 
     def __init__(self, num_y, E, G):
         super(SpatialBeamStates, self).__init__()
-        
+
         cons = numpy.array([int((num_y-1)/2)])
 
         self.add('fem',
@@ -451,7 +456,7 @@ class SpatialBeamFunctionals(Group):
 
     def __init__(self, num_y, E, G, stress, mrho):
         super(SpatialBeamFunctionals, self).__init__()
-        
+
         self.add('energy',
                  SpatialBeamEnergy(num_y),
                  promotes=['*'])
