@@ -31,8 +31,6 @@ def _assemble_system(mesh, A, J, Iy, Iz, loads,
     num_nodes = nodes.shape[0]
     num_cons = cons.shape[0]
 
-    print num_elems, num_nodes, num_cons
-
     elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
 
     for ielem in xrange(num_elems):
@@ -90,9 +88,11 @@ def _assemble_system(mesh, A, J, Iy, Iz, loads,
         in0, in1 = elem_IDs[ielem, :]
 
         mtx[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
-        mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
-        mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
-        mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
+        # mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
+        # mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
+        # mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
+
+    print res
 
 
     for ind in xrange(num_cons):
@@ -196,13 +196,13 @@ class SpatialBeamFEM(Component):
                             self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
                             self.const2, self.const_y, self.const_z, self.n, self.size)
         print 'python'
-        _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+        compare = _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
                             self.M_a, self.M_t, self.M_y, self.M_z,
                             self.elem_IDs, self.cons, self.fem_origin,
                             self.E, self.G, self.x_gl, self.T,
                             self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
                             self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
-
+        exit()
         unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
@@ -460,7 +460,6 @@ class SpatialBeamStates(Group):
         super(SpatialBeamStates, self).__init__()
 
         cons = numpy.array([int((num_y-1)/2)])
-        print cons
 
         self.add('fem',
                  SpatialBeamFEM(num_y, cons, E, G),
