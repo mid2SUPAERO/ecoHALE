@@ -17,23 +17,25 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 11
+    num_y = 21
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
-    half_wing = (.5 * numpy.cos(beta))**2
-    # half_wing = numpy.linspace(0, 10, ny2) + .5*numpy.random.rand(ny2)
-    # half_wing = half_wing[::-1] / numpy.max(half_wing) / 2
+    half_wing = (.5 * numpy.cos(beta))**1 * span
+    # half_wing = numpy.linspace(0, span/2, ny2)[::-1] # uniform spacing
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
-    print full_wing
+    chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
+    chords[0] += 1e-5
+    chords = numpy.hstack((chords[:-1], chords[::-1]))
+    print half_wing
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y] * span, 0]
-            # mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, ind_y / (num_y-1) * span, 0]
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
+            mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
 
 
 disp = numpy.zeros((num_y, 6))
@@ -45,12 +47,11 @@ des_vars = [
     # ('twist', 12*(numpy.random.rand((num_y))-.5)),
     ('span', span),
     ('v', v),
-    ('alpha', alpha),
+    # ('alpha', alpha),
+    ('alpha', 4.),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
-
-# print numpy.random.rand((num_y))
 
 root.add('des_vars',
          IndepVarComp(des_vars),

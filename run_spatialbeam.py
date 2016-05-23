@@ -11,7 +11,7 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6)
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=2)
+# mesh = mesh_gen(n_points_inboard=2, n_points_outboard=2)
 
 num_y = mesh.shape[1]
 r = radii(mesh)

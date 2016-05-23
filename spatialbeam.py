@@ -207,12 +207,20 @@ class SpatialBeamFEM(Component):
         unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
-        _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                            self.M_a, self.M_t, self.M_y, self.M_z,
-                            self.elem_IDs, self.cons, self.fem_origin,
-                            self.E, self.G, self.x_gl, self.T,
-                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                            self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
+        if fortran_flag:
+            self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                                self.M_a, self.M_t, self.M_y, self.M_z,
+                                self.elem_IDs, self.cons, self.fem_origin,
+                                self.E, self.G, self.x_gl, self.T,
+                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                self.const2, self.const_y, self.const_z, self.n, self.size)
+        else:
+            _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                                self.M_a, self.M_t, self.M_y, self.M_z,
+                                self.elem_IDs, self.cons, self.fem_origin,
+                                self.E, self.G, self.x_gl, self.T,
+                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
 
         disp_aug = unknowns['disp_aug']
         resids['disp_aug'] = self.mtx.dot(disp_aug) - self.rhs

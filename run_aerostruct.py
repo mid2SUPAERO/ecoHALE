@@ -15,7 +15,7 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=5, n_points_outboard=6)
+mesh = mesh_gen(n_points_inboard=3, n_points_outboard=4)
 num_y = mesh.shape[1]
 r = radii(mesh)
 t = r/10
@@ -105,12 +105,16 @@ prob = Problem()
 prob.root = root
 prob.print_all_convergence()
 
-prob.driver = pyOptSparseDriver()
-prob.driver.options['optimizer'] = 'SNOPT'
-prob.driver.opt_settings['Iterations limit'] = 100
+prob.driver = ScipyOptimizer()
+prob.driver.options['optimizer'] = 'SLSQP'
+prob.driver.options['disp'] = True
+prob.driver.options['tol'] = 1.0e-8
 
-# prob.driver.options['disp'] = True
-# prob.driver.options['tol'] = 1.0e-3
+if 1:
+    prob.driver = pyOptSparseDriver()
+    prob.driver.options['optimizer'] = "SNOPT"
+    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
+                                'Major feasibility tolerance': 1.0e-7}
 
 prob.driver.add_desvar('twist',lower= -10.,
                        upper=10., scaler=1e0)
