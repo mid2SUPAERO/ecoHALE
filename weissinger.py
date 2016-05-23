@@ -101,7 +101,6 @@ class WeissingerGeometry(Component):
         self.add_output('S_ref', val=0.)
         self.num_y = n
 
-        self.fd_options['force_fd'] = True   # Not worth doing manual partials
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -132,6 +131,29 @@ class WeissingerGeometry(Component):
         unknowns['normals'] = normals
 
         unknowns['S_ref'] = 0.5 * numpy.sum(norms)
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for geometry."""
+
+        jac = self.alloc_jacobian()
+
+        n = self.num_y
+
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                         fd_params=['def_mesh'],
+                                         fd_unknowns=['widths', 'cos_dih', 'normals', 'S_ref'],
+                                         fd_states=[])
+
+        jac.update(fd_jac)
+
+        b_pts_size = n*3
+        b_pts_eye = numpy.eye(b_pts_size)
+        jac['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
+
+        for i, v in zip((0, 3, n*3, (n+1)*3), (.125, .125, .375, .375)):
+            numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:,i:], v)
+
+        return jac
 
 
 class WeissingerCirculations(Component):
@@ -378,7 +400,6 @@ class WeissingerLiftDrag(Component):
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
 
-        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -392,6 +413,27 @@ class WeissingerLiftDrag(Component):
         sina = numpy.sin(alpha)
         unknowns['L'] = numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
         unknowns['D'] = numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for forces."""
+
+        jac = self.alloc_jacobian()
+
+        alpha = params['alpha'] * numpy.pi / 180.
+        forces = params['sec_forces']
+        cosa = numpy.cos(alpha)
+        sina = numpy.sin(alpha)
+        n = self.num_y
+
+        tmp = numpy.array([-sina, 0, cosa])
+        jac['L', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
+        tmp = numpy.array([cosa, 0, sina])
+        jac['D', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
+
+        jac['L', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, 0] * cosa - forces[:, 2] * sina)
+        jac['D', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
+
+        return jac
 
 class WeissingerCoeffs(Component):
     """ Computes lift coefficient """
@@ -407,7 +449,6 @@ class WeissingerCoeffs(Component):
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
 
-        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -419,6 +460,39 @@ class WeissingerCoeffs(Component):
         D = params['D']
         unknowns['CL1'] = L / (0.5*rho*v**2*S_ref)
         unknowns['CDi'] = D / (0.5*rho*v**2*S_ref)
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for forces."""
+
+        S_ref = params['S_ref']
+        rho = params['rho']
+        v = params['v']
+        L = params['L']
+        D = params['D']
+
+        jac = self.alloc_jacobian()
+
+        jac['CL1', 'D'] = 0.
+        jac['CDi', 'L'] = 0.
+
+        tmp = 0.5*rho*v**2*S_ref
+        jac['CL1', 'L'] = 1. / tmp
+        jac['CDi', 'D'] = 1. / tmp
+
+        tmp = -0.5*rho**2*v**2*S_ref
+        jac['CL1', 'rho'] = L / tmp
+        jac['CDi', 'rho'] = D / tmp
+
+        tmp = -0.5*rho*v**2*S_ref**2
+        jac['CL1', 'S_ref'] = L / tmp
+        jac['CDi', 'S_ref'] = D / tmp
+
+        tmp = -0.25*rho*v**3*S_ref
+        jac['CL1', 'v'] = L / tmp
+        jac['CDi', 'v'] = D / tmp
+
+        return jac
+
 
 
 class WeissingerLift(Component):
@@ -615,7 +689,6 @@ class TotalLift(Component):
         self.add_param('CL1', val=1.)
         self.add_output('CL', val=1.)
 
-        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -639,7 +712,6 @@ class TotalDrag(Component):
         self.add_param('CDi', val=1.)
         self.add_output('CD', val=1.)
 
-        self.fd_options['force_fd'] = True
         self.fd_options['form'] = "complex_step"
         self.fd_options['extra_check_partials_form'] = "central"
 
@@ -647,6 +719,11 @@ class TotalDrag(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['CD'] = params['CDi'] + self.CD0
+
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        jac['CD', 'CDi'] = 1
+        return jac
 
 
 

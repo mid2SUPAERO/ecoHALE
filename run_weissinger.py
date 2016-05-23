@@ -17,7 +17,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 21
+    num_y = 3
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -35,7 +35,7 @@ if 1:
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
-            mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
+            mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y] + .1*numpy.random.rand(), full_wing[ind_y], .1*numpy.random.rand()] # elliptical chord
 
 
 disp = numpy.zeros((num_y, 6))
