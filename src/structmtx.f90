@@ -28,8 +28,8 @@ subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
   ! Working
   complex*16 :: nodes(n, 3), elem_nodes(n-1, 2, 3), E(n-1), G(n-1)
   complex*16 :: P0(3), P1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-  complex*16 :: L, EA_L, GJ_L, EIy_L3, EIz_L3, norm, dot, res(12, 12)
-  integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind
+  complex*16 :: L, EA_L, GJ_L, EIy_L3, EIz_L3, norm, res(12, 12), loads_C(6, n)
+  integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, k
 
 
   nodes = (1-fem_origin) * mesh(1, :, :) + fem_origin * mesh(2, :, :)
@@ -66,8 +66,8 @@ subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
     T(2, :) = y_loc
     T(3, :) = z_loc
 
-    do ind = 1, 3
-      T_elem(3*(ind-1)+1:3*(ind-1)+4, 3*(ind-1)+1:3*(ind-1)+4) = T
+    do ind = 1, 4
+      T_elem(3*(ind-1)+1:3*(ind-1)+3, 3*(ind-1)+1:3*(ind-1)+3) = T
     end do
 
     L = norm(P1 - P0)
@@ -102,56 +102,30 @@ subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
     in0 = elem_IDs(ielem, 1)
     in1 = elem_IDs(ielem, 2)
 
-    mtx(6*(in0-1)+1:6*(in0-1)+7, 6*(in0-1)+1:6*(in0-1)+7) = &
-    mtx(6*(in0-1)+1:6*(in0-1)+7, 6*(in0-1)+1:6*(in0-1)+7) + res(:6, :6)
+    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = &
+    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(:6, :6)
 
-    ! mtx(6*(in1-1)+1:6*(in1-1)+7, 6*(in1-1)+1:6*(in1-1)+7) = &
-    ! mtx(6*(in1-1)+1:6*(in1-1)+7, 6*(in1-1)+1:6*(in1-1)+7) + res(6:, :6)
-    !
-    ! mtx(6*(in0-1)+1:6*(in0-1)+7, 6*(in0-1)+1:6*(in0-1)+7) = &
-    ! mtx(6*(in0-1)+1:6*(in0-1)+7, 6*(in0-1)+1:6*(in0-1)+7) + res(:6, 6:)
-    !
-    ! mtx(6*(in1-1)+1:6*(in1-1)+7, 6*(in1-1)+1:6*(in1-1)+7) = &
-    ! mtx(6*(in1-1)+1:6*(in1-1)+7, 6*(in1-1)+1:6*(in1-1)+7) + res(6:, 6:)
+    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = &
+    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(7:, :6)
 
+    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = &
+    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(:6, 7:)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = &
+    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(7:, 7:)
 
   end do
 
 
-  print *, res
+  do k = 1, 6
+    mtx(6*num_nodes+k, 6*cons+k) = 1.
+    mtx(6*cons+k, 6*num_nodes+k) = 1.
+  end do
+
+  rhs(:) = 0.0
+  ! change ordering from Fortran to C
+  loads_C = reshape(loads, shape(loads_C), order=(/2, 1/))
+  rhs(:6*num_nodes) = reshape(loads_C, (/6*num_nodes/))
 
 
 end subroutine assemblestructmtx

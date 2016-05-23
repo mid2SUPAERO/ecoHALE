@@ -3,7 +3,11 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
-import lib
+try:
+    import lib
+    fortran_flag = True
+except:
+    fortran_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -88,12 +92,9 @@ def _assemble_system(mesh, A, J, Iy, Iz, loads,
         in0, in1 = elem_IDs[ielem, :]
 
         mtx[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
-        # mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
-        # mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
-        # mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
-
-    print res
-
+        mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
+        mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
+        mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
 
     for ind in xrange(num_cons):
         for k in xrange(6):
@@ -188,21 +189,21 @@ class SpatialBeamFEM(Component):
 
 
     def solve_nonlinear(self, params, unknowns, resids):
-        print 'fortran'
-        self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                            self.M_a, self.M_t, self.M_y, self.M_z,
-                            self.elem_IDs, self.cons, self.fem_origin,
-                            self.E, self.G, self.x_gl, self.T,
-                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                            self.const2, self.const_y, self.const_z, self.n, self.size)
-        print 'python'
-        compare = _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                            self.M_a, self.M_t, self.M_y, self.M_z,
-                            self.elem_IDs, self.cons, self.fem_origin,
-                            self.E, self.G, self.x_gl, self.T,
-                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                            self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
-        exit()
+        if fortran_flag:
+            self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                                self.M_a, self.M_t, self.M_y, self.M_z,
+                                self.elem_IDs, self.cons, self.fem_origin,
+                                self.E, self.G, self.x_gl, self.T,
+                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                self.const2, self.const_y, self.const_z, self.n, self.size)
+        else:
+            _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                                self.M_a, self.M_t, self.M_y, self.M_z,
+                                self.elem_IDs, self.cons, self.fem_origin,
+                                self.E, self.G, self.x_gl, self.T,
+                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
+
         unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
