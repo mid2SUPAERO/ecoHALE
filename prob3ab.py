@@ -131,10 +131,10 @@ prob.run_once()
 #############################################################
 # Comment out the following code to run analytic derivatives
 ##############################################################
-prob.root.fd_options['force_fd'] = True
-prob.root.fd_options['step_type'] = 'relative'
-prob.root.fd_options['form'] = 'forward'
-prob.root.fd_options['step_size'] = 1e-6
+prob.root.deriv_options['type'] = 'cs'
+prob.root.deriv_options['step_type'] = 'relative'
+prob.root.deriv_options['form'] = 'forward'
+prob.root.deriv_options['step_size'] = 1e-6
 #####################################################
 
 print "------------------------------------------------"

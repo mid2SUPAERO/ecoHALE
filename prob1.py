@@ -71,9 +71,9 @@ prob.driver.add_desvar('t',
 prob.driver.add_objective('energy')
 prob.driver.add_constraint('weight', upper=1e5)
 
-prob.root.fd_options['force_fd'] = True
-prob.root.fd_options['form'] = 'complex_step'
-prob.root.fd_options['step_size'] = 1e-10
+prob.root.deriv_options['type'] = 'cs'
+prob.root.deriv_options['form'] = 'central'
+prob.root.deriv_options['step_size'] = 1e-10
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 

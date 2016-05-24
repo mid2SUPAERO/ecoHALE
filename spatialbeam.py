@@ -125,10 +125,10 @@ class SpatialBeamFEM(Component):
 
         self.add_state('disp_aug', val=numpy.zeros((size)), dtype="complex")
 
-        # self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
-        self.fd_options['linearize'] = True # only for circulations
+        # self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
+        self.deriv_options['linearize'] = True # only for circulations
 
         self.arange = numpy.arange(6*n)
 
@@ -268,9 +268,9 @@ class SpatialBeamDisp(Component):
         self.add_param('disp_aug', val=numpy.zeros((size)))
         self.add_output('disp', val=numpy.zeros((n, 6)))
 
-        #self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        #self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.arange = numpy.arange(6*n)
 
@@ -296,9 +296,9 @@ class SpatialBeamEnergy(Component):
         self.add_param('loads', val=numpy.zeros((n, 6)))
         self.add_output('energy', val=0.)
 
-#        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+#        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['energy'] = numpy.sum(params['disp'] * params['loads'])
@@ -321,9 +321,9 @@ class SpatialBeamWeight(Component):
         self.add_param('mesh', val=numpy.zeros((2, n, 3)))
         self.add_output('weight', val=0.)
 
-        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         elem_IDs = numpy.zeros((n-1, 2), int)
         elem_IDs[:, 0] = numpy.arange(n-1)
@@ -370,9 +370,9 @@ class SpatialBeamVonMisesTube(Component):
 
         self.add_output('vonmises', val=numpy.zeros((n-1, 2)))
 
-        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         elem_IDs = numpy.zeros((n-1, 2), int)
         elem_IDs[:, 0] = numpy.arange(n-1)
@@ -443,9 +443,9 @@ class SpatialBeamFailureKS(Component):
 
         self.add_output('failure', val=0.)
 
-        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.sigma = sigma
         self.rho = rho

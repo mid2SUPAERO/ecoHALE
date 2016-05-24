@@ -101,8 +101,8 @@ class WeissingerGeometry(Component):
         self.add_output('S_ref', val=0.)
         self.num_y = n
 
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
@@ -169,10 +169,10 @@ class WeissingerCirculations(Component):
         self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
         self.add_state('circulations', val=numpy.zeros((n-1)))
 
-#        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "forward"
-        self.fd_options['linearize'] = True # only for circulations
+#        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "forward"
+        self.deriv_options['linearize'] = True # only for circulations
 
         size = n - 1
         self.num_y = n
@@ -261,9 +261,9 @@ class WeissingerForces(Component):
         self.add_param('rho', val=3.)
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
 
-        # self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "forward"
+        # self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "forward"
 
         size = n - 1
         self.num_y = n
@@ -338,9 +338,9 @@ class WeissingerForces2(Component):
         self.add_param('normals', val=numpy.zeros((n-1, 3)))
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
 
-        # self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        # self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         # pre-allocate memory is a little faster
         n_segs = n-1
@@ -400,8 +400,8 @@ class WeissingerLiftDrag(Component):
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
 
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.num_y = n
 
@@ -449,8 +449,8 @@ class WeissingerCoeffs(Component):
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
 
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         S_ref = params['S_ref']
@@ -506,9 +506,9 @@ class WeissingerLift(Component):
         self.add_param('sec_forces', val=numpy.zeros((n-1, 3)))
         self.add_output('L', val=0.)
 
-        #self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        #self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.num_y = n
 
@@ -556,9 +556,9 @@ class WeissingerLiftCoeff(Component):
         self.add_param('rho', val=0.)
         self.add_output('CL1', val=0.)
 
-        #self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        #self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         S_ref = params['S_ref']
@@ -600,9 +600,9 @@ class WeissingerDragCoeff(Component):
         self.add_param('S_ref', val=0.)
         self.add_output('CDi', val=0., desc="induced drag coefficient")
 
-        # self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        # self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self._trefftz_dist = 10000.
         self.mtx = numpy.zeros((n - 1, n - 1), dtype="complex")
@@ -689,8 +689,8 @@ class TotalLift(Component):
         self.add_param('CL1', val=1.)
         self.add_output('CL', val=1.)
 
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.CL0 = CL0
 
@@ -712,8 +712,8 @@ class TotalDrag(Component):
         self.add_param('CDi', val=1.)
         self.add_output('CD', val=1.)
 
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.CD0 = CD0
 

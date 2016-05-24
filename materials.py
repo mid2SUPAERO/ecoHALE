@@ -18,9 +18,9 @@ class MaterialsTube(Component):
         self.add_output('Iz', val=numpy.zeros((n - 1)))
         self.add_output('J', val=numpy.zeros((n - 1)))
 
-#        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+#        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
         
         self.arange = numpy.arange(n-1)
 
