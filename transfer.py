@@ -1,3 +1,5 @@
+""" Defines the transfer component to couple aero and struct analyses """
+
 from __future__ import division
 import numpy
 

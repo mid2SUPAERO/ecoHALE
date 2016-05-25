@@ -1,3 +1,5 @@
+""" Example script to run struct-only optimization """
+
 from __future__ import division
 import numpy
 import sys

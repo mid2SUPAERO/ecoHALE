@@ -1,43 +1,46 @@
-import numpy as np
+""" Manipulate geometry mesh based on high-level design parameters """
+
+import numpy
 from numpy import cos, sin
 
 from openmdao.api import Component
 
+from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
 
 
 def rotate(mesh, thetas):
-    """computes rotation matricies given mesh and rotation angles in degress"""
+    """ Computes rotation matricies given mesh and rotation angles in degress """
 
     le = mesh[0]
     te = mesh[1]
 
     n_points = len(le)
 
-    rad_thetas = thetas*np.pi/180.
+    rad_thetas = thetas*numpy.pi/180.
 
-    mats = np.zeros((n_points, 3,3), dtype="complex")
+    mats = numpy.zeros((n_points, 3,3), dtype="complex")
     mats[:,0,0] = cos(rad_thetas)
     mats[:,0,2] = sin(rad_thetas)
     mats[:,1,1] = 1
     mats[:,2,0] = -sin(rad_thetas)
     mats[:,2,2] = cos(rad_thetas)
 
-    le[:] = np.einsum("ikj, ij -> ik", mats, le-te)
+    le[:] = numpy.einsum("ikj, ij -> ik", mats, le-te)
     le += te
 
     return mesh
 
 
 def sweep(mesh, angle):
-    """shearing sweep angle. Positive sweeps back. """
+    """ Shearing sweep angle. Positive sweeps back. """
 
     le = mesh[0]
     te = mesh[1]
 
     y0 = le[0,1]
 
-    tan_theta = sin(np.radians(angle))
+    tan_theta = sin(numpy.radians(angle))
     dx = (le[:,1] - y0) * tan_theta
 
     le[:,0] += dx
@@ -47,7 +50,7 @@ def sweep(mesh, angle):
 
 
 def stretch(mesh, length):
-    """strech mesh in span-wise direction to reach specified length"""
+    """ Strech mesh in span-wise direction to reach specified length"""
 
     le = mesh[0]
     te = mesh[1]
@@ -55,7 +58,7 @@ def stretch(mesh, length):
     n_points = len(le)
 
     y_len = le[-1,1] - le[0,1]
-    dy = (length-y_len)/(n_points-1)*np.arange(1,n_points)
+    dy = (length-y_len)/(n_points-1)*numpy.arange(1,n_points)
 
     le[1:,1] += dy
     te[1:,1] += dy
@@ -64,17 +67,18 @@ def stretch(mesh, length):
 
 
 def mirror(mesh, right_side=True):
-    """Takes a half geometry and mirrors it across the symmetry plane.
+    """ Takes a half geometry and mirrors it across the symmetry plane.
     If right_side==True, it mirrors from right to left,
     assuming that the first point is on the symmetry plane. Else
     it mirrors from left to right, assuming the last point is on the
-    symmetry plane."""
+    symmetry plane.
+    """
 
     n_points = mesh.shape[1]
 
-    new_mesh = np.empty((2,2*n_points-1,3))
+    new_mesh = numpy.empty((2,2*n_points-1,3))
 
-    mirror_y = np.ones(mesh.shape)
+    mirror_y = numpy.ones(mesh.shape)
     mirror_y[:,:,1] *= -1.0
 
     if right_side:
@@ -92,8 +96,7 @@ def mirror(mesh, right_side=True):
 
 
 def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
-    """
-    builds the right hand side of the crm wing with specified number
+    """ Builds the right hand side of the CRM wing with specified number
     of inboard and outboard panels
     """
 
@@ -114,7 +117,7 @@ def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
     o4 = mesh[1,2,0] - s4*mesh[1,2,1]
 
     n_points_total = n_points_inboard + n_points_outboard - 1
-    half_mesh = np.zeros((2,n_points_total,3))
+    half_mesh = numpy.zeros((2,n_points_total,3))
 
     # generate inboard points
     dy = (mesh[0,1,1] - mesh[0,0,1])/(n_points_inboard-1)
@@ -141,20 +144,22 @@ def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
 class GeometryMesh(Component):
     """ Changes a given mesh with span, sweep, and twist
     des-vars. Takes in a half mesh with symmetry plane about
-    the middle and outputs a full symmetric mesh"""
+    the middle and outputs a full symmetric mesh.
+    """
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, num_twist):
         super(GeometryMesh, self).__init__()
 
         self.mesh = mesh
+        self.num_twist = num_twist
 
-        self.new_mesh = np.empty(mesh.shape, dtype=complex)
+        self.new_mesh = numpy.empty(mesh.shape, dtype=complex)
         self.new_mesh[:] = mesh
-        n = self.mesh.shape[1]
+        self.n = self.mesh.shape[1]
 
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
-        self.add_param('twist', val=np.zeros(n))
+        self.add_param('twist', val=numpy.zeros(num_twist))
         self.add_output('mesh', val=self.mesh)
 
         self.deriv_options['type'] = 'cs'
@@ -162,22 +167,25 @@ class GeometryMesh(Component):
         #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
+        jac = get_bspline_mtx(self.num_twist, self.n)
+        h_cp = params['twist']
+        h = jac.dot(h_cp)
 
         self.new_mesh[:] = self.mesh
         stretch(self.new_mesh, params['span'])
         sweep(self.new_mesh, params['sweep'])
-        rotate(self.new_mesh, params['twist'])
+        rotate(self.new_mesh, h)
         unknowns['mesh'] = self.new_mesh
 
 
-
 class LinearInterp(Component):
+    """ Linear interpolation used to create linearly varying parameters """
 
     def __init__(self, num_y, name):
         super(LinearInterp, self).__init__()
 
-        self.add_param('linear_'+name, val=np.zeros(2))
-        self.add_output(name, val=np.zeros(num_y))
+        self.add_param('linear_'+name, val=numpy.zeros(2))
+        self.add_output(name, val=numpy.zeros(num_y))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -199,15 +207,15 @@ class LinearInterp(Component):
             unknowns[self.vname][ind] = a*(1-w) + b*w
             unknowns[self.vname][-1-ind] = a*(1-w) + b*w
 
-
-
 if __name__ == "__main__":
+    """ Test mesh generation and view results in .html file """
+
     import plotly.offline as plt
     import plotly.graph_objs as go
 
     from plot_tools import wire_mesh, build_layout
 
-    thetas = np.zeros(20)
+    thetas = numpy.zeros(20)
     thetas[10:] += 10
 
     mesh = mesh_gen(3,3)
@@ -217,7 +225,6 @@ if __name__ == "__main__":
     # new_mesh = sweep(mesh, 20)
 
     new_mesh = stretch(mesh, 100)
-
 
     # wireframe_orig = wire_mesh(mesh)
     wireframe_new = wire_mesh(new_mesh)
