@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.animation as manimation
+from b_spline import get_bspline_mtx
 
 import numpy
 import sqlitedict
@@ -121,8 +122,16 @@ class Display(object):
                 self.show_tube = False
                 pass
             try:
-                self.def_mesh.append(case_data['Unknowns']['def_mesh'])
-                self.twist.append(case_data['Unknowns']['twist'])
+                def_mesh = case_data['Unknowns']['def_mesh']
+                self.def_mesh.append(def_mesh)
+                n = def_mesh.shape[1]
+                h_cp = case_data['Unknowns']['twist']
+                num_twist = h_cp.shape[0]
+                jac = get_bspline_mtx(num_twist, n)
+                h = jac.dot(h_cp)
+
+                self.twist.append(h)
+
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
                 cos_dih.append(case_data['Unknowns']['cos_dih'])

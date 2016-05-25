@@ -17,7 +17,8 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 5
+    num_y = 21
+    num_twist = 5
     span = 10.
     chord = 2.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -30,7 +31,6 @@ if 1:
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
     chords[0] += 1e-5
     chords = numpy.hstack((chords[:-1], chords[::-1]))
-    print half_wing
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
@@ -43,12 +43,10 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_y)),
-    # ('twist', 12*(numpy.random.rand((num_y))-.5)),
+    ('twist', numpy.zeros(num_twist)),
     ('span', span),
     ('v', v),
-    # ('alpha', alpha),
-    ('alpha', 4.),
+    ('alpha', alpha),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
@@ -60,7 +58,7 @@ root.add('des_vars',
 #         LinearInterp(num_y, 'twist'),
 #         promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh),
+         GeometryMesh(mesh, num_twist),
          promotes=['*'])
 root.add('def_mesh',
          TransferDisplacements(num_y),
