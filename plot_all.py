@@ -1,3 +1,13 @@
+""" Script to plot results from aero, struct, or aerostruct optimization.
+
+Usage is
+`python plot_all.py a` for aero only,
+`python plot_all.py as` for struct only,
+`python plot_all.py as` for aerostruct, or
+`python plot_all.py __name__.db` for user-named database.
+"""
+
+
 from __future__ import division
 import tkFont
 import Tkinter as Tk
@@ -15,12 +25,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.animation as manimation
-from b_spline import get_bspline_mtx
 
 import numpy
 import sqlitedict
-import traceback
 import aluminum
+from b_spline import get_bspline_mtx
 
 #####################
 # User-set parameters
@@ -141,7 +150,6 @@ class Display(object):
                 v.append(case_data['Unknowns']['v'])
                 self.show_wing = True
             except:
-                traceback.print_exc()
                 self.show_wing = False
                 pass
 
@@ -327,7 +335,7 @@ class Display(object):
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
 
-        self.ax.view_init(elev=el, azim=az) #Reproduce view
+        self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist
 
     def save_video(self):
@@ -344,7 +352,7 @@ class Display(object):
                 plt.draw()
                 writer.grab_frame()
     def update_graphs(self, e=None):
-        if e != None:
+        if e is not None:
             self.curr_pos = int(e)
             self.curr_pos = self.curr_pos % (self.num_iters + 1)
 

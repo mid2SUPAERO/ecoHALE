@@ -1,3 +1,5 @@
+""" Example script to run aero-only optimization """
+
 from __future__ import division
 import numpy
 import sys

@@ -1,3 +1,5 @@
+""" Defines the aerodynamic analysis component using Weissinger's lifting line theory """
+
 from __future__ import division
 import numpy
 
@@ -87,7 +89,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
 
 
 class WeissingerGeometry(Component):
-    """ Computes various geometric properties for Weissinger analysis """
+    """ Compute various geometric properties for Weissinger analysis """
 
     def __init__(self, n):
         super(WeissingerGeometry, self).__init__()
@@ -156,7 +158,7 @@ class WeissingerGeometry(Component):
 
 
 class WeissingerCirculations(Component):
-    """ Defines circulations """
+    """ Define circulations """
 
     def __init__(self, n):
         super(WeissingerCirculations, self).__init__()
@@ -207,8 +209,6 @@ class WeissingerCirculations(Component):
         self.lup = lu_factor(self.mtx.real)
         jac = self.alloc_jacobian()
 
-        n = self.num_y
-
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['normals', 'def_mesh',
                                                     'b_pts', 'c_pts', 'alpha'],
@@ -221,11 +221,10 @@ class WeissingerCirculations(Component):
         alpha = params['alpha'].real * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
-        v_inf = params['v'].real * numpy.array([cosa, 0., sina], dtype="complex")
 
         jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
 
-        dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
+        # dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
         # jac['circulations', 'alpha'][:, 0] = normals.dot(dv_da)
 
 
@@ -245,7 +244,7 @@ class WeissingerCirculations(Component):
 
 
 class WeissingerForces(Component):
-    """ Defines aerodynamic forces acting on each section """
+    """ Define aerodynamic forces acting on each section """
 
     def __init__(self, n):
         super(WeissingerForces, self).__init__()
@@ -314,7 +313,7 @@ class WeissingerForces(Component):
 
 
 class WeissingerLiftDrag(Component):
-    """ Calculates total lift in force units """
+    """ Calculate total lift and drag in force units based on section forces """
 
     def __init__(self, n):
         super(WeissingerLiftDrag, self).__init__()
@@ -360,7 +359,7 @@ class WeissingerLiftDrag(Component):
         return jac
 
 class WeissingerCoeffs(Component):
-    """ Computes lift coefficient """
+    """ Compute lift and drag coefficients """
 
     def __init__(self, n):
         super(WeissingerCoeffs, self).__init__()
@@ -420,7 +419,7 @@ class WeissingerCoeffs(Component):
 
 
 class WeissingerLift(Component):
-    """ Calculates total lift in force units """
+    """ Calculate lift in force units """
 
     def __init__(self, n):
         super(WeissingerLift, self).__init__()
@@ -467,6 +466,7 @@ class WeissingerLift(Component):
 
 
 class TotalLift(Component):
+    """ Calculate total lift in force units """
 
     def __init__(self, CL0):
         super(TotalLift, self).__init__()
@@ -489,6 +489,7 @@ class TotalLift(Component):
 
 
 class TotalDrag(Component):
+    """ Calculate total drag in force units """
 
     def __init__(self, CD0):
         super(TotalDrag, self).__init__()
@@ -511,6 +512,7 @@ class TotalDrag(Component):
 
 
 class WeissingerStates(Group):
+    """ Group that contains the aerodynamic states """
 
     def __init__(self, num_y):
         super(WeissingerStates, self).__init__()
@@ -528,6 +530,7 @@ class WeissingerStates(Group):
 
 
 class WeissingerFunctionals(Group):
+    """ Group that contains the aerodynamic functionals used to evaluate performance """
 
     def __init__(self, num_y, CL0, CD0):
         super(WeissingerFunctionals, self).__init__()

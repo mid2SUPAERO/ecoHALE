@@ -1,3 +1,5 @@
+""" Defines the structural analysis component using spatial beam theory """
+
 from __future__ import division
 import numpy
 

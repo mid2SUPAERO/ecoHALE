@@ -1,14 +1,16 @@
+""" Manipulate geometry mesh based on high-level design parameters """
+
 import numpy
 from numpy import cos, sin
 
 from openmdao.api import Component
-from b_spline import get_bspline_mtx
 
+from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
 
 
 def rotate(mesh, thetas):
-    """computes rotation matricies given mesh and rotation angles in degress"""
+    """ Computes rotation matricies given mesh and rotation angles in degress """
 
     le = mesh[0]
     te = mesh[1]
@@ -31,7 +33,7 @@ def rotate(mesh, thetas):
 
 
 def sweep(mesh, angle):
-    """shearing sweep angle. Positive sweeps back. """
+    """ Shearing sweep angle. Positive sweeps back. """
 
     le = mesh[0]
     te = mesh[1]
@@ -48,7 +50,7 @@ def sweep(mesh, angle):
 
 
 def stretch(mesh, length):
-    """strech mesh in span-wise direction to reach specified length"""
+    """ Strech mesh in span-wise direction to reach specified length"""
 
     le = mesh[0]
     te = mesh[1]
@@ -65,11 +67,12 @@ def stretch(mesh, length):
 
 
 def mirror(mesh, right_side=True):
-    """Takes a half geometry and mirrors it across the symmetry plane.
+    """ Takes a half geometry and mirrors it across the symmetry plane.
     If right_side==True, it mirrors from right to left,
     assuming that the first point is on the symmetry plane. Else
     it mirrors from left to right, assuming the last point is on the
-    symmetry plane."""
+    symmetry plane.
+    """
 
     n_points = mesh.shape[1]
 
@@ -93,8 +96,7 @@ def mirror(mesh, right_side=True):
 
 
 def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
-    """
-    builds the right hand side of the crm wing with specified number
+    """ Builds the right hand side of the CRM wing with specified number
     of inboard and outboard panels
     """
 
@@ -142,7 +144,8 @@ def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
 class GeometryMesh(Component):
     """ Changes a given mesh with span, sweep, and twist
     des-vars. Takes in a half mesh with symmetry plane about
-    the middle and outputs a full symmetric mesh"""
+    the middle and outputs a full symmetric mesh.
+    """
 
     def __init__(self, mesh, num_twist):
         super(GeometryMesh, self).__init__()
@@ -175,8 +178,8 @@ class GeometryMesh(Component):
         unknowns['mesh'] = self.new_mesh
 
 
-
 class LinearInterp(Component):
+    """ Linear interpolation used to create linearly varying parameters """
 
     def __init__(self, num_y, name):
         super(LinearInterp, self).__init__()
@@ -204,9 +207,9 @@ class LinearInterp(Component):
             unknowns[self.vname][ind] = a*(1-w) + b*w
             unknowns[self.vname][-1-ind] = a*(1-w) + b*w
 
-
-
 if __name__ == "__main__":
+    """ Test mesh generation and view results in .html file """
+
     import plotly.offline as plt
     import plotly.graph_objs as go
 
@@ -222,7 +225,6 @@ if __name__ == "__main__":
     # new_mesh = sweep(mesh, 20)
 
     new_mesh = stretch(mesh, 100)
-
 
     # wireframe_orig = wire_mesh(mesh)
     wireframe_new = wire_mesh(new_mesh)

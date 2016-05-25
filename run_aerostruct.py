@@ -1,3 +1,5 @@
+""" Example script to run aerostructural optimization """
+
 from __future__ import division
 import numpy
 import sys
