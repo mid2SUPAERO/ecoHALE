@@ -11,7 +11,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 # control problem size here, by chaning number of mesh points
@@ -46,16 +46,16 @@ root = Group()
 
 des_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('v', v),
-    ('alpha', alpha), 
+    ('alpha', alpha),
     ('rho', rho),
-    ('r', r),  
-    ('t', t), 
+    ('r', r),
+    ('t', t),
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+root.add('des_vars',
+         IndepVarComp(des_vars),
          promotes=['*'])
 root.add('tube',
          MaterialsTube(num_y),
@@ -100,7 +100,7 @@ coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 # Direct Inversion Solver
 # coupled.ln_solver = DirectSolver()
 
-    
+
 root.add('coupled',
          coupled,
          promotes=['*'])
@@ -128,8 +128,8 @@ prob.driver.add_recorder(SqliteRecorder('prob1d.db'))
 prob.setup()
 # view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
-# always need to run before you compute derivatives! 
-prob.run_once() 
+# always need to run before you compute derivatives!
+prob.run_once()
 
 st = time.time()
 jac = prob.calc_gradient(['twist','alpha','t'], ['fuelburn'], mode="fwd", return_format="dict")
@@ -141,5 +141,3 @@ print "runtime: ", time.time() - st
 
 print "d_fuelburn/d_alpha", jac['fuelburn']['alpha']
 print "norm(d_fuelburn/twist)", numpy.linalg.norm(jac['fuelburn']['twist'])
-
-

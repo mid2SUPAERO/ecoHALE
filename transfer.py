@@ -16,9 +16,9 @@ class TransferDisplacements(Component):
         self.add_param('disp', val=numpy.zeros((n, 6)))
         self.add_output('def_mesh', val=numpy.zeros((2, n, 3)))
 
-        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
 
@@ -66,9 +66,9 @@ class TransferLoads(Component):
         self.add_param('sec_forces', val=numpy.zeros((n - 1, 3), dtype="complex"))
         self.add_output('loads', val=numpy.zeros((n, 6), dtype="complex"))
 
-        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = params['def_mesh']

@@ -7,7 +7,7 @@ from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRec
 from geometry import GeometryMesh, mesh_gen, LinearInterp
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 
 num_y = 10
 span = 60
@@ -34,15 +34,15 @@ span = 58.7630524 # [m] baseline CRM
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('span', span),
-    ('r', r), 
-    ('t', t), 
-    ('loads', loads) 
+    ('r', r),
+    ('t', t),
+    ('loads', loads)
 ]
 
-root.add('des_vars', 
-         IndepVarComp(des_vars), 
+root.add('des_vars',
+         IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
          GeometryMesh(mesh),
@@ -71,9 +71,9 @@ prob.driver.add_desvar('t',
 prob.driver.add_objective('energy')
 prob.driver.add_constraint('weight', upper=1e5)
 
-prob.root.fd_options['force_fd'] = True
-prob.root.fd_options['form'] = 'complex_step'
-prob.root.fd_options['step_size'] = 1e-10
+prob.root.deriv_options['type'] = 'cs'
+prob.root.deriv_options['form'] = 'central'
+prob.root.deriv_options['step_size'] = 1e-10
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 

@@ -6,14 +6,14 @@ from openmdao.api import Component
 from crm_data import crm_base_mesh
 
 
-def rotate(mesh, thetas): 
+def rotate(mesh, thetas):
     """computes rotation matricies given mesh and rotation angles in degress"""
 
     le = mesh[0]
     te = mesh[1]
 
     n_points = len(le)
-    
+
     rad_thetas = thetas*np.pi/180.
 
     mats = np.zeros((n_points, 3,3), dtype="complex")
@@ -29,8 +29,8 @@ def rotate(mesh, thetas):
     return mesh
 
 
-def sweep(mesh, angle): 
-    """shearing sweep angle. Positive sweeps back. """ 
+def sweep(mesh, angle):
+    """shearing sweep angle. Positive sweeps back. """
 
     le = mesh[0]
     te = mesh[1]
@@ -39,14 +39,14 @@ def sweep(mesh, angle):
 
     tan_theta = sin(np.radians(angle))
     dx = (le[:,1] - y0) * tan_theta
-    
+
     le[:,0] += dx
-    te[:,0] += dx 
+    te[:,0] += dx
 
     return mesh
-        
 
-def stretch(mesh, length): 
+
+def stretch(mesh, length):
     """strech mesh in span-wise direction to reach specified length"""
 
     le = mesh[0]
@@ -54,8 +54,8 @@ def stretch(mesh, length):
 
     n_points = len(le)
 
-    y_max = le[-1,1]
-    dy = (length-y_max)/(n_points-1)*np.arange(1,n_points)
+    y_len = le[-1,1] - le[0,1]
+    dy = (length-y_len)/(n_points-1)*np.arange(1,n_points)
 
     le[1:,1] += dy
     te[1:,1] += dy
@@ -64,12 +64,12 @@ def stretch(mesh, length):
 
 
 def mirror(mesh, right_side=True):
-    """Takes a half geometry and mirrors it across the symmetry plane. 
-    If right_geom==True, it mirrors from right to left, 
-    assuming that the first point is on the symmetry plane. Else 
-    it mirrors from left to right, assuming the last point is on the 
-    symmetry plane.""" 
-    
+    """Takes a half geometry and mirrors it across the symmetry plane.
+    If right_side==True, it mirrors from right to left,
+    assuming that the first point is on the symmetry plane. Else
+    it mirrors from left to right, assuming the last point is on the
+    symmetry plane."""
+
     n_points = mesh.shape[1]
 
     new_mesh = np.empty((2,2*n_points-1,3))
@@ -77,10 +77,10 @@ def mirror(mesh, right_side=True):
     mirror_y = np.ones(mesh.shape)
     mirror_y[:,:,1] *= -1.0
 
-    if right_side: 
+    if right_side:
         new_mesh[:,:n_points,:] = mesh[:,::-1,:]*mirror_y
         new_mesh[:,n_points:,:] = mesh[:,1:,:]
-    else: 
+    else:
         new_mesh[:,:n_points,:] = mesh[:,::-1,:]
         new_mesh[:,n_points:,:] = mesh[:,1:,:]*mirror_y[:,1:,:]
 
@@ -93,9 +93,9 @@ def mirror(mesh, right_side=True):
 
 def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
     """
-    builds the right hand side of the crm wing with specified number 
+    builds the right hand side of the crm wing with specified number
     of inboard and outboard panels
-    """ 
+    """
 
     # LE pre-yehudi
     s1 = (mesh[0,1,0] - mesh[0,0,0])/(mesh[0,1,1]-mesh[0,0,1])
@@ -118,8 +118,8 @@ def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
 
     # generate inboard points
     dy = (mesh[0,1,1] - mesh[0,0,1])/(n_points_inboard-1)
-    for i in xrange(n_points_inboard): 
-        y = half_mesh[0,i,1] = i*dy 
+    for i in xrange(n_points_inboard):
+        y = half_mesh[0,i,1] = i*dy
         half_mesh[0,i,0] = s1*y + o1 # le point
         half_mesh[1,i,1] = y
         half_mesh[1,i,0] = s2*y + o2 # te point
@@ -127,8 +127,8 @@ def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
     yehudi_break = mesh[0,1,1]
     # generate outboard points
     dy = (mesh[0,2,1] - mesh[0,1,1])/(n_points_outboard-1)
-    for j in xrange(n_points_outboard): 
-        i = j + n_points_inboard - 1 
+    for j in xrange(n_points_outboard):
+        i = j + n_points_inboard - 1
         y = half_mesh[0,i,1] = j*dy + yehudi_break
         half_mesh[0,i,0] = s3*y + o3 # le point
         half_mesh[1,i,1] = y
@@ -138,14 +138,14 @@ def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
     return full_mesh
 
 
-class GeometryMesh(Component): 
-    """ Changes a given mesh with span, sweep, and twist 
-    des-vars. Takes in a half mesh with symmetry plane about 
-    the middle and outputs a full symmetric mesh""" 
+class GeometryMesh(Component):
+    """ Changes a given mesh with span, sweep, and twist
+    des-vars. Takes in a half mesh with symmetry plane about
+    the middle and outputs a full symmetric mesh"""
 
     def __init__(self, mesh):
         super(GeometryMesh, self).__init__()
-        
+
         self.mesh = mesh
 
         self.new_mesh = np.empty(mesh.shape, dtype=complex)
@@ -157,9 +157,9 @@ class GeometryMesh(Component):
         self.add_param('twist', val=np.zeros(n))
         self.add_output('mesh', val=self.mesh)
 
-        self.fd_options['force_fd']=True
-        self.fd_options['form'] = 'complex_step'
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
 
@@ -179,9 +179,9 @@ class LinearInterp(Component):
         self.add_param('linear_'+name, val=np.zeros(2))
         self.add_output(name, val=np.zeros(num_y))
 
-        self.fd_options['force_fd']=True
-        self.fd_options['form'] = 'complex_step'
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.num_y = num_y
         self.vname = name
@@ -195,13 +195,13 @@ class LinearInterp(Component):
             imax = int((self.num_y+1)/2)
         for ind in xrange(imax):
             w = 1.0*ind/(imax-1)
-            
+
             unknowns[self.vname][ind] = a*(1-w) + b*w
             unknowns[self.vname][-1-ind] = a*(1-w) + b*w
 
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     import plotly.offline as plt
     import plotly.graph_objs as go
 
@@ -225,4 +225,3 @@ if __name__ == "__main__":
 
     fig = go.Figure(data=wireframe_new, layout=layout)
     plt.plot(fig, filename="wing_3d.html")
-

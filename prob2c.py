@@ -11,7 +11,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 ############################################################
@@ -35,12 +35,12 @@ root = Group()
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('v', v),
-    ('alpha', alpha), 
+    ('alpha', alpha),
     ('rho', rho),
-    ('r', r),  
-    ('t', t), 
+    ('r', r),
+    ('t', t),
 ]
 
 indep_vars_comp = IndepVarComp(indep_vars)
@@ -57,7 +57,7 @@ spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
 eq_con_comp = FunctionalEquilibrium(W0)
 
-root.add('indep_vars', 
+root.add('indep_vars',
          indep_vars_comp,
          promotes=['*'])
 root.add('tube',
@@ -66,20 +66,20 @@ root.add('tube',
 
 # Add components to the MDA here
 coupled = Group()
-coupled.add('mesh', 
-    mesh_comp, 
+coupled.add('mesh',
+    mesh_comp,
     promotes=["*"])
-coupled.add('spatialbeamstates', 
-    spatialbeamstates_comp, 
+coupled.add('spatialbeamstates',
+    spatialbeamstates_comp,
     promotes=["*"])
-coupled.add('def_mesh', 
-    def_mesh_comp, 
+coupled.add('def_mesh',
+    def_mesh_comp,
     promotes=["*"])
-coupled.add('weissingerstates', 
-    weissingerstates_comp, 
+coupled.add('weissingerstates',
+    weissingerstates_comp,
     promotes=["*"])
-coupled.add('loads', 
-    loads_comp, 
+coupled.add('loads',
+    loads_comp,
     promotes=["*"])
 
 
@@ -90,7 +90,7 @@ coupled.nl_solver.line_search.options['iprint'] = 1
 
 
 ############################################################
-# Comment/uncomment these solver blocks to try different 
+# Comment/uncomment these solver blocks to try different
 # linear solvers
 ############################################################
 
@@ -111,26 +111,26 @@ coupled.ln_solver.options['maxiter'] = 100
 
 ##Direct Solver
 # coupled.ln_solver = DirectSolver()
-    
 
-    
+
+
 # adds the MDA to root (do not remove!)
 root.add('coupled',
          coupled,
          promotes=['*'])
 
 # Add functional components here
-root.add('weissingerfuncs', 
-        weissingerfuncs_comp, 
+root.add('weissingerfuncs',
+        weissingerfuncs_comp,
         promotes=['*'])
-root.add('spatialbeamfuncs', 
-        spatialbeamfuncs_comp, 
+root.add('spatialbeamfuncs',
+        spatialbeamfuncs_comp,
         promotes=['*'])
-root.add('fuelburn', 
-        fuelburn_comp, 
+root.add('fuelburn',
+        fuelburn_comp,
         promotes=['*'])
-root.add('eq_con', 
-        eq_con_comp, 
+root.add('eq_con',
+        eq_con_comp,
         promotes=['*'])
 
 prob = Problem()
@@ -138,15 +138,12 @@ prob.root = root
 prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
 # change file name to save data from each experiment separately
-prob.driver.add_recorder(SqliteRecorder('prob1a.db')) 
+prob.driver.add_recorder(SqliteRecorder('prob1a.db'))
 
 prob.setup()
 # uncomment this to see an n2 diagram of your implementation
-# view_tree(prob, outfile="prob2c_aerostruct.html", show_browser=True) 
+# view_tree(prob, outfile="prob2c_aerostruct.html", show_browser=True)
 
 st = time.time()
 prob.run_once()
 print "runtime: ", time.time() - st
-
-
-
