@@ -22,13 +22,13 @@ if 1:
     num_y = 21
     num_twist = 5
     span = 10.
-    chord = 2.
+    chord = 2
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
     half_wing = (.5 * numpy.cos(beta))**1 * span
-    # half_wing = numpy.linspace(0, span/2, ny2)[::-1] # uniform spacing
+    # half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
     chords[0] += 1e-5
@@ -37,7 +37,7 @@ if 1:
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
-            mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
+            # mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
 
 
 disp = numpy.zeros((num_y, 6))

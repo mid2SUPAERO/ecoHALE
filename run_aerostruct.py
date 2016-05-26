@@ -5,7 +5,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, setup_profiling, activate_profiling, pyOptSparseDriver
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, setup_profiling, activate_profiling, pyOptSparseDriver, DirectSolver
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -19,6 +19,7 @@ from gs_newton import HybridGSNewton
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=3, n_points_outboard=4)
 num_y = mesh.shape[1]
+num_twist = 5
 r = radii(mesh)
 t = r/10
 
@@ -34,7 +35,7 @@ root = Group()
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)),
+    ('twist', numpy.zeros(num_twist)),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
@@ -51,7 +52,7 @@ root.add('tube',
 
 coupled = Group()
 coupled.add('mesh',
-            GeometryMesh(mesh),
+            GeometryMesh(mesh, num_twist),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(num_y),

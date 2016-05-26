@@ -11,6 +11,7 @@ try:
 except:
     fortran_flag = False
 
+
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
 
@@ -52,7 +53,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
     """
     Compute the aerodynamic influence coefficient matrix
     either for the circulation linear system or Trefftz-plane drag computation
-    - mtx[num_y-1, num_y-1, 3] : derivative of v*n w.r.t. circulation
+    - mtx[num_y-1, num_y-1, 3] : derivative of v w.r.t. circulation
     - mesh[2, num_y, 3] : contains LE and TE coordinates at each section
     - points[num_y-1, 3] : control points
     - b_pts[num_y, 3] : bound vortex coordinates
