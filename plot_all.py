@@ -1,3 +1,13 @@
+""" Script to plot results from aero, struct, or aerostruct optimization.
+
+Usage is
+`python plot_all.py a` for aero only,
+`python plot_all.py as` for struct only,
+`python plot_all.py as` for aerostruct, or
+`python plot_all.py __name__.db` for user-named database.
+"""
+
+
 from __future__ import division
 import tkFont
 import Tkinter as Tk
@@ -14,10 +24,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
+import matplotlib.animation as manimation
+
 import numpy
 import sqlitedict
-import traceback
 import aluminum
+from b_spline import get_bspline_mtx
 
 #####################
 # User-set parameters
@@ -91,12 +103,23 @@ class Display(object):
         alpha = []
         rho = []
         v = []
+        self.obj = []
 
+        for tag in self.db['metadata']:
+            for item in self.db['metadata'][tag]:
+                for flag in self.db['metadata'][tag][item]:
+                    if 'is_objective' in flag:
+                        self.obj_key = item
         for case_name, case_data in self.db.iteritems():
             if "metadata" in case_name or "derivs" in case_name:
                 continue # don't plot these cases
+            try:
+                self.db[case_name + '/derivs']
+            except:
+                continue
 
             self.mesh.append(case_data['Unknowns']['mesh'])
+            self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
                 self.r.append(case_data['Unknowns']['r'])
@@ -108,8 +131,16 @@ class Display(object):
                 self.show_tube = False
                 pass
             try:
-                self.def_mesh.append(case_data['Unknowns']['def_mesh'])
-                self.twist.append(case_data['Unknowns']['twist'])
+                def_mesh = case_data['Unknowns']['def_mesh']
+                self.def_mesh.append(def_mesh)
+                n = def_mesh.shape[1]
+                h_cp = case_data['Unknowns']['twist']
+                num_twist = h_cp.shape[0]
+                jac = get_bspline_mtx(num_twist, n)
+                h = jac.dot(h_cp)
+
+                self.twist.append(h)
+
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
                 cos_dih.append(case_data['Unknowns']['cos_dih'])
@@ -119,7 +150,6 @@ class Display(object):
                 v.append(case_data['Unknowns']['v'])
                 self.show_wing = True
             except:
-                traceback.print_exc()
                 self.show_wing = False
                 pass
 
@@ -130,24 +160,25 @@ class Display(object):
             for i in range(self.num_iters + 1):
                 cvec = self.mesh[i][0, :, :] - self.mesh[i][1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
-                chords = 0.5 * (chords[1:] + chords[:-1])                
+                chords = 0.5 * (chords[1:] + chords[:-1])
                 #L = sec_forces[i][:, 2] / normals[i][:, 2]
                 #self.lift.append(L.T * cos_dih[i])
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
                 forces = sec_forces[i]
-                
+
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/widths[i]/0.5/rho[i]/v[i]**2
                 #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
                 #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 
                 m_vals = self.mesh[i]
-                span = m_vals[0, :, 1] / m_vals[0, -1, 1]
+                span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
+                span = span - (span[0] + .5)
 
                 lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
 
-                lift_ell = 4 * lift_area / numpy.pi * numpy.sqrt(1 - (2*span-1)**2)
+                lift_ell = 4 * lift_area / numpy.pi * numpy.sqrt(1 - (2*span)**2)
 
                 self.lift.append(lift)
                 self.lift_ell.append(lift_ell)
@@ -199,14 +230,17 @@ class Display(object):
             self.ax2.locator_params(axis='y',nbins=4)
             self.ax2.locator_params(axis='x',nbins=3)
             self.ax2.set_ylim([self.min_twist, self.max_twist])
+            self.ax2.set_xlim([-1, 1])
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
             self.ax3.plot(span_diff, l_vals, lw=2, c='b')
-            self.ax3.plot(span, le_vals, lw=2, c='b')
+            self.ax3.plot(span, le_vals, '--', lw=2, c='g')
+            self.ax3.text(0.05, 0.8, 'elliptical',
+                transform=self.ax3.transAxes, color='g')
             self.ax3.locator_params(axis='y',nbins=4)
             self.ax3.locator_params(axis='x',nbins=3)
             self.ax3.set_ylim([self.min_l, self.max_l])
-            self.ax3.set_ylim([0, self.max_l])
+            self.ax3.set_xlim([-1, 1])
             self.ax3.set_ylabel('lift', rotation="horizontal", ha="right")
 
         if self.show_tube:
@@ -219,6 +253,7 @@ class Display(object):
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             self.ax4.set_ylim([self.min_t, self.max_t])
+            self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
             self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
@@ -226,9 +261,10 @@ class Display(object):
             self.ax5.locator_params(axis='x',nbins=3)
             self.ax5.set_ylim([self.min_vm, self.max_vm])
             self.ax5.set_ylim([0, 25e6])
+            self.ax5.set_xlim([-1, 1])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
-            self.ax5.axhline(aluminum.stress, c='r', lw=3, ls='--')
-            self.ax5.text(0.05, 0.8, 'failure limit',
+            self.ax5.axhline(aluminum.stress, c='r', lw=2, ls='--')
+            self.ax5.text(0.05, 0.85, 'failure limit',
                 transform=self.ax5.transAxes, color='r')
 
     def plot_wing(self):
@@ -257,8 +293,8 @@ class Display(object):
                     def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
                 else:
                     def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
-                self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='b')
-                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.5)
+                self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
+                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
             else:
                 self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
                 self.c2.grid_forget()
@@ -290,16 +326,33 @@ class Display(object):
                 col = numpy.zeros(X.shape)
                 col[:] = colors[i]
                 self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                    facecolors=cm.YlOrRd(col), linewidth=0)
-        lim = numpy.max(numpy.max(mesh0)) / 3
+                    facecolors=cm.viridis(col), linewidth=0)
+        lim = numpy.max(numpy.max(mesh0)) / 2.8
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
-        self.ax.set_title("Iteration: {}".format(self.curr_pos))
+        self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
+        round_to_n = lambda x, n: round(x, -int(numpy.floor(numpy.log10(abs(x)))) + (n - 1))
+        obj_val = round_to_n(self.obj[self.curr_pos], 7)
+        self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
+            transform=self.ax.transAxes, color='k')
 
-        self.ax.view_init(elev=el, azim=az) #Reproduce view
+        self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist
 
+    def save_video(self):
+        FFMpegWriter = manimation.writers['ffmpeg']
+        metadata = dict(title='Movie', artist='Matplotlib',
+                        comment='Movie support!')
+        writer = FFMpegWriter(fps=5, metadata=metadata, bitrate=3000)
+
+        with writer.saving(self.f, "movie.mp4", 100):
+            for i in range(self.num_iters):
+                self.curr_pos = i
+                self.update_graphs()
+                self.f.canvas.draw()
+                plt.draw()
+                writer.grab_frame()
     def update_graphs(self, e=None):
-        if e != None:
+        if e is not None:
             self.curr_pos = int(e)
             self.curr_pos = self.curr_pos % (self.num_iters + 1)
 
@@ -358,6 +411,20 @@ class Display(object):
                 command=self.update_graphs,
                 font=font)
             self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+
+        button = Tk.Button(
+            self.options_frame,
+            text='Save video',
+            command=self.save_video,
+            font=font)
+        button.grid(row=0, column=4, padx=5, sticky=Tk.W)
+
+        button5 = Tk.Button(
+            self.options_frame,
+            text='Quit',
+            command=self.quit,
+            font=font)
+        button5.grid(row=0, column=5, padx=5, sticky=Tk.W)
 
 
 def disp_plot(db_name):

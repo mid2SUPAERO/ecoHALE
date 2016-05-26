@@ -6,3 +6,7 @@
 *.log
 *.pdf
 *.synctex.gz
+*.f90~
+*.so
+*.out
+*.0
