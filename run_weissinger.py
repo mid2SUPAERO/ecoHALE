@@ -14,6 +14,8 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 
+numpy.random.seed(12345)
+
 # Define the aircraft properties
 execfile('CRM.py')
 
@@ -45,7 +47,7 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_twist)),
+    ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
     ('span', span),
     ('v', v),
     ('alpha', alpha),
@@ -89,8 +91,8 @@ if 1:
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
                                 'Major feasibility tolerance': 1.0e-7}
 
-prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e0) # test
-#prob.driver.add_desvar('alpha', lower=-10., upper=10.)
+prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e0)
+prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
 # setup data recording

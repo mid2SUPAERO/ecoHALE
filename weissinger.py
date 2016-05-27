@@ -39,9 +39,9 @@ def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
     C /= norm(C)
 
     if inf:
-        v = -C / rH * (cosA + 1) / (4 * numpy.pi)
+        v = -C / rH * (cosA + 1)
     else:
-        v = -C / rH * (cosA + cosB) / (4 * numpy.pi)
+        v = -C / rH * (cosA + cosB)
 
     if rev:
         v = -v
@@ -61,33 +61,99 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
 
     num_y = mesh.shape[1]
     mtx[:, :, :] = 0.0
+    alpha_conv = alpha * numpy.pi / 180.
+    cosa = numpy.cos(alpha_conv)
+    sina = numpy.sin(alpha_conv)
+    u = numpy.array([cosa, 0, sina])
 
-    if fortran_flag:
-        mtx[:, :, :] = lib.assembleaeromtx(num_y, alpha, mesh, points, b_pts)
-    else:
-        alpha = alpha * numpy.pi / 180.
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
+    if 1: # kink
+        if fortran_flag:
+            mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, alpha, mesh, points, b_pts)
+            # old_mtx = mtx.copy()
+            # mtx[:, :, :] = 0.
+        else:
+            # Loop through control points
+            for ind_i in xrange(num_y - 1):
+                P = points[ind_i]
 
-        # Loop through control points
-        for ind_i in xrange(num_y - 1):
-            P = points[ind_i]
+                # Loop through elements
+                for ind_j in xrange(num_y - 1):
+                    A = b_pts[ind_j + 0, :]
+                    B = b_pts[ind_j + 1, :]
+                    D = mesh[-1, ind_j + 0, :]
+                    E = mesh[-1, ind_j + 1, :]
+                    F = D + u
+                    G = E + u
 
-            # Loop through elements
-            for ind_j in xrange(num_y - 1):
-                A = b_pts[ind_j + 0, :]
-                B = b_pts[ind_j + 1, :]
-                D = mesh[-1, ind_j + 0, :]
-                E = mesh[-1, ind_j + 1, :]
-                F = D + numpy.array([cosa, 0, sina])
-                G = E + numpy.array([cosa, 0, sina])
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
+                    mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
 
-                mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
-                mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
+            mtx /=  4 * numpy.pi
 
+    if 0: # freestream
+        if fortran_flag:
+            mtx[:, :, :] = lib.assembleaeromtx_freestream(num_y, alpha, points, b_pts)
+            # old_mtx = mtx.copy()
+            # mtx[:, :, :] = 0.
+        else:
+            # Loop through control points
+            for ind_i in xrange(num_y - 1):
+                P = points[ind_i]
+
+                # Loop through elements
+                for ind_j in xrange(num_y - 1):
+                    A = b_pts[ind_j + 0, :]
+                    B = b_pts[ind_j + 1, :]
+                    F = A + numpy.array([cosa, 0, sina])
+                    G = B + numpy.array([cosa, 0, sina])
+
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(B, G, P, inf=True,  rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, F, P, inf=True,  rev=True)
+
+            mtx /=  4 * numpy.pi
+
+    if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
+        if fortran_flag:
+            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts)
+            # old_mtx = mtx.copy()
+            # mtx[:, :, :] = 0.
+        else:
+            # Loop through control points
+            for ind_i in xrange(num_y - 1):
+                P = points[ind_i]
+
+                # Loop through elements
+                for ind_j in xrange(num_y - 1):
+                    A = b_pts[ind_j + 0, :]
+                    B = b_pts[ind_j + 1, :]
+
+                    r0 = B - A
+                    r1 = P - A
+                    r2 = P - B
+
+                    r0_mag = norm(r0)
+                    r1_mag = norm(r1)
+                    r2_mag = norm(r2)
+
+                    t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
+                    t2 = (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
+                         (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
+                    t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
+
+                    mtx[ind_i, ind_j, :] = t1 + t2 - t3
+                    eps = 1e-7
+
+            mtx /= 4 * numpy.pi
+
+    # print
+    # print old_mtx - mtx
+    # print
+    # print numpy.linalg.norm(old_mtx - mtx) / numpy.linalg.norm(old_mtx)
+    # exit()
 
 class WeissingerGeometry(Component):
     """ Compute various geometric properties for Weissinger analysis """
