@@ -224,6 +224,38 @@ class WeissingerGeometry(Component):
         return jac
 
 
+class ComputeAICMatrix(Component):
+    """ Define aerodynamic forces acting on each section """
+
+    def __init__(self, n):
+        super(ComputeAICMatrix, self).__init__()
+        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('b_pts', val=numpy.zeros((n, 3)))
+        self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
+        self.add_param('alpha', val=3.)
+        self.add_output('AIC_mtx', val=numpy.zeros((n-1, n-1, 3)))
+
+        self.deriv_options['form'] = 'central'
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        _assemble_AIC_mtx(unknowns['AIC_mtx'], params['def_mesh'],
+                          params['c_pts'], params['b_pts'], params['alpha'])
+
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for forces."""
+
+        jac = self.alloc_jacobian()
+
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                         fd_params=['def_mesh', 'b_pts',
+                                                    'c_pts', 'alpha'],
+                                         fd_states=[])
+        jac.update(fd_jac)
+
+        return jac
+
+
 class WeissingerCirculations(Component):
     """ Define circulations """
 
@@ -235,6 +267,7 @@ class WeissingerCirculations(Component):
         self.add_param('normals', val=numpy.zeros((n-1, 3)))
         self.add_param('b_pts', val=numpy.zeros((n, 3)))
         self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
+        self.add_param('AIC_mtx', val=numpy.zeros((n-1, n-1, 3)))
         self.add_state('circulations', val=numpy.zeros((n-1)))
 
         self.deriv_options['form'] = 'central'
@@ -243,16 +276,12 @@ class WeissingerCirculations(Component):
         size = n - 1
         self.num_y = n
         self.mtx = numpy.zeros((size, size), dtype="complex")
-        self.mtx2 = numpy.zeros((size, size, 3), dtype="complex")
         self.rhs = numpy.zeros((size), dtype="complex")
 
     def _assemble_system(self, params):
-        _assemble_AIC_mtx(self.mtx2, params['def_mesh'],
-                          params['c_pts'], params['b_pts'], params['alpha'])
-
         self.mtx[:, :] = 0.
         for ind in xrange(3):
-            self.mtx[:, :] += (self.mtx2[:, :, ind].T * params['normals'][:, ind]).T
+            self.mtx[:, :] += (params['AIC_mtx'][:, :, ind].T * params['normals'][:, ind]).T
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
@@ -277,8 +306,7 @@ class WeissingerCirculations(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['normals', 'def_mesh',
-                                                    'b_pts', 'c_pts', 'alpha'],
+                                         fd_params=['normals', 'alpha', 'AIC_mtx'],
                                          fd_states=[])
         jac.update(fd_jac)
 
@@ -322,27 +350,24 @@ class WeissingerForces(Component):
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
+        self.add_param('AIC_mtx', val=numpy.zeros((n-1, n-1, 3)))
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
 
         self.deriv_options['form'] = 'central'
 
         size = n - 1
         self.num_y = n
-        self.mtx = numpy.zeros((size, size, 3), dtype="complex")
         self.v = numpy.zeros((size, 3), dtype="complex")
 
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
-
-        _assemble_AIC_mtx(self.mtx, params['def_mesh'],
-                          params['c_pts'], params['b_pts'], params['alpha'])
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
         for ind in xrange(3):
-            self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
+            self.v[:, ind] = params['AIC_mtx'][:, :, ind].dot(circ)
         self.v[:, 0] += cosa * params['v']
         self.v[:, 2] += sina * params['v']
 
@@ -362,8 +387,8 @@ class WeissingerForces(Component):
         n = self.num_y
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['def_mesh', 'b_pts',
-                                                    'c_pts', 'alpha',
+                                         fd_params=['b_pts',
+                                                    'alpha', 'AIC_mtx',
                                                     'circulations', 'v'],
                                          fd_states=[])
         jac.update(fd_jac)
@@ -586,6 +611,9 @@ class WeissingerStates(Group):
 
         self.add('wgeom',
                  WeissingerGeometry(num_y),
+                 promotes=['*'])
+        self.add('AICmtx',
+                 ComputeAICMatrix(num_y),
                  promotes=['*'])
         self.add('circ',
                  WeissingerCirculations(num_y),

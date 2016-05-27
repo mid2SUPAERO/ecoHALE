@@ -114,6 +114,9 @@ if sys.argv[1] == '0':
     print
     print prob['CL'], prob['CD']
 elif sys.argv[1] == '1':
+    st = time.time()
     prob.run()
     print 'alpha', prob['alpha'], "; CL ", prob['CL'], "; CD ", prob['CD']
     print prob['twist']
+    print
+    print "run time", time.time() - st
