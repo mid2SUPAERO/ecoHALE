@@ -46,8 +46,6 @@ else:
 
 db_name = filename + '.db'
 
-def _get_lengths(self, A, B, axis):
-    return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
 class Display(object):
     def __init__(self, db_name):
@@ -64,7 +62,8 @@ class Display(object):
         self.options_frame.pack()
 
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-        self.ax = plt.subplot2grid((4,8), (0,0), rowspan=4, colspan=4, projection='3d')
+        self.ax = plt.subplot2grid((4, 8), (0, 0), rowspan=4,
+                                   colspan=4, projection='3d')
 
         self.num_iters = 0
         self.db_name = db_name
@@ -75,16 +74,16 @@ class Display(object):
         self.load_db()
 
         if self.show_wing and not self.show_tube:
-            self.ax2 = plt.subplot2grid((4,8), (0,4), rowspan=2, colspan=4)
-            self.ax3 = plt.subplot2grid((4,8), (2,4), rowspan=2, colspan=4)
+            self.ax2 = plt.subplot2grid((4, 8), (0, 4), rowspan=2, colspan=4)
+            self.ax3 = plt.subplot2grid((4, 8), (2, 4), rowspan=2, colspan=4)
         if self.show_tube and not self.show_wing:
-            self.ax4 = plt.subplot2grid((4,8), (0,4), rowspan=2, colspan=4)
-            self.ax5 = plt.subplot2grid((4,8), (2,4), rowspan=2, colspan=4)
+            self.ax4 = plt.subplot2grid((4, 8), (0, 4), rowspan=2, colspan=4)
+            self.ax5 = plt.subplot2grid((4, 8), (2, 4), rowspan=2, colspan=4)
         if self.show_wing and self.show_tube:
-            self.ax2 = plt.subplot2grid((4,8), (0,4), colspan=4)
-            self.ax3 = plt.subplot2grid((4,8), (1,4), colspan=4)
-            self.ax4 = plt.subplot2grid((4,8), (2,4), colspan=4)
-            self.ax5 = plt.subplot2grid((4,8), (3,4), colspan=4)
+            self.ax2 = plt.subplot2grid((4, 8), (0, 4), colspan=4)
+            self.ax3 = plt.subplot2grid((4, 8), (1, 4), colspan=4)
+            self.ax4 = plt.subplot2grid((4, 8), (2, 4), colspan=4)
+            self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
         self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
@@ -112,7 +111,7 @@ class Display(object):
                         self.obj_key = item
         for case_name, case_data in self.db.iteritems():
             if "metadata" in case_name or "derivs" in case_name:
-                continue # don't plot these cases
+                continue  # don't plot these cases
             try:
                 self.db[case_name + '/derivs']
             except:
@@ -161,16 +160,17 @@ class Display(object):
                 cvec = self.mesh[i][0, :, :] - self.mesh[i][1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                 chords = 0.5 * (chords[1:] + chords[:-1])
-                #L = sec_forces[i][:, 2] / normals[i][:, 2]
-                #self.lift.append(L.T * cos_dih[i])
+                # L = sec_forces[i][:, 2] / normals[i][:, 2]
+                # self.lift.append(L.T * cos_dih[i])
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
                 forces = sec_forces[i]
 
-                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/widths[i]/0.5/rho[i]/v[i]**2
-                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
-                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
+                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
+                    widths[i]/0.5/rho[i]/v[i]**2
+                # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
+                # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 
                 m_vals = self.mesh[i]
                 span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
@@ -178,7 +178,8 @@ class Display(object):
 
                 lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
 
-                lift_ell = 4 * lift_area / numpy.pi * numpy.sqrt(1 - (2*span)**2)
+                lift_ell = 4 * lift_area / numpy.pi * \
+                    numpy.sqrt(1 - (2*span)**2)
 
                 self.lift.append(lift)
                 self.lift_ell.append(lift_ell)
@@ -351,6 +352,7 @@ class Display(object):
                 self.f.canvas.draw()
                 plt.draw()
                 writer.grab_frame()
+
     def update_graphs(self, e=None):
         if e is not None:
             self.curr_pos = int(e)
