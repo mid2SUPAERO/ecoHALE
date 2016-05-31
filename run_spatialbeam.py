@@ -5,7 +5,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, setup_profiling, activate_profiling
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, profile
 from geometry import GeometryMesh, mesh_gen, LinearInterp
 from spatialbeam_orig import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
@@ -74,8 +74,8 @@ prob.root.deriv_options['type'] = 'cs'
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 
-setup_profiling(prob)
-activate_profiling()
+profile.setup(prob)
+profile.start()
 
 prob.setup()
 view_tree(prob, outfile="spatialbeam.html", show_browser=False)

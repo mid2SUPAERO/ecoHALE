@@ -5,7 +5,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver#, setup_profiling, activate_profiling
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
 from geometry import GeometryMesh, mesh_gen, LinearInterp
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -99,8 +99,8 @@ prob.driver.add_constraint('CL', equals=0.5)
 # setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
-#setup_profiling(prob)
-#activate_profiling()
+profile.setup(prob)
+profile.start()
 
 prob.setup()
 view_tree(prob, outfile="aerostruct.html", show_browser=False)

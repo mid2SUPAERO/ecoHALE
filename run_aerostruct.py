@@ -5,7 +5,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, setup_profiling, activate_profiling, pyOptSparseDriver, DirectSolver
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile, pyOptSparseDriver, DirectSolver
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -131,8 +131,8 @@ prob.driver.add_constraint('eq_con', equals=0.0)
 
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 
-setup_profiling(prob)
-activate_profiling()
+profile.setup(prob)
+profile.start()
 
 prob.setup()
 view_tree(prob, outfile="aerostruct.html", show_browser=False)
