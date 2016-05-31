@@ -12,8 +12,8 @@ from materials import MaterialsTube
 from openmdao.devtools.partition_tree_n2 import view_tree
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=10, n_points_outboard=6)
-# mesh = mesh_gen(n_points_inboard=2, n_points_outboard=2)
+mesh = mesh_gen(n_points_inboard=5, n_points_outboard=3)
+# mesh = mesh_gen(n_points_inboard=10, n_points_outboard=6)
 
 num_y = mesh.shape[1]
 num_twist = 5

@@ -3,6 +3,7 @@
 from __future__ import division
 import numpy
 import sys
+import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver#, setup_profiling, activate_profiling
 from geometry import GeometryMesh, mesh_gen, LinearInterp
@@ -21,8 +22,8 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 21
-    num_twist = 5
+    num_y = 31
+    num_twist = 11
     span = 10.
     chord = 2
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -105,7 +106,6 @@ prob.setup()
 view_tree(prob, outfile="aerostruct.html", show_browser=False)
 
 prob.run_once()
-import time
 if sys.argv[1] == '0':
     st = time.time()
     prob.check_partial_derivatives(compact_print=True)

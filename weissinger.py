@@ -66,7 +66,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
     sina = numpy.sin(alpha_conv)
     u = numpy.array([cosa, 0, sina])
 
-    if 1: # kink
+    if 0: # kink
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, alpha, mesh, points, b_pts)
             # old_mtx = mtx.copy()
@@ -116,7 +116,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
 
             mtx /=  4 * numpy.pi
 
-    if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
+    if 1: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts)
             # old_mtx = mtx.copy()
@@ -219,13 +219,13 @@ class WeissingerGeometry(Component):
         jac['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
 
         for i, v in zip((0, 3, n*3, (n+1)*3), (.125, .125, .375, .375)):
-            numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:,i:], v)
+            numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:, i:], v)
 
         return jac
 
 
 class ComputeAICMatrix(Component):
-    """ Define aerodynamic forces acting on each section """
+    """ Define aerodynamic influence coefficient matrix """
 
     def __init__(self, n):
         super(ComputeAICMatrix, self).__init__()
