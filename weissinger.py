@@ -66,7 +66,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
     sina = numpy.sin(alpha_conv)
     u = numpy.array([cosa, 0, sina])
 
-    if 0: # kink
+    if 1: # kink
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, alpha, mesh, points, b_pts)
             # old_mtx = mtx.copy()
@@ -116,7 +116,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
 
             mtx /=  4 * numpy.pi
 
-    if 1: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
+    if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts)
             # old_mtx = mtx.copy()

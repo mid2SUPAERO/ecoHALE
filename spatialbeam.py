@@ -121,8 +121,8 @@ class SpatialBeamMatrix(Component):
         self.add_param('mesh', val=numpy.zeros((2, n, 3)))
         self.add_param('loads', val=numpy.zeros((n, 6)))
 
-        self.add_output('mtx', val=numpy.zeros((size, size)))
-        self.add_output('rhs', vals=numpy.zeros((size)))
+        self.add_output('structmtx', val=numpy.zeros((size, size)))
+        self.add_output('rhs', val=numpy.zeros((size)))
 
         # self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -183,7 +183,7 @@ class SpatialBeamMatrix(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         if fortran_flag:
-            params['mtx'], params['rhs'] = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+            unknowns['structmtx'], unknowns['rhs'] = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
                                 self.M_a, self.M_t, self.M_y, self.M_z,
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
@@ -195,7 +195,7 @@ class SpatialBeamMatrix(Component):
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
                                 self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                self.const2, self.const_y, self.const_z, self.n, self.size, params['mtx'], params['rhs'])
+                                self.const2, self.const_y, self.const_z, self.n, self.size, unknowns['structmtx'], unknowns['rhs'])
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for matrix  """
@@ -212,16 +212,15 @@ class SpatialBeamMatrix(Component):
 class SpatialBeamFEM(Component):
     """ Compute the displacements and rotations """
 
-    def __init__(self, n, cons, E, G, fem_origin=0.35):
+    def __init__(self, n, cons):
         super(SpatialBeamFEM, self).__init__()
 
         self.size = size = 6 * n + 6 * cons.shape[0]
-        self.n = n
 
-        self.add_param('mtx', val=numpy.zeros((size, size)))
-        self.add_param('rhs', val=numpy.zeros((size)))
+        self.add_param('structmtx', val=numpy.zeros((size, size), dtype='complex'))
+        self.add_param('rhs', val=numpy.zeros((size), dtype='complex'))
 
-        self.add_state('disp_aug', val=numpy.zeros((size)), dtype="complex")
+        self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -229,21 +228,22 @@ class SpatialBeamFEM(Component):
         self.deriv_options['linearize'] = True # only for SpatialBeamFEM
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['disp_aug'] = numpy.linalg.solve(params['mtx'], params['rhs'])
+        unknowns['disp_aug'] = numpy.linalg.solve(params['structmtx'], params['rhs'])
 
     def apply_nonlinear(self, params, unknowns, resids):
-        resids['disp_aug'] = params['mtx'].dot(unknowns['disp_aug']) - params['rhs']
+        resids['disp_aug'] = params['structmtx'].dot(unknowns['disp_aug']) - params['rhs']
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for displacements """
 
         jac = self.alloc_jacobian()
         fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
-                                            fd_params=['A','Iy','Iz','J','mesh', 'mtx'], \
+                                            fd_params=['structmtx', 'rhs'], \
                                             fd_states=[])
         jac.update(fd_jac)
+        jac['disp_aug', 'disp_aug'] = params['structmtx'].real
 
-        self.lup = lu_factor(self.mtx.real)
+        self.lup = lu_factor(params['structmtx'].real)
 
         return jac
 
@@ -477,7 +477,7 @@ class SpatialBeamStates(Group):
                  SpatialBeamMatrix(num_y, cons, E, G),
                  promotes=['*'])
         self.add('fem',
-                 SpatialBeamFEM(num_y, cons, E, G),
+                 SpatialBeamFEM(num_y, cons),
                  promotes=['*'])
         self.add('disp',
                  SpatialBeamDisp(num_y, cons),
