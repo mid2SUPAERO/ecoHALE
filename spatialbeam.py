@@ -30,7 +30,8 @@ def _assemble_system(mesh, A, J, Iy, Iz, loads,
                      K_elem, S_a, S_t, S_y, S_z, T_elem,
                      const2, const_y, const_z, n, size, mtx, rhs):
 
-    nodes = (1-fem_origin) * mesh[0, :, :] + fem_origin * mesh[-1, :, :]
+    w = fem_origin
+    nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
     num_elems = elem_IDs.shape[0]
     num_nodes = nodes.shape[0]
@@ -105,11 +106,13 @@ def _assemble_system(mesh, A, J, Iy, Iz, loads,
     rhs[:] = 0.0
     rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
 
-class SpatialBeamMatrix(Component):
+
+
+class SpatialBeamFEM(Component):
     """ Computes the displacements and rotations """
 
     def __init__(self, n, cons, E, G, fem_origin=0.35):
-        super(SpatialBeamMatrix, self).__init__()
+        super(SpatialBeamFEM, self).__init__()
 
         self.size = size = 6 * n + 6 * cons.shape[0]
         self.n = n
@@ -119,14 +122,17 @@ class SpatialBeamMatrix(Component):
         self.add_param('Iz', val=numpy.zeros((n - 1)))
         self.add_param('J', val=numpy.zeros((n - 1)))
         self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+
         self.add_param('loads', val=numpy.zeros((n, 6)))
 
-        self.add_output('structmtx', val=numpy.zeros((size, size)))
-        self.add_output('rhs', val=numpy.zeros((size)))
+        self.add_state('disp_aug', val=numpy.zeros((size)), dtype="complex")
 
         # self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
+        self.deriv_options['linearize'] = True # only for circulations
+
+        self.arange = numpy.arange(6*n)
 
         self.E = E
         self.G = G
@@ -160,6 +166,9 @@ class SpatialBeamMatrix(Component):
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
 
+        num_nodes = n
+        num_cons = self.cons.shape[0]
+        size = 6*num_nodes + 6*num_cons
         self.mtx = numpy.zeros((size, size), dtype='complex')
         self.rhs = numpy.zeros(size, dtype='complex')
 
@@ -183,7 +192,7 @@ class SpatialBeamMatrix(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         if fortran_flag:
-            unknowns['structmtx'], unknowns['rhs'] = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+            self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
                                 self.M_a, self.M_t, self.M_y, self.M_z,
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
@@ -195,55 +204,43 @@ class SpatialBeamMatrix(Component):
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
                                 self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                self.const2, self.const_y, self.const_z, self.n, self.size, unknowns['structmtx'], unknowns['rhs'])
+                                self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
 
-    def linearize(self, params, unknowns, resids):
-        """ Jacobian for matrix  """
-
-        jac = self.alloc_jacobian()
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
-                                            fd_params=['A','Iy','Iz','J','mesh', 'loads'], \
-                                            fd_states=[])
-        jac.update(fd_jac)
-
-        return jac
-
-
-class SpatialBeamFEM(Component):
-    """ Compute the displacements and rotations """
-
-    def __init__(self, n, cons):
-        super(SpatialBeamFEM, self).__init__()
-
-        self.size = size = 6 * n + 6 * cons.shape[0]
-
-        self.add_param('structmtx', val=numpy.zeros((size, size), dtype='complex'))
-        self.add_param('rhs', val=numpy.zeros((size), dtype='complex'))
-
-        self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
-
-        # self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
-        self.deriv_options['linearize'] = True # only for SpatialBeamFEM
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['disp_aug'] = numpy.linalg.solve(params['structmtx'], params['rhs'])
+        unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
-        resids['disp_aug'] = params['structmtx'].dot(unknowns['disp_aug']) - params['rhs']
+        if fortran_flag:
+            self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                                self.M_a, self.M_t, self.M_y, self.M_z,
+                                self.elem_IDs, self.cons, self.fem_origin,
+                                self.E, self.G, self.x_gl, self.T,
+                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                self.const2, self.const_y, self.const_z, self.n, self.size)
+        else:
+            _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+                                self.M_a, self.M_t, self.M_y, self.M_z,
+                                self.elem_IDs, self.cons, self.fem_origin,
+                                self.E, self.G, self.x_gl, self.T,
+                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
+
+        disp_aug = unknowns['disp_aug']
+        resids['disp_aug'] = self.mtx.dot(disp_aug) - self.rhs
 
     def linearize(self, params, unknowns, resids):
-        """ Jacobian for displacements """
+        """ Jacobian for disp."""
 
         jac = self.alloc_jacobian()
         fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
-                                            fd_params=['structmtx', 'rhs'], \
+                                            fd_params=['A','Iy','Iz','J','mesh'], \
                                             fd_states=[])
         jac.update(fd_jac)
-        jac['disp_aug', 'disp_aug'] = params['structmtx'].real
+        jac['disp_aug', 'disp_aug'] = self.mtx.real
 
-        self.lup = lu_factor(params['structmtx'].real)
+        arange = self.arange
+        jac['disp_aug', 'loads'][arange, arange] = -1.0
+
+        self.lup = lu_factor(self.mtx.real)
 
         return jac
 
@@ -288,6 +285,8 @@ class SpatialBeamDisp(Component):
         arange = self.arange
         jac['disp', 'disp_aug'][arange, arange] = 1.
         return jac
+
+
 
 class SpatialBeamEnergy(Component):
     """ Computes strain energy """
@@ -473,11 +472,8 @@ class SpatialBeamStates(Group):
 
         cons = numpy.array([int((num_y-1)/2)])
 
-        self.add('mtx',
-                 SpatialBeamMatrix(num_y, cons, E, G),
-                 promotes=['*'])
         self.add('fem',
-                 SpatialBeamFEM(num_y, cons),
+                 SpatialBeamFEM(num_y, cons, E, G),
                  promotes=['*'])
         self.add('disp',
                  SpatialBeamDisp(num_y, cons),

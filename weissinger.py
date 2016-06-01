@@ -219,13 +219,13 @@ class WeissingerGeometry(Component):
         jac['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
 
         for i, v in zip((0, 3, n*3, (n+1)*3), (.125, .125, .375, .375)):
-            numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:, i:], v)
+            numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:,i:], v)
 
         return jac
 
 
 class ComputeAICMatrix(Component):
-    """ Define aerodynamic influence coefficient matrix """
+    """ Define aerodynamic forces acting on each section """
 
     def __init__(self, n):
         super(ComputeAICMatrix, self).__init__()
