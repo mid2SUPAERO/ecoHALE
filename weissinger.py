@@ -149,12 +149,6 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
 
             mtx /= 4 * numpy.pi
 
-    # print
-    # print old_mtx - mtx
-    # print
-    # print numpy.linalg.norm(old_mtx - mtx) / numpy.linalg.norm(old_mtx)
-    # exit()
-
 class WeissingerGeometry(Component):
     """ Compute various geometric properties for Weissinger analysis """
 
@@ -190,11 +184,11 @@ class WeissingerGeometry(Component):
         normals = numpy.cross(
             mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
             mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
-            axis=2)
+            axis=2)[0]
 
-        norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
+        norms = numpy.sqrt(numpy.sum(normals**2, axis=1))
         for ind in xrange(3):
-            normals[:, :, ind] /= norms
+            normals[:, ind] /= norms
 
         unknowns['normals'] = normals
 
@@ -505,54 +499,6 @@ class WeissingerCoeffs(Component):
         tmp = -0.25*rho*v**3*S_ref
         jac['CL1', 'v'] = L / tmp
         jac['CDi', 'v'] = D / tmp
-
-        return jac
-
-
-
-class WeissingerLift(Component):
-    """ Calculate lift in force units """
-
-    def __init__(self, n):
-        super(WeissingerLift, self).__init__()
-
-        self.add_param('cos_dih', val=numpy.zeros((n-1)))
-        self.add_param('normals', val=numpy.zeros((n-1, 3)))
-        self.add_param('sec_forces', val=numpy.zeros((n-1, 3)))
-        self.add_output('L', val=0.)
-
-        self.deriv_options['form'] = 'central'
-
-        self.num_y = n
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        cos_dih = params['cos_dih']
-        normals = params['normals']
-        sec_forces = params['sec_forces']
-
-        L = sec_forces[:, 2] / normals[:, 2]
-        unknowns['L'] = numpy.sum(L.T * cos_dih)
-
-    def linearize(self, params, unknowns, resids):
-        """ Jacobian for lift."""
-
-        jac = self.alloc_jacobian()
-
-        cos_dih = params['cos_dih'].real
-        normals = params['normals'].real
-        sec_forces = params['sec_forces'].real
-
-        n = self.num_y
-        arange = numpy.arange(n-1)
-
-        lift_cos = jac['L', 'cos_dih']
-        lift_cos[0, :] = sec_forces[:, 2] / normals[:, 2]
-
-        lift_normals = jac['L', 'normals']
-        lift_normals[0, 3*arange+2] = -sec_forces[:, 2] / normals[:, 2]**2 * cos_dih
-
-        lift_forces = jac['L', 'sec_forces']
-        lift_forces[0, 3*arange+2] = cos_dih / normals[:, 2]
 
         return jac
 

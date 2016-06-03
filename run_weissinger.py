@@ -21,7 +21,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 21
+    num_y = 61
     num_twist = 5
     span = 10.
     chord = 2
@@ -29,7 +29,7 @@ if 1:
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
-    half_wing = (.5 * numpy.cos(beta))**1 * span
+    half_wing = (.5 * numpy.cos(beta))**2 * span
     # half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
@@ -88,8 +88,8 @@ prob.driver.options['tol'] = 1.0e-8
 if 1:
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
-    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
-                                'Major feasibility tolerance': 1.0e-7}
+    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                'Major feasibility tolerance': 1.0e-8}
 
 prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e0)
 prob.driver.add_desvar('alpha', lower=-10., upper=10.)
@@ -101,8 +101,12 @@ prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 profile.setup(prob)
 profile.start()
 
+prob.root.deriv_options['type'] = 'fd'
+
 prob.setup()
 view_tree(prob, outfile="aerostruct.html", show_browser=False)
+
+
 
 prob.run_once()
 import time
