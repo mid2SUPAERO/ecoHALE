@@ -21,19 +21,20 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 61
-    num_twist = 5
+    num_y = 201
+    num_twist = 3
     span = 10.
     chord = 2
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
-    half_wing = (.5 * numpy.cos(beta))**2 * span
-    # half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
+    half_wing = (.5 * numpy.cos(beta))**3 * span
+    half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
     chords[0] += 1e-5
+    # chords = numpy.max(chords) * numpy.linspace(1, .2, ny2)
     chords = numpy.hstack((chords[:-1], chords[::-1]))
 
     for ind_x in xrange(num_x):
@@ -47,7 +48,8 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
+    # ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
+    ('twist', numpy.array([-2, 2, -2.])),
     ('span', span),
     ('v', v),
     ('alpha', alpha),
@@ -112,15 +114,24 @@ prob.run_once()
 import time
 if sys.argv[1] == '0':
     st = time.time()
-    prob.check_partial_derivatives(compact_print=True)
+    # prob.check_partial_derivatives(compact_print=True)
     # prob.check_total_derivatives()
     print "run time", time.time() - st
     print
-    print prob['CL'], prob['CD']
+    print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
+    print
+    print numpy.sum(prob['sec_forces'], axis=0)
+    # circ = prob['circulations']
+    # import matplotlib.pyplot as plt
+    # lins = prob['mesh'][0, :, 1]
+    # lins = (lins[1:] + lins[:-1]) / 2
+    # print circ
+    # plt.plot(lins, circ)
+    # plt.show()
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
-    print 'alpha', prob['alpha'], "; CL ", prob['CL'], "; CD ", prob['CD']
+    print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
     print prob['twist']
     print
     print "run time", time.time() - st

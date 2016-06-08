@@ -135,7 +135,7 @@ class Display(object):
                 n = def_mesh.shape[1]
                 h_cp = case_data['Unknowns']['twist']
                 num_twist = h_cp.shape[0]
-                jac = get_bspline_mtx(num_twist, n)
+                jac = get_bspline_mtx(num_twist, n, def_mesh)
                 h = jac.dot(h_cp)
 
                 self.twist.append(h)

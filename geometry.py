@@ -167,7 +167,7 @@ class GeometryMesh(Component):
         #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
-        jac = get_bspline_mtx(self.num_twist, self.n)
+        jac = get_bspline_mtx(self.num_twist, self.n, self.mesh)
         h_cp = params['twist']
         h = jac.dot(h_cp)
 
