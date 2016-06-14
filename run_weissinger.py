@@ -21,15 +21,15 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 5
-    num_twist = 3
+    num_y = 41
+    num_twist = 11
     span = 2.
     chord = .4
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
-    half_wing = .5 * numpy.cos(beta)**1 * span
+    half_wing = .5 * numpy.cos(beta)**1 * span #  cosine spacing
     half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
@@ -41,8 +41,6 @@ if 1:
         for ind_y in xrange(num_y):
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
             # mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
-    lins = mesh[0, :, 1]
-    print numpy.max(lins) - numpy.min(lins)
 
 
 disp = numpy.zeros((num_y, 6))
@@ -120,11 +118,14 @@ if sys.argv[1] == '0':
     # prob.check_total_derivatives()
     print "run time", time.time() - st
     print
+    print 'alpha', prob['alpha'], "; L", prob['L'], "; D", prob['D'], "; num", num_y
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
     print
-    print 'L/D', prob['CL'] / prob['CD']
+    print 'L/D', prob['L'] / prob['D']
     print
     print numpy.sum(prob['sec_forces'], axis=0)
+    print
+    print prob['sec_forces'][:, 2]
     # circ = prob['circulations']
     # import matplotlib.pyplot as plt
     # lins = prob['mesh'][0, :, 1]

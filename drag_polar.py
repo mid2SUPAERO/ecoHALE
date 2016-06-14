@@ -14,7 +14,7 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 execfile('CRM.py')
 
 num_x = 2
-num_y = 5
+num_y = 41
 num_twist = 3
 span = 232.02
 chord = 39.37
@@ -60,8 +60,8 @@ prob.root = root
 prob.setup()
 
 alpha_start = -3.
-alpha_stop = 15.
-num_alpha = 19.
+alpha_stop = 14
+num_alpha = 18.
 
 a_list = []
 CL_list = []
@@ -76,13 +76,20 @@ for alpha in numpy.linspace(alpha_start, alpha_stop, num_alpha):
     CL_list.append(prob['CL'])
     CD_list.append(prob['CD'] + 0.009364)
 
+print prob['L']
+
+nasa_data = numpy.loadtxt('nasa_prandtl.csv', delimiter=',', skiprows=1)
+nasa_data = nasa_data[nasa_data[:, 1].argsort()]
+
 import matplotlib.pyplot as plt
 
 f, (ax1, ax2) = plt.subplots(1, 2)
 ax1.plot(a_list, CL_list)
 ax1.set_xlabel('alpha')
 ax1.set_ylabel('CL')
-ax2.plot(CD_list, CL_list)
+ax2.plot(CD_list, CL_list, label='ours')
+ax2.plot(nasa_data[:, 0], nasa_data[:, 1], label='nasa')
+plt.legend(loc=0)
 ax2.set_xlabel('CD')
 ax2.set_ylabel('CL')
 plt.show()

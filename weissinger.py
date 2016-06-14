@@ -10,6 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
+fortran_flag = False
 
 
 def norm(vec):
@@ -49,7 +50,7 @@ def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
     return v
 
 
-def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
+def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     """
     Compute the aerodynamic influence coefficient matrix
     either for the circulation linear system or Trefftz-plane drag computation
@@ -66,7 +67,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
     sina = numpy.sin(alpha_conv)
     u = numpy.array([cosa, 0, sina])
 
-    if 1: # kink
+    if 0: # kink
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, alpha, mesh, points, b_pts)
             # old_mtx = mtx.copy()
@@ -116,7 +117,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
 
             mtx /=  4 * numpy.pi
 
-    if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
+    if 1: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts)
             # old_mtx = mtx.copy()
@@ -144,7 +145,10 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
                          (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
                     t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
 
-                    mtx[ind_i, ind_j, :] = t1 + t2 - t3
+                    if skip and ind_i == ind_j:
+                        mtx[ind_i, ind_j, :] = t1 - t3
+                    else:
+                        mtx[ind_i, ind_j, :] = t1 + t2 - t3
 
             mtx /= 4 * numpy.pi
 
@@ -160,9 +164,13 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
                 D = mesh[-1, ind_j + 0, :]
                 E = mesh[-1, ind_j + 1, :]
 
-                mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=True,  rev=False)
-                mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=True,  rev=True)
+                if skip and ind_i == ind_j:
+                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=True,  rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=True,  rev=True)
+                else:
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=True,  rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=True,  rev=True)
 
         mtx /=  4 * numpy.pi
 
@@ -528,9 +536,9 @@ class WeissingerForces(Component):
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_param('span', val=0.)
+        self.add_param('S_ref', val=0.)
         self.add_param('normals', val=numpy.zeros((n-1, 3)))
-        self.add_param('AIC_mtx', val=numpy.zeros((n-1, n-1, 3)))
+        self.mtx = numpy.zeros((n-1, n-1, 3))
         self.add_param('widths', val=numpy.zeros((n-1)))
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
 
@@ -547,8 +555,13 @@ class WeissingerForces(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
+        mid_b = (params['b_pts'][1:, :] + params['b_pts'][:-1, :]) / 2
+
+        _assemble_AIC_mtx(self.mtx, params['def_mesh'],
+                          mid_b, params['b_pts'], params['alpha'], skip=True)
+
         for ind in xrange(3):
-            self.v[:, ind] = params['AIC_mtx'][:, :, ind].dot(circ)
+            self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
         self.v[:, 0] += cosa * params['v']
         self.v[:, 2] += sina * params['v']
 
@@ -559,35 +572,26 @@ class WeissingerForces(Component):
         for ind in xrange(3):
             unknowns['sec_forces'][:, ind] = params['rho'] * circ * cross[:, ind]
 
+        if 0:
+            # Martins' code version of lift definition
+            ny2 = int((self.num_y - 1) / 2)
+            lift = numpy.zeros((ny2))
+            q = .5 * params['rho'] * params['v']**2
+            circ = circ[:ny2][::-1]
+            S_ref = params['S_ref']
 
+            for i in range(ny2):
+                lsum = 0.
+                for j in range(ny2 - i):
+                    j1 = ny2 - j - 1
+                    lsum += circ[j1]
+                lift[i] = lsum * q * S_ref
+            full_lift = numpy.hstack((lift[::-1], lift))
 
-        # # Martins' code version of lift definition
-        # ny2 = int((self.num_y - 1) / 2)
-        # lift = numpy.zeros((ny2))
-        # q = .5 * params['rho'] * params['v']**2
-        # circ = circ[:ny2][::-1]
-        # span = params['span']
-        #
-        # for i in range(ny2):
-        #     lsum = 0.
-        #     for j in range(ny2 - i):
-        #         j1 = ny2 - j - 1
-        #         lsum += circ[j1]
-        #     lift[i] = lsum * q * span
-        # full_lift = numpy.hstack((lift[::-1], lift))
-        #
-        # L = numpy.zeros((self.num_y-1, 3))
-        # for ind in xrange(3):
-        #     L[:, ind] = full_lift * params['normals'][:, ind]
-        # import matplotlib.pyplot as plt
-        # lifts = L[:, 2]
-        # lins = params['def_mesh'][0, :, 1]
-        # lins = (lins[1:] + lins[:-1]) / 2
-        # plt.plot(lins, lifts)
-        # old_lifts = unknowns['sec_forces'][:, 2]
-        # plt.plot(lins, old_lifts)
-        # plt.show()
-
+            L = numpy.zeros((self.num_y-1, 3))
+            for ind in xrange(3):
+                L[:, ind] = full_lift * params['normals'][:, ind]
+            unknowns['sec_forces'] = L
 
         # # Code using Bernoulli equation to solve for pressure force on the sections
         # mesh = params['def_mesh']
