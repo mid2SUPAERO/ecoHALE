@@ -10,27 +10,29 @@ from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
 
-# Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
-num_y = mesh.shape[1]
-
 numpy.random.seed(12345)
+
+# Create the mesh with 2 inboard points and 3 outboard points
+mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6)
+num_y = mesh.shape[1]
+num_twist = 5
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 41
-    num_twist = 11
-    span = 2.
-    chord = .4
+    num_y = 21
+    span = 10.
+    chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
+
     half_wing = .5 * numpy.cos(beta)**1 * span #  cosine spacing
-    half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
+    # half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
+
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
     chords[0] += 1e-5
@@ -93,7 +95,7 @@ if 1:
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                 'Major feasibility tolerance': 1.0e-8}
 
-prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e0)
+prob.driver.add_desvar('twist',lower=-10., upper=15., scaler=1e0)
 prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)

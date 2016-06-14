@@ -98,7 +98,7 @@ subroutine assembleaeromtx_freestream(n, alpha, points, bpts, mtx)
 
 end subroutine assembleaeromtx_freestream
 
-subroutine assembleaeromtx_paper(n, alpha, points, bpts, mtx)
+subroutine assembleaeromtx_paper(n, alpha, points, bpts, skip, mtx)
 
   implicit none
 
@@ -110,6 +110,7 @@ subroutine assembleaeromtx_paper(n, alpha, points, bpts, mtx)
   integer, intent(in) :: n
   complex*16, intent(in) :: alpha
   complex*16, intent(in) :: points(n-1, 3), bpts(n, 3)
+  logical, intent(in) :: skip
 
   ! Output
   complex*16, intent(out) :: mtx(n-1, n-1, 3)
@@ -152,7 +153,11 @@ subroutine assembleaeromtx_paper(n, alpha, points, bpts, mtx)
              (r1_mag * r2_mag * (r1_mag * r2_mag + dot(r1, r2)))
         t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
 
-        mtx(i, j, :) = t1 + t2 - t3
+        if ((skip)  .and. (i .EQ. j)) then
+          mtx(i, j, :) = t1 - t3
+        else
+          mtx(i, j, :) = t1 + t2 - t3
+        end if
 
      end do
   end do

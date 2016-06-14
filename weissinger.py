@@ -10,7 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-fortran_flag = False
+# fortran_flag = False
 
 
 def norm(vec):
@@ -119,7 +119,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
     if 1: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
         if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts)
+            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts, skip)
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
         else:
@@ -173,172 +173,6 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                     mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=True,  rev=True)
 
         mtx /=  4 * numpy.pi
-
-    if 0: # version from Martins' matlab code adapted here
-        SWEEP = 0
-        AR = 5
-        NPANEL = 2
-        MACH = .84
-        TAPER = 1
-
-        BETA = 1.
-        BETAI = 1.
-        D2R = numpy.pi/180
-        SWEEP = SWEEP*D2R
-        TANSW = numpy.tan(SWEEP)
-        SECEFF =  numpy.sqrt((TANSW/BETA)**2+1.)
-        COSEFF = 1./SECEFF
-        SINEFF = TANSW/BETA*COSEFF
-#
-#     The horseshoe vortices are evenly spaced along the semispan.
-#     Chord and twist distributions are linear. All lengths are in
-#     units of the semi-span.
-#
-        VB = numpy.zeros(NPANEL)
-        L = numpy.zeros(NPANEL)
-        CROOT = 4./(AR*(1.+TAPER))
-        mtx = numpy.zeros((NPANEL, NPANEL))
-        for I in range(NPANEL):
-            # relative coordinate for each panel
-            VB[I] = (I + 1) / NPANEL
-            # relative coordinate for each panel
-            L[I] = VB[I]
-            #
-            #-----------------------------------------------------------------------
-            #	Computing influence coefficients
-            #
-            # relative midpoints for each panel
-            CHORD = numpy.zeros(NPANEL)
-            Y = numpy.zeros(NPANEL)
-            Y[0] = VB[0]*.5
-
-
-        for I in range(NPANEL):
-            if I != 0:
-        		Y[I] = (VB[I] + VB[I-1]) * .5
-            CHORD[I] = CROOT
-
-            # X = halfway point on the chord
-            X = CHORD[I] * .5
-            # RN = halfway point on the chord
-            RN = X
-            # RT = halfway point on the span
-            RT = Y[I]
-            # RN and RT signify the center of the panel
-            # RNI and RTI are the images of the reflection for the center panel
-            RNI = RN
-            RTI = RT - 2. * Y[I]
-            # R0 and R0I are the diagonal magnitudes to the points
-            R0 = numpy.sqrt(RN*RN + RT*RT)
-            R0I = numpy.sqrt(RNI*RNI + RTI*RTI)
-
-            #	  	Loop over vortices
-            #         	WB = downwash due to bound vortex
-            #         	WT = downwash due to trailing vorticity
-            #         	I after the variable designates image (left side) influence
-            #
-            for J in range(NPANEL):
-                # RY is spanwise  to the vortex
-            	RY = VB[J] - Y[I]
-                # RX if chordwise distance to the vortex
-            	RX = X
-                # RYI is spanwise distance to image of vortex
-            	RYI = RY + 2. * Y[I]
-
-                dist = numpy.sqrt(RX**2 + RY**2)
-            	WT = (1. + RX / dist) / RY
-                dist = numpy.sqrt(RX**2 + RYI**2)
-            	WTI = (1. + RX / dist) / RYI
-
-                R1 = numpy.sqrt(RN**2 + (L[J] - RT)**2)
-            	WB = ((L[J] - RT) / R1 + RT / R0) / RN
-
-                R1I = numpy.sqrt(RNI**2 + (L[J] - RTI)**2)
-            	WBI = ((L[J] - RTI) / R1I + RTI / R0I) / RNI
-
-                mtx[I, J] = (WT + WB + WTI + WBI)
-            print '================'
-        mtx = mtx / (4. * numpy.pi)
-        print mtx
-
-
-    if 0: # modified version from Martins' matlab code adapted here
-        n = mesh.shape[1]
-        print n
-        SWEEP = 0
-        AR = 5
-        NPANEL = n - 1
-        MACH = .84
-        TAPER = 1
-
-        BETA = 1.
-        BETAI = 1.
-        D2R = numpy.pi/180
-        SWEEP = SWEEP*D2R
-        TANSW = numpy.tan(SWEEP)
-        SECEFF =  numpy.sqrt((TANSW/BETA)**2+1.)
-        COSEFF = 1./SECEFF
-        SINEFF = TANSW/BETA*COSEFF
-#
-#     The horseshoe vortices are evenly spaced along the semispan.
-#     Chord and twist distributions are linear. All lengths are in
-#     units of the semi-span.
-#
-        VB = numpy.zeros(NPANEL)
-        L = numpy.zeros(NPANEL)
-        CROOT = 4./(AR*(1.+TAPER))
-        for I in range(NPANEL):
-            # relative coordinate for each panel
-            VB[I] = (I + 1) / NPANEL
-            # relative coordinate for each panel
-            L[I] = VB[I]
-        #
-        #-----------------------------------------------------------------------
-        #	Computing influence coefficients
-        #
-        # relative midpoints for each panel
-        CHORD = numpy.zeros(NPANEL)
-        Y = numpy.zeros(NPANEL)
-        Y[0] = VB[0]*.5
-
-
-        for I in range(NPANEL):
-            if I != 0:
-        		Y[I] = (VB[I] + VB[I-1]) * .5
-            CHORD[I] = CROOT
-
-            # X = halfway point on the chord
-            X = CHORD[I] * .5
-            # RN = halfway point on the chord
-            RN = X
-            # RT = halfway point on the span
-            RT = Y[I]
-            # RN and RT signify the center of the panel
-            # RNI and RTI are the images of the reflection for the center panel
-            RNI = RN
-            # R0 and R0I are the diagonal magnitudes to the points
-            R0 = numpy.sqrt(RN*RN + RT*RT)
-
-            #	  	Loop over vortices
-            #         	WB = downwash due to bound vortex
-            #         	WT = downwash due to trailing vorticity
-            #         	I after the variable designates image (left side) influence
-            #
-            for J in range(NPANEL):
-                # RY is spanwise  to the vortex
-            	RY = VB[J] - Y[I]
-                # RX if chordwise distance to the vortex
-            	RX = X
-
-                dist = numpy.sqrt(RX**2 + RY**2)
-            	WT = (1. + RX / dist) / RY
-
-                R1 = numpy.sqrt(RN**2 + (L[J] - RT)**2)
-            	WB = ((L[J] - RT) / R1 + RT / R0) / RN
-
-                mtx[I, J] = (WT + WB)
-            print '================'
-        mtx = mtx / (4. * numpy.pi)
 
 
 class WeissingerGeometry(Component):
@@ -571,48 +405,6 @@ class WeissingerForces(Component):
 
         for ind in xrange(3):
             unknowns['sec_forces'][:, ind] = params['rho'] * circ * cross[:, ind]
-
-        if 0:
-            # Martins' code version of lift definition
-            ny2 = int((self.num_y - 1) / 2)
-            lift = numpy.zeros((ny2))
-            q = .5 * params['rho'] * params['v']**2
-            circ = circ[:ny2][::-1]
-            S_ref = params['S_ref']
-
-            for i in range(ny2):
-                lsum = 0.
-                for j in range(ny2 - i):
-                    j1 = ny2 - j - 1
-                    lsum += circ[j1]
-                lift[i] = lsum * q * S_ref
-            full_lift = numpy.hstack((lift[::-1], lift))
-
-            L = numpy.zeros((self.num_y-1, 3))
-            for ind in xrange(3):
-                L[:, ind] = full_lift * params['normals'][:, ind]
-            unknowns['sec_forces'] = L
-
-        # # Code using Bernoulli equation to solve for pressure force on the sections
-        # mesh = params['def_mesh']
-        # widths = params['widths']
-        # midpoints = (mesh[:, 1:, :] + mesh[:, :-1, :]) / 2
-        # chords = numpy.linalg.norm(midpoints[1, :] - midpoints[0, :], axis=1)
-        # areas = widths * chords
-        # v = numpy.linalg.norm(self.v, axis=1)
-        # F = areas * params['rho'] / 2 * (params['v']**2 - v**2)
-        # L = numpy.zeros((self.num_y-1, 3))
-        # for ind in xrange(3):
-        #     L[:, ind] = F * params['normals'][:, ind]
-        # unknowns['sec_forces'] = L
-        # import matplotlib.pyplot as plt
-        # lifts = L[:, 2]
-        # lins = params['def_mesh'][0, :, 1]
-        # lins = (lins[1:] + lins[:-1]) / 2
-        # plt.plot(lins, lifts)
-        # old_lifts = unknowns['sec_forces'][:, 2]
-        # plt.plot(lins, old_lifts)
-        # plt.show()
 
 
     def linearize(self, params, unknowns, resids):
