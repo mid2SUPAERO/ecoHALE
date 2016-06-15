@@ -149,13 +149,13 @@ subroutine assembleaeromtx_paper(n, alpha, points, bpts, skip, mtx)
         call cross(u, r1, ur1)
 
         t1 = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
-        t2 = (r1_mag + r2_mag) * r1r2 / &
-             (r1_mag * r2_mag * (r1_mag * r2_mag + dot(r1, r2)))
         t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
 
         if ((skip)  .and. (i .EQ. j)) then
           mtx(i, j, :) = t1 - t3
         else
+          t2 = (r1_mag + r2_mag) * r1r2 / &
+               (r1_mag * r2_mag * (r1_mag * r2_mag + dot(r1, r2)))
           mtx(i, j, :) = t1 + t2 - t3
         end if
 

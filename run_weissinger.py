@@ -15,14 +15,14 @@ numpy.random.seed(12345)
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6)
 num_y = mesh.shape[1]
-num_twist = 5
+num_twist = 11
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 21
+    num_y = 41
     span = 10.
     chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -51,7 +51,6 @@ root = Group()
 
 des_vars = [
     ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
-    # ('twist', numpy.array([-2, 2, -2.])),
     ('span', span),
     ('v', v),
     ('alpha', alpha),

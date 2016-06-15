@@ -70,6 +70,7 @@ class Display(object):
         self.show_wing = True
         self.show_tube = True
         self.curr_pos = 0
+        self.old_n = 0
 
         self.load_db()
 
@@ -362,12 +363,58 @@ class Display(object):
         self.plot_sides()
         self.canvas.show()
 
+    def check_length(self):
+        db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+        n = 0
+        for case_name, case_data in db.iteritems():
+            if "metadata" in case_name or "derivs" in case_name:
+                continue  # don't plot these cases
+            try:
+                db[case_name + '/derivs']
+            except:
+                continue
+
+            n += 1
+
+        self.num_iters = n
+
+    def auto_ref(self):
+        """
+        Automatically refreshes the history file, which is
+        useful if examining a running optimization.
+        """
+        if self.var_ref.get():
+            self.root.after(200, self.auto_ref)
+            self.check_length()
+            self.update_graphs()
+
+            if self.num_iters > self.old_n:
+                self.load_db()
+                self.old_n = self.num_iters
+                self.draw_slider()
+
     def quit(self):
         """
         Destroy GUI window cleanly if quit button pressed.
         """
         self.root.quit()
         self.root.destroy()
+
+    def draw_slider(self):
+        # scale to choose iteration to view
+        self.w = Tk.Scale(
+            self.options_frame,
+            from_=0, to=self.num_iters,
+            orient=Tk.HORIZONTAL,
+            resolution=1,
+            font=tkFont.Font(family="Helvetica", size=10),
+            command=self.update_graphs,
+            length=200)
+
+        if self.curr_pos == self.num_iters - 1 or self.curr_pos == 0:
+            self.curr_pos = self.num_iters
+        self.w.set(self.curr_pos)
+        self.w.grid(row=0, column=1, padx=5, sticky=Tk.W)
 
     def draw_GUI(self):
         """
@@ -381,17 +428,7 @@ class Display(object):
             font=font)
         lab_font.grid(row=0, column=0, sticky=Tk.S)
 
-        # scale to choose iteration to view
-        self.w = Tk.Scale(
-            self.options_frame,
-            from_=0, to=self.num_iters,
-            orient=Tk.HORIZONTAL,
-            resolution=1,
-            font=font,
-            command=self.update_graphs,
-            length=200)
-        self.w.set(0)
-        self.w.grid(row=0, column=1, padx=5, sticky=Tk.W)
+        self.draw_slider()
 
         if self.show_wing:
             # checkbox to show deformed mesh
@@ -414,20 +451,33 @@ class Display(object):
                 font=font)
             self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
 
+        # Option to automatically refresh history file
+        # especially useful for running optimizations
+        self.var_ref = Tk.IntVar()
+        self.var_ref.set(1)
+        c11 = Tk.Checkbutton(
+            self.options_frame,
+            text="Automatically refresh",
+            variable=self.var_ref,
+            command=self.auto_ref,
+            font=font)
+        c11.grid(row=0, column=4, sticky=Tk.W, pady=6)
+
         button = Tk.Button(
             self.options_frame,
             text='Save video',
             command=self.save_video,
             font=font)
-        button.grid(row=0, column=4, padx=5, sticky=Tk.W)
+        button.grid(row=0, column=5, padx=5, sticky=Tk.W)
 
         button5 = Tk.Button(
             self.options_frame,
             text='Quit',
             command=self.quit,
             font=font)
-        button5.grid(row=0, column=5, padx=5, sticky=Tk.W)
+        button5.grid(row=0, column=6, padx=5, sticky=Tk.W)
 
+        self.auto_ref()
 
 def disp_plot(db_name):
     disp = Display(db_name)

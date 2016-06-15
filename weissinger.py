@@ -10,8 +10,6 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-# fortran_flag = False
-
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -141,13 +139,13 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                     r2_mag = norm(r2)
 
                     t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                    t2 = (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
-                         (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
                     t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
 
                     if skip and ind_i == ind_j:
                         mtx[ind_i, ind_j, :] = t1 - t3
                     else:
+                        t2 = (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
+                             (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
                         mtx[ind_i, ind_j, :] = t1 + t2 - t3
 
             mtx /= 4 * numpy.pi
@@ -164,7 +162,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                 D = mesh[-1, ind_j + 0, :]
                 E = mesh[-1, ind_j + 1, :]
 
-                if skip and ind_i == ind_j:
+                if skip:
                     mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=True,  rev=False)
                     mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=True,  rev=True)
                 else:
