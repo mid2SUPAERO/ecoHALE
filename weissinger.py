@@ -10,6 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
+# fortran_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -35,7 +36,7 @@ def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
     cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
     cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
     C = numpy.cross(B - P, A - P)
-    C /= norm(C)
+    C /= norm(C) + eps
 
     if inf:
         v = -C / rH * (cosA + 1)
@@ -64,6 +65,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     cosa = numpy.cos(alpha_conv)
     sina = numpy.sin(alpha_conv)
     u = numpy.array([cosa, 0, sina])
+    planform_u = numpy.array([1., 0, 0])
 
     if 0: # kink
         if fortran_flag:
@@ -84,34 +86,17 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                     F = D + u
                     G = E + u
 
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
-                    mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
-
-            mtx /=  4 * numpy.pi
-
-    if 0: # freestream
-        if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_freestream(num_y, alpha, points, b_pts)
-            # old_mtx = mtx.copy()
-            # mtx[:, :, :] = 0.
-        else:
-            # Loop through control points
-            for ind_i in xrange(num_y - 1):
-                P = points[ind_i]
-
-                # Loop through elements
-                for ind_j in xrange(num_y - 1):
-                    A = b_pts[ind_j + 0, :]
-                    B = b_pts[ind_j + 1, :]
-                    F = A + numpy.array([cosa, 0, sina])
-                    G = B + numpy.array([cosa, 0, sina])
-
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(B, G, P, inf=True,  rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, F, P, inf=True,  rev=True)
+                    if skip:
+                        mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
+                        mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
+                        mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
+                        mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
+                    else:
+                        mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
+                        mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
+                        mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
+                        mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
+                        mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
 
             mtx /=  4 * numpy.pi
 
@@ -150,27 +135,40 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
             mtx /= 4 * numpy.pi
 
-    if 0: # trailing vorticies shed in direction of planform
-        # Loop through control points
-        for ind_i in xrange(num_y - 1):
-            P = points[ind_i]
+    if 0: # trailing shed in planform, but paper version
+        if fortran_flag:
+            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts, skip)
+            # old_mtx = mtx.copy()
+            # mtx[:, :, :] = 0.
+        else:
+            # Loop through control points
+            for ind_i in xrange(num_y - 1):
+                P = points[ind_i]
 
-            # Loop through elements
-            for ind_j in xrange(num_y - 1):
-                A = b_pts[ind_j + 0, :]
-                B = b_pts[ind_j + 1, :]
-                D = mesh[-1, ind_j + 0, :]
-                E = mesh[-1, ind_j + 1, :]
+                # Loop through elements
+                for ind_j in xrange(num_y - 1):
+                    A = b_pts[ind_j + 0, :]
+                    B = b_pts[ind_j + 1, :]
 
-                if skip:
-                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=True,  rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=True,  rev=True)
-                else:
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=True,  rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=True,  rev=True)
+                    r0 = B - A
+                    r1 = P - A
+                    r2 = P - B
 
-        mtx /=  4 * numpy.pi
+                    r0_mag = norm(r0)
+                    r1_mag = norm(r1)
+                    r2_mag = norm(r2)
+
+                    t1 = numpy.cross(planform_u, r2) / (r2_mag * (r2_mag - planform_u.dot(r2)))
+                    t3 = numpy.cross(planform_u, r1) / (r1_mag * (r1_mag - planform_u.dot(r1)))
+
+                    if skip and ind_i == ind_j:
+                        mtx[ind_i, ind_j, :] = t1 - t3
+                    else:
+                        t2 = (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
+                             (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
+                        mtx[ind_i, ind_j, :] = t1 + t2 - t3
+
+            mtx /= 4 * numpy.pi
 
 
 class WeissingerGeometry(Component):
@@ -398,6 +396,11 @@ class WeissingerForces(Component):
         self.v[:, 2] += sina * params['v']
 
         bound = params['b_pts'][1:, :] - params['b_pts'][:-1, :]
+        # import matplotlib.pyplot as plt
+        # im = plt.imshow(numpy.linalg.norm(self.mtx, axis=2).real)
+        # plt.colorbar(im, orientation='horizontal')
+        # plt.show()
+        # exit()
 
         cross = numpy.cross(self.v, bound)
 

@@ -32,8 +32,8 @@ if 1:
 
     half_wing = .5 * numpy.cos(beta)**1 * span #  cosine spacing
     # half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
-
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
+    print full_wing
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
     chords[0] += 1e-5
     # chords = numpy.max(chords) * numpy.linspace(1, .2, ny2)
@@ -95,7 +95,7 @@ if 1:
                                 'Major feasibility tolerance': 1.0e-8}
 
 prob.driver.add_desvar('twist',lower=-10., upper=15., scaler=1e0)
-prob.driver.add_desvar('alpha', lower=-10., upper=10.)
+# prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
 # setup data recording
@@ -127,13 +127,6 @@ if sys.argv[1] == '0':
     print numpy.sum(prob['sec_forces'], axis=0)
     print
     print prob['sec_forces'][:, 2]
-    # circ = prob['circulations']
-    # import matplotlib.pyplot as plt
-    # lins = prob['mesh'][0, :, 1]
-    # lins = (lins[1:] + lins[:-1]) / 2
-    # print circ
-    # plt.plot(lins, circ)
-    # plt.show()
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
