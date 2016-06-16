@@ -173,16 +173,17 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 class WeissingerGeometry(Component):
     """ Compute various geometric properties for Weissinger analysis """
 
-    def __init__(self, n):
+    def __init__(self, nx, n):
         super(WeissingerGeometry, self).__init__()
 
-        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
-        self.add_output('b_pts', val=numpy.zeros((n, 3)))
-        self.add_output('c_pts', val=numpy.zeros((n-1, 3)))
-        self.add_output('widths', val=numpy.zeros((n-1)))
-        self.add_output('normals', val=numpy.zeros((n-1, 3)))
+        self.add_param('def_mesh', val=numpy.zeros((nx, n, 3)))
+        self.add_output('b_pts', val=numpy.zeros((nx-1, n, 3)))
+        self.add_output('c_pts', val=numpy.zeros((nx-1, n-1, 3)))
+        self.add_output('widths', val=numpy.zeros((nx-1, n-1)))
+        self.add_output('normals', val=numpy.zeros((nx-1, n-1, 3)))
         self.add_output('S_ref', val=0.)
         self.num_y = n
+        self.num_x = nx
 
         self.deriv_options['form'] = 'central'
 
@@ -191,22 +192,33 @@ class WeissingerGeometry(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = params['def_mesh']
-        unknowns['b_pts'] = mesh[0, :, :] * .75 + mesh[1, :, :] * .25
-        unknowns['c_pts'] = 0.5 * 0.25 * mesh[0, :-1, :] + \
-                            0.5 * 0.75 * mesh[1, :-1, :] + \
-                            0.5 * 0.25 * mesh[0,  1:, :] + \
-                            0.5 * 0.75 * mesh[1,  1:, :]
+
+        unknowns['b_pts'] = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
+
+        unknowns['c_pts'] = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
+                            0.5 * 0.75 * mesh[1:, :-1, :] + \
+                            0.5 * 0.25 * mesh[:-1,  1:, :] + \
+                            0.5 * 0.75 * mesh[1:,  1:, :]
 
         b_pts = unknowns['b_pts']
-        unknowns['widths'] = self._get_lengths(b_pts[1:, :], b_pts[:-1, :], 1)
+        unknowns['widths'] = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
 
         midpoints = (mesh[1:, :, :] + mesh[:-1, :, :]) / 2
+        print midpoints.shape
+        print
+        print midpoints
+        print
+        print midpoints[:, 1:, :] - midpoints[:, :-1, :]
+        print
+        print mesh[:-1, :-1, :] - mesh[ 1:,  1:, :]
 
         # will need to fix this indexing in the midpoints when porting to 2D
         normals = numpy.cross(
             midpoints[:, 1:, :] - midpoints[:, :-1, :],
             mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
             axis=2)[0]
+        print
+        print normals
 
         norms = numpy.sqrt(numpy.sum(normals**2, axis=1))
         for ind in xrange(3):
@@ -241,15 +253,16 @@ class WeissingerGeometry(Component):
 
 
 class ComputeAICMatrix(Component):
-    """ Define aerodynamic forces acting on each section """
+    """ Define aerodynamic influence coefficient matrix """
 
-    def __init__(self, n):
+    def __init__(self, nx, n):
         super(ComputeAICMatrix, self).__init__()
-        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
-        self.add_param('b_pts', val=numpy.zeros((n, 3)))
-        self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
+        self.add_param('def_mesh', val=numpy.zeros((nx, n, 3)))
+        self.add_param('b_pts', val=numpy.zeros((nx-1, n, 3)))
+        self.add_param('c_pts', val=numpy.zeros((nx-1, n-1, 3)))
         self.add_param('alpha', val=3.)
-        self.add_output('AIC_mtx', val=numpy.zeros((n-1, n-1, 3)))
+        size = (nx - 1) * (n - 1)
+        self.add_output('AIC_mtx', val=numpy.zeros((size, size, 3)))
 
         self.deriv_options['form'] = 'central'
 
@@ -259,7 +272,7 @@ class ComputeAICMatrix(Component):
 
 
     def linearize(self, params, unknowns, resids):
-        """ Jacobian for forces."""
+        """ Jacobian for AIC """
 
         jac = self.alloc_jacobian()
 
@@ -275,21 +288,21 @@ class ComputeAICMatrix(Component):
 class WeissingerCirculations(Component):
     """ Define circulations """
 
-    def __init__(self, n):
+    def __init__(self, nx, n):
         super(WeissingerCirculations, self).__init__()
         self.add_param('v', val=10.)
         self.add_param('alpha', val=3.)
-        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
-        self.add_param('normals', val=numpy.zeros((n-1, 3)))
-        self.add_param('b_pts', val=numpy.zeros((n, 3)))
-        self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
-        self.add_param('AIC_mtx', val=numpy.zeros((n-1, n-1, 3)))
-        self.add_state('circulations', val=numpy.zeros((n-1)))
+        self.add_param('def_mesh', val=numpy.zeros((nx, n, 3)))
+        self.add_param('normals', val=numpy.zeros((nx-1, n-1, 3)))
+        self.add_param('b_pts', val=numpy.zeros((nx-1, n, 3)))
+        self.add_param('c_pts', val=numpy.zeros((nx-1, n-1, 3)))
+        size = (n-1) * (nx-1)
+        self.add_param('AIC_mtx', val=numpy.zeros((size, size, 3)))
+        self.add_state('circulations', val=numpy.zeros((size)))
 
         self.deriv_options['form'] = 'central'
         self.deriv_options['linearize'] = True # only for circulations
 
-        size = n - 1
         self.num_y = n
         self.mtx = numpy.zeros((size, size), dtype="complex")
         self.rhs = numpy.zeros((size), dtype="complex")
@@ -353,23 +366,23 @@ class WeissingerCirculations(Component):
 class WeissingerForces(Component):
     """ Define aerodynamic forces acting on each section """
 
-    def __init__(self, n):
+    def __init__(self, nx, n):
         super(WeissingerForces, self).__init__()
-        self.add_param('def_mesh', val=numpy.zeros((2, n, 3)))
-        self.add_param('b_pts', val=numpy.zeros((n, 3)))
-        self.add_param('c_pts', val=numpy.zeros((n-1, 3)))
-        self.add_param('circulations', val=numpy.zeros((n-1)))
+        self.add_param('def_mesh', val=numpy.zeros((nx, n, 3)))
+        self.add_param('b_pts', val=numpy.zeros((nx-1, n, 3)))
+        self.add_param('c_pts', val=numpy.zeros((nx-1, n-1, 3)))
+        size = (nx-1) * (n-1)
+        self.add_param('circulations', val=numpy.zeros((size)))
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_param('widths', val=numpy.zeros((n-1)))
-        self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
+        self.add_param('widths', val=numpy.zeros((nx-1, n-1)))
+        self.add_output('sec_forces', val=numpy.zeros((nx-1, n-1, 3)))
 
-        self.mtx = numpy.zeros((n-1, n-1, 3))
+        self.mtx = numpy.zeros((size, size, 3))
 
         self.deriv_options['form'] = 'central'
 
-        size = n - 1
         self.num_y = n
         self.v = numpy.zeros((size, 3), dtype="complex")
 
@@ -380,7 +393,7 @@ class WeissingerForces(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        mid_b = (params['b_pts'][1:, :] + params['b_pts'][:-1, :]) / 2
+        mid_b = (params['b_pts'][:, 1:, :] + params['b_pts'][:, :-1, :]) / 2
 
         _assemble_AIC_mtx(self.mtx, params['def_mesh'],
                           mid_b, params['b_pts'], params['alpha'], skip=True)
@@ -431,10 +444,10 @@ class WeissingerForces(Component):
 class WeissingerLiftDrag(Component):
     """ Calculate total lift and drag in force units based on section forces """
 
-    def __init__(self, n):
+    def __init__(self, nx, n):
         super(WeissingerLiftDrag, self).__init__()
 
-        self.add_param('sec_forces', val=numpy.zeros((n-1, 3)))
+        self.add_param('sec_forces', val=numpy.zeros((nx-1, n-1, 3)))
         self.add_param('alpha', val=3.)
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
@@ -477,7 +490,7 @@ class WeissingerLiftDrag(Component):
 class WeissingerCoeffs(Component):
     """ Compute lift and drag coefficients """
 
-    def __init__(self, n):
+    def __init__(self):
         super(WeissingerCoeffs, self).__init__()
 
         self.add_param('S_ref', val=0.)
@@ -582,20 +595,20 @@ class TotalDrag(Component):
 class WeissingerStates(Group):
     """ Group that contains the aerodynamic states """
 
-    def __init__(self, num_y):
+    def __init__(self, num_x, num_y):
         super(WeissingerStates, self).__init__()
 
         self.add('wgeom',
-                 WeissingerGeometry(num_y),
+                 WeissingerGeometry(num_x, num_y),
                  promotes=['*'])
         self.add('AICmtx',
-                 ComputeAICMatrix(num_y),
+                 ComputeAICMatrix(num_x, num_y),
                  promotes=['*'])
         self.add('circ',
-                 WeissingerCirculations(num_y),
+                 WeissingerCirculations(num_x, num_y),
                  promotes=['*'])
         self.add('forces',
-                 WeissingerForces(num_y),
+                 WeissingerForces(num_x, num_y),
                  promotes=['*'])
 
 
@@ -603,14 +616,14 @@ class WeissingerStates(Group):
 class WeissingerFunctionals(Group):
     """ Group that contains the aerodynamic functionals used to evaluate performance """
 
-    def __init__(self, num_y, CL0, CD0):
+    def __init__(self, nx, num_y, CL0, CD0):
         super(WeissingerFunctionals, self).__init__()
 
         self.add('liftdrag',
-                 WeissingerLiftDrag(num_y),
+                 WeissingerLiftDrag(nx, num_y),
                  promotes=['*'])
         self.add('coeffs',
-                 WeissingerCoeffs(num_y),
+                 WeissingerCoeffs(),
                  promotes=['*'])
         self.add('CL',
                  TotalLift(CL0),

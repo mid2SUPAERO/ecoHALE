@@ -9,14 +9,14 @@ from openmdao.api import Component
 class TransferDisplacements(Component):
     """ Performs displacement transfer """
 
-    def __init__(self, n, fem_origin=0.35):
+    def __init__(self, nx, n, fem_origin=0.35):
         super(TransferDisplacements, self).__init__()
 
         self.fem_origin = fem_origin
 
-        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        self.add_param('mesh', val=numpy.zeros((nx, n, 3)))
         self.add_param('disp', val=numpy.zeros((n, 6)))
-        self.add_output('def_mesh', val=numpy.zeros((2, n, 3)))
+        self.add_output('def_mesh', val=numpy.zeros((nx, n, 3)))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'

@@ -225,7 +225,7 @@ class Display(object):
             le_vals = self.lift_ell[self.curr_pos]
 
             self.ax2.plot(span, t_vals, lw=2, c='b')
-            self.ax2.locator_params(axis='y',nbins=4)
+            self.ax2.locator_params(axis='y',nbins=5)
             self.ax2.locator_params(axis='x',nbins=3)
             self.ax2.set_ylim([self.min_twist, self.max_twist])
             self.ax2.set_xlim([-1, 1])

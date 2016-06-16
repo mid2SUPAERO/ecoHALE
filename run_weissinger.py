@@ -15,14 +15,15 @@ numpy.random.seed(12345)
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=4, n_points_outboard=51)
 num_y = mesh.shape[1]
-num_twist = 41
+num_twist = 3
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
-    num_x = 2
-    num_y = 201
+    num_x = 3
+    num_y = 5
+    # num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -33,7 +34,7 @@ if 1:
     # mixed spacing with w as a weighting factor
     cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    w = .5
+    w = 0
     half_wing = cosine * w + (1 - w) * uniform
 
     # # concentrated nodes in center of both sides of wing
@@ -45,7 +46,6 @@ if 1:
     # half_wing = half_wing[::-1]
 
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
-    print full_wing
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
     chords[0] += 1e-5
     # chords = numpy.max(chords) * numpy.linspace(1, .2, ny2)
@@ -78,13 +78,13 @@ root.add('mesh',
          GeometryMesh(mesh, num_twist),
          promotes=['*'])
 root.add('def_mesh',
-         TransferDisplacements(num_y),
+         TransferDisplacements(num_x, num_y),
          promotes=['*'])
 root.add('weissingerstates',
-         WeissingerStates(num_y),
+         WeissingerStates(num_x, num_y),
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(num_y, CL0, CD0),
+         WeissingerFunctionals(num_x, num_y, CL0, CD0),
          promotes=['*'])
 
 prob = Problem()
