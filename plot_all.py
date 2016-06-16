@@ -96,7 +96,6 @@ class Display(object):
         sec_forces = []
         normals = []
         widths = []
-        cos_dih = []
         self.lift = []
         self.lift_ell = []
         self.vonmises = []
@@ -143,7 +142,6 @@ class Display(object):
 
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
-                cos_dih.append(case_data['Unknowns']['cos_dih'])
                 sec_forces.append(case_data['Unknowns']['sec_forces'])
                 alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
                 rho.append(case_data['Unknowns']['rho'])
@@ -161,8 +159,6 @@ class Display(object):
                 cvec = self.mesh[i][0, :, :] - self.mesh[i][1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                 chords = 0.5 * (chords[1:] + chords[:-1])
-                # L = sec_forces[i][:, 2] / normals[i][:, 2]
-                # self.lift.append(L.T * cos_dih[i])
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)

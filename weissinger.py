@@ -68,7 +68,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     planform_u = numpy.array([1., 0, 0])
 
     if 0: # kink
-        if fortran_flag:
+        if 0:
             mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, alpha, mesh, points, b_pts)
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
@@ -86,17 +86,16 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                     F = D + u
                     G = E + u
 
-                    if skip:
-                        mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
-                        mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
-                        mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
-                        mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
+                    chk = _biot_savart(A, B, P, inf=False, rev=False)
+                    if numpy.isnan(chk).any() or numpy.isinf(chk).any():
+                        print 'bad'
                     else:
-                        mtx[ind_i, ind_j, :] += _biot_savart(A, B, P, inf=False, rev=False)
-                        mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
-                        mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
-                        mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
-                        mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
+                        mtx[ind_i, ind_j, :] += chk
+
+                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
+                    mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
+                    mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
 
             mtx /=  4 * numpy.pi
 
@@ -136,7 +135,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
             mtx /= 4 * numpy.pi
 
     if 0: # trailing shed in planform, but paper version
-        if fortran_flag:
+        if 0:
             mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts, skip)
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
@@ -181,7 +180,6 @@ class WeissingerGeometry(Component):
         self.add_output('b_pts', val=numpy.zeros((n, 3)))
         self.add_output('c_pts', val=numpy.zeros((n-1, 3)))
         self.add_output('widths', val=numpy.zeros((n-1)))
-        self.add_output('cos_dih', val=numpy.zeros((n-1)))
         self.add_output('normals', val=numpy.zeros((n-1, 3)))
         self.add_output('S_ref', val=0.)
         self.num_y = n
@@ -201,12 +199,13 @@ class WeissingerGeometry(Component):
 
         b_pts = unknowns['b_pts']
         unknowns['widths'] = self._get_lengths(b_pts[1:, :], b_pts[:-1, :], 1)
-        unknowns['cos_dih'] = (b_pts[1:, 1] - b_pts[:-1, 1]) / unknowns['widths']
 
         normals = numpy.cross(
             mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
             mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
             axis=2)[0]
+
+        normals[:, 1] = 0.
 
         norms = numpy.sqrt(numpy.sum(normals**2, axis=1))
         for ind in xrange(3):
@@ -225,7 +224,7 @@ class WeissingerGeometry(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['def_mesh'],
-                                         fd_unknowns=['widths', 'cos_dih', 'normals', 'S_ref'],
+                                         fd_unknowns=['widths', 'normals', 'S_ref'],
                                          fd_states=[])
 
         jac.update(fd_jac)
@@ -335,10 +334,6 @@ class WeissingerCirculations(Component):
 
         jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
 
-        # dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
-        # jac['circulations', 'alpha'][:, 0] = normals.dot(dv_da)
-
-
         return jac
 
     def solve_linear(self, dumat, drmat, vois, mode=None):
@@ -366,8 +361,6 @@ class WeissingerForces(Component):
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_param('S_ref', val=0.)
-        self.add_param('normals', val=numpy.zeros((n-1, 3)))
         self.mtx = numpy.zeros((n-1, n-1, 3))
         self.add_param('widths', val=numpy.zeros((n-1)))
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))

@@ -15,14 +15,14 @@ numpy.random.seed(12345)
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6)
 num_y = mesh.shape[1]
-num_twist = 11
+num_twist = 5
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 41
+    num_y = 21
     span = 10.
     chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -30,9 +30,21 @@ if 1:
     half_wing = numpy.zeros((ny2))
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 
-    half_wing = .5 * numpy.cos(beta)**1 * span #  cosine spacing
-    # half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
-    full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
+    # mixed spacing with w as a weighting factor
+    cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
+    uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
+    w = 0
+    half_wing = cosine * w + (1 - w) * uniform
+
+    # concentrated nodes in center of both sides of wing
+    # ny3 = (ny2 - 1) / 3
+    # half_wing = numpy.hstack((
+    #                          numpy.linspace(0, .2, ny3+1, endpoint=False),
+    #                          numpy.linspace(.2, .3, ny3, endpoint=False),
+    #                          numpy.linspace(.3, .5, ny3)))
+    # half_wing = half_wing[::-1]
+
+    full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
     print full_wing
     chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
     chords[0] += 1e-5
@@ -51,9 +63,10 @@ root = Group()
 
 des_vars = [
     ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
+    # ('twist', numpy.array([10., 0, 10.])),
     ('span', span),
     ('v', v),
-    ('alpha', alpha),
+    ('alpha', .31186),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
@@ -61,9 +74,6 @@ des_vars = [
 root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
-#root.add('linear_twist',
-#         LinearInterp(num_y, 'twist'),
-#         promotes=['*'])
 root.add('mesh',
          GeometryMesh(mesh, num_twist),
          promotes=['*'])
@@ -76,9 +86,6 @@ root.add('weissingerstates',
 root.add('weissingerfuncs',
          WeissingerFunctionals(num_y, CL0, CD0),
          promotes=['*'])
-# root.add('loads',
-#          TransferLoads(num_y),
-#          promotes=['*'])
 
 prob = Problem()
 prob.root = root
@@ -126,7 +133,13 @@ if sys.argv[1] == '0':
     print
     print numpy.sum(prob['sec_forces'], axis=0)
     print
-    print prob['sec_forces'][:, 2]
+    # print prob['sec_forces'][:, 2]
+    norm = prob['normals']
+    print norm
+    # print prob['mesh']
+    up = numpy.array([0., 0., 1.])
+    print
+    print numpy.arccos(norm.dot(up)) * 180 / numpy.pi
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
@@ -134,3 +147,9 @@ elif sys.argv[1] == '1':
     print prob['twist']
     print
     print "run time", time.time() - st
+    norm = prob['normals']
+    print norm
+    # print prob['mesh']
+    up = numpy.array([0., 0., 1.])
+    print
+    print numpy.arccos(norm.dot(up)) * 180 / numpy.pi
