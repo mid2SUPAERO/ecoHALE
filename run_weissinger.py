@@ -13,16 +13,16 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 numpy.random.seed(12345)
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6)
+mesh = mesh_gen(n_points_inboard=4, n_points_outboard=51)
 num_y = mesh.shape[1]
-num_twist = 5
+num_twist = 41
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 21
+    num_y = 201
     span = 10.
     chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -33,10 +33,10 @@ if 1:
     # mixed spacing with w as a weighting factor
     cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    w = 0
+    w = .5
     half_wing = cosine * w + (1 - w) * uniform
 
-    # concentrated nodes in center of both sides of wing
+    # # concentrated nodes in center of both sides of wing
     # ny3 = (ny2 - 1) / 3
     # half_wing = numpy.hstack((
     #                          numpy.linspace(0, .2, ny3+1, endpoint=False),
@@ -66,7 +66,7 @@ des_vars = [
     # ('twist', numpy.array([10., 0, 10.])),
     ('span', span),
     ('v', v),
-    ('alpha', .31186),
+    ('alpha', alpha),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
@@ -132,14 +132,15 @@ if sys.argv[1] == '0':
     print 'L/D', prob['L'] / prob['D']
     print
     print numpy.sum(prob['sec_forces'], axis=0)
+    print prob['sec_forces']
     print
-    # print prob['sec_forces'][:, 2]
-    norm = prob['normals']
-    print norm
-    # print prob['mesh']
-    up = numpy.array([0., 0., 1.])
-    print
-    print numpy.arccos(norm.dot(up)) * 180 / numpy.pi
+    # # print prob['sec_forces'][:, 2]
+    # norm = prob['normals']
+    # print norm
+    # # print prob['mesh']
+    # up = numpy.array([0., 0., 1.])
+    # print
+    # print numpy.arccos(norm.dot(up)) * 180 / numpy.pi
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()

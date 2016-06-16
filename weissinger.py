@@ -88,7 +88,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
                     chk = _biot_savart(A, B, P, inf=False, rev=False)
                     if numpy.isnan(chk).any() or numpy.isinf(chk).any():
-                        print 'bad'
+                        pass
                     else:
                         mtx[ind_i, ind_j, :] += chk
 
@@ -135,8 +135,8 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
             mtx /= 4 * numpy.pi
 
     if 0: # trailing shed in planform, but paper version
-        if 0:
-            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts, skip)
+        if fortran_flag:
+            mtx[:, :, :] = lib.assembleaeromtx_planform(num_y, alpha, points, b_pts, skip)
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
         else:
@@ -200,12 +200,13 @@ class WeissingerGeometry(Component):
         b_pts = unknowns['b_pts']
         unknowns['widths'] = self._get_lengths(b_pts[1:, :], b_pts[:-1, :], 1)
 
+        midpoints = (mesh[1:, :, :] + mesh[:-1, :, :]) / 2
+
+        # will need to fix this indexing in the midpoints when porting to 2D
         normals = numpy.cross(
-            mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
+            midpoints[:, 1:, :] - midpoints[:, :-1, :],
             mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
             axis=2)[0]
-
-        normals[:, 1] = 0.
 
         norms = numpy.sqrt(numpy.sum(normals**2, axis=1))
         for ind in xrange(3):
@@ -213,7 +214,7 @@ class WeissingerGeometry(Component):
 
         unknowns['normals'] = normals
 
-        unknowns['S_ref'] = 0.5 * numpy.sum(norms)
+        unknowns['S_ref'] = numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
@@ -361,9 +362,10 @@ class WeissingerForces(Component):
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.mtx = numpy.zeros((n-1, n-1, 3))
         self.add_param('widths', val=numpy.zeros((n-1)))
         self.add_output('sec_forces', val=numpy.zeros((n-1, 3)))
+
+        self.mtx = numpy.zeros((n-1, n-1, 3))
 
         self.deriv_options['form'] = 'central'
 
