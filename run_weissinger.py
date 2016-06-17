@@ -21,8 +21,8 @@ num_twist = 3
 execfile('CRM.py')
 
 if 1:
-    num_x = 2
-    num_y = 5
+    num_x = 11
+    num_y = 31
     # num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
@@ -62,8 +62,8 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
-    # ('twist', numpy.array([10., 0, 10.])),
+    # ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
+    ('twist', numpy.array([0., 0, 0.])),
     ('span', span),
     ('v', v),
     ('alpha', alpha),
@@ -116,15 +116,13 @@ prob.root.deriv_options['type'] = 'fd'
 prob.setup()
 view_tree(prob, outfile="aerostruct.html", show_browser=False)
 
-
-
-prob.run_once()
 import time
+st = time.time()
+prob.run_once()
 if sys.argv[1] == '0':
-    # st = time.time()
     # prob.check_partial_derivatives(compact_print=True)
     # prob.check_total_derivatives()
-    # print "run time", time.time() - st
+    print "run time", time.time() - st
     print
     print 'alpha', prob['alpha'], "; L", prob['L'], "; D", prob['D'], "; num", num_y
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
@@ -132,8 +130,8 @@ if sys.argv[1] == '0':
     print 'L/D', prob['L'] / prob['D']
     print
     # print numpy.sum(prob['sec_forces'], axis=0)
-    print prob['sec_forces']
-    print
+    # print prob['sec_forces']
+    # print
     # print prob['normals']
     # print
 elif sys.argv[1] == '1':

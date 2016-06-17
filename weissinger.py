@@ -10,7 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-fortran_flag = False
+# fortran_flag = False
 
 def view_mat(mat):
     import matplotlib.pyplot as plt
@@ -43,7 +43,7 @@ def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
     cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
     cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
     C = numpy.cross(B - P, A - P)
-    C /= norm(C) + eps
+    C /= norm(C)
 
     if inf:
         v = -C / rH * (cosA + 1)
@@ -240,6 +240,9 @@ class WeissingerGeometry(Component):
         for ind in xrange(3):
             unknowns['normals'][:, :, ind] /= norms
 
+        print norms.shape
+        print numpy.sum(norms)
+        exit()
         unknowns['S_ref'] = numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
