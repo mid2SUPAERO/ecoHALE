@@ -12,6 +12,13 @@ except:
     fortran_flag = False
 fortran_flag = False
 
+def view_mat(mat):
+    import matplotlib.pyplot as plt
+    im = plt.imshow(numpy.linalg.norm(mat, axis=2).real, interpolation='none')
+    plt.colorbar(im, orientation='horizontal')
+    plt.show()
+    exit()
+
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
 
@@ -60,6 +67,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     """
 
     num_y = mesh.shape[1]
+    num_x = mesh.shape[0]
     mtx[:, :, :] = 0.0
     alpha_conv = alpha * numpy.pi / 180.
     cosa = numpy.cos(alpha_conv)
@@ -67,39 +75,56 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     u = numpy.array([cosa, 0, sina])
     planform_u = numpy.array([1., 0, 0])
 
-    if 0: # kink
-        if 0:
+    if 1: # kink
+        if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, alpha, mesh, points, b_pts)
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
         else:
-            # Loop through control points
-            for ind_i in xrange(num_y - 1):
-                P = points[ind_i]
+            # Spanwise loop through elements
+            for el_j in xrange(num_y - 1):
 
-                # Loop through elements
-                for ind_j in xrange(num_y - 1):
-                    A = b_pts[ind_j + 0, :]
-                    B = b_pts[ind_j + 1, :]
-                    D = mesh[-1, ind_j + 0, :]
-                    E = mesh[-1, ind_j + 1, :]
+                el_loc_j = el_j * (num_x - 1)
+
+                # Chordwise loop through elements
+                for el_i in xrange(num_x - 1):
+
+                    el_loc = el_i + el_loc_j
+
+                    A = b_pts[el_i, el_j + 0, :]
+                    B = b_pts[el_i, el_j + 1, :]
+                    D = mesh[el_i + 1, el_j + 0, :]
+                    E = mesh[el_i + 1, el_j + 1, :]
                     F = D + u
                     G = E + u
 
-                    chk = _biot_savart(A, B, P, inf=False, rev=False)
-                    if numpy.isnan(chk).any() or numpy.isinf(chk).any():
-                        pass
-                    else:
-                        mtx[ind_i, ind_j, :] += chk
+                    # Spanwise loop through control points
+                    for cp_j in xrange(num_y - 1):
 
-                    mtx[ind_i, ind_j, :] += _biot_savart(B, E, P, inf=False, rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(A, D, P, inf=False, rev=True)
-                    mtx[ind_i, ind_j, :] += _biot_savart(E, G, P, inf=True,  rev=False)
-                    mtx[ind_i, ind_j, :] += _biot_savart(D, F, P, inf=True,  rev=True)
+                        cp_loc_j = cp_j * (num_x - 1)
+
+                        # Chordwise loop through control points
+                        for cp_i in xrange(num_x - 1):
+
+                            cp_loc = cp_i + cp_loc_j
+
+                            P = points[cp_i, cp_j]
+
+                            chk = _biot_savart(A, B, P, inf=False, rev=False)
+                            if numpy.isnan(chk).any() or numpy.isinf(chk).any():
+                                pass
+                            else:
+                                mtx[cp_loc, el_loc, :] += chk
+
+                            mtx[cp_loc, el_loc, :] += _biot_savart(B, E, P, inf=False, rev=False)
+                            mtx[cp_loc, el_loc, :] += _biot_savart(A, D, P, inf=False, rev=True)
+                            mtx[cp_loc, el_loc, :] += _biot_savart(E, G, P, inf=True,  rev=False)
+                            mtx[cp_loc, el_loc, :] += _biot_savart(D, F, P, inf=True,  rev=True)
 
             mtx /=  4 * numpy.pi
+            view_mat(mtx)
 
-    if 1: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
+    if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts, skip)
             # old_mtx = mtx.copy()
@@ -394,11 +419,6 @@ class WeissingerForces(Component):
         self.v[:, 2] += sina * params['v']
 
         bound = params['b_pts'][1:, :] - params['b_pts'][:-1, :]
-        # import matplotlib.pyplot as plt
-        # im = plt.imshow(numpy.linalg.norm(self.mtx, axis=2).real)
-        # plt.colorbar(im, orientation='horizontal')
-        # plt.show()
-        # exit()
 
         cross = numpy.cross(self.v, bound)
 
