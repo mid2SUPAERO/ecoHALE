@@ -162,10 +162,14 @@ class Display(object):
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
-                forces = sec_forces[i]
+                forces = numpy.sum(sec_forces[i], axis=0)
+                widths_ = numpy.mean(widths[i], axis=0)
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                    widths[i]/0.5/rho[i]/v[i]**2
+                    widths_/0.5/rho[i]/v[i]**2
+                print forces
+                print sec_forces[i]
+                print
                 # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
                 # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 
@@ -450,7 +454,7 @@ class Display(object):
         # Option to automatically refresh history file
         # especially useful for running optimizations
         self.var_ref = Tk.IntVar()
-        self.var_ref.set(1)
+        # self.var_ref.set(1)
         c11 = Tk.Checkbutton(
             self.options_frame,
             text="Automatically refresh",

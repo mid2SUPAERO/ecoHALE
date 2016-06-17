@@ -12,22 +12,24 @@ from crm_data import crm_base_mesh
 def rotate(mesh, thetas):
     """ Computes rotation matricies given mesh and rotation angles in degress """
 
-    le = mesh[0]
     te = mesh[-1]
 
-    n_points = len(le)
+    ny = mesh.shape[1]
+    nx = mesh.shape[0]
 
     rad_thetas = thetas * numpy.pi / 180.
 
-    mats = numpy.zeros((n_points, 3, 3), dtype="complex")
+    mats = numpy.zeros((ny, 3, 3), dtype="complex")
     mats[:, 0, 0] = cos(rad_thetas)
     mats[:, 0, 2] = sin(rad_thetas)
     mats[:, 1, 1] = 1
     mats[:, 2, 0] = -sin(rad_thetas)
     mats[:, 2, 2] = cos(rad_thetas)
 
-    le[:] = numpy.einsum("ikj, ij -> ik", mats, le-te)
-    le += te
+    for ix in range(nx-1):
+        row = mesh[ix]
+        row[:] = numpy.einsum("ikj, ij -> ik", mats, row-te)
+        row += te
 
     return mesh
 

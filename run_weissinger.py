@@ -131,11 +131,11 @@ if sys.argv[1] == '0':
     print
     print 'L/D', prob['L'] / prob['D']
     print
-    print numpy.sum(prob['sec_forces'], axis=0)
+    # print numpy.sum(prob['sec_forces'], axis=0)
     print prob['sec_forces']
     print
-    print prob['normals']
-    print
+    # print prob['normals']
+    # print
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()

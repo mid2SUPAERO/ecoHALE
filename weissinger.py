@@ -77,16 +77,16 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
     if 1: # kink
         if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, alpha, mesh, points, b_pts)
+            mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, num_x, alpha, mesh, points, b_pts)
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
         else:
-            # Spanwise loop through elements
+            # Spanwise loop through horeshoe elements
             for el_j in xrange(num_y - 1):
 
                 el_loc_j = el_j * (num_x - 1)
 
-                # Chordwise loop through elements
+                # Chordwise loop through horeshoe elements
                 for el_i in xrange(num_x - 1):
 
                     el_loc = el_i + el_loc_j
@@ -330,7 +330,7 @@ class WeissingerCirculations(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex")
-        self.rhs[:] = -params['normals'].dot(v_inf)
+        self.rhs[:] = -params['normals'].reshape(-1, params['normals'].shape[-1]).dot(v_inf)
 
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
@@ -398,6 +398,7 @@ class WeissingerForces(Component):
         self.deriv_options['form'] = 'central'
 
         self.num_y = n
+        self.num_x = nx
         self.v = numpy.zeros((size, 3), dtype="complex")
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -419,11 +420,11 @@ class WeissingerForces(Component):
 
         bound = params['b_pts'][:, 1:, :] - params['b_pts'][:, :-1, :]
 
-        cross = numpy.cross(self.v, bound)
+        cross = numpy.cross(self.v, bound.reshape(-1, bound.shape[-1]))
 
         for ind in xrange(3):
-            unknowns['sec_forces'][:, :, ind] = params['rho'] * circ * cross[:, :, ind]
-
+            tmp = (params['rho'] * circ * cross[:, ind]).reshape(self.num_x-1, self.num_y-1)
+            unknowns['sec_forces'][:, :, ind] = tmp
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -474,7 +475,7 @@ class WeissingerLiftDrag(Component):
         sina = numpy.sin(alpha)
         unknowns['L'] = numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
         unknowns['D'] = numpy.sum( forces[:, :, 0] * cosa + forces[:, :, 2] * sina)
-        
+
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
 
