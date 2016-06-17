@@ -167,9 +167,6 @@ class Display(object):
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                     widths_/0.5/rho[i]/v[i]**2
-                print forces
-                print sec_forces[i]
-                print
                 # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
                 # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 

@@ -21,8 +21,8 @@ num_twist = 3
 execfile('CRM.py')
 
 if 1:
-    num_x = 11
-    num_y = 31
+    num_x = 3
+    num_y = 5
     # num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
@@ -63,7 +63,7 @@ root = Group()
 
 des_vars = [
     # ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
-    ('twist', numpy.array([0., 0, 0.])),
+    ('twist', numpy.array([0., 10., 0.])),
     ('span', span),
     ('v', v),
     ('alpha', alpha),

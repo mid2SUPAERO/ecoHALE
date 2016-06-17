@@ -227,23 +227,18 @@ class WeissingerGeometry(Component):
         b_pts = unknowns['b_pts']
         unknowns['widths'] = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
 
-        midpoints = (mesh[1:, :, :] + mesh[:-1, :, :]) / 2
+        normals = numpy.cross(
+            mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
+            mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
+            axis=2)
 
-        # need to vectorize this
-        for ind in range(self.num_x - 1):
-            unknowns['normals'][ind, :, :] = numpy.cross(
-                                mesh[ind+1, :-1, :] - mesh[ ind,  1:, :],
-                                midpoints[ind, 1:, :] - midpoints[ind, :-1, :],
-                                axis=1)[0]
+        norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
 
-        norms = numpy.sqrt(numpy.sum(unknowns['normals']**2, axis=2))
         for ind in xrange(3):
-            unknowns['normals'][:, :, ind] /= norms
+            normals[:, :, ind] /= norms
 
-        print norms.shape
-        print numpy.sum(norms)
-        exit()
-        unknowns['S_ref'] = numpy.sum(norms)
+        unknowns['normals'] = normals
+        unknowns['S_ref'] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
