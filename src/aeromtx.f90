@@ -31,10 +31,10 @@ subroutine assembleaeromtx_kink(n, nx, alpha, mesh, points, bpts, mtx)
 
   mtx(:, :, :) = 0.
 
-  do el_j = 1, n-1 ! spanwise loop through horeshoe elements
+  do el_j = 1, n-1 ! spanwise loop through horseshoe elements
     el_loc_j = (el_j - 1) * (nx - 1)
 
-    do el_i = 1, nx-1 ! chordwise loop through horeshoe elements
+    do el_i = 1, nx-1 ! chordwise loop through horseshoe elements
       el_loc = el_i + el_loc_j
 
       A = bpts(el_i, el_j + 0, :)

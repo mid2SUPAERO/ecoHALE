@@ -10,7 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-# fortran_flag = False
+fortran_flag = False
 
 def view_mat(mat):
     import matplotlib.pyplot as plt
@@ -81,12 +81,12 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
         else:
-            # Spanwise loop through horeshoe elements
+            # Spanwise loop through horseshoe elements
             for el_j in xrange(num_y - 1):
 
                 el_loc_j = el_j * (num_x - 1)
 
-                # Chordwise loop through horeshoe elements
+                # Chordwise loop through horseshoe elements
                 for el_i in xrange(num_x - 1):
 
                     el_loc = el_i + el_loc_j
@@ -415,6 +415,8 @@ class WeissingerForces(Component):
             self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
         self.v[:, 0] += cosa * params['v']
         self.v[:, 2] += sina * params['v']
+        print self.v
+        exit()
 
         bound = params['b_pts'][:, 1:, :] - params['b_pts'][:, :-1, :]
 
@@ -423,6 +425,7 @@ class WeissingerForces(Component):
         for ind in xrange(3):
             tmp = (params['rho'] * circ * cross[:, ind]).reshape(self.num_x-1, self.num_y-1)
             unknowns['sec_forces'][:, :, ind] = tmp
+        print unknowns['sec_forces']
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""

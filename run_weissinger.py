@@ -21,7 +21,7 @@ num_twist = 3
 execfile('CRM.py')
 
 if 1:
-    num_x = 3
+    num_x = 2
     num_y = 5
     # num_twist = int((num_y - 1) / 5)
     span = 10.
@@ -63,7 +63,7 @@ root = Group()
 
 des_vars = [
     # ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
-    ('twist', numpy.array([0., 10., 0.])),
+    ('twist', numpy.array([0., 1., 0.])),
     ('span', span),
     ('v', v),
     ('alpha', alpha),
@@ -134,6 +134,7 @@ if sys.argv[1] == '0':
     # print
     # print prob['normals']
     # print
+    print prob['mesh']
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
