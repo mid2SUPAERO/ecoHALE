@@ -21,7 +21,7 @@ num_twist = 3
 execfile('CRM.py')
 
 if 1:
-    num_x = 3
+    num_x = 2
     num_y = 5
     # num_twist = int((num_y - 1) / 5)
     span = 10.

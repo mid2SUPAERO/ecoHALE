@@ -10,7 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-# fortran_flag = False
+fortran_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -204,27 +204,17 @@ class WeissingerGeometry(Component):
         unknowns['widths'] = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
 
         midpoints = (mesh[1:, :, :] + mesh[:-1, :, :]) / 2
-        print midpoints.shape
-        print
-        print midpoints
-        print
-        print midpoints[:, 1:, :] - midpoints[:, :-1, :]
-        print
-        print mesh[:-1, :-1, :] - mesh[ 1:,  1:, :]
 
-        # will need to fix this indexing in the midpoints when porting to 2D
-        normals = numpy.cross(
-            midpoints[:, 1:, :] - midpoints[:, :-1, :],
-            mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
-            axis=2)[0]
-        print
-        print normals
+        # need to vectorize this
+        for ind in range(self.num_x - 1):
+            unknowns['normals'][ind, :, :] = numpy.cross(
+                                mesh[ind+1, :-1, :] - mesh[ ind,  1:, :],
+                                midpoints[ind, 1:, :] - midpoints[ind, :-1, :],
+                                axis=1)[0]
 
-        norms = numpy.sqrt(numpy.sum(normals**2, axis=1))
+        norms = numpy.sqrt(numpy.sum(unknowns['normals']**2, axis=1))
         for ind in xrange(3):
-            normals[:, ind] /= norms
-
-        unknowns['normals'] = normals
+            unknowns['normals'][:, ind] /= norms
 
         unknowns['S_ref'] = numpy.sum(norms)
 
