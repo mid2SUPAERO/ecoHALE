@@ -121,10 +121,10 @@ view_tree(prob, outfile="aerostruct.html", show_browser=False)
 prob.run_once()
 import time
 if sys.argv[1] == '0':
-    st = time.time()
+    # st = time.time()
     # prob.check_partial_derivatives(compact_print=True)
     # prob.check_total_derivatives()
-    print "run time", time.time() - st
+    # print "run time", time.time() - st
     print
     print 'alpha', prob['alpha'], "; L", prob['L'], "; D", prob['D'], "; num", num_y
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
@@ -134,13 +134,8 @@ if sys.argv[1] == '0':
     print numpy.sum(prob['sec_forces'], axis=0)
     print prob['sec_forces']
     print
-    # # print prob['sec_forces'][:, 2]
-    # norm = prob['normals']
-    # print norm
-    # # print prob['mesh']
-    # up = numpy.array([0., 0., 1.])
-    # print
-    # print numpy.arccos(norm.dot(up)) * 180 / numpy.pi
+    print prob['normals']
+    print
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
@@ -150,7 +145,3 @@ elif sys.argv[1] == '1':
     print "run time", time.time() - st
     norm = prob['normals']
     print norm
-    # print prob['mesh']
-    up = numpy.array([0., 0., 1.])
-    print
-    print numpy.arccos(norm.dot(up)) * 180 / numpy.pi

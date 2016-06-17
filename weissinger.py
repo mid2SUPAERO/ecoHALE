@@ -122,7 +122,6 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                             mtx[cp_loc, el_loc, :] += _biot_savart(D, F, P, inf=True,  rev=True)
 
             mtx /=  4 * numpy.pi
-            view_mat(mtx)
 
     if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
         if fortran_flag:
@@ -237,9 +236,9 @@ class WeissingerGeometry(Component):
                                 midpoints[ind, 1:, :] - midpoints[ind, :-1, :],
                                 axis=1)[0]
 
-        norms = numpy.sqrt(numpy.sum(unknowns['normals']**2, axis=1))
+        norms = numpy.sqrt(numpy.sum(unknowns['normals']**2, axis=2))
         for ind in xrange(3):
-            unknowns['normals'][:, ind] /= norms
+            unknowns['normals'][:, :, ind] /= norms
 
         unknowns['S_ref'] = numpy.sum(norms)
 
@@ -325,7 +324,7 @@ class WeissingerCirculations(Component):
     def _assemble_system(self, params):
         self.mtx[:, :] = 0.
         for ind in xrange(3):
-            self.mtx[:, :] += (params['AIC_mtx'][:, :, ind].T * params['normals'][:, ind]).T
+            self.mtx[:, :] += (params['AIC_mtx'][:, :, ind].T * params['normals'][:, :, ind].flatten()).T
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
@@ -418,12 +417,12 @@ class WeissingerForces(Component):
         self.v[:, 0] += cosa * params['v']
         self.v[:, 2] += sina * params['v']
 
-        bound = params['b_pts'][1:, :] - params['b_pts'][:-1, :]
+        bound = params['b_pts'][:, 1:, :] - params['b_pts'][:, :-1, :]
 
         cross = numpy.cross(self.v, bound)
 
         for ind in xrange(3):
-            unknowns['sec_forces'][:, ind] = params['rho'] * circ * cross[:, ind]
+            unknowns['sec_forces'][:, :, ind] = params['rho'] * circ * cross[:, :, ind]
 
 
     def linearize(self, params, unknowns, resids):
@@ -473,9 +472,9 @@ class WeissingerLiftDrag(Component):
 
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
-        unknowns['L'] = numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
-        unknowns['D'] = numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
-
+        unknowns['L'] = numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
+        unknowns['D'] = numpy.sum( forces[:, :, 0] * cosa + forces[:, :, 2] * sina)
+        
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
 
@@ -492,8 +491,8 @@ class WeissingerLiftDrag(Component):
         tmp = numpy.array([cosa, 0, sina])
         jac['D', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
 
-        jac['L', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, 0] * cosa - forces[:, 2] * sina)
-        jac['D', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
+        jac['L', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
+        jac['D', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
 
         return jac
 
