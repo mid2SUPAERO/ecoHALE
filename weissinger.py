@@ -10,7 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-fortran_flag = False
+# fortran_flag = False
 
 def view_mat(mat):
     import matplotlib.pyplot as plt
@@ -340,13 +340,13 @@ class WeissingerCirculations(Component):
     def _assemble_system(self, params):
         self.mtx[:, :] = 0.
         for ind in xrange(3):
-            self.mtx[:, :] += (params['AIC_mtx'][:, :, ind].T * params['normals'][:, :, ind].flatten()).T
+            self.mtx[:, :] += (params['AIC_mtx'][:, :, ind].T * params['normals'][:, :, ind].flatten('F')).T
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex")
-        self.rhs[:] = -params['normals'].reshape(-1, params['normals'].shape[-1]).dot(v_inf)
+        self.rhs[:] = -params['normals'].reshape(-1, params['normals'].shape[-1], order='F').dot(v_inf)
 
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
@@ -436,10 +436,10 @@ class WeissingerForces(Component):
 
         bound = params['b_pts'][:, 1:, :] - params['b_pts'][:, :-1, :]
 
-        cross = numpy.cross(self.v, bound.reshape(-1, bound.shape[-1]))
+        cross = numpy.cross(self.v, bound.reshape(-1, bound.shape[-1], order='F'))
 
         for ind in xrange(3):
-            tmp = (params['rho'] * circ * cross[:, ind]).reshape(self.num_x-1, self.num_y-1)
+            tmp = (params['rho'] * circ * cross[:, ind]).reshape(self.num_x-1, self.num_y-1, order='F')
             unknowns['sec_forces'][:, :, ind] = tmp
 
     def linearize(self, params, unknowns, resids):

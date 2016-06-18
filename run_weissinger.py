@@ -21,9 +21,9 @@ num_twist = 3
 execfile('CRM.py')
 
 if 1:
-    num_x = 5
-    num_y = 5
-    # num_twist = int((num_y - 1) / 5)
+    num_x = 3
+    num_y = 81
+    num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -34,8 +34,8 @@ if 1:
     # mixed spacing with w as a weighting factor
     cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    w = 0
-    half_wing = cosine * w + (1 - w) * uniform
+    amt_of_cos = .5
+    half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
 
     # # concentrated nodes in center of both sides of wing
     # ny3 = (ny2 - 1) / 3
@@ -62,8 +62,8 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    # ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
-    ('twist', numpy.array([4., 2, 4.])),
+    ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
+    # ('twist', numpy.array([4., 2, 4.])),
     ('span', span),
     ('v', v),
     ('alpha', alpha),
