@@ -21,8 +21,8 @@ num_twist = 3
 execfile('CRM.py')
 
 if 1:
-    num_x = 3
-    num_y = 81
+    num_x = 2
+    num_y = 101
     num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
@@ -34,7 +34,7 @@ if 1:
     # mixed spacing with w as a weighting factor
     cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    amt_of_cos = .5
+    amt_of_cos = 0
     half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
 
     # # concentrated nodes in center of both sides of wing
