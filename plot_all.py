@@ -164,6 +164,9 @@ class Display(object):
                 sina = numpy.sin(a)
                 forces = numpy.sum(sec_forces[i], axis=0)
                 widths_ = numpy.mean(widths[i], axis=0)
+                # print sec_forces[i]
+                # print widths[i]
+                # exit()
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                     widths_/0.5/rho[i]/v[i]**2

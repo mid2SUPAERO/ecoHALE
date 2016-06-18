@@ -14,10 +14,9 @@ fortran_flag = False
 
 def view_mat(mat):
     import matplotlib.pyplot as plt
-    im = plt.imshow(numpy.linalg.norm(mat, axis=2).real, interpolation='none')
+    im = plt.imshow(mat.real, interpolation='none')
     plt.colorbar(im, orientation='horizontal')
     plt.show()
-    exit()
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -59,7 +58,7 @@ def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
 def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     """
     Compute the aerodynamic influence coefficient matrix
-    either for the circulation linear system or Trefftz-plane drag computation
+    either for the ation linear system or Trefftz-plane drag computation
     - mtx[num_y-1, num_y-1, 3] : derivative of v w.r.t. circulation
     - mesh[2, num_y, 3] : contains LE and TE coordinates at each section
     - points[num_y-1, 3] : control points
@@ -75,7 +74,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     u = numpy.array([cosa, 0, sina])
     planform_u = numpy.array([1., 0, 0])
 
-    if 1: # kink
+    if 0: # kink
         if fortran_flag:
             mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, num_x, alpha, mesh, points, b_pts)
             # old_mtx = mtx.copy()
@@ -123,40 +122,59 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
             mtx /=  4 * numpy.pi
 
-    if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
+    if 1: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
         if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, alpha, points, b_pts, skip)
+            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, num_x, alpha, points, b_pts, skip)
             # old_mtx = mtx.copy()
             # mtx[:, :, :] = 0.
         else:
-            # Loop through control points
-            for ind_i in xrange(num_y - 1):
-                P = points[ind_i]
+            # Spanwise loop through horseshoe elements
+            for el_j in xrange(num_y - 1):
 
-                # Loop through elements
-                for ind_j in xrange(num_y - 1):
-                    A = b_pts[ind_j + 0, :]
-                    B = b_pts[ind_j + 1, :]
+                el_loc_j = el_j * (num_x - 1)
 
+                # Chordwise loop through horseshoe elements
+                for el_i in xrange(num_x - 1):
+
+                    el_loc = el_i + el_loc_j
+
+                    A = b_pts[el_i, el_j + 0, :]
+                    B = b_pts[el_i, el_j + 1, :]
                     r0 = B - A
-                    r1 = P - A
-                    r2 = P - B
-
                     r0_mag = norm(r0)
-                    r1_mag = norm(r1)
-                    r2_mag = norm(r2)
 
-                    t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                    t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
+                    # Spanwise loop through control points
+                    for cp_j in xrange(num_y - 1):
 
-                    if skip and ind_i == ind_j:
-                        mtx[ind_i, ind_j, :] = t1 - t3
-                    else:
-                        t2 = (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
-                             (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
-                        mtx[ind_i, ind_j, :] = t1 + t2 - t3
+                        cp_loc_j = cp_j * (num_x - 1)
+
+                        # Chordwise loop through control points
+                        for cp_i in xrange(num_x - 1):
+
+                            cp_loc = cp_i + cp_loc_j
+
+                            P = points[cp_i, cp_j]
+
+
+                            r1 = P - A
+                            r2 = P - B
+
+
+                            r1_mag = norm(r1)
+                            r2_mag = norm(r2)
+
+                            t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
+                            t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
+
+                            if skip and el_loc == cp_loc:
+                                mtx[cp_loc, el_loc, :] = t1 - t3
+                            else:
+                                t2 = (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
+                                     (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
+                                mtx[cp_loc, el_loc, :] = t1 + t2 - t3
 
             mtx /= 4 * numpy.pi
+
 
     if 0: # trailing shed in planform, but paper version
         if fortran_flag:
@@ -415,8 +433,6 @@ class WeissingerForces(Component):
             self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
         self.v[:, 0] += cosa * params['v']
         self.v[:, 2] += sina * params['v']
-        print self.v
-        exit()
 
         bound = params['b_pts'][:, 1:, :] - params['b_pts'][:, :-1, :]
 
@@ -425,7 +441,6 @@ class WeissingerForces(Component):
         for ind in xrange(3):
             tmp = (params['rho'] * circ * cross[:, ind]).reshape(self.num_x-1, self.num_y-1)
             unknowns['sec_forces'][:, :, ind] = tmp
-        print unknowns['sec_forces']
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""

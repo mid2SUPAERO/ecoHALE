@@ -73,73 +73,26 @@ subroutine assembleaeromtx_kink(n, nx, alpha, mesh, points, bpts, mtx)
 
 end subroutine assembleaeromtx_kink
 
-subroutine assembleaeromtx_freestream(n, alpha, points, bpts, mtx)
+subroutine assembleaeromtx_paper(n, nx, alpha, points, bpts, skip, mtx)
 
   implicit none
 
-  !f2py intent(in) n, alpha, points, bpts
+  !f2py intent(in) n, nx, alpha, points, bpts
   !f2py intent(out) mtx
-  !f2py depend(n) mesh, points, bpts, mtx
+  !f2py depend(n) points, bpts, mtx
+  !f2py depend(nx) points, bpts, mtx
 
   ! Input
-  integer, intent(in) :: n
+  integer, intent(in) :: n, nx
   complex*16, intent(in) :: alpha
-  complex*16, intent(in) :: points(n-1, 3), bpts(n, 3)
-
-  ! Output
-  complex*16, intent(out) :: mtx(n-1, n-1, 3)
-
-  ! Working
-  integer :: i, j
-  complex*16 :: pi, P(3), A(3), B(3), F(3), G(3), Vinf(3)
-
-  pi = 4.d0*atan(1.d0)
-
-  Vinf(1) = cos(alpha * pi / 180.)
-  Vinf(2) = 0.
-  Vinf(3) = sin(alpha * pi / 180.)
-
-  mtx(:, :, :) = 0.
-
-  do i = 1, n-1 ! Loop over control points
-     P = points(i, :)
-
-     do j = 1, n-1 ! Loop over elements
-        A = bpts(j + 0, :)
-        B = bpts(j + 1, :)
-        F = A + Vinf
-        G = B + Vinf
-
-        call biotsavart(A, B, P, .False., .False., mtx(i, j, :))
-        call biotsavart(B, G, P, .True.,  .False., mtx(i, j, :))
-        call biotsavart(A, F, P, .True.,  .True.,  mtx(i, j, :))
-
-     end do
-  end do
-
-  mtx = mtx / (4. * pi)
-
-end subroutine assembleaeromtx_freestream
-
-subroutine assembleaeromtx_paper(n, alpha, points, bpts, skip, mtx)
-
-  implicit none
-
-  !f2py intent(in) n, alpha, points, bpts
-  !f2py intent(out) mtx
-  !f2py depend(n) mesh, points, bpts, mtx
-
-  ! Input
-  integer, intent(in) :: n
-  complex*16, intent(in) :: alpha
-  complex*16, intent(in) :: points(n-1, 3), bpts(n, 3)
+  complex*16, intent(in) :: points(nx-1, n-1, 3), bpts(nx-1, n, 3)
   logical, intent(in) :: skip
 
   ! Output
-  complex*16, intent(out) :: mtx(n-1, n-1, 3)
+  complex*16, intent(out) :: mtx((nx-1)*(n-1), (nx-1)*(n-1), 3)
 
   ! Working
-  integer :: i, j
+  integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, cp_loc
   complex*16 :: pi, P(3), A(3), B(3), u(3)
   complex*16 :: norm, ur2(3), r0(3), r1(3), r2(3), r0_mag, r1_mag, r2_mag
   complex*16 :: r1r2(3), ur1(3), dot, t1(3), t2(3), t3(3)
@@ -152,35 +105,46 @@ subroutine assembleaeromtx_paper(n, alpha, points, bpts, skip, mtx)
 
   mtx(:, :, :) = 0.
 
-  do i = 1, n-1 ! Loop over control points
-     P = points(i, :)
+  do el_j = 1, n-1 ! spanwise loop through horseshoe elements
+    el_loc_j = (el_j - 1) * (nx - 1)
 
-     do j = 1, n-1 ! Loop over elements
-        A = bpts(j + 0, :)
-        B = bpts(j + 1, :)
+    do el_i = 1, nx-1 ! chordwise loop through horseshoe elements
+      el_loc = el_i + el_loc_j
 
-        r0 = B - A
-        r1 = P - A
-        r2 = P - B
+      A = bpts(el_i, el_j + 0, :)
+      B = bpts(el_i, el_j + 1, :)
+      r0 = B - A
+      r0_mag = norm(r0)
 
-        r0_mag = norm(r0)
-        r1_mag = norm(r1)
-        r2_mag = norm(r2)
+      do cp_j = 1, n-1 ! spanwise loop through control points
+        cp_loc_j = (cp_j - 1) * (nx - 1)
 
-        call cross(u, r2, ur2)
-        call cross(r1, r2, r1r2)
-        call cross(u, r1, ur1)
+        do cp_i = 1, nx-1 ! chordwise loop through control points
+          cp_loc = cp_i + cp_loc_j
+          P = points(cp_i, cp_j, :)
 
-        t1 = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
-        t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
+          r1 = P - A
+          r2 = P - B
+          r1_mag = norm(r1)
+          r2_mag = norm(r2)
 
-        if ((skip)  .and. (i .EQ. j)) then
-          mtx(i, j, :) = t1 - t3
-        else
-          t2 = (r1_mag + r2_mag) * r1r2 / &
-               (r1_mag * r2_mag * (r1_mag * r2_mag + dot(r1, r2)))
-          mtx(i, j, :) = t1 + t2 - t3
-        end if
+          call cross(u, r2, ur2)
+          call cross(r1, r2, r1r2)
+          call cross(u, r1, ur1)
+
+          t1 = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
+          t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
+
+          if ((skip)  .and. (cp_loc .EQ. el_loc)) then
+            mtx(cp_loc, el_loc, :) = t1 - t3
+          else
+            t2 = (r1_mag + r2_mag) * r1r2 / &
+                 (r1_mag * r2_mag * (r1_mag * r2_mag + dot(r1, r2)))
+            mtx(cp_loc, el_loc, :) = t1 + t2 - t3
+          end if
+
+        end do
+      end do
 
      end do
   end do
@@ -188,74 +152,6 @@ subroutine assembleaeromtx_paper(n, alpha, points, bpts, skip, mtx)
   mtx = mtx / (4. * pi)
 
 end subroutine assembleaeromtx_paper
-
-subroutine assembleaeromtx_planform(n, alpha, points, bpts, skip, mtx)
-
-  implicit none
-
-  !f2py intent(in) n, alpha, points, bpts
-  !f2py intent(out) mtx
-  !f2py depend(n) mesh, points, bpts, mtx
-
-  ! Input
-  integer, intent(in) :: n
-  complex*16, intent(in) :: alpha
-  complex*16, intent(in) :: points(n-1, 3), bpts(n, 3)
-  logical, intent(in) :: skip
-
-  ! Output
-  complex*16, intent(out) :: mtx(n-1, n-1, 3)
-
-  ! Working
-  integer :: i, j
-  complex*16 :: pi, P(3), A(3), B(3), u(3)
-  complex*16 :: norm, ur2(3), r0(3), r1(3), r2(3), r0_mag, r1_mag, r2_mag
-  complex*16 :: r1r2(3), ur1(3), dot, t1(3), t2(3), t3(3)
-
-  pi = 4.d0*atan(1.d0)
-
-  u(1) =1.
-
-  mtx(:, :, :) = 0.
-
-  do i = 1, n-1 ! Loop over control points
-     P = points(i, :)
-
-     do j = 1, n-1 ! Loop over elements
-        A = bpts(j + 0, :)
-        B = bpts(j + 1, :)
-
-        r0 = B - A
-        r1 = P - A
-        r2 = P - B
-
-        r0_mag = norm(r0)
-        r1_mag = norm(r1)
-        r2_mag = norm(r2)
-
-        call cross(u, r2, ur2)
-        call cross(r1, r2, r1r2)
-        call cross(u, r1, ur1)
-
-        t1 = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
-        t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
-
-        if ((skip)  .and. (i .EQ. j)) then
-          mtx(i, j, :) = t1 - t3
-        else
-          t2 = (r1_mag + r2_mag) * r1r2 / &
-               (r1_mag * r2_mag * (r1_mag * r2_mag + dot(r1, r2)))
-          mtx(i, j, :) = t1 + t2 - t3
-        end if
-
-     end do
-  end do
-
-  mtx = mtx / (4. * pi)
-
-end subroutine assembleaeromtx_planform
-
-
 
 
 subroutine biotsavart(A, B, P, inf, rev, out)
