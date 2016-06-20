@@ -22,7 +22,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 2
-    num_y = 101
+    num_y = 49
     num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
@@ -34,7 +34,7 @@ if 1:
     # mixed spacing with w as a weighting factor
     cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    amt_of_cos = 0
+    amt_of_cos = .5
     half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
 
     # # concentrated nodes in center of both sides of wing
@@ -128,13 +128,6 @@ if sys.argv[1] == '0':
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
     print
     print 'L/D', prob['L'] / prob['D']
-    print
-    # print numpy.sum(prob['sec_forces'], axis=0)
-    # print prob['sec_forces']
-    # print
-    # print prob['normals']
-    # print
-    # print prob['mesh']
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()

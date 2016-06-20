@@ -102,8 +102,6 @@ subroutine assembleaeromtx_paper(n, nx, alpha, points, bpts, skip, mtx)
   u(1) = cos(alpha * pi / 180.)
   u(2) = 0.
   u(3) = sin(alpha * pi / 180.)
-  u(1) = 1.
-  u(3) = 0.
 
   mtx(:, :, :) = 0.
 
