@@ -175,43 +175,6 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
             mtx /= 4 * numpy.pi
 
-
-    if 0: # trailing shed in planform, but paper version
-        if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_planform(num_y, alpha, points, b_pts, skip)
-            # old_mtx = mtx.copy()
-            # mtx[:, :, :] = 0.
-        else:
-            # Loop through control points
-            for ind_i in xrange(num_y - 1):
-                P = points[ind_i]
-
-                # Loop through elements
-                for ind_j in xrange(num_y - 1):
-                    A = b_pts[ind_j + 0, :]
-                    B = b_pts[ind_j + 1, :]
-
-                    r0 = B - A
-                    r1 = P - A
-                    r2 = P - B
-
-                    r0_mag = norm(r0)
-                    r1_mag = norm(r1)
-                    r2_mag = norm(r2)
-
-                    t1 = numpy.cross(planform_u, r2) / (r2_mag * (r2_mag - planform_u.dot(r2)))
-                    t3 = numpy.cross(planform_u, r1) / (r1_mag * (r1_mag - planform_u.dot(r1)))
-
-                    if skip and ind_i == ind_j:
-                        mtx[ind_i, ind_j, :] = t1 - t3
-                    else:
-                        t2 = (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
-                             (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
-                        mtx[ind_i, ind_j, :] = t1 + t2 - t3
-
-            mtx /= 4 * numpy.pi
-
-
 class WeissingerGeometry(Component):
     """ Compute various geometric properties for Weissinger analysis """
 
