@@ -14,13 +14,15 @@ except:
 
 def view_mat(mat):
     import matplotlib.pyplot as plt
+    if len(mat.shape) > 2:
+        mat = numpy.sum(mat, axis=2)
+    print "Cond #:", numpy.linalg.cond(mat)
     im = plt.imshow(mat.real, interpolation='none')
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
-
 
 def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
     """
@@ -155,10 +157,8 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
                             P = points[cp_i, cp_j]
 
-
                             r1 = P - A
                             r2 = P - B
-
 
                             r1_mag = norm(r1)
                             r2_mag = norm(r2)

@@ -373,9 +373,7 @@ class Display(object):
                 db[case_name + '/derivs']
             except:
                 continue
-
             n += 1
-
         self.num_iters = n
 
     def auto_ref(self):
@@ -392,6 +390,10 @@ class Display(object):
                 self.load_db()
                 self.old_n = self.num_iters
                 self.draw_slider()
+
+    def save_figure(self):
+        fname = 'fig' + '.png'
+        plt.savefig(fname)
 
     def quit(self):
         """
@@ -470,12 +472,19 @@ class Display(object):
             font=font)
         button.grid(row=0, column=5, padx=5, sticky=Tk.W)
 
+        button4 = Tk.Button(
+            self.options_frame,
+            text='Save figure',
+            command=self.save_figure,
+            font=font)
+        button4.grid(row=0, column=6, padx=5, sticky=Tk.W)
+
         button5 = Tk.Button(
             self.options_frame,
             text='Quit',
             command=self.quit,
             font=font)
-        button5.grid(row=0, column=6, padx=5, sticky=Tk.W)
+        button5.grid(row=0, column=7, padx=5, sticky=Tk.W)
 
         self.auto_ref()
 
