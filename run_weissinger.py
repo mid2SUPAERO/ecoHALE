@@ -24,8 +24,8 @@ execfile('CRM.py')
 
 if 1:
     num_x = 11
-    num_y = 81
-    num_twist = int((num_y - 1) / 5)
+    num_y = 21
+    # num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -68,7 +68,7 @@ des_vars = [
     # ('twist', numpy.array([0., 10, 0.])),
     ('span', span),
     ('v', v),
-    ('alpha', alpha),
+    ('alpha', 5.94267),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
@@ -110,7 +110,7 @@ prob.driver.add_constraint('CL', equals=0.5)
 # prob.driver.add_constraint('tc1', equals=0.)
 # prob.driver.add_constraint('tc2', equals=0.)
 # setup data recording
-prob.driver.add_recorder(SqliteRecorder('weissinger2.db'))
+prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
 # profile.setup(prob)
 # profile.start()

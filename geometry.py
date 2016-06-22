@@ -12,7 +12,9 @@ from crm_data import crm_base_mesh
 def rotate(mesh, thetas):
     """ Computes rotation matricies given mesh and rotation angles in degress """
     te = mesh[-1]
-
+    le = mesh[ 0]
+    quarter_chord = 0.75*te + 0.25*le
+    
     ny = mesh.shape[1]
     nx = mesh.shape[0]
 
@@ -27,8 +29,8 @@ def rotate(mesh, thetas):
 
     for ix in range(nx-1):
         row = mesh[ix]
-        row[:] = numpy.einsum("ikj, ij -> ik", mats, row - te)
-        row += te
+        row[:] = numpy.einsum("ikj, ij -> ik", mats, row - quarter_chord)
+        row += quarter_chord
     return mesh
 
 

@@ -191,59 +191,51 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
             # Spanwise loop through horseshoe elements
             for el_j in xrange(num_y - 1):
                 el_loc_j = el_j * (num_x - 1)
+                C_te = mesh[-1, el_j + 1, :]
+                D_te = mesh[-1, el_j + 0, :]
 
-                # Chordwise loop through horseshoe elements
-                for el_i in xrange(num_x - 1):
-                    el_loc = el_i + el_loc_j
+                # Spanwise loop through control points
+                for cp_j in xrange(num_y - 1):
+                    cp_loc_j = cp_j * (num_x - 1)
 
-                    A_ = b_pts[el_i, el_j + 0, :]
-                    B_ = b_pts[el_i, el_j + 1, :]
-                    if el_i != num_x - 2:
-                        C = b_pts[el_i + 1, el_j + 1, :]
-                        D = b_pts[el_i + 1, el_j + 0, :]
+                    # Chordwise loop through control points
+                    for cp_i in xrange(num_x - 1):
+                        cp_loc = cp_i + cp_loc_j
 
-                    # Spanwise loop through control points
-                    for cp_j in xrange(num_y - 1):
-                        cp_loc_j = cp_j * (num_x - 1)
+                        P = points[cp_i, cp_j]
 
-                        # Chordwise loop through control points
-                        for cp_i in xrange(num_x - 1):
-                            cp_loc = cp_i + cp_loc_j
+                        r1 = P - D_te
+                        r2 = P - C_te
 
-                            P = points[cp_i, cp_j]
+                        r1_mag = norm(r1)
+                        r2_mag = norm(r2)
 
-                            edges = 0
-                            for vi in xrange(num_x - el_i - 1):
-                                vor_ind = vi + el_i
-                                A = b_pts[vor_ind + 0, el_j + 0, :]
-                                B = b_pts[vor_ind + 0, el_j + 1, :]
-                                if vor_ind == num_x - 2:
-                                    C = mesh[-1, el_j + 1, :]
-                                    D = mesh[-1, el_j + 0, :]
-                                else:
-                                    C = b_pts[vor_ind + 1, el_j + 1, :]
-                                    D = b_pts[vor_ind + 1, el_j + 0, :]
-                                edges += _calc_vorticity(B, C, P)
-                                edges += _calc_vorticity(D, A, P)
+                        t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
+                        t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
 
-                            C = mesh[-1, el_j + 1, :]
-                            D = mesh[-1, el_j + 0, :]
+                        trailing = t1 - t3
+                        edges = 0
 
-                            r1 = P - D
-                            r2 = P - C
+                        # Chordwise loop through horseshoe elements
+                        for el_i in reversed(xrange(num_x - 1)):
+                            el_loc = el_i + el_loc_j
 
-                            r1_mag = norm(r1)
-                            r2_mag = norm(r2)
+                            A = b_pts[el_i, el_j + 0, :]
+                            B = b_pts[el_i, el_j + 1, :]
 
-                            t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                            t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
-
-                            trailing = t1 - t3
+                            if el_i == num_x - 2:
+                                C = mesh[-1, el_j + 1, :]
+                                D = mesh[-1, el_j + 0, :]
+                            else:
+                                C = b_pts[el_i + 1, el_j + 1, :]
+                                D = b_pts[el_i + 1, el_j + 0, :]
+                            edges += _calc_vorticity(B, C, P)
+                            edges += _calc_vorticity(D, A, P)
 
                             if skip and el_loc == cp_loc:
                                 mtx[cp_loc, el_loc, :] = trailing + edges
                             else:
-                                bound = _calc_vorticity(A_, B_, P)
+                                bound = _calc_vorticity(A, B, P)
                                 mtx[cp_loc, el_loc, :] = trailing + edges + bound
 
             mtx /= 4 * numpy.pi
@@ -770,9 +762,9 @@ class WeissingerFunctionals(Group):
         self.add('CD',
                  TotalDrag(CD0),
                  promotes=['*'])
-        self.add('twist_con_1',
-                 twist_con_1(num_twist),
-                 promotes=['*'])
-        self.add('twist_con_2',
-                 twist_con_2(num_twist),
-                 promotes=['*'])
+        # self.add('twist_con_1',
+        #          twist_con_1(num_twist),
+        #          promotes=['*'])
+        # self.add('twist_con_2',
+        #          twist_con_2(num_twist),
+        #          promotes=['*'])

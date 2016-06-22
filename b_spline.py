@@ -3,7 +3,7 @@ import numpy
 import scipy.sparse
 
 
-def get_bspline_mtx(num_cp, num_pt, mesh=None, order=4):
+def get_bspline_mtx(num_cp, num_pt, mesh=None, order=2):
     knots = numpy.zeros(num_cp + order)
     knots[order-1:num_cp+1] = numpy.linspace(0, 1, num_cp - order + 2)
     knots[num_cp+1:] = 1.0

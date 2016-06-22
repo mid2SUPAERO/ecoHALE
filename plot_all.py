@@ -336,6 +336,9 @@ class Display(object):
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
+        span_eff = .5**2 / numpy.pi / 10 / obj_val
+        self.ax.text2D(.55, .0, 'e: {}'.format(span_eff),
+            transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist

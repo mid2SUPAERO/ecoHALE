@@ -171,11 +171,10 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
 
   ! Working
   integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, cp_loc
-  complex*16 :: pi, P(3), A(3), B(3), u(3), A_(3), B_(3), C(3), D(3)
+  complex*16 :: pi, P(3), A(3), B(3), u(3), C(3), D(3)
   complex*16 :: norm, ur2(3), r1(3), r2(3), r1_mag, r2_mag
-  complex*16 :: r1r2(3), ur1(3), dot, t1(3), bound(3), t3(3)
-  complex*16 :: edges(3)
-  integer :: vi, vor_ind
+  complex*16 :: ur1(3), dot, t1(3), bound(3), t3(3)
+  complex*16 :: edges(3), C_te(3), D_te(3)
 
   pi = 4.d0*atan(1.d0)
 
@@ -187,64 +186,50 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
 
   do el_j = 1, n-1 ! spanwise loop through horseshoe elements
     el_loc_j = (el_j - 1) * (nx - 1)
+    C_te = mesh(nx, el_j + 1, :)
+    D_te = mesh(nx, el_j + 0, :)
 
-    do el_i = 1, nx-1 ! chordwise loop through horseshoe elements
-      el_loc = el_i + el_loc_j
+    do cp_j = 1, n-1 ! spanwise loop through control points
+      cp_loc_j = (cp_j - 1) * (nx - 1)
 
-      A_ = bpts(el_i, el_j + 0, :)
-      B_ = bpts(el_i, el_j + 1, :)
+      do cp_i = 1, nx-1 ! chordwise loop through control points
+        cp_loc = cp_i + cp_loc_j
+        P = points(cp_i, cp_j, :)
 
-      if (el_i .NE. nx-1) then
-        C = bpts(el_i + 1, el_j + 1, :)
-        D = bpts(el_i + 1, el_j + 0, :)
-      end if
+        r1 = P - D_te
+        r2 = P - C_te
+        r1_mag = norm(r1)
+        r2_mag = norm(r2)
 
-      do cp_j = 1, n-1 ! spanwise loop through control points
-        cp_loc_j = (cp_j - 1) * (nx - 1)
+        call cross(u, r2, ur2)
+        call cross(u, r1, ur1)
 
-        do cp_i = 1, nx-1 ! chordwise loop through control points
-          cp_loc = cp_i + cp_loc_j
-          P = points(cp_i, cp_j, :)
+        t1 = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
+        t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
+        edges(:) = 0.
 
-          edges(:) = 0.
-          do vi = 1, nx-el_i ! need to double check indices here and compare
-            vor_ind = vi + el_i - 1
+        do el_i = nx-1, 1, -1 ! chordwise loop through horseshoe elements
+          el_loc = el_i + el_loc_j
 
-            A = bpts(vor_ind + 0, el_j + 0, :)
-            B = bpts(vor_ind + 0, el_j + 1, :)
+          A = bpts(el_i + 0, el_j + 0, :)
+          B = bpts(el_i + 0, el_j + 1, :)
 
-            if (vor_ind .EQ. nx - 1) then
-              C = mesh(nx, el_j + 1, :)
-              D = mesh(nx, el_j + 0, :)
-            else
-              C = bpts(vor_ind + 1, el_j + 1, :)
-              D = bpts(vor_ind + 1, el_j + 0, :)
-            end if
+          if (el_i .EQ. nx - 1) then
+            C = mesh(nx, el_j + 1, :)
+            D = mesh(nx, el_j + 0, :)
+          else
+            C = bpts(el_i + 1, el_j + 1, :)
+            D = bpts(el_i + 1, el_j + 0, :)
+          end if
 
-            call calc_vorticity(B, C, P, edges)
-            call calc_vorticity(D, A, P, edges)
-          end do
-
-          C = mesh(nx, el_j + 1, :)
-          D = mesh(nx, el_j + 0, :)
-
-          r1 = P - D
-          r2 = P - C
-          r1_mag = norm(r1)
-          r2_mag = norm(r2)
-
-          call cross(u, r2, ur2)
-          call cross(r1, r2, r1r2)
-          call cross(u, r1, ur1)
-
-          t1 = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
-          t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
+          call calc_vorticity(B, C, P, edges)
+          call calc_vorticity(D, A, P, edges)
 
           if ((skip)  .and. (cp_loc .EQ. el_loc)) then
             mtx(cp_loc, el_loc, :) = t1 - t3 + edges
           else
             bound(:) = 0.
-            call calc_vorticity(A_, B_, P, bound)
+            call calc_vorticity(A, B, P, bound)
             mtx(cp_loc, el_loc, :) = t1 - t3 + edges + bound
           end if
 
@@ -269,18 +254,18 @@ subroutine calc_vorticity(A, B, P, out)
   complex*16, intent(inout) :: out(3)
 
   ! Working
-  complex*16 :: r1(3), r2(3), r1_mag, r2_mag, norm, dot, tmp(3)
+  complex*16 :: r1(3), r2(3), r1_mag, r2_mag, norm, dot, r1r2(3), mag_mult
 
   r1 = P - A
   r2 = P - B
 
   r1_mag = norm(r1)
-  r2_mag = norm(r2) ! measure speed change of combining r1_mag and r2_mag
+  r2_mag = norm(r2)
 
-  call cross(r1, r2, tmp)
+  call cross(r1, r2, r1r2)
+  mag_mult = r1_mag * r2_mag
 
-  out = out + (r1_mag + r2_mag) * tmp / &
-        (r1_mag * r2_mag * (r1_mag * r2_mag + dot(r1, r2)))
+  out = out + (r1_mag + r2_mag) * r1r2 / (mag_mult * (mag_mult + dot(r1, r2)))
 
 end subroutine calc_vorticity
 
