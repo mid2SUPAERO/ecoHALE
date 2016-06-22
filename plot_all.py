@@ -391,7 +391,7 @@ class Display(object):
                 self.old_n = self.num_iters
                 self.draw_slider()
 
-    def save_figure(self):
+    def save_image(self):
         fname = 'fig' + '.png'
         plt.savefig(fname)
 
@@ -474,8 +474,8 @@ class Display(object):
 
         button4 = Tk.Button(
             self.options_frame,
-            text='Save figure',
-            command=self.save_figure,
+            text='Save image',
+            command=self.save_image,
             font=font)
         button4.grid(row=0, column=6, padx=5, sticky=Tk.W)
 
