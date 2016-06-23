@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
-from geometry import GeometryMesh, mesh_gen, LinearInterp
+from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
@@ -15,16 +15,16 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 numpy.random.seed(12345)
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=11, n_points_outboard=16)
-num_x = 2
+num_x = 5
+mesh = mesh_gen(n_points_inboard=21, n_points_outboard=31, num_x=num_x)
 num_y = mesh.shape[1]
-num_twist = 7
+num_twist = 5
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
-    num_x = 6
+    num_x = 3
     num_y = 21
     num_twist = int((num_y - 1) / 5)
     span = 10.
@@ -37,7 +37,7 @@ if 1:
     # mixed spacing with w as a weighting factor
     cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    amt_of_cos = 0
+    amt_of_cos = .5
     half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
 
     # # concentrated nodes in center of both sides of wing
@@ -71,7 +71,7 @@ des_vars = [
     # ('twist', numpy.array([0., 10, 0.])),
     ('span', span),
     ('v', v),
-    ('alpha', 3.),
+    ('alpha', 4.),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
@@ -121,7 +121,7 @@ prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 prob.root.deriv_options['type'] = 'fd'
 
 prob.setup()
-view_tree(prob, outfile="aerostruct.html", show_browser=False)
+view_tree(prob, outfile="aero.html", show_browser=False)
 
 import time
 st = time.time()

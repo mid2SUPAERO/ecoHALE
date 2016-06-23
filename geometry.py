@@ -98,7 +98,7 @@ def mirror(mesh, right_side=True):
     return new_mesh
 
 
-def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
+def mesh_gen(n_points_inboard=2, n_points_outboard=2, num_x=3, mesh=crm_base_mesh):
     """ Builds the right hand side of the CRM wing with specified number
     of inboard and outboard panels
     """
@@ -141,8 +141,23 @@ def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
         half_mesh[1, i, 0] = s4 * y + o4 # te point
 
     full_mesh = mirror(half_mesh)
+    full_mesh = add_chordwise_panels(full_mesh, num_x)
     return full_mesh
 
+def add_chordwise_panels(mesh, num_x=3):
+    """ Divides the wing into multiple chordwise panels. """
+    le = mesh[ 0, :, :]
+    te = mesh[-1, :, :]
+
+    new_mesh = numpy.zeros((num_x, mesh.shape[1], 3))
+    new_mesh[ 0, :, :] = le
+    new_mesh[-1, :, :] = te
+
+    for i in xrange(1, num_x-1):
+        w = float(i) / (num_x - 1)
+        new_mesh[i, :, :] = (1 - w) * le + w * te
+
+    return new_mesh
 
 class GeometryMesh(Component):
     """ Changes a given mesh with span, sweep, and twist

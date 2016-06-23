@@ -102,6 +102,7 @@ class Display(object):
         alpha = []
         rho = []
         v = []
+        self.CL = []
         self.obj = []
 
         for tag in self.db['metadata']:
@@ -146,6 +147,7 @@ class Display(object):
                 alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
+                self.CL.append(case_data['Unknowns']['CL1'])
                 self.show_wing = True
             except:
                 self.show_wing = False
@@ -164,9 +166,6 @@ class Display(object):
                 sina = numpy.sin(a)
                 forces = numpy.sum(sec_forces[i], axis=0)
                 widths_ = numpy.mean(widths[i], axis=0)
-                # print sec_forces[i]
-                # print widths[i]
-                # exit()
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                     widths_/0.5/rho[i]/v[i]**2
@@ -336,7 +335,7 @@ class Display(object):
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
-        span_eff = .5**2 / numpy.pi / 10 / obj_val
+        span_eff = self.CL[self.curr_pos]**2 / numpy.pi / 10 / obj_val
         self.ax.text2D(.55, .0, 'e: {}'.format(span_eff),
             transform=self.ax.transAxes, color='k')
 
