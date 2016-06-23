@@ -15,17 +15,18 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 numpy.random.seed(12345)
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=4, n_points_outboard=51)
+mesh = mesh_gen(n_points_inboard=11, n_points_outboard=16)
+num_x = 2
 num_y = mesh.shape[1]
-num_twist = 3
+num_twist = 7
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
-    num_x = 11
+    num_x = 6
     num_y = 21
-    # num_twist = int((num_y - 1) / 5)
+    num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
     mesh = numpy.zeros((num_x, num_y, 3))
@@ -36,15 +37,17 @@ if 1:
     # mixed spacing with w as a weighting factor
     cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    amt_of_cos = .5
+    amt_of_cos = 0
     half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
 
     # # concentrated nodes in center of both sides of wing
     # ny3 = (ny2 - 1) / 3
+    # A = .15
+    # B = .35
     # half_wing = numpy.hstack((
-    #                          numpy.linspace(0, .2, ny3+1, endpoint=False),
-    #                          numpy.linspace(.2, .3, ny3, endpoint=False),
-    #                          numpy.linspace(.3, .5, ny3)))
+    #                          numpy.linspace(0, A, ny3+1, endpoint=False),
+    #                          numpy.linspace(A, B, ny3, endpoint=False),
+    #                          numpy.linspace(B, .5, ny3)))
     # half_wing = half_wing[::-1]
 
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
@@ -68,7 +71,7 @@ des_vars = [
     # ('twist', numpy.array([0., 10, 0.])),
     ('span', span),
     ('v', v),
-    ('alpha', 5.94267),
+    ('alpha', 3.),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]

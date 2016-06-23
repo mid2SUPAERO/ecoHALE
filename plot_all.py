@@ -350,11 +350,25 @@ class Display(object):
         writer = FFMpegWriter(fps=5, metadata=metadata, bitrate=3000)
 
         with writer.saving(self.f, "movie.mp4", 100):
+            self.curr_pos = 0
+            self.update_graphs()
+            self.f.canvas.draw()
+            plt.draw()
+            for i in range(10):
+                writer.grab_frame()
+
             for i in range(self.num_iters):
                 self.curr_pos = i
                 self.update_graphs()
                 self.f.canvas.draw()
                 plt.draw()
+                writer.grab_frame()
+
+            self.curr_pos = self.num_iters
+            self.update_graphs()
+            self.f.canvas.draw()
+            plt.draw()
+            for i in range(20):
                 writer.grab_frame()
 
     def update_graphs(self, e=None):

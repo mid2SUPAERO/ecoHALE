@@ -13,8 +13,8 @@ def rotate(mesh, thetas):
     """ Computes rotation matricies given mesh and rotation angles in degress """
     te = mesh[-1]
     le = mesh[ 0]
-    quarter_chord = 0.75*te + 0.25*le
-    
+    quarter_chord = 0.25*te + 0.75*le
+
     ny = mesh.shape[1]
     nx = mesh.shape[0]
 
@@ -27,11 +27,12 @@ def rotate(mesh, thetas):
     mats[:, 2, 0] = -sin(rad_thetas)
     mats[:, 2, 2] = cos(rad_thetas)
 
-    for ix in range(nx-1):
+    for ix in range(nx):
         row = mesh[ix]
         row[:] = numpy.einsum("ikj, ij -> ik", mats, row - quarter_chord)
         row += quarter_chord
     return mesh
+
 
 
 def sweep(mesh, angle):

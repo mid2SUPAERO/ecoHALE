@@ -175,6 +175,7 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
   complex*16 :: norm, ur2(3), r1(3), r2(3), r1_mag, r2_mag
   complex*16 :: ur1(3), dot, t1(3), bound(3), t3(3)
   complex*16 :: edges(3), C_te(3), D_te(3)
+  complex*16 :: r1r2(3), mag_mult
 
   pi = 4.d0*atan(1.d0)
 
