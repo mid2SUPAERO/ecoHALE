@@ -240,83 +240,6 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
 
             mtx /= 4 * numpy.pi
 
-    if 0: # vortex ring version
-        if 0:
-            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, num_x, alpha, points, b_pts, skip)
-            # old_mtx = mtx.copy()
-            # mtx[:, :, :] = 0.
-        else:
-            # Spanwise loop through horseshoe elements
-            for el_j in xrange(num_y - 1):
-
-                el_loc_j = el_j * (num_x - 1)
-
-                # Chordwise loop through horseshoe elements
-                for el_i in xrange(num_x - 1):
-
-                    el_loc = el_i + el_loc_j
-
-                    A = b_pts[el_i, el_j + 0, :]
-                    B = b_pts[el_i, el_j + 1, :]
-                    if el_i != num_x - 2:
-                        C = b_pts[el_i + 1, el_j + 1, :]
-                        D = b_pts[el_i + 1, el_j + 0, :]
-
-                    # Spanwise loop through control points
-                    for cp_j in xrange(num_y - 1):
-
-                        cp_loc_j = cp_j * (num_x - 1)
-
-                        # Chordwise loop through control points
-                        for cp_i in xrange(num_x - 1):
-
-                            cp_loc = cp_i + cp_loc_j
-
-                            P = points[cp_i, cp_j]
-
-                            if el_i == num_x - 2:
-                                C = mesh[-1, el_j + 1, :]
-                                D = mesh[-1, el_j + 0, :]
-
-                                ring = 0.
-                                ring += _calc_vorticity(B, C, P)
-                                ring += _calc_vorticity(D, A, P)
-
-                                r1 = P - D
-                                r2 = P - C
-
-                                r1_mag = norm(r1)
-                                r2_mag = norm(r2)
-
-                                t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                                t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
-
-                                if skip and el_loc == cp_loc:
-                                    mtx[cp_loc, el_loc, :] = t1 - t3 + ring
-                                else:
-                                    ring += _calc_vorticity(A, B, P)
-                                    mtx[cp_loc, el_loc, :] = t1 - t3 + ring
-                            else:
-                                ring = 0.
-                                ring += _calc_vorticity(B, C, P)
-                                ring += _calc_vorticity(D, A, P)
-
-                                if skip:
-                                    if el_loc != cp_loc:
-                                        ring += _calc_vorticity(A, B, P)
-                                    if cp_i == el_i + 1 and cp_j == el_j:
-                                        pass
-                                    else:
-                                        ring += _calc_vorticity(C, D, P)
-
-                                else:
-                                    ring += _calc_vorticity(A, B, P)
-                                    ring += _calc_vorticity(C, D, P)
-
-                                mtx[cp_loc, el_loc, :] = ring
-
-            mtx /= 4 * numpy.pi
-
 
 class WeissingerGeometry(Component):
     """ Compute various geometric properties for Weissinger analysis """
@@ -697,41 +620,6 @@ class TotalDrag(Component):
         jac['CD', 'CDi'] = 1
         return jac
 
-
-class twist_con_1(Component):
-
-    def __init__(self, num_twist):
-        super(twist_con_1, self).__init__()
-
-        self.add_param('twist', val=numpy.zeros(num_twist))
-        self.add_output('tc1', val=0.)
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        t = params['twist']
-        unknowns['tc1'] = (t[0] - t[1])
-        unknowns['tc1'] = (t[0] - t[1]) - (t[1] - t[2])
-
-    def linearize(self, params, unknowns, resids):
-        jac = self.alloc_jacobian()
-        return jac
-
-class twist_con_2(Component):
-
-    def __init__(self, num_twist):
-        super(twist_con_2, self).__init__()
-
-        self.add_param('twist', val=numpy.zeros(num_twist))
-        self.add_output('tc2', val=0.)
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        t = params['twist']
-        unknowns['tc2'] = (t[-2] - t[-1])
-        unknowns['tc2'] = (t[-2] - t[-1]) - (t[-3] - t[-2])
-
-    def linearize(self, params, unknowns, resids):
-        jac = self.alloc_jacobian()
-        return jac
-
 class WeissingerStates(Group):
     """ Group that contains the aerodynamic states """
 
@@ -768,9 +656,3 @@ class WeissingerFunctionals(Group):
         self.add('CD',
                  TotalDrag(CD0),
                  promotes=['*'])
-        # self.add('twist_con_1',
-        #          twist_con_1(num_twist),
-        #          promotes=['*'])
-        # self.add('twist_con_2',
-        #          twist_con_2(num_twist),
-        #          promotes=['*'])

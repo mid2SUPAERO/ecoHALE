@@ -1,5 +1,6 @@
 """ Manipulate geometry mesh based on high-level design parameters """
 
+from __future__ import division
 import numpy
 from numpy import cos, sin, tan
 
@@ -144,7 +145,7 @@ def mirror(mesh, right_side=True):
     return new_mesh
 
 
-def mesh_gen(n_points_inboard=2, n_points_outboard=2, num_x=3, mesh=crm_base_mesh):
+def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=3, mesh=crm_base_mesh):
     """ Builds the right hand side of the CRM wing with specified number
     of inboard and outboard panels
     """
@@ -204,6 +205,23 @@ def add_chordwise_panels(mesh, num_x=3):
         new_mesh[i, :, :] = (1 - w) * le + w * te
 
     return new_mesh
+
+def gen_mesh(num_x, num_y, span, chord, amt_of_cos=0.):
+    mesh = numpy.zeros((num_x, num_y, 3))
+    ny2 = (num_y + 1) / 2
+    beta = numpy.linspace(0, numpy.pi/2, ny2)
+
+    # mixed spacing with w as a weighting factor
+    cosine = .5 * numpy.cos(beta) #  cosine spacing
+    uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
+    half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
+    full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
+
+    for ind_x in xrange(num_x):
+        for ind_y in xrange(num_y):
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0]
+    print mesh
+    return mesh
 
 class GeometryMesh(Component):
     """ Changes a given mesh with span, sweep, and twist
@@ -286,7 +304,7 @@ if __name__ == "__main__":
     thetas = numpy.zeros(20)
     thetas[10:] += 10
 
-    mesh = mesh_gen(3, 3)
+    mesh = gen_crm_meshm_mesh(3, 3)
 
     # new_mesh = rotate(mesh, thetas)
 

@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
-from geometry import GeometryMesh, mesh_gen, sweep
+from geometry import GeometryMesh, gen_crm_mesh, gen_mesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
@@ -16,7 +16,7 @@ numpy.random.seed(12345)
 
 # Create the mesh with 2 inboard points and 3 outboard points
 num_x = 3
-mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6, num_x=num_x)
+mesh = gen_crm_mesh(n_points_inboard=4, n_points_outboard=6, num_x=num_x)
 num_y = mesh.shape[1]
 num_twist = 3
 
@@ -26,40 +26,11 @@ execfile('CRM.py')
 if 1:
     num_x = 3
     num_y = 21
-    num_twist = int((num_y - 1) / 5)
     span = 10.
     chord = 1.
-    mesh = numpy.zeros((num_x, num_y, 3))
-    ny2 = (num_y + 1) / 2
-    half_wing = numpy.zeros((ny2))
-    beta = numpy.linspace(0, numpy.pi/2, ny2)
-
-    # mixed spacing with w as a weighting factor
-    cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
-    uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-    amt_of_cos = .5
-    half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
-
-    # # concentrated nodes in center of both sides of wing
-    # ny3 = (ny2 - 1) / 3
-    # A = .15
-    # B = .35
-    # half_wing = numpy.hstack((
-    #                          numpy.linspace(0, A, ny3+1, endpoint=False),
-    #                          numpy.linspace(A, B, ny3, endpoint=False),
-    #                          numpy.linspace(B, .5, ny3)))
-    # half_wing = half_wing[::-1]
-
-    full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
-    chords = numpy.sqrt(1 - half_wing**2/.5**2) * chord/2
-    chords[0] += 1e-5
-    # chords = numpy.max(chords) * numpy.linspace(1, .2, ny2)
-    chords = numpy.hstack((chords[:-1], chords[::-1]))
-
-    for ind_x in xrange(num_x):
-        for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
-            # mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
+    amt_of_cos = 0.5
+    mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
+    num_twist = int((num_y - 1) / 5)
 
 
 disp = numpy.zeros((num_y, 6))
@@ -68,7 +39,6 @@ root = Group()
 
 des_vars = [
     ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
-    # ('twist', numpy.array([0., 10, 0.])),
     ('dihedral', 0.),
     ('sweep', 0.),
     ('span', span),
@@ -116,8 +86,6 @@ prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
 prob.driver.add_desvar('taper', lower=.1, upper=2.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
-# prob.driver.add_constraint('tc1', equals=0.)
-# prob.driver.add_constraint('tc2', equals=0.)
 # setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
