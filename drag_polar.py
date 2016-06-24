@@ -1,8 +1,11 @@
-""" Example script to produce drag polar """
+""" Example script to produce drag polar
+    Flat rectangular wing from NASA report """
 
 from __future__ import division
 import numpy
 import sys
+import warnings
+warnings.filterwarnings("ignore")
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
 from geometry import GeometryMesh, mesh_gen, LinearInterp
@@ -13,15 +16,22 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 # Define the aircraft properties
 execfile('CRM.py')
 
-num_x = 2
-num_y = 41
+num_x = 5
+num_y = 121
 num_twist = 3
 span = 232.02
 chord = 39.37
 mesh = numpy.zeros((num_x, num_y, 3))
 ny2 = (num_y + 1) / 2
-half_wing = numpy.linspace(0, span/2, ny2)[::-1] #  uniform spacing
-full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
+half_wing = numpy.zeros((ny2))
+beta = numpy.linspace(0, numpy.pi/2, ny2)
+
+# mixed spacing with w as a weighting factor
+cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
+uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
+amt_of_cos = .5
+half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
+full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
 for ind_x in xrange(num_x):
     for ind_y in xrange(num_y):
@@ -45,13 +55,13 @@ root.add('mesh',
          GeometryMesh(mesh, num_twist),
          promotes=['*'])
 root.add('def_mesh',
-         TransferDisplacements(num_y),
+         TransferDisplacements(num_x, num_y),
          promotes=['*'])
 root.add('weissingerstates',
-         WeissingerStates(num_y),
+         WeissingerStates(num_x, num_y),
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(num_y, CL0, CD0),
+         WeissingerFunctionals(num_x, num_y, CL0, CD0,  num_twist),
          promotes=['*'])
 
 prob = Problem()
@@ -75,8 +85,6 @@ for alpha in numpy.linspace(alpha_start, alpha_stop, num_alpha):
     a_list.append(alpha)
     CL_list.append(prob['CL'])
     CD_list.append(prob['CD'] + 0.009364)
-
-print prob['L']
 
 nasa_data = numpy.loadtxt('nasa_prandtl.csv', delimiter=',', skiprows=1)
 nasa_data = nasa_data[nasa_data[:, 1].argsort()]

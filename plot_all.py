@@ -103,6 +103,9 @@ class Display(object):
         rho = []
         v = []
         self.CL = []
+        self.CX = []
+        self.AR = []
+        self.S_ref = []
         self.obj = []
 
         for tag in self.db['metadata']:
@@ -148,6 +151,8 @@ class Display(object):
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
                 self.CL.append(case_data['Unknowns']['CL1'])
+                self.CX.append(case_data['Unknowns']['CX'])
+                self.S_ref.append(case_data['Unknowns']['S_ref'])
                 self.show_wing = True
             except:
                 self.show_wing = False
@@ -158,7 +163,8 @@ class Display(object):
         if self.show_wing:
 
             for i in range(self.num_iters + 1):
-                cvec = self.mesh[i][0, :, :] - self.mesh[i][1, :, :]
+                m_vals = self.mesh[i]
+                cvec = m_vals[0, :, :] - m_vals[1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                 chords = 0.5 * (chords[1:] + chords[:-1])
                 a = alpha[i]
@@ -172,7 +178,6 @@ class Display(object):
                 # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
                 # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 
-                m_vals = self.mesh[i]
                 span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                 span = span - (span[0] + .5)
 
@@ -184,6 +189,9 @@ class Display(object):
                 self.lift.append(lift)
                 self.lift_ell.append(lift_ell)
 
+                wingspan = numpy.abs(m_vals[0, -1, 1] - m_vals[0, 0, 1])
+                self.AR.append(wingspan**2 / self.S_ref[i])
+
             # recenter def_mesh points for better viewing
             for i in range(self.num_iters + 1):
                 center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
@@ -193,6 +201,7 @@ class Display(object):
         for i in range(self.num_iters + 1):
             center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
             self.mesh[i] = self.mesh[i] - center
+
 
         if self.show_wing:
             self.min_twist, self.max_twist = numpy.min(self.twist), numpy.max(self.twist)
@@ -335,7 +344,8 @@ class Display(object):
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
-        span_eff = self.CL[self.curr_pos]**2 / numpy.pi / 10 / obj_val
+        span_eff = (self.CL[self.curr_pos]**2 + self.CX[self.curr_pos]**2) / \
+            numpy.pi / self.AR[self.curr_pos] / obj_val
         self.ax.text2D(.55, .0, 'e: {}'.format(span_eff),
             transform=self.ax.transAxes, color='k')
 

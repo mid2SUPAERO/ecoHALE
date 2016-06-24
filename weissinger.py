@@ -278,8 +278,6 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                                 C = mesh[-1, el_j + 1, :]
                                 D = mesh[-1, el_j + 0, :]
 
-                                print el_j, el_i, cp_j, cp_i
-
                                 ring = 0.
                                 ring += _calc_vorticity(B, C, P)
                                 ring += _calc_vorticity(D, A, P)
@@ -554,6 +552,7 @@ class WeissingerLiftDrag(Component):
         self.add_param('alpha', val=3.)
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
+        self.add_output('X', val=0.)
 
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
@@ -568,6 +567,8 @@ class WeissingerLiftDrag(Component):
         sina = numpy.sin(alpha)
         unknowns['L'] = numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
         unknowns['D'] = numpy.sum( forces[:, :, 0] * cosa + forces[:, :, 2] * sina)
+        unknowns['X'] = numpy.sum( forces[:, :, 1])
+
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -599,10 +600,13 @@ class WeissingerCoeffs(Component):
         self.add_param('S_ref', val=0.)
         self.add_param('L', val=0.)
         self.add_param('D', val=0.)
+        self.add_param('X', val=0.)
         self.add_param('v', val=0.)
         self.add_param('rho', val=0.)
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
+        self.add_output('CX', val=0.)
+
 
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
@@ -612,9 +616,11 @@ class WeissingerCoeffs(Component):
         rho = params['rho']
         v = params['v']
         L = params['L']
+        X = params['X']
         D = params['D']
         unknowns['CL1'] = L / (0.5*rho*v**2*S_ref)
         unknowns['CDi'] = D / (0.5*rho*v**2*S_ref)
+        unknowns['CX'] = X / (0.5*rho*v**2*S_ref)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""

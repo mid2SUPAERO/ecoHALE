@@ -1,7 +1,7 @@
 """ Manipulate geometry mesh based on high-level design parameters """
 
 import numpy
-from numpy import cos, sin
+from numpy import cos, sin, tan
 
 from openmdao.api import Component
 
@@ -33,21 +33,45 @@ def rotate(mesh, thetas):
         row += quarter_chord
     return mesh
 
-
-
 def sweep(mesh, angle):
     """ Shearing sweep angle. Positive sweeps back. """
+
+    num_x, num_y, _ = mesh.shape
+    ny2 = (num_y-1)/2
 
     le = mesh[0]
     te = mesh[-1]
 
-    y0 = le[0, 1]
+    y0 = le[ny2, 1]
 
-    tan_theta = sin(numpy.radians(angle))
-    dx = (le[:, 1] - y0) * tan_theta
+    tan_theta = tan(numpy.radians(angle))
+    dx_right = (le[ny2:, 1] - y0) * tan_theta
+    dx_left = -(le[:ny2, 1] - y0) * tan_theta
+    dx = numpy.hstack((dx_left, dx_right))
 
-    le[:, 0] += dx
-    te[:, 0] += dx
+    for i in xrange(num_x):
+        mesh[i, :, 0] += dx
+
+    return mesh
+
+def dihedral(mesh, angle):
+    """ Dihedral angle. Positive bends up. """
+
+    num_x, num_y, _ = mesh.shape
+    ny2 = (num_y-1)/2
+
+    le = mesh[0]
+    te = mesh[-1]
+
+    y0 = le[ny2, 1]
+
+    tan_theta = tan(numpy.radians(angle))
+    dx_right = (le[ny2:, 1] - y0) * tan_theta
+    dx_left = -(le[:ny2, 1] - y0) * tan_theta
+    dx = numpy.hstack((dx_left, dx_right))
+
+    for i in xrange(num_x):
+        mesh[i, :, 2] += dx
 
     return mesh
 
@@ -58,13 +82,35 @@ def stretch(mesh, length):
     le = mesh[0]
     te = mesh[-1]
 
-    n_points = len(le)
+    num_x, num_y, _ = mesh.shape
 
-    y_len = le[-1, 1] - le[0, 1]
-    dy = (length - y_len) / (n_points - 1) * numpy.arange(1, n_points)
+    span = le[-1, 1] - le[0, 1]
+    dy = (length - span) / (num_y - 1) * numpy.arange(1, num_y)
 
-    le[1:, 1] += dy
-    te[1:, 1] += dy
+    for i in xrange(num_x):
+        mesh[i, 1:, 1] += dy
+
+    return mesh
+
+def taper(mesh, taper_ratio):
+    """ Change the spanwise chord to produce a tapered wing"""
+
+    le = mesh[0]
+    te = mesh[-1]
+    num_x, num_y, _ = mesh.shape
+    ny2 = (num_y+1)/2
+
+    tele = te - le
+    center_chord = .5 * te + .5 * le
+    span = le[-1, 1] - le[0, 1]
+    taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
+
+    dx = numpy.hstack((taper, taper[::-1][1:]))
+
+    for i in xrange(num_x):
+        for ind in xrange(3):
+            mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
+                dx + center_chord[:, ind]
 
     return mesh
 
@@ -77,19 +123,19 @@ def mirror(mesh, right_side=True):
     symmetry plane.
     """
 
-    n_points = mesh.shape[1]
+    num_x, num_y, _ = mesh.shape
 
-    new_mesh = numpy.empty((2, 2 * n_points - 1, 3))
+    new_mesh = numpy.empty((num_x, 2 * num_y - 1, 3))
 
     mirror_y = numpy.ones(mesh.shape)
     mirror_y[:, :, 1] *= -1.0
 
     if right_side:
-        new_mesh[:, :n_points, :] = mesh[:, ::-1, :] * mirror_y
-        new_mesh[:, n_points:, :] = mesh[:,   1:, :]
+        new_mesh[:, :num_y, :] = mesh[:, ::-1, :] * mirror_y
+        new_mesh[:, num_y:, :] = mesh[:,   1:, :]
     else:
-        new_mesh[:, :n_points, :] = mesh[:, ::-1, :]
-        new_mesh[:, n_points:, :] = mesh[:,   1:, :] * mirror_y[:, 1:, :]
+        new_mesh[:, :num_y, :] = mesh[:, ::-1, :]
+        new_mesh[:, num_y:, :] = mesh[:,   1:, :] * mirror_y[:, 1:, :]
 
     # shift so 0 is at the left wing tip (structures wants it that way)
     y0 = new_mesh[0, 0, 1]
@@ -177,7 +223,9 @@ class GeometryMesh(Component):
 
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
+        self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(num_twist))
+        self.add_param('taper', val=0.)
         self.add_output('mesh', val=self.mesh)
 
         self.deriv_options['type'] = 'cs'
@@ -193,6 +241,8 @@ class GeometryMesh(Component):
         stretch(self.new_mesh, params['span'])
         sweep(self.new_mesh, params['sweep'])
         rotate(self.new_mesh, h)
+        dihedral(self.new_mesh, params['dihedral'])
+        taper(self.new_mesh, params['taper'])
         unknowns['mesh'] = self.new_mesh
 
 

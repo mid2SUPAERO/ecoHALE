@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
-from geometry import GeometryMesh, mesh_gen
+from geometry import GeometryMesh, mesh_gen, sweep
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
@@ -15,10 +15,10 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 numpy.random.seed(12345)
 
 # Create the mesh with 2 inboard points and 3 outboard points
-num_x = 5
-mesh = mesh_gen(n_points_inboard=21, n_points_outboard=31, num_x=num_x)
+num_x = 3
+mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6, num_x=num_x)
 num_y = mesh.shape[1]
-num_twist = 5
+num_twist = 3
 
 # Define the aircraft properties
 execfile('CRM.py')
@@ -69,9 +69,12 @@ root = Group()
 des_vars = [
     ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
     # ('twist', numpy.array([0., 10, 0.])),
+    ('dihedral', 0.),
+    ('sweep', 0.),
     ('span', span),
+    ('taper', .5),
     ('v', v),
-    ('alpha', 4.),
+    ('alpha', alpha),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
@@ -108,6 +111,9 @@ if 1:
 
 prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
 # prob.driver.add_desvar('alpha', lower=-10., upper=10.)
+# prob.driver.add_desvar('sweep', lower=-10., upper=10.)
+# prob.driver.add_desvar('dihedral', lower=-10., upper=45.)
+prob.driver.add_desvar('taper', lower=.1, upper=2.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
 # prob.driver.add_constraint('tc1', equals=0.)
@@ -135,13 +141,15 @@ if sys.argv[1] == '0':
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
     print
     print 'L/D', prob['L'] / prob['D']
+    print
+    print prob['S_ref']
+    # print prob['mesh']
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
-    print prob['twist']
+    print prob['sweep']
     print
     print "run time", time.time() - st
     print
     print 'L/D', prob['L'] / prob['D']
-    print
