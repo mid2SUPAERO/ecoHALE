@@ -349,7 +349,13 @@ class WeissingerCirculations(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
+        # obtain incompressible circulations
         unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
+        a = 295.4 # hardcoded speed of sound
+        M = params['v'] / a
+        beta = numpy.sqrt(1 - M**2)
+        # obtain compressible circulations
+        unknowns['circulations'] /= beta
 
     def apply_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
