@@ -73,6 +73,8 @@ subroutine assembleaeromtx_kink(n, nx, alpha, mesh, points, bpts, mtx)
 
 end subroutine assembleaeromtx_kink
 
+
+
 subroutine assembleaeromtx_paper(n, nx, alpha, points, bpts, skip, mtx)
 
   implicit none
@@ -151,6 +153,8 @@ subroutine assembleaeromtx_paper(n, nx, alpha, points, bpts, skip, mtx)
 
 end subroutine assembleaeromtx_paper
 
+
+
 subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, mtx)
 
   implicit none
@@ -173,9 +177,8 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
   integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, cp_loc
   complex*16 :: pi, P(3), A(3), B(3), u(3), C(3), D(3)
   complex*16 :: norm, ur2(3), r1(3), r2(3), r1_mag, r2_mag
-  complex*16 :: ur1(3), dot, t1(3), bound(3), t3(3)
+  complex*16 :: ur1(3), dot, bound(3)
   complex*16 :: edges(3), C_te(3), D_te(3)
-  complex*16 :: r1r2(3), mag_mult
 
   pi = 4.d0*atan(1.d0)
 
@@ -205,9 +208,10 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
         call cross(u, r2, ur2)
         call cross(u, r1, ur1)
 
-        t1 = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
-        t3 = ur1 / (r1_mag * (r1_mag - dot(u, r1)))
         edges(:) = 0.
+        edges = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
+        edges = edges - ur1 / (r1_mag * (r1_mag - dot(u, r1)))
+
 
         do el_i = nx-1, 1, -1 ! chordwise loop through horseshoe elements
           el_loc = el_i + el_loc_j
@@ -216,8 +220,8 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
           B = bpts(el_i + 0, el_j + 1, :)
 
           if (el_i .EQ. nx - 1) then
-            C = mesh(nx, el_j + 1, :)
-            D = mesh(nx, el_j + 0, :)
+            C = C_te
+            D = D_te
           else
             C = bpts(el_i + 1, el_j + 1, :)
             D = bpts(el_i + 1, el_j + 0, :)
@@ -227,11 +231,11 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
           call calc_vorticity(D, A, P, edges)
 
           if ((skip)  .and. (cp_loc .EQ. el_loc)) then
-            mtx(cp_loc, el_loc, :) = t1 - t3 + edges
+            mtx(cp_loc, el_loc, :) = edges
           else
             bound(:) = 0.
             call calc_vorticity(A, B, P, bound)
-            mtx(cp_loc, el_loc, :) = t1 - t3 + edges + bound
+            mtx(cp_loc, el_loc, :) = edges + bound
           end if
 
         end do
@@ -243,6 +247,8 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
   mtx = mtx / (4. * pi)
 
 end subroutine assembleaeromtx_hug_planform
+
+
 
 subroutine calc_vorticity(A, B, P, out)
 
@@ -269,6 +275,8 @@ subroutine calc_vorticity(A, B, P, out)
   out = out + (r1_mag + r2_mag) * r1r2 / (mag_mult * (mag_mult + dot(r1, r2)))
 
 end subroutine calc_vorticity
+
+
 
 subroutine biotsavart(A, B, P, inf, rev, out)
 

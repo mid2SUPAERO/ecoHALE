@@ -8,6 +8,7 @@ from openmdao.api import Component
 
 from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
+from b_spline import get_bspline_mtx
 
 
 def rotate(mesh, thetas):
@@ -99,12 +100,15 @@ def taper(mesh, taper_ratio):
     le = mesh[0]
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
-    ny2 = (num_y+1)/2
+    ny2 = int((num_y+1)/2)
 
     tele = te - le
     center_chord = .5 * te + .5 * le
     span = le[-1, 1] - le[0, 1]
     taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
+
+    jac = get_bspline_mtx(ny2, ny2, mesh, order=2)
+    taper = jac.dot(taper)
 
     dx = numpy.hstack((taper, taper[::-1][1:]))
 
