@@ -191,7 +191,7 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=3, mesh=crm_base
     full_mesh = add_chordwise_panels(full_mesh, num_x)
     return full_mesh
 
-def add_chordwise_panels(mesh, num_x=3):
+def add_chordwise_panels(mesh, num_x):
     """ Divides the wing into multiple chordwise panels. """
     le = mesh[ 0, :, :]
     te = mesh[-1, :, :]
@@ -220,11 +220,10 @@ def gen_mesh(num_x, num_y, span, chord, amt_of_cos=0.):
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0]
-    print mesh
     return mesh
 
 class GeometryMesh(Component):
-    """ Changes a given mesh with span, sweep, and twist
+    """ Changes a given mesh with span, swee3p, and twist
     des-vars. Takes in a half mesh with symmetry plane about
     the middle and outputs a full symmetric mesh.
     """
@@ -243,7 +242,7 @@ class GeometryMesh(Component):
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(num_twist))
-        self.add_param('taper', val=0.)
+        self.add_param('taper', val=1.)
         self.add_output('mesh', val=self.mesh)
 
         self.deriv_options['type'] = 'cs'
@@ -304,7 +303,7 @@ if __name__ == "__main__":
     thetas = numpy.zeros(20)
     thetas[10:] += 10
 
-    mesh = gen_crm_meshm_mesh(3, 3)
+    mesh = gen_crm_mesh(3, 3)
 
     # new_mesh = rotate(mesh, thetas)
 

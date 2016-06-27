@@ -25,7 +25,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 3
-    num_y = 21
+    num_y = 81
     span = 10.
     chord = 1.
     amt_of_cos = 0.5
@@ -83,7 +83,7 @@ prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
 # prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 # prob.driver.add_desvar('sweep', lower=-10., upper=10.)
 # prob.driver.add_desvar('dihedral', lower=-10., upper=45.)
-prob.driver.add_desvar('taper', lower=.1, upper=2.)
+prob.driver.add_desvar('taper', lower=.01, upper=2.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
 # setup data recording

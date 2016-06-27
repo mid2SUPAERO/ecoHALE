@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
-from geometry import GeometryMesh, mesh_gen, LinearInterp
+from geometry import GeometryMesh, gen_mesh, LinearInterp
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
@@ -16,9 +16,9 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 # Define the aircraft properties
 execfile('CRM.py')
 
-num_x = 5
-num_y = 121
-num_twist = 3
+num_x = 2
+num_y = 161
+num_twist = 5
 span = 232.02
 chord = 39.37
 mesh = numpy.zeros((num_x, num_y, 3))
@@ -29,7 +29,7 @@ beta = numpy.linspace(0, numpy.pi/2, ny2)
 # mixed spacing with w as a weighting factor
 cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
 uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-amt_of_cos = .5
+amt_of_cos = 0.5
 half_wing = cosine * amt_of_cos + (1 - amt_of_cos) * uniform
 full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
@@ -101,3 +101,12 @@ plt.legend(loc=0)
 ax2.set_xlabel('CD')
 ax2.set_ylabel('CL')
 plt.show()
+
+
+a = numpy.atleast_2d(numpy.array(a_list)).T
+CL = numpy.atleast_2d(numpy.array(CL_list)).T
+
+straight = numpy.hstack((a, CL))
+
+with open('straight.txt', 'w') as f:
+    numpy.savetxt(f, straight)

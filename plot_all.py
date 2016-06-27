@@ -4,7 +4,10 @@ Usage is
 `python plot_all.py a` for aero only,
 `python plot_all.py as` for struct only,
 `python plot_all.py as` for aerostruct, or
-`python plot_all.py __name__.db` for user-named database.
+`python plot_all.py __name__` for user-named database.
+
+The script automatically appends '.db' to the provided name.
+Ex: `python plot_all.py example` opens 'example.db'.
 """
 
 
@@ -408,7 +411,7 @@ class Display(object):
         useful if examining a running optimization.
         """
         if self.var_ref.get():
-            self.root.after(200, self.auto_ref)
+            self.root.after(800, self.auto_ref)
             self.check_length()
             self.update_graphs()
 
