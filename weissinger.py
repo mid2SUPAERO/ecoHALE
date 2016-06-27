@@ -67,7 +67,7 @@ def _calc_vorticity(A, B, P):
          (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
 
 
-def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
+def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False):
     """
     Compute the aerodynamic influence coefficient matrix
     either for the ation linear system or Trefftz-plane drag computation
@@ -77,95 +77,141 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
     - b_pts[num_y, 3] : bound vortex coordinates
     """
 
-    num_y = mesh.shape[1]
-    num_x = mesh.shape[0]
-    mtx[:, :, :] = 0.0
-    alpha_conv = alpha * numpy.pi / 180.
-    cosa = numpy.cos(alpha_conv)
-    sina = numpy.sin(alpha_conv)
-    u = numpy.array([cosa, 0, sina])
+    for i, row in enumerate(mesh_ind):
+        place = numpy.sum(numpy.product(mesh_ind[:i], axis=1))
+        n = row[0] * row[1]
 
-    if 0: # kink
-        if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, num_x, alpha, mesh, points, b_pts)
-            # old_mtx = mtx.copy()
-            # mtx[:, :, :] = 0.
-        else:
-            # Spanwise loop through horseshoe elements
-            for el_j in xrange(num_y - 1):
+        mesh = full_mesh[place:place+n, :].reshape(row[0], row[1], 3)
 
-                el_loc_j = el_j * (num_x - 1)
+        num_y = mesh.shape[1]
+        num_x = mesh.shape[0]
+        mtx[:, :, :] = 0.0
+        alpha_conv = alpha * numpy.pi / 180.
+        cosa = numpy.cos(alpha_conv)
+        sina = numpy.sin(alpha_conv)
+        u = numpy.array([cosa, 0, sina])
 
-                # Chordwise loop through horseshoe elements
-                for el_i in xrange(num_x - 1):
+        if 0: # kink
+            if fortran_flag:
+                mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, num_x, alpha, mesh, points, b_pts)
+                # old_mtx = mtx.copy()
+                # mtx[:, :, :] = 0.
+            else:
+                # Spanwise loop through horseshoe elements
+                for el_j in xrange(num_y - 1):
 
-                    el_loc = el_i + el_loc_j
+                    el_loc_j = el_j * (num_x - 1)
 
-                    A = b_pts[el_i, el_j + 0, :]
-                    B = b_pts[el_i, el_j + 1, :]
-                    D = mesh[el_i + 1, el_j + 0, :]
-                    E = mesh[el_i + 1, el_j + 1, :]
-                    F = D + u
-                    G = E + u
+                    # Chordwise loop through horseshoe elements
+                    for el_i in xrange(num_x - 1):
+
+                        el_loc = el_i + el_loc_j
+
+                        A = b_pts[el_i, el_j + 0, :]
+                        B = b_pts[el_i, el_j + 1, :]
+                        D = mesh[el_i + 1, el_j + 0, :]
+                        E = mesh[el_i + 1, el_j + 1, :]
+                        F = D + u
+                        G = E + u
+
+                        # Spanwise loop through control points
+                        for cp_j in xrange(num_y - 1):
+
+                            cp_loc_j = cp_j * (num_x - 1)
+
+                            # Chordwise loop through control points
+                            for cp_i in xrange(num_x - 1):
+
+                                cp_loc = cp_i + cp_loc_j
+
+                                P = points[cp_i, cp_j]
+
+                                chk = _biot_savart(A, B, P, inf=False, rev=False)
+                                if numpy.isnan(chk).any() or numpy.isinf(chk).any():
+                                    pass
+                                else:
+                                    mtx[cp_loc, el_loc, :] += chk
+
+                                mtx[cp_loc, el_loc, :] += _biot_savart(B, E, P, inf=False, rev=False)
+                                mtx[cp_loc, el_loc, :] += _biot_savart(A, D, P, inf=False, rev=True)
+                                mtx[cp_loc, el_loc, :] += _biot_savart(E, G, P, inf=True,  rev=False)
+                                mtx[cp_loc, el_loc, :] += _biot_savart(D, F, P, inf=True,  rev=True)
+
+                mtx /=  4 * numpy.pi
+
+        if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
+            if fortran_flag:
+                mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, num_x, alpha, points, b_pts, skip)
+                # old_mtx = mtx.copy()
+                # mtx[:, :, :] = 0.
+            else:
+                # Spanwise loop through horseshoe elements
+                for el_j in xrange(num_y - 1):
+
+                    el_loc_j = el_j * (num_x - 1)
+
+                    # Chordwise loop through horseshoe elements
+                    for el_i in xrange(num_x - 1):
+
+                        el_loc = el_i + el_loc_j
+
+                        A = b_pts[el_i, el_j + 0, :]
+                        B = b_pts[el_i, el_j + 1, :]
+
+                        # Spanwise loop through control points
+                        for cp_j in xrange(num_y - 1):
+
+                            cp_loc_j = cp_j * (num_x - 1)
+
+                            # Chordwise loop through control points
+                            for cp_i in xrange(num_x - 1):
+
+                                cp_loc = cp_i + cp_loc_j
+
+                                P = points[cp_i, cp_j]
+
+                                r1 = P - A
+                                r2 = P - B
+
+                                r1_mag = norm(r1)
+                                r2_mag = norm(r2)
+
+                                t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
+                                t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
+
+                                if skip and el_loc == cp_loc:
+                                    mtx[cp_loc, el_loc, :] = t1 - t3
+                                else:
+                                    t2 = _calc_vorticity(A, B, P)
+                                    mtx[cp_loc, el_loc, :] = t1 + t2 - t3
+
+                mtx /= 4 * numpy.pi
+
+
+        if 1: # following planform but still horseshoe version
+            if fortran_flag:
+                mtx[:, :, :] = lib.assembleaeromtx_hug_planform(num_y, num_x, alpha, points, b_pts, mesh, skip)
+                # old_mtx = mtx.copy()
+                # mtx[:, :, :] = 0.
+            else:
+                # Spanwise loop through horseshoe elements
+                for el_j in xrange(num_y - 1):
+                    el_loc_j = el_j * (num_x - 1)
+                    C_te = mesh[-1, el_j + 1, :]
+                    D_te = mesh[-1, el_j + 0, :]
 
                     # Spanwise loop through control points
                     for cp_j in xrange(num_y - 1):
-
                         cp_loc_j = cp_j * (num_x - 1)
 
                         # Chordwise loop through control points
                         for cp_i in xrange(num_x - 1):
-
                             cp_loc = cp_i + cp_loc_j
 
                             P = points[cp_i, cp_j]
 
-                            chk = _biot_savart(A, B, P, inf=False, rev=False)
-                            if numpy.isnan(chk).any() or numpy.isinf(chk).any():
-                                pass
-                            else:
-                                mtx[cp_loc, el_loc, :] += chk
-
-                            mtx[cp_loc, el_loc, :] += _biot_savart(B, E, P, inf=False, rev=False)
-                            mtx[cp_loc, el_loc, :] += _biot_savart(A, D, P, inf=False, rev=True)
-                            mtx[cp_loc, el_loc, :] += _biot_savart(E, G, P, inf=True,  rev=False)
-                            mtx[cp_loc, el_loc, :] += _biot_savart(D, F, P, inf=True,  rev=True)
-
-            mtx /=  4 * numpy.pi
-
-    if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
-        if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, num_x, alpha, points, b_pts, skip)
-            # old_mtx = mtx.copy()
-            # mtx[:, :, :] = 0.
-        else:
-            # Spanwise loop through horseshoe elements
-            for el_j in xrange(num_y - 1):
-
-                el_loc_j = el_j * (num_x - 1)
-
-                # Chordwise loop through horseshoe elements
-                for el_i in xrange(num_x - 1):
-
-                    el_loc = el_i + el_loc_j
-
-                    A = b_pts[el_i, el_j + 0, :]
-                    B = b_pts[el_i, el_j + 1, :]
-
-                    # Spanwise loop through control points
-                    for cp_j in xrange(num_y - 1):
-
-                        cp_loc_j = cp_j * (num_x - 1)
-
-                        # Chordwise loop through control points
-                        for cp_i in xrange(num_x - 1):
-
-                            cp_loc = cp_i + cp_loc_j
-
-                            P = points[cp_i, cp_j]
-
-                            r1 = P - A
-                            r2 = P - B
+                            r1 = P - D_te
+                            r2 = P - C_te
 
                             r1_mag = norm(r1)
                             r2_mag = norm(r2)
@@ -173,88 +219,51 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha, skip=False):
                             t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
                             t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
 
-                            if skip and el_loc == cp_loc:
-                                mtx[cp_loc, el_loc, :] = t1 - t3
-                            else:
-                                t2 = _calc_vorticity(A, B, P)
-                                mtx[cp_loc, el_loc, :] = t1 + t2 - t3
+                            trailing = t1 - t3
+                            edges = 0
 
-            mtx /= 4 * numpy.pi
+                            # Chordwise loop through horseshoe elements
+                            for el_i in reversed(xrange(num_x - 1)):
+                                el_loc = el_i + el_loc_j
 
+                                A = b_pts[el_i, el_j + 0, :]
+                                B = b_pts[el_i, el_j + 1, :]
 
-    if 1: # following planform but still horseshoe version
-        if fortran_flag:
-            mtx[:, :, :] = lib.assembleaeromtx_hug_planform(num_y, num_x, alpha, points, b_pts, mesh, skip)
-            # old_mtx = mtx.copy()
-            # mtx[:, :, :] = 0.
-        else:
-            # Spanwise loop through horseshoe elements
-            for el_j in xrange(num_y - 1):
-                el_loc_j = el_j * (num_x - 1)
-                C_te = mesh[-1, el_j + 1, :]
-                D_te = mesh[-1, el_j + 0, :]
+                                if el_i == num_x - 2:
+                                    C = mesh[-1, el_j + 1, :]
+                                    D = mesh[-1, el_j + 0, :]
+                                else:
+                                    C = b_pts[el_i + 1, el_j + 1, :]
+                                    D = b_pts[el_i + 1, el_j + 0, :]
+                                edges += _calc_vorticity(B, C, P)
+                                edges += _calc_vorticity(D, A, P)
 
-                # Spanwise loop through control points
-                for cp_j in xrange(num_y - 1):
-                    cp_loc_j = cp_j * (num_x - 1)
+                                if skip and el_loc == cp_loc:
+                                    mtx[cp_loc, el_loc, :] = trailing + edges
+                                else:
+                                    bound = _calc_vorticity(A, B, P)
+                                    mtx[cp_loc, el_loc, :] = trailing + edges + bound
 
-                    # Chordwise loop through control points
-                    for cp_i in xrange(num_x - 1):
-                        cp_loc = cp_i + cp_loc_j
-
-                        P = points[cp_i, cp_j]
-
-                        r1 = P - D_te
-                        r2 = P - C_te
-
-                        r1_mag = norm(r1)
-                        r2_mag = norm(r2)
-
-                        t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                        t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
-
-                        trailing = t1 - t3
-                        edges = 0
-
-                        # Chordwise loop through horseshoe elements
-                        for el_i in reversed(xrange(num_x - 1)):
-                            el_loc = el_i + el_loc_j
-
-                            A = b_pts[el_i, el_j + 0, :]
-                            B = b_pts[el_i, el_j + 1, :]
-
-                            if el_i == num_x - 2:
-                                C = mesh[-1, el_j + 1, :]
-                                D = mesh[-1, el_j + 0, :]
-                            else:
-                                C = b_pts[el_i + 1, el_j + 1, :]
-                                D = b_pts[el_i + 1, el_j + 0, :]
-                            edges += _calc_vorticity(B, C, P)
-                            edges += _calc_vorticity(D, A, P)
-
-                            if skip and el_loc == cp_loc:
-                                mtx[cp_loc, el_loc, :] = trailing + edges
-                            else:
-                                bound = _calc_vorticity(A, B, P)
-                                mtx[cp_loc, el_loc, :] = trailing + edges + bound
-
-            mtx /= 4 * numpy.pi
+                mtx /= 4 * numpy.pi
 
 
 class WeissingerGeometry(Component):
     """ Compute various geometric properties for Weissinger analysis """
 
-    def __init__(self, nx, n):
+    def __init__(self, mesh_ind):
         super(WeissingerGeometry, self).__init__()
 
-        self.add_param('def_mesh', val=numpy.zeros((nx, n, 3)))
-        self.add_output('b_pts', val=numpy.zeros((nx-1, n, 3)))
-        self.add_output('c_pts', val=numpy.zeros((nx-1, n-1, 3)))
-        self.add_output('widths', val=numpy.zeros((nx-1, n-1)))
-        self.add_output('normals', val=numpy.zeros((nx-1, n-1, 3)))
+        nx, self.ny = mesh_ind[0, :]
+        n = numpy.sum(numpy.product(mesh_ind, axis=1))
+        n_wing = numpy.product(mesh_ind, axis=1)[0]
+        self.mesh_ind = mesh_ind
+
+        self.add_param('def_mesh', val=numpy.zeros((n, 3)))
+        self.add_output('b_pts', val=numpy.zeros((nx-1, self.ny, 3)))
+        self.add_output('c_pts', val=numpy.zeros((nx-1, self.ny-1, 3)))
+        self.add_output('widths', val=numpy.zeros((nx-1, self.ny-1)))
+        self.add_output('normals', val=numpy.zeros((nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=0.)
-        self.num_y = n
-        self.num_x = nx
 
         self.deriv_options['form'] = 'central'
 
@@ -262,37 +271,41 @@ class WeissingerGeometry(Component):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        mesh = params['def_mesh']
+        for i, row in enumerate(self.mesh_ind):
+            place = numpy.sum(numpy.product(self.mesh_ind[:i], axis=1))
+            n = row[0] * row[1]
 
-        unknowns['b_pts'] = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
+            mesh = params['def_mesh'][place:place+n, :].reshape(row[0], row[1], 3)
 
-        unknowns['c_pts'] = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
-                            0.5 * 0.75 * mesh[1:, :-1, :] + \
-                            0.5 * 0.25 * mesh[:-1,  1:, :] + \
-                            0.5 * 0.75 * mesh[1:,  1:, :]
+            unknowns['b_pts'] = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
 
-        b_pts = unknowns['b_pts']
-        unknowns['widths'] = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
+            unknowns['c_pts'] = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
+                                0.5 * 0.75 * mesh[1:, :-1, :] + \
+                                0.5 * 0.25 * mesh[:-1,  1:, :] + \
+                                0.5 * 0.75 * mesh[1:,  1:, :]
 
-        normals = numpy.cross(
-            mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
-            mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
-            axis=2)
+            b_pts = unknowns['b_pts']
+            unknowns['widths'] = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
 
-        norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
+            normals = numpy.cross(
+                mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
+                mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
+                axis=2)
 
-        for ind in xrange(3):
-            normals[:, :, ind] /= norms
+            norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
 
-        unknowns['normals'] = normals
-        unknowns['S_ref'] = 0.5 * numpy.sum(norms)
+            for ind in xrange(3):
+                normals[:, :, ind] /= norms
+
+            unknowns['normals'] = normals
+            unknowns['S_ref'] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
 
         jac = self.alloc_jacobian()
 
-        n = self.num_y
+        n = self.ny
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['def_mesh'],
@@ -314,28 +327,36 @@ class WeissingerGeometry(Component):
 class WeissingerCirculations(Component):
     """ Define circulations """
 
-    def __init__(self, nx, n):
+    def __init__(self, mesh_ind):
         super(WeissingerCirculations, self).__init__()
+
+        nx, ny = mesh_ind[0, :]
+        n = numpy.sum(numpy.product(mesh_ind, axis=1))
+        n_wing = numpy.product(mesh_ind, axis=1)[0]
+        self.mesh_ind = mesh_ind
+
         self.add_param('v', val=10.)
         self.add_param('alpha', val=3.)
-        self.add_param('def_mesh', val=numpy.zeros((nx, n, 3)))
-        self.add_param('normals', val=numpy.zeros((nx-1, n-1, 3)))
-        self.add_param('b_pts', val=numpy.zeros((nx-1, n, 3)))
-        self.add_param('c_pts', val=numpy.zeros((nx-1, n-1, 3)))
-        size = (n-1) * (nx-1)
+        self.add_param('def_mesh', val=numpy.zeros((n, 3)))
+        self.add_param('normals', val=numpy.zeros((nx-1, ny-1, 3)))
+        self.add_param('b_pts', val=numpy.zeros((nx-1, ny, 3)))
+        self.add_param('c_pts', val=numpy.zeros((nx-1, ny-1, 3)))
+        size = (ny-1) * (nx-1)
         self.add_state('circulations', val=numpy.zeros((size)))
 
         self.deriv_options['form'] = 'central'
         self.deriv_options['linearize'] = True # only for circulations
 
-        self.num_y = n
+        self.num_y = ny
         self.AIC_mtx = numpy.zeros((size, size, 3), dtype="complex")
         self.mtx = numpy.zeros((size, size), dtype="complex")
         self.rhs = numpy.zeros((size), dtype="complex")
 
     def _assemble_system(self, params):
-        _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'],
-                          params['c_pts'], params['b_pts'], params['alpha'])
+
+
+        _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'], self.mesh_ind,
+                        params['c_pts'], params['b_pts'], params['alpha'])
 
         self.mtx[:, :] = 0.
         for ind in xrange(3):
@@ -401,24 +422,30 @@ class WeissingerCirculations(Component):
 class WeissingerForces(Component):
     """ Define aerodynamic forces acting on each section """
 
-    def __init__(self, nx, n):
+    def __init__(self, mesh_ind):
         super(WeissingerForces, self).__init__()
-        self.add_param('def_mesh', val=numpy.zeros((nx, n, 3)))
-        self.add_param('b_pts', val=numpy.zeros((nx-1, n, 3)))
-        self.add_param('c_pts', val=numpy.zeros((nx-1, n-1, 3)))
-        size = (nx-1) * (n-1)
+
+        nx, ny = mesh_ind[0, :]
+        n = numpy.sum(numpy.product(mesh_ind, axis=1))
+        n_wing = numpy.product(mesh_ind, axis=1)[0]
+        self.mesh_ind = mesh_ind
+
+        self.add_param('def_mesh', val=numpy.zeros((n, 3)))
+        self.add_param('b_pts', val=numpy.zeros((nx-1, ny, 3)))
+        self.add_param('c_pts', val=numpy.zeros((nx-1, ny-1, 3)))
+        size = (nx-1) * (ny-1)
         self.add_param('circulations', val=numpy.zeros((size)))
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_param('widths', val=numpy.zeros((nx-1, n-1)))
-        self.add_output('sec_forces', val=numpy.zeros((nx-1, n-1, 3)))
+        self.add_param('widths', val=numpy.zeros((nx-1, ny-1)))
+        self.add_output('sec_forces', val=numpy.zeros((nx-1, ny-1, 3)))
 
         self.mtx = numpy.zeros((size, size, 3))
 
         self.deriv_options['form'] = 'central'
 
-        self.num_y = n
+        self.num_y = ny
         self.num_x = nx
         self.v = numpy.zeros((size, 3), dtype="complex")
 
@@ -431,7 +458,7 @@ class WeissingerForces(Component):
 
         mid_b = (params['b_pts'][:, 1:, :] + params['b_pts'][:, :-1, :]) / 2
 
-        _assemble_AIC_mtx(self.mtx, params['def_mesh'],
+        _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.mesh_ind,
                           mid_b, params['b_pts'], params['alpha'], skip=True)
 
         for ind in xrange(3):
@@ -474,10 +501,14 @@ class WeissingerForces(Component):
 class WeissingerLiftDrag(Component):
     """ Calculate total lift and drag in force units based on section forces """
 
-    def __init__(self, nx, n):
+    def __init__(self, mesh_ind):
         super(WeissingerLiftDrag, self).__init__()
 
-        self.add_param('sec_forces', val=numpy.zeros((nx-1, n-1, 3)))
+        nx, ny = mesh_ind[0, :]
+        self.n = numpy.sum(numpy.product(mesh_ind, axis=1))
+        self.n_wing = numpy.product(mesh_ind, axis=1)[0]
+
+        self.add_param('sec_forces', val=numpy.zeros((nx-1, ny-1, 3)))
         self.add_param('alpha', val=3.)
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
@@ -486,7 +517,7 @@ class WeissingerLiftDrag(Component):
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
 
-        self.num_y = n
+        self.num_y = ny
 
     def solve_nonlinear(self, params, unknowns, resids):
         alpha = params['alpha'] * numpy.pi / 180.
@@ -535,7 +566,6 @@ class WeissingerCoeffs(Component):
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
         self.add_output('CX', val=0.)
-
 
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
@@ -629,17 +659,17 @@ class TotalDrag(Component):
 class WeissingerStates(Group):
     """ Group that contains the aerodynamic states """
 
-    def __init__(self, num_x, num_y):
+    def __init__(self, mesh_ind):
         super(WeissingerStates, self).__init__()
 
         self.add('wgeom',
-                 WeissingerGeometry(num_x, num_y),
+                 WeissingerGeometry(mesh_ind),
                  promotes=['*'])
         self.add('circ',
-                 WeissingerCirculations(num_x, num_y),
+                 WeissingerCirculations(mesh_ind),
                  promotes=['*'])
         self.add('forces',
-                 WeissingerForces(num_x, num_y),
+                 WeissingerForces(mesh_ind),
                  promotes=['*'])
 
 
@@ -647,11 +677,11 @@ class WeissingerStates(Group):
 class WeissingerFunctionals(Group):
     """ Group that contains the aerodynamic functionals used to evaluate performance """
 
-    def __init__(self, nx, num_y, CL0, CD0, num_twist):
+    def __init__(self, mesh_ind, CL0, CD0, num_twist):
         super(WeissingerFunctionals, self).__init__()
 
         self.add('liftdrag',
-                 WeissingerLiftDrag(nx, num_y),
+                 WeissingerLiftDrag(mesh_ind),
                  promotes=['*'])
         self.add('coeffs',
                  WeissingerCoeffs(),

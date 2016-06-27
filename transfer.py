@@ -9,14 +9,18 @@ from openmdao.api import Component
 class TransferDisplacements(Component):
     """ Performs displacement transfer """
 
-    def __init__(self, nx, n, fem_origin=0.35):
+    def __init__(self, mesh_ind, fem_origin=0.35):
         super(TransferDisplacements, self).__init__()
+
+        self.nx, self.ny = mesh_ind[0, :]
+        self.n = numpy.sum(numpy.product(mesh_ind, axis=1))
+        self.n_wing = numpy.product(mesh_ind, axis=1)[0]
 
         self.fem_origin = fem_origin
 
-        self.add_param('mesh', val=numpy.zeros((nx, n, 3)))
-        self.add_param('disp', val=numpy.zeros((n, 6)))
-        self.add_output('def_mesh', val=numpy.zeros((nx, n, 3)))
+        self.add_param('mesh', val=numpy.zeros((self.n, 3)))
+        self.add_param('disp', val=numpy.zeros((self.ny, 6)))
+        self.add_output('def_mesh', val=numpy.zeros((self.n, 3)))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -24,20 +28,20 @@ class TransferDisplacements(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        mesh = params['mesh']
-        num_x, num_y = mesh.shape[:2]
+        self.wing_mesh = params['mesh'][:self.n_wing, :].reshape(self.nx, self.ny, 3)
+        mesh = self.wing_mesh
         disp = params['disp']
 
         w = self.fem_origin
         ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
         Smesh = numpy.zeros(mesh.shape, dtype="complex")
-        for ind in xrange(num_x):
+        for ind in xrange(self.nx):
             Smesh[ind, :, :] = mesh[ind, :, :] - ref_curve
 
         def_mesh = numpy.zeros(mesh.shape, dtype="complex")
         cos, sin = numpy.cos, numpy.sin
-        for ind in xrange(num_y):
+        for ind in xrange(self.ny):
             dx, dy, dz, rx, ry, rz = disp[ind, :]
 
             # 1 eye from the axis rotation matrices
@@ -52,7 +56,8 @@ class TransferDisplacements(Component):
             def_mesh[:, ind, 1] += dy
             def_mesh[:, ind, 2] += dz
 
-        unknowns['def_mesh'] = def_mesh + mesh
+        unknowns['def_mesh'][:self.n_wing, :] = \
+            (def_mesh + mesh).reshape(self.n_wing, 3)
 
 
 

@@ -227,44 +227,42 @@ def gen_mesh(num_x, num_y, span, chord, amt_of_cos=0.):
     return mesh
 
 class GeometryMesh(Component):
-    """ Changes a given mesh with span, swee3p, and twist
+    """ Changes a given mesh with span, sweep, and twist
     des-vars. Takes in a half mesh with symmetry plane about
     the middle and outputs a full symmetric mesh.
     """
 
-    def __init__(self, mesh, num_twist):
+    def __init__(self, mesh, mesh_ind, num_twist):
         super(GeometryMesh, self).__init__()
 
-        self.mesh = mesh
         self.num_twist = num_twist
 
-        self.new_mesh = numpy.empty(mesh.shape, dtype=complex)
-        self.new_mesh[:] = mesh
-        self.n = self.mesh.shape[1]
+        self.ny = mesh_ind[0, 1]
+        self.nx = mesh_ind[0, 0]
+        self.n = self.nx * self.ny
+        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3)
 
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(num_twist))
         self.add_param('taper', val=1.)
-        self.add_output('mesh', val=self.mesh)
+        self.add_output('mesh', val=mesh)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
-        jac = get_bspline_mtx(self.num_twist, self.n, self.mesh)
+        jac = get_bspline_mtx(self.num_twist, self.ny, self.wing_mesh)
         h_cp = params['twist']
         h = jac.dot(h_cp)
 
-        self.new_mesh[:] = self.mesh
-        stretch(self.new_mesh, params['span'])
-        sweep(self.new_mesh, params['sweep'])
-        rotate(self.new_mesh, h)
-        dihedral(self.new_mesh, params['dihedral'])
-        taper(self.new_mesh, params['taper'])
-        unknowns['mesh'] = self.new_mesh
+        stretch(self.wing_mesh, params['span'])
+        sweep(self.wing_mesh, params['sweep'])
+        rotate(self.wing_mesh, h)
+        dihedral(self.wing_mesh, params['dihedral'])
+        taper(self.wing_mesh, params['taper'])
+        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3)
 
 
 class LinearInterp(Component):

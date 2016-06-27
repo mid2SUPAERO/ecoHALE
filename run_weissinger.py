@@ -18,20 +18,21 @@ numpy.random.seed(12345)
 num_x = 3
 mesh = gen_crm_mesh(n_points_inboard=4, n_points_outboard=6, num_x=num_x)
 num_y = mesh.shape[1]
-num_twist = 3
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if 1:
     num_x = 3
-    num_y = 41
+    num_y = 5
     span = 10.
     chord = 1.
-    amt_of_cos = 1.
+    amt_of_cos = .5
     mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
-    num_twist = int((num_y - 1) / 5)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
+mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+mesh = mesh.reshape(-1, mesh.shape[-1])
 
 disp = numpy.zeros((num_y, 6))
 
@@ -42,27 +43,28 @@ des_vars = [
     ('dihedral', 0.),
     ('sweep', 0.),
     ('span', span),
-    ('taper', .5),
+    ('taper', 1.),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6)))
 ]
 
+
 root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, num_twist),
+         GeometryMesh(mesh, mesh_ind, num_twist),
          promotes=['*'])
 root.add('def_mesh',
-         TransferDisplacements(num_x, num_y),
+         TransferDisplacements(mesh_ind),
          promotes=['*'])
 root.add('weissingerstates',
-         WeissingerStates(num_x, num_y),
+         WeissingerStates(mesh_ind),
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(num_x, num_y, CL0, CD0, num_twist),
+         WeissingerFunctionals(mesh_ind, CL0, CD0, num_twist),
          promotes=['*'])
 
 prob = Problem()
@@ -81,9 +83,9 @@ if 1:
 
 prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
 # prob.driver.add_desvar('alpha', lower=-10., upper=10.)
-# prob.driver.add_desvar('sweep', lower=-10., upper=10.)
-# prob.driver.add_desvar('dihedral', lower=-10., upper=45.)
-# prob.driver.add_desvar('taper', lower=.01, upper=2.)
+# prob.driver.add_desvar('sweep', lower=-10., upper=30.)
+# prob.driver.add_desvar('dihedral', lower=-10., upper=20.)
+# prob.driver.add_desvar('taper', lower=.5, upper=2.)
 prob.driver.add_objective('CD', scaler=1e4)
 prob.driver.add_constraint('CL', equals=0.5)
 # setup data recording
@@ -93,8 +95,8 @@ prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 # profile.start()
 
 prob.root.deriv_options['type'] = 'fd'
-
 prob.setup()
+
 view_tree(prob, outfile="aero.html", show_browser=False)
 
 import time
@@ -116,7 +118,6 @@ elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
-    print prob['sweep']
     print
     print "run time", time.time() - st
     print
