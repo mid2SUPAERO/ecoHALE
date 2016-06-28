@@ -82,12 +82,17 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
         n = row[0] * row[1]
 
         mesh = full_mesh[place:place+n, :].reshape(row[0], row[1], 3)
+        print mesh
+        print points
+        print b_pts
+        print alpha
+        exit()
 
         num_y = mesh.shape[1]
         num_x = mesh.shape[0]
         mtx[:, :, :] = 0.0
         cosa = numpy.cos(alpha * numpy.pi / 180.)
-        sina = numpy.sin(alpha * numpy.pi / 180)
+        sina = numpy.sin(alpha * numpy.pi / 180.)
         u = numpy.array([cosa, 0, sina])
 
         if 0: # kink
@@ -278,6 +283,9 @@ class WeissingerGeometry(Component):
 
             unknowns['b_pts'] = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
 
+
+
+
             unknowns['c_pts'] = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
                                 0.5 * 0.75 * mesh[1:, :-1, :] + \
                                 0.5 * 0.25 * mesh[:-1,  1:, :] + \
@@ -352,8 +360,6 @@ class WeissingerCirculations(Component):
         self.rhs = numpy.zeros((size), dtype="complex")
 
     def _assemble_system(self, params):
-
-
         _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'], self.mesh_ind,
                         params['c_pts'], params['b_pts'], params['alpha'])
         view_mat(self.AIC_mtx)

@@ -27,7 +27,7 @@ if 1:
     num_y = 5
     span = 10.
     chord = 1.
-    amt_of_cos = .5
+    amt_of_cos = 0
     mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
