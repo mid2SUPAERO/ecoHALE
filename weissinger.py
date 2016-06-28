@@ -366,16 +366,14 @@ class WeissingerCirculations(Component):
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex")
         self.rhs[:] = -params['normals'].reshape(-1, params['normals'].shape[-1], order='F').dot(v_inf)
-
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
-        # obtain incompressible circulations
-        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
         a = 295.4 # hardcoded speed of sound
         M = params['v'] / a
         beta = numpy.sqrt(1 - M**2)
         # obtain compressible circulations
-        unknowns['circulations'] /= beta
+        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs) / beta
+
 
     def apply_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)

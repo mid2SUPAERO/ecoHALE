@@ -257,17 +257,12 @@ class GeometryMesh(Component):
         h_cp = params['twist']
         h = jac.dot(h_cp)
 
-        print self.wing_mesh
-
         stretch(self.wing_mesh, params['span'])
         sweep(self.wing_mesh, params['sweep'])
         rotate(self.wing_mesh, h)
         dihedral(self.wing_mesh, params['dihedral'])
         taper(self.wing_mesh, params['taper'])
-        print self.wing_mesh
         unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3)
-        print unknowns['mesh']
-        exit()
 
 
 class LinearInterp(Component):
