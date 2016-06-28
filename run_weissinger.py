@@ -39,7 +39,7 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_twist) * 10 * numpy.random.rand(num_twist)),
+    ('twist', numpy.linspace(0, 10, num_twist)),
     ('dihedral', 0.),
     ('sweep', 0.),
     ('span', span),

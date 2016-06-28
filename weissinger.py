@@ -189,14 +189,6 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
         if 1: # following planform but still horseshoe version
             if fortran_flag:
                 mtx[:, :, :] = lib.assembleaeromtx_hug_planform(num_y, num_x, alpha, points, b_pts, mesh, skip)
-                print num_y
-                print num_x
-                print alpha
-                print points
-                print b_pts
-                print mesh
-                print skip
-                exit()
                 # old_mtx = mtx.copy()
                 # mtx[:, :, :] = 0.
             else:
@@ -364,7 +356,6 @@ class WeissingerCirculations(Component):
     def _assemble_system(self, params):
         _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'], self.mesh_ind,
                         params['c_pts'], params['b_pts'], params['alpha'])
-        view_mat(self.AIC_mtx)
 
         self.mtx[:, :] = 0.
         for ind in xrange(3):

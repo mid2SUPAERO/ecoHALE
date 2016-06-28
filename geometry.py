@@ -240,7 +240,7 @@ class GeometryMesh(Component):
         self.ny = mesh_ind[0, 1]
         self.nx = mesh_ind[0, 0]
         self.n = self.nx * self.ny
-        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3)
+        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
 
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
@@ -257,12 +257,17 @@ class GeometryMesh(Component):
         h_cp = params['twist']
         h = jac.dot(h_cp)
 
+        print self.wing_mesh
+
         stretch(self.wing_mesh, params['span'])
         sweep(self.wing_mesh, params['sweep'])
         rotate(self.wing_mesh, h)
         dihedral(self.wing_mesh, params['dihedral'])
         taper(self.wing_mesh, params['taper'])
+        print self.wing_mesh
         unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3)
+        print unknowns['mesh']
+        exit()
 
 
 class LinearInterp(Component):
