@@ -82,14 +82,8 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
         n = row[0] * row[1]
 
         mesh = full_mesh[place:place+n, :].reshape(row[0], row[1], 3)
-        print mesh
-        print points
-        print b_pts
-        print alpha
-        exit()
 
-        num_y = mesh.shape[1]
-        num_x = mesh.shape[0]
+        num_x, num_y = row
         mtx[:, :, :] = 0.0
         cosa = numpy.cos(alpha * numpy.pi / 180.)
         sina = numpy.sin(alpha * numpy.pi / 180.)
@@ -195,6 +189,14 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
         if 1: # following planform but still horseshoe version
             if fortran_flag:
                 mtx[:, :, :] = lib.assembleaeromtx_hug_planform(num_y, num_x, alpha, points, b_pts, mesh, skip)
+                print num_y
+                print num_x
+                print alpha
+                print points
+                print b_pts
+                print mesh
+                print skip
+                exit()
                 # old_mtx = mtx.copy()
                 # mtx[:, :, :] = 0.
             else:
