@@ -240,6 +240,7 @@ class GeometryMesh(Component):
         self.ny = mesh_ind[0, 1]
         self.nx = mesh_ind[0, 0]
         self.n = self.nx * self.ny
+        self.mesh = mesh
         self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
 
         self.add_param('span', val=58.7630524)
@@ -253,6 +254,7 @@ class GeometryMesh(Component):
         self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
+        self.wing_mesh = self.mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
         jac = get_bspline_mtx(self.num_twist, self.ny, self.wing_mesh)
         h_cp = params['twist']
         h = jac.dot(h_cp)

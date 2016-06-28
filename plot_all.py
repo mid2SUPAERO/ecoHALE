@@ -124,7 +124,8 @@ class Display(object):
             except:
                 continue
 
-            self.mesh.append(case_data['Unknowns']['mesh'])
+            # dirty hack
+            self.mesh.append(case_data['Unknowns']['mesh'].reshape(3, 81, 3))
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
@@ -137,7 +138,8 @@ class Display(object):
                 self.show_tube = False
                 pass
             try:
-                def_mesh = case_data['Unknowns']['def_mesh']
+                # dirty hack to plot results for now
+                def_mesh = case_data['Unknowns']['def_mesh'].reshape(3, 81, 3)
                 self.def_mesh.append(def_mesh)
                 n = def_mesh.shape[1]
                 h_cp = case_data['Unknowns']['twist']

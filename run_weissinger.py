@@ -24,10 +24,10 @@ execfile('CRM.py')
 
 if 1:
     num_x = 3
-    num_y = 3
+    num_y = 81
     span = 10.
     chord = 1.
-    amt_of_cos = 0
+    amt_of_cos = 0.5
     mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 

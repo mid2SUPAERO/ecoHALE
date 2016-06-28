@@ -82,7 +82,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
         n = row[0] * row[1]
 
         mesh = full_mesh[place:place+n, :].reshape(row[0], row[1], 3)
-
+        
         num_x, num_y = row
         mtx[:, :, :] = 0.0
         cosa = numpy.cos(alpha * numpy.pi / 180.)
@@ -366,6 +366,7 @@ class WeissingerCirculations(Component):
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex")
         self.rhs[:] = -params['normals'].reshape(-1, params['normals'].shape[-1], order='F').dot(v_inf)
+
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
         a = 295.4 # hardcoded speed of sound

@@ -37,6 +37,9 @@ for ind_x in xrange(num_x):
     for ind_y in xrange(num_y):
         mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
 
+mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+mesh = mesh.reshape(-1, mesh.shape[-1])
+
 root = Group()
 
 des_vars = [
@@ -52,16 +55,16 @@ root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, num_twist),
+         GeometryMesh(mesh, mesh_ind, num_twist),
          promotes=['*'])
 root.add('def_mesh',
-         TransferDisplacements(num_x, num_y),
+         TransferDisplacements(mesh_ind),
          promotes=['*'])
 root.add('weissingerstates',
-         WeissingerStates(num_x, num_y),
+         WeissingerStates(mesh_ind),
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(num_x, num_y, CL0, CD0,  num_twist),
+         WeissingerFunctionals(mesh_ind, CL0, CD0, num_twist),
          promotes=['*'])
 
 prob = Problem()
