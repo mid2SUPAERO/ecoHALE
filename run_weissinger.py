@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore")
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
 from geometry import GeometryMesh, gen_crm_mesh, gen_mesh
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from weissinger import WeissingerStates, WeissingerFunctionals, get_mesh_data
 from openmdao.devtools.partition_tree_n2 import view_tree
 
 numpy.random.seed(12345)
@@ -24,7 +24,7 @@ execfile('CRM.py')
 
 if 1:
     num_x = 3
-    num_y = 81
+    num_y = 5
     span = 10.
     chord = 1.
     amt_of_cos = 0.5
@@ -32,7 +32,20 @@ if 1:
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
 mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+
 mesh = mesh.reshape(-1, mesh.shape[-1])
+
+small_mesh = numpy.array([
+                         [0., 0., 5.],
+                         [0., 1., 5.],
+                         [1., 0., 5.],
+                         [1., 1., 5.],
+
+])
+mesh = numpy.vstack((mesh, small_mesh))
+mesh_ind = numpy.vstack((mesh_ind, numpy.array([2, 2])))
+
+mesh_ind = get_mesh_data(mesh_ind)
 
 disp = numpy.zeros((num_y, 6))
 

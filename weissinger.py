@@ -12,6 +12,21 @@ except:
     fortran_flag = False
 # fortran_flag = False
 
+def get_mesh_data(mesh_ind):
+    new_mesh_ind = numpy.zeros((mesh_ind.shape[0], 8))
+    new_mesh_ind[:, 0:2] = mesh_ind
+    for i, row in enumerate(mesh_ind):
+        nx, ny = mesh_ind[i, :]
+        new_mesh_ind[i, 2] = nx * ny
+        new_mesh_ind[i, 3] = (nx-1) * ny
+        new_mesh_ind[i, 4] = (nx-1) * (ny-1)
+
+        new_mesh_ind[i, 5] = numpy.sum(numpy.product(mesh_ind[:i], axis=1))
+        new_mesh_ind[i, 6] = numpy.sum((mesh_ind[:i, 0]-1) * mesh_ind[:i, 1])
+        new_mesh_ind[i, 7] = numpy.sum(numpy.product(mesh_ind[:i]-1, axis=1))
+
+    return new_mesh_ind
+
 def view_mat(mat):
     import matplotlib.pyplot as plt
     if len(mat.shape) > 2:
@@ -82,7 +97,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
         n = row[0] * row[1]
 
         mesh = full_mesh[place:place+n, :].reshape(row[0], row[1], 3)
-        
+
         num_x, num_y = row
         mtx[:, :, :] = 0.0
         cosa = numpy.cos(alpha * numpy.pi / 180.)
@@ -251,17 +266,19 @@ class WeissingerGeometry(Component):
     def __init__(self, mesh_ind):
         super(WeissingerGeometry, self).__init__()
 
-        nx, self.ny = mesh_ind[0, :]
         n = numpy.sum(numpy.product(mesh_ind, axis=1))
         n_wing = numpy.product(mesh_ind, axis=1)[0]
+        n_surf = mesh_ind.shape[0]
+        tot_panels = numpy.sum(numpy.product(mesh_ind-1, axis=1))
+        tot_bpts = numpy.sum((mesh_ind[:, 0]-1) * mesh_ind[:, 1])
         self.mesh_ind = mesh_ind
 
         self.add_param('def_mesh', val=numpy.zeros((n, 3)))
-        self.add_output('b_pts', val=numpy.zeros((nx-1, self.ny, 3)))
-        self.add_output('c_pts', val=numpy.zeros((nx-1, self.ny-1, 3)))
-        self.add_output('widths', val=numpy.zeros((nx-1, self.ny-1)))
-        self.add_output('normals', val=numpy.zeros((nx-1, self.ny-1, 3)))
-        self.add_output('S_ref', val=0.)
+        self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3)))
+        self.add_output('c_pts', val=numpy.zeros((tot_panels, 3)))
+        self.add_output('widths', val=numpy.zeros((tot_panels)))
+        self.add_output('normals', val=numpy.zeros((tot_panels, 3)))
+        self.add_output('S_ref', val=numpy.zeros((n_surf)))
 
         self.deriv_options['form'] = 'central'
 
@@ -269,24 +286,24 @@ class WeissingerGeometry(Component):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        for i, row in enumerate(self.mesh_ind):
-            place = numpy.sum(numpy.product(self.mesh_ind[:i], axis=1))
-            n = row[0] * row[1]
+        for i_surf, row in enumerate(self.mesh_ind):
+            place = numpy.sum(numpy.product(self.mesh_ind[:i_surf], axis=1))
+            place_pts = numpy.sum(numpy.product(self.mesh_ind[:i_surf]-1, axis=1))
+            nx, ny = row
+            n = nx * ny
+            n_panels = (nx-1) * (ny-1)
 
-            mesh = params['def_mesh'][place:place+n, :].reshape(row[0], row[1], 3)
+            mesh = params['def_mesh'][place:place+n, :].reshape(nx, ny, 3)
 
-            unknowns['b_pts'] = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
-
-
+            b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
 
 
-            unknowns['c_pts'] = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
-                                0.5 * 0.75 * mesh[1:, :-1, :] + \
-                                0.5 * 0.25 * mesh[:-1,  1:, :] + \
-                                0.5 * 0.75 * mesh[1:,  1:, :]
+            c_pts = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
+                    0.5 * 0.75 * mesh[1:, :-1, :] + \
+                    0.5 * 0.25 * mesh[:-1,  1:, :] + \
+                    0.5 * 0.75 * mesh[1:,  1:, :]
 
-            b_pts = unknowns['b_pts']
-            unknowns['widths'] = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
+            widths = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
 
             normals = numpy.cross(
                 mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
@@ -295,11 +312,14 @@ class WeissingerGeometry(Component):
 
             norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
 
-            for ind in xrange(3):
-                normals[:, :, ind] /= norms
+            for j in xrange(3):
+                normals[:, :, j] /= norms
 
-            unknowns['normals'] = normals
-            unknowns['S_ref'] = 0.5 * numpy.sum(norms)
+            unknowns['b_pts'][place_pts:place_pts+n_panels, :] = b_pts
+            unknowns['c_pts'][place_pts:place_pts+n_panels, :] = c_pts
+            unknowns['widths'][place_pts:place_pts+n_panels, :] = widths
+            unknowns['normals'][place_pts:place_pts+n_panels, :] = normals
+            unknowns['S_ref'][i] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
@@ -552,10 +572,11 @@ class WeissingerLiftDrag(Component):
 class WeissingerCoeffs(Component):
     """ Compute lift and drag coefficients """
 
-    def __init__(self):
+    def __init__(self, mesh_ind):
         super(WeissingerCoeffs, self).__init__()
 
-        self.add_param('S_ref', val=0.)
+        n_surf = mesh_ind.shape[0]
+        self.add_param('S_ref', val=numpy.zeros((n_surf)))
         self.add_param('L', val=0.)
         self.add_param('D', val=0.)
         self.add_param('X', val=0.)
@@ -615,7 +636,7 @@ class WeissingerCoeffs(Component):
 class TotalLift(Component):
     """ Calculate total lift in force units """
 
-    def __init__(self, CL0):
+    def __init__(self, CL0, mesh_ind):
         super(TotalLift, self).__init__()
 
         self.add_param('CL1', val=1.)
@@ -636,7 +657,7 @@ class TotalLift(Component):
 class TotalDrag(Component):
     """ Calculate total drag in force units """
 
-    def __init__(self, CD0):
+    def __init__(self, CD0, mesh_ind):
         super(TotalDrag, self).__init__()
 
         self.add_param('CDi', val=1.)
@@ -682,11 +703,11 @@ class WeissingerFunctionals(Group):
                  WeissingerLiftDrag(mesh_ind),
                  promotes=['*'])
         self.add('coeffs',
-                 WeissingerCoeffs(),
+                 WeissingerCoeffs(mesh_ind),
                  promotes=['*'])
         self.add('CL',
-                 TotalLift(CL0),
+                 TotalLift(CL0, mesh_ind),
                  promotes=['*'])
         self.add('CD',
-                 TotalDrag(CD0),
+                 TotalDrag(CD0, mesh_ind),
                  promotes=['*'])

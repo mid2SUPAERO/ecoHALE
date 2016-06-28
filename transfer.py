@@ -12,7 +12,7 @@ class TransferDisplacements(Component):
     def __init__(self, mesh_ind, fem_origin=0.35):
         super(TransferDisplacements, self).__init__()
 
-        self.nx, self.ny = mesh_ind[0, :]
+        self.nx, self.ny = mesh_ind[0, 0:2]
         self.n = numpy.sum(numpy.product(mesh_ind, axis=1))
         self.n_wing = numpy.product(mesh_ind, axis=1)[0]
 
