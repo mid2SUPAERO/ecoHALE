@@ -22,28 +22,40 @@ num_y = mesh.shape[1]
 # Define the aircraft properties
 execfile('CRM.py')
 
-if 1:
+if sys.argv[1].startswith('00'):
+    num_x = 3
+    num_y = 3
+    span = 5.
+    chord = 1.
+    amt_of_cos = 0.
+    mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+
+    translate = numpy.zeros((mesh.shape))
+    translate[:, 1] = numpy.max(mesh[:, 1])
+    mesh_1 = mesh + translate
+    mesh_2 = mesh - translate
+    mesh = numpy.vstack((mesh_1, mesh_2))
+
+    mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    mesh_ind = numpy.vstack((mesh_ind, mesh_ind))
+    mesh_ind = get_mesh_data(mesh_ind)
+
+else:
     num_x = 3
     num_y = 5
     span = 10.
     chord = 1.
-    amt_of_cos = 0.5
+    amt_of_cos = 0.
     mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+    mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    mesh_ind = get_mesh_data(mesh_ind)
 
-mesh = mesh.reshape(-1, mesh.shape[-1])
-
-small_mesh = numpy.array([[0., 0., 500.],
-                          [0., 10., 500.],
-                          [1., 0., 500.],
-                          [1., 10., 500.]])
-
-mesh = numpy.vstack((mesh, small_mesh))
-mesh_ind = numpy.vstack((mesh_ind, numpy.array([2, 2])))
-
-mesh_ind = get_mesh_data(mesh_ind)
 
 disp = numpy.zeros((num_y, 6))
 
@@ -113,7 +125,7 @@ view_tree(prob, outfile="aero.html", show_browser=False)
 import time
 st = time.time()
 prob.run_once()
-if sys.argv[1] == '0':
+if sys.argv[1].startswith('0'):
     # prob.check_partial_derivatives(compact_print=True)
     # prob.check_total_derivatives()
     print "run time", time.time() - st
@@ -122,9 +134,6 @@ if sys.argv[1] == '0':
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
     print
     print 'L/D', prob['L'] / prob['D']
-    print
-    print prob['S_ref']
-    # print prob['mesh']
 elif sys.argv[1] == '1':
     st = time.time()
     prob.run()
@@ -133,4 +142,3 @@ elif sys.argv[1] == '1':
     print "run time", time.time() - st
     print
     print 'L/D', prob['L'] / prob['D']
-print prob['twist']
