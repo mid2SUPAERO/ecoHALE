@@ -35,13 +35,11 @@ mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
 mesh = mesh.reshape(-1, mesh.shape[-1])
 
-small_mesh = numpy.array([
-                         [0., 0., 5.],
-                         [0., 1., 5.],
-                         [1., 0., 5.],
-                         [1., 1., 5.],
+small_mesh = numpy.array([[0., 0., 5.],
+                          [0., 1., 5.],
+                          [1., 0., 5.],
+                          [1., 1., 5.]])
 
-])
 mesh = numpy.vstack((mesh, small_mesh))
 mesh_ind = numpy.vstack((mesh_ind, numpy.array([2, 2])))
 
@@ -52,7 +50,7 @@ disp = numpy.zeros((num_y, 6))
 root = Group()
 
 des_vars = [
-    ('twist', numpy.ones(num_twist)),
+    ('twist', numpy.zeros(num_twist)),
     ('dihedral', 0.),
     ('sweep', 0.),
     ('span', span),

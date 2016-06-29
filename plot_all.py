@@ -2,7 +2,7 @@
 
 Usage is
 `python plot_all.py a` for aero only,
-`python plot_all.py as` for struct only,
+`python plot_all.py s` for struct only,
 `python plot_all.py as` for aerostruct, or
 `python plot_all.py __name__` for user-named database.
 

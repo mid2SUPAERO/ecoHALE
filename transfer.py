@@ -12,15 +12,20 @@ class TransferDisplacements(Component):
     def __init__(self, mesh_ind, fem_origin=0.35):
         super(TransferDisplacements, self).__init__()
 
+        n_surf = mesh_ind.shape[0]
+        tot_n = numpy.sum(mesh_ind[:, 2])
+        tot_bpts = numpy.sum(mesh_ind[:, 3])
+        tot_panels = numpy.sum(mesh_ind[:, 4])
+        self.mesh_ind = mesh_ind
+
         self.nx, self.ny = mesh_ind[0, 0:2]
-        self.n = numpy.sum(numpy.product(mesh_ind, axis=1))
-        self.n_wing = numpy.product(mesh_ind, axis=1)[0]
+        self.n_wing = mesh_ind[0, 2]
 
         self.fem_origin = fem_origin
 
-        self.add_param('mesh', val=numpy.zeros((self.n, 3)))
+        self.add_param('mesh', val=numpy.zeros((tot_n, 3)))
         self.add_param('disp', val=numpy.zeros((self.ny, 6)))
-        self.add_output('def_mesh', val=numpy.zeros((self.n, 3)))
+        self.add_output('def_mesh', val=numpy.zeros((tot_n, 3)))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -56,6 +61,7 @@ class TransferDisplacements(Component):
             def_mesh[:, ind, 1] += dy
             def_mesh[:, ind, 2] += dz
 
+        unknowns['def_mesh'] = params['mesh']
         unknowns['def_mesh'][:self.n_wing, :] = \
             (def_mesh + mesh).reshape(self.n_wing, 3)
 
