@@ -35,10 +35,10 @@ mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
 mesh = mesh.reshape(-1, mesh.shape[-1])
 
-small_mesh = numpy.array([[0., 0., 5.],
-                          [0., 1., 5.],
-                          [1., 0., 5.],
-                          [1., 1., 5.]])
+small_mesh = numpy.array([[0., 0., 500.],
+                          [0., 10., 500.],
+                          [1., 0., 500.],
+                          [1., 10., 500.]])
 
 mesh = numpy.vstack((mesh, small_mesh))
 mesh_ind = numpy.vstack((mesh_ind, numpy.array([2, 2])))

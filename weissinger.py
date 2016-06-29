@@ -98,7 +98,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
     u = numpy.array([cosa, 0, sina])
 
     for i_surf, row in enumerate(mesh_ind):
-        nx_, ny_, n_, n_bpts_, n_panels_, i_, i_bpts_, i_panels_ = row
+        nx_, ny_, n_, n_bpts_, n_panels_, i_, i_bpts_, i_panels_ = row.copy()
         n = nx_ * ny_
         mesh = full_mesh[i_:i_+n_, :].reshape(nx_, ny_, 3)
         bpts = b_pts[i_bpts_:i_bpts_+n_bpts_].reshape(nx_-1, ny_, 3)
@@ -263,7 +263,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
                                         bound = _calc_vorticity(A, B, P)
                                         small_mat[cp_loc, el_loc, :] = trailing + edges + bound
 
-                    mtx /= 4 * numpy.pi
+                    small_mat /= 4 * numpy.pi
 
             mtx[i_panels:i_panels+n_panels, i_panels_:i_panels_+n_panels_, :] = small_mat
 
@@ -282,6 +282,7 @@ class WeissingerGeometry(Component):
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
         self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3)))
+        self.add_output('mid_b', val=numpy.zeros((tot_panels, 3)))
         self.add_output('c_pts', val=numpy.zeros((tot_panels, 3)))
         self.add_output('widths', val=numpy.zeros((tot_panels)))
         self.add_output('normals', val=numpy.zeros((tot_panels, 3)))
@@ -299,6 +300,8 @@ class WeissingerGeometry(Component):
             mesh = params['def_mesh'][i:i+n, :].reshape(nx, ny, 3)
 
             b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
+
+            mid_b = (b_pts[:, 1:, :] + b_pts[:, :-1, :]) / 2
 
             c_pts = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
                     0.5 * 0.75 * mesh[1:, :-1, :] + \
@@ -318,9 +321,10 @@ class WeissingerGeometry(Component):
                 normals[:, :, j] /= norms
 
             unknowns['b_pts'][i_bpts:i_bpts+n_bpts, :] = b_pts.reshape(-1, b_pts.shape[-1])
-            unknowns['c_pts'][i_bpts:i_bpts+n_panels, :] = c_pts.reshape(-1, c_pts.shape[-1])
-            unknowns['widths'][i_bpts:i_bpts+n_panels] = widths.flatten()
-            unknowns['normals'][i_bpts:i_bpts+n_panels, :] = normals.reshape(-1, normals.shape[-1])
+            unknowns['mid_b'][i_panels:i_panels+n_panels, :] = mid_b.reshape(-1, mid_b.shape[-1])
+            unknowns['c_pts'][i_panels:i_panels+n_panels, :] = c_pts.reshape(-1, c_pts.shape[-1])
+            unknowns['widths'][i_panels:i_panels+n_panels] = widths.flatten()
+            unknowns['normals'][i_panels:i_panels+n_panels, :] = normals.reshape(-1, normals.shape[-1])
             unknowns['S_ref'][i_surf] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
@@ -380,8 +384,6 @@ class WeissingerCirculations(Component):
         self.mtx[:, :] = 0.
         for ind in xrange(3):
             self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T * params['normals'][:, ind].flatten('F')).T
-        view_mat(self.mtx)
-        exit()
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
@@ -454,6 +456,7 @@ class WeissingerForces(Component):
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
         self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3)))
         self.add_param('c_pts', val=numpy.zeros((tot_panels, 3)))
+        self.add_param('mid_b', val=numpy.zeros((tot_panels, 3)))
         self.add_param('widths', val=numpy.zeros((tot_panels)))
 
         self.mesh_ind = mesh_ind
@@ -476,22 +479,25 @@ class WeissingerForces(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        mid_b = (params['b_pts'][:, 1:, :] + params['b_pts'][:, :-1, :]) / 2
-
         _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.mesh_ind,
-                          mid_b, params['b_pts'], params['alpha'], skip=True)
+                          params['mid_b'], params['b_pts'], params['alpha'], skip=True)
 
-        for ind in xrange(3):
-            self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
-        self.v[:, 0] += cosa * params['v']
-        self.v[:, 2] += sina * params['v']
+        for i_surf, row in enumerate(self.mesh_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-        bound = params['b_pts'][:, 1:, :] - params['b_pts'][:, :-1, :]
+            for ind in xrange(3):
+                self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
+            self.v[:, 0] += cosa * params['v']
+            self.v[:, 2] += sina * params['v']
 
-        cross = numpy.cross(self.v, bound.reshape(-1, bound.shape[-1], order='F'))
+            b_pts = params['b_pts'][i_bpts:i_bpts+n_bpts, :].reshape(nx-1, ny, 3)
 
-        for ind in xrange(3):
-            unknowns['sec_forces'][:, :, ind] = (params['rho'] * circ * cross[:, ind]).reshape(self.num_x-1, self.num_y-1, order='F')
+            bound = b_pts[:, 1:, :] - b_pts[:, :-1, :]
+
+            cross = numpy.cross(self.v[i_panels:i_panels+n_panels], bound.reshape(-1, bound.shape[-1], order='F'))
+
+            for ind in xrange(3):
+                unknowns['sec_forces'][i_panels:i_panels+n_panels, ind] = (params['rho'] * circ[i_panels:i_panels+n_panels] * cross[:, ind])
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -531,9 +537,9 @@ class WeissingerLiftDrag(Component):
 
         self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3)))
         self.add_param('alpha', val=3.)
-        self.add_output('L', val=0.)
-        self.add_output('D', val=0.)
-        self.add_output('X', val=0.)
+        self.add_output('L', val=numpy.zeros((n_surf)))
+        self.add_output('D', val=numpy.zeros((n_surf)))
+        self.add_output('X', val=numpy.zeros((n_surf)))
 
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
@@ -541,12 +547,15 @@ class WeissingerLiftDrag(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         alpha = params['alpha'] * numpy.pi / 180.
         forces = params['sec_forces']
-
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
-        unknowns['L'] = numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
-        unknowns['D'] = numpy.sum( forces[:, :, 0] * cosa + forces[:, :, 2] * sina)
-        unknowns['X'] = numpy.sum( forces[:, :, 1])
+
+        for i_surf, row in enumerate(self.mesh_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+
+            unknowns['L'][i_surf] = numpy.sum(-forces[i_panels:i_panels+n_panels, 0] * sina + forces[i_panels:i_panels+n_panels, 2] * cosa)
+            unknowns['D'][i_surf] = numpy.sum( forces[i_panels:i_panels+n_panels, 0] * cosa + forces[i_panels:i_panels+n_panels, 2] * sina)
+            unknowns['X'][i_surf] = numpy.sum( forces[i_panels:i_panels+n_panels, 1])
 
 
     def linearize(self, params, unknowns, resids):
@@ -577,15 +586,16 @@ class WeissingerCoeffs(Component):
         super(WeissingerCoeffs, self).__init__()
 
         n_surf = mesh_ind.shape[0]
+        self.mesh_ind = mesh_ind
         self.add_param('S_ref', val=numpy.zeros((n_surf)))
-        self.add_param('L', val=0.)
-        self.add_param('D', val=0.)
-        self.add_param('X', val=0.)
+        self.add_param('L', val=numpy.zeros((n_surf)))
+        self.add_param('D', val=numpy.zeros((n_surf)))
+        self.add_param('X', val=numpy.zeros((n_surf)))
         self.add_param('v', val=0.)
         self.add_param('rho', val=0.)
-        self.add_output('CL1', val=0.)
-        self.add_output('CDi', val=0.)
-        self.add_output('CX', val=0.)
+        self.add_output('CL1', val=numpy.zeros((n_surf)))
+        self.add_output('CDi', val=numpy.zeros((n_surf)))
+        self.add_output('CX', val=numpy.zeros((n_surf)))
 
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
@@ -597,9 +607,12 @@ class WeissingerCoeffs(Component):
         L = params['L']
         X = params['X']
         D = params['D']
-        unknowns['CL1'] = L / (0.5*rho*v**2*S_ref)
-        unknowns['CDi'] = D / (0.5*rho*v**2*S_ref)
-        unknowns['CX'] = X / (0.5*rho*v**2*S_ref)
+        for i_surf, row in enumerate(self.mesh_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+
+            unknowns['CL1'][i_surf] = L[i_surf] / (0.5*rho*v**2*S_ref[i_surf])
+            unknowns['CDi'][i_surf] = D[i_surf] / (0.5*rho*v**2*S_ref[i_surf])
+            unknowns['CX'][i_surf] = X[i_surf] / (0.5*rho*v**2*S_ref[i_surf])
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -640,8 +653,9 @@ class TotalLift(Component):
     def __init__(self, CL0, mesh_ind):
         super(TotalLift, self).__init__()
 
-        self.add_param('CL1', val=1.)
-        self.add_output('CL', val=1.)
+        n_surf = mesh_ind.shape[0]
+        self.add_param('CL1', val=numpy.zeros((n_surf)))
+        self.add_output('CL', val=numpy.zeros((n_surf)))
 
         self.deriv_options['form'] = 'central'
 
@@ -661,8 +675,9 @@ class TotalDrag(Component):
     def __init__(self, CD0, mesh_ind):
         super(TotalDrag, self).__init__()
 
-        self.add_param('CDi', val=1.)
-        self.add_output('CD', val=1.)
+        n_surf = mesh_ind.shape[0]
+        self.add_param('CDi', val=numpy.zeros((n_surf)))
+        self.add_output('CD', val=numpy.zeros((n_surf)))
 
         self.deriv_options['form'] = 'central'
 
