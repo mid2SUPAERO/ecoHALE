@@ -105,6 +105,7 @@ class Display(object):
         alpha = []
         rho = []
         v = []
+        self.mesh_ind = []
         self.CL = []
         self.CX = []
         self.AR = []
@@ -124,8 +125,7 @@ class Display(object):
             except:
                 continue
 
-            # dirty hack
-            self.mesh.append(case_data['Unknowns']['mesh'].reshape(3, 81, 3))
+            self.mesh.append(case_data['Unknowns']['mesh'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
@@ -138,13 +138,14 @@ class Display(object):
                 self.show_tube = False
                 pass
             try:
-                # dirty hack to plot results for now
-                def_mesh = case_data['Unknowns']['def_mesh'].reshape(3, 81, 3)
+                def_mesh = case_data['Unknowns']['def_mesh']
                 self.def_mesh.append(def_mesh)
-                n = def_mesh.shape[1]
+                self.mesh_ind.append(case_data['Unknowns']['mesh_ind'])
+                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
+                def_mesh = def_mesh[:n, :].reshape(nx, ny, 3)
                 h_cp = case_data['Unknowns']['twist']
                 num_twist = h_cp.shape[0]
-                jac = get_bspline_mtx(num_twist, n, def_mesh)
+                jac = get_bspline_mtx(num_twist, ny, def_mesh)
                 h = jac.dot(h_cp)
 
                 self.twist.append(h)
@@ -167,16 +168,18 @@ class Display(object):
 
         if self.show_wing:
 
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
+
             for i in range(self.num_iters + 1):
-                m_vals = self.mesh[i]
+                m_vals = self.mesh[i][:n, :].reshape(nx, ny, 3)
                 cvec = m_vals[0, :, :] - m_vals[1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                 chords = 0.5 * (chords[1:] + chords[:-1])
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
-                forces = numpy.sum(sec_forces[i], axis=0)
-                widths_ = numpy.mean(widths[i], axis=0)
+                forces = numpy.sum(sec_forces[i][:n, :].reshape(nx-1, ny-1, 3), axis=0)
+                widths_ = numpy.mean(widths[i][:n_panels], axis=0)
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                     widths_/0.5/rho[i]/v[i]**2
@@ -230,7 +233,8 @@ class Display(object):
             self.max_vm += diff
 
     def plot_sides(self):
-        m_vals = self.mesh[self.curr_pos]
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
+        m_vals = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
         span = m_vals[0, :, 1] / m_vals[0, -1, 1]
         span_diff = (m_vals[0, :-1, 1] + m_vals[0, 1:, 1])/2 / m_vals[0, -1, 1]
 
@@ -287,32 +291,37 @@ class Display(object):
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
-        mesh0 = self.mesh[self.curr_pos].copy()
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
+        mesh0 = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
 
         self.ax.set_axis_off()
 
         if self.show_wing:
-            def_mesh0 = self.def_mesh[self.curr_pos]
-            x = mesh0[:, :, 0]
-            y = mesh0[:, :, 1]
-            z = mesh0[:, :, 2]
+            for i_surf, row in enumerate(self.mesh_ind[self.curr_pos]):
+                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            if self.show_def_mesh.get():
-                x_def = def_mesh0[:, :, 0]
-                y_def = def_mesh0[:, :, 1]
-                z_def = def_mesh0[:, :, 2]
+                mesh0 = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
+                def_mesh0 = self.def_mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3)
+                x = mesh0[:, :, 0]
+                y = mesh0[:, :, 1]
+                z = mesh0[:, :, 2]
 
-                self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
-                if self.ex_def.get():
-                    z_def = (z_def - z) * 10 + z_def
-                    def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
+                if self.show_def_mesh.get():
+                    x_def = def_mesh0[:, :, 0]
+                    y_def = def_mesh0[:, :, 1]
+                    z_def = def_mesh0[:, :, 2]
+
+                    self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+                    if self.ex_def.get():
+                        z_def = (z_def - z) * 10 + z_def
+                        def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
+                    else:
+                        def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
+                    self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
+                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
                 else:
-                    def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
-                self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
-                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
-            else:
-                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-                self.c2.grid_forget()
+                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
+                    self.c2.grid_forget()
 
         if self.show_tube:
             r0 = self.r[self.curr_pos]
