@@ -10,7 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-fortran_flag = False
+# fortran_flag = False
 
 def get_mesh_data(mesh_ind):
     new_mesh_ind = numpy.zeros((mesh_ind.shape[0], 8), dtype=int)
@@ -111,6 +111,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
 
             small_mat = numpy.zeros((n_panels, n_panels_, 3))
 
+            # non-functioning for now
             if 0: # kink
                 if fortran_flag:
                     mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, num_x, alpha, mesh, points, b_pts)
@@ -159,6 +160,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
 
                     mtx /=  4 * numpy.pi
 
+            # non-functioning for now
             if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
                 if fortran_flag:
                     mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, num_x, alpha, points, b_pts, skip)
@@ -209,7 +211,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
 
             if 1: # following planform but still horseshoe version
                 if fortran_flag:
-                    small_mat[:, :, :] = lib.assembleaeromtx_hug_planform(num_y, num_x, alpha, pts, bpts, mesh, skip)
+                    small_mat[:, :, :] = lib.assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, pts, bpts, mesh, skip)
                     # old_mtx = mtx.copy()
                     # mtx[:, :, :] = 0.
                 else:

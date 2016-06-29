@@ -24,7 +24,7 @@ execfile('CRM.py')
 
 if sys.argv[1].startswith('00'):
     num_x = 3
-    num_y = 3
+    num_y = 81
     span = 5.
     chord = 1.
     amt_of_cos = 0.
@@ -45,7 +45,7 @@ if sys.argv[1].startswith('00'):
 
 else:
     num_x = 3
-    num_y = 5
+    num_y = 161
     span = 10.
     chord = 1.
     amt_of_cos = 0.

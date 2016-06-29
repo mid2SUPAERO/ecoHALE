@@ -155,23 +155,26 @@ end subroutine assembleaeromtx_paper
 
 
 
-subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, mtx)
+subroutine assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mtx)
 
   implicit none
 
-  !f2py intent(in) n, nx, alpha, points, bpts, mesh
+  !f2py intent(in) ny, nx, ny_, nx_, alpha, points, bpts, mesh
   !f2py intent(out) mtx
-  !f2py depend(n) points, bpts, mtx, mesh
-  !f2py depend(nx) points, bpts, mtx, mesh
+  !f2py depend(ny) points, mtx
+  !f2py depend(nx) points, mtx
+  !f2py depend(ny_) bpts, mtx, mesh
+  !f2py depend(nx_) bpts, mtx, mesh
+
 
   ! Input
-  integer, intent(in) :: n, nx
-  complex*16, intent(in) :: alpha, mesh(nx, n, 3)
-  complex*16, intent(in) :: points(nx-1, n-1, 3), bpts(nx-1, n, 3)
+  integer, intent(in) :: ny, nx, ny_, nx_
+  complex*16, intent(in) :: alpha, mesh(nx_, ny_, 3)
+  complex*16, intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
   logical, intent(in) :: skip
 
   ! Output
-  complex*16, intent(out) :: mtx((nx-1)*(n-1), (nx-1)*(n-1), 3)
+  complex*16, intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
 
   ! Working
   integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, cp_loc
@@ -188,12 +191,12 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
 
   mtx(:, :, :) = 0.
 
-  do el_j = 1, n-1 ! spanwise loop through horseshoe elements
-    el_loc_j = (el_j - 1) * (nx - 1)
-    C_te = mesh(nx, el_j + 1, :)
-    D_te = mesh(nx, el_j + 0, :)
+  do el_j = 1, ny_-1 ! spanwise loop through horseshoe elements
+    el_loc_j = (el_j - 1) * (nx_ - 1)
+    C_te = mesh(nx_, el_j + 1, :)
+    D_te = mesh(nx_, el_j + 0, :)
 
-    do cp_j = 1, n-1 ! spanwise loop through control points
+    do cp_j = 1, ny-1 ! spanwise loop through control points
       cp_loc_j = (cp_j - 1) * (nx - 1)
 
       do cp_i = 1, nx-1 ! chordwise loop through control points
@@ -212,14 +215,13 @@ subroutine assembleaeromtx_hug_planform(n, nx, alpha, points, bpts, mesh, skip, 
         edges = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
         edges = edges - ur1 / (r1_mag * (r1_mag - dot(u, r1)))
 
-
-        do el_i = nx-1, 1, -1 ! chordwise loop through horseshoe elements
+        do el_i = nx_-1, 1, -1 ! chordwise loop through horseshoe elements
           el_loc = el_i + el_loc_j
 
           A = bpts(el_i + 0, el_j + 0, :)
           B = bpts(el_i + 0, el_j + 1, :)
 
-          if (el_i .EQ. nx - 1) then
+          if (el_i .EQ. nx_ - 1) then
             C = C_te
             D = D_te
           else
