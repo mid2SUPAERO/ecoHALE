@@ -178,8 +178,8 @@ class Display(object):
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
-                forces = numpy.sum(sec_forces[i][:n, :].reshape(nx-1, ny-1, 3), axis=0)
-                widths_ = numpy.mean(widths[i][:n_panels], axis=0)
+                forces = numpy.sum(sec_forces[i][:n, :].reshape(nx-1, ny-1, 3, order='F'), axis=0)
+                widths_ = widths[i][:ny-1]
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                     widths_/0.5/rho[i]/v[i]**2
@@ -207,7 +207,7 @@ class Display(object):
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
-            center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+            center = numpy.mean(self.mesh[i], axis=0)
             self.mesh[i] = self.mesh[i] - center
 
 

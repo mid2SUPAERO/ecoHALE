@@ -326,7 +326,7 @@ class WeissingerGeometry(Component):
             unknowns['mid_b'][i_panels:i_panels+n_panels, :] = mid_b.reshape(-1, mid_b.shape[-1])
             unknowns['c_pts'][i_panels:i_panels+n_panels, :] = c_pts.reshape(-1, c_pts.shape[-1])
             unknowns['widths'][i_panels:i_panels+n_panels] = widths.flatten()
-            unknowns['normals'][i_panels:i_panels+n_panels, :] = normals.reshape(-1, normals.shape[-1])
+            unknowns['normals'][i_panels:i_panels+n_panels, :] = normals.reshape(-1, normals.shape[-1], order='F')
             unknowns['S_ref'][i_surf] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
@@ -385,7 +385,7 @@ class WeissingerCirculations(Component):
 
         self.mtx[:, :] = 0.
         for ind in xrange(3):
-            self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T * params['normals'][:, ind].flatten('F')).T
+            self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T * params['normals'][:, ind]).T
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)

@@ -23,11 +23,11 @@ num_y = mesh.shape[1]
 execfile('CRM.py')
 
 if sys.argv[1].startswith('00'):
-    num_x = 3
-    num_y = 11
+    num_x = 4
+    num_y = 31
     span = 5.
     chord = 1.
-    amt_of_cos = 0.
+    amt_of_cos = .5
     mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
@@ -44,11 +44,11 @@ if sys.argv[1].startswith('00'):
     mesh_ind = get_mesh_data(mesh_ind)
 
 else:
-    num_x = 3
-    num_y = 21
+    num_x = 4
+    num_y = 41
     span = 10.
     chord = 1.
-    amt_of_cos = 0.
+    amt_of_cos = 1.
     mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
