@@ -658,6 +658,7 @@ class TotalLift(Component):
         n_surf = mesh_ind.shape[0]
         self.add_param('CL1', val=numpy.zeros((n_surf)))
         self.add_output('CL', val=numpy.zeros((n_surf)))
+        self.add_output('CL_wing', val=0.)
 
         self.deriv_options['form'] = 'central'
 
@@ -665,6 +666,7 @@ class TotalLift(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['CL'] = params['CL1'] + self.CL0
+        unknowns['CL_wing'] = params['CL1'][0]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -680,6 +682,7 @@ class TotalDrag(Component):
         n_surf = mesh_ind.shape[0]
         self.add_param('CDi', val=numpy.zeros((n_surf)))
         self.add_output('CD', val=numpy.zeros((n_surf)))
+        self.add_output('CD_wing', val=0.)
 
         self.deriv_options['form'] = 'central'
 
@@ -687,6 +690,7 @@ class TotalDrag(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['CD'] = params['CDi'] + self.CD0
+        unknowns['CD_wing'] = unknowns['CD'][0]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()

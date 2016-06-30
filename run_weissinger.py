@@ -22,34 +22,40 @@ num_y = mesh.shape[1]
 # Define the aircraft properties
 execfile('CRM.py')
 
-if sys.argv[1].startswith('00'):
-    num_x = 4
-    num_y = 31
-    span = 5.
-    chord = 1.
-    amt_of_cos = .5
-    mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
-    num_twist = numpy.max([int((num_y - 1) / 5), 5])
-
-    mesh = mesh.reshape(-1, mesh.shape[-1])
-
-    translate = numpy.zeros((mesh.shape))
-    translate[:, 1] = numpy.max(mesh[:, 1])
-    mesh_1 = mesh + translate
-    mesh_2 = mesh - translate
-    mesh = numpy.vstack((mesh_1, mesh_2))
-
-    mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-    mesh_ind = numpy.vstack((mesh_ind, mesh_ind))
-    mesh_ind = get_mesh_data(mesh_ind)
-
-else:
-    num_x = 4
+if sys.argv[1].endswith('m'):
+    num_x = 5
     num_y = 41
     span = 10.
     chord = 1.
-    amt_of_cos = 1.
-    mesh = gen_mesh(num_x, num_y, span, chord, amt_of_cos)
+    cosine_spacing = .5
+    mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+    mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
+    mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+
+    nx = 3
+    ny = 11
+    span = 3.
+    chord = 1.
+    cosine_spacing = .5
+    mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
+
+    mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
+    mesh_tail[:, 0] += 1e1
+
+
+    mesh_ind = numpy.vstack((mesh_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
+    mesh = numpy.vstack((mesh_wing, mesh_tail))
+    mesh_ind = get_mesh_data(mesh_ind)
+
+else:
+    num_x = 2
+    num_y = 11
+    span = 10.
+    chord = 1.
+    cosine_spacing = 1.
+    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
     mesh = mesh.reshape(-1, mesh.shape[-1])
@@ -110,8 +116,8 @@ prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
 # prob.driver.add_desvar('sweep', lower=-10., upper=30.)
 # prob.driver.add_desvar('dihedral', lower=-10., upper=20.)
 # prob.driver.add_desvar('taper', lower=.5, upper=2.)
-prob.driver.add_objective('CD', scaler=1e4)
-prob.driver.add_constraint('CL', equals=0.5)
+prob.driver.add_objective('CD_wing', scaler=1e4)
+prob.driver.add_constraint('CL_wing', equals=0.5)
 # setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
@@ -135,7 +141,7 @@ if sys.argv[1].startswith('0'):
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
     print
     print 'L/D', prob['L'] / prob['D']
-elif sys.argv[1] == '1':
+elif sys.argv[1].startswith('1'):
     st = time.time()
     prob.run()
     print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y

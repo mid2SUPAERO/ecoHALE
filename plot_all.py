@@ -178,7 +178,7 @@ class Display(object):
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
-                forces = numpy.sum(sec_forces[i][:n, :].reshape(nx-1, ny-1, 3, order='F'), axis=0)
+                forces = numpy.sum(sec_forces[i][:n_panels, :].reshape(nx-1, ny-1, 3, order='F'), axis=0)
                 widths_ = widths[i][:ny-1]
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
@@ -300,7 +300,7 @@ class Display(object):
             for i_surf, row in enumerate(self.mesh_ind[self.curr_pos]):
                 nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-                mesh0 = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
+                mesh0 = self.mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3).copy()
                 def_mesh0 = self.def_mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3)
                 x = mesh0[:, :, 0]
                 y = mesh0[:, :, 1]
@@ -358,10 +358,11 @@ class Display(object):
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
-        span_eff = (self.CL[self.curr_pos]**2 + self.CX[self.curr_pos]**2) / \
-            numpy.pi / self.AR[self.curr_pos] / obj_val
-        self.ax.text2D(.55, .0, 'e: {}'.format(span_eff),
-            transform=self.ax.transAxes, color='k')
+        if self.show_wing:
+            span_eff = (self.CL[self.curr_pos]**2 + self.CX[self.curr_pos]**2) / \
+                numpy.pi / self.AR[self.curr_pos] / obj_val
+            self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff[0], 7)),
+                transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist
