@@ -52,7 +52,7 @@ root.add('tube',
 
 coupled = Group()
 coupled.add('mesh',
-            GeometryMesh(mesh, num_twist),
+            GeometryMesh(mesh, mesh_ind, num_twist),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(num_x, num_y),

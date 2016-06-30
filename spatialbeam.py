@@ -111,21 +111,25 @@ def _assemble_system(mesh, A, J, Iy, Iz, loads,
 class SpatialBeamFEM(Component):
     """ Computes the displacements and rotations """
 
-    def __init__(self, n, cons, E, G, fem_origin=0.35):
+    def __init__(self, mesh_ind, cons, E, G, fem_origin=0.35):
         super(SpatialBeamFEM, self).__init__()
 
-        self.size = size = 6 * n + 6 * cons.shape[0]
-        self.n = n
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = mesh_ind[0, :]
+        tot_n = numpy.sum(mesh_ind[:, 2])
+        self.mesh_ind = mesh_ind
 
-        self.add_param('A', val=numpy.zeros((n - 1)))
-        self.add_param('Iy', val=numpy.zeros((n - 1)))
-        self.add_param('Iz', val=numpy.zeros((n - 1)))
-        self.add_param('J', val=numpy.zeros((n - 1)))
-        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        self.size = size = 6 * ny + 6 * cons.shape[0]
+        self.n = ny
 
-        self.add_param('loads', val=numpy.zeros((n, 6)))
+        self.add_param('A', val=numpy.zeros((ny - 1)))
+        self.add_param('Iy', val=numpy.zeros((ny - 1)))
+        self.add_param('Iz', val=numpy.zeros((ny - 1)))
+        self.add_param('J', val=numpy.zeros((ny - 1)))
+        self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
 
-        self.add_state('disp_aug', val=numpy.zeros((size)), dtype="complex")
+        self.add_param('loads', val=numpy.zeros((ny, 6)))
+
+        self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -139,9 +143,9 @@ class SpatialBeamFEM(Component):
         self.cons = cons
         self.fem_origin = fem_origin
 
-        elem_IDs = numpy.zeros((n-1, 2), int)
-        elem_IDs[:, 0] = numpy.arange(n-1)
-        elem_IDs[:, 1] = numpy.arange(n-1) + 1
+        elem_IDs = numpy.zeros((ny-1, 2), int)
+        elem_IDs[:, 0] = numpy.arange(ny-1)
+        elem_IDs[:, 1] = numpy.arange(ny-1) + 1
         self.elem_IDs = elem_IDs
 
         self.const2 = numpy.array([
@@ -166,7 +170,7 @@ class SpatialBeamFEM(Component):
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
 
-        num_nodes = n
+        num_nodes = ny
         num_cons = self.cons.shape[0]
         size = 6*num_nodes + 6*num_cons
         self.mtx = numpy.zeros((size, size), dtype='complex')
@@ -191,15 +195,20 @@ class SpatialBeamFEM(Component):
 
 
     def solve_nonlinear(self, params, unknowns, resids):
+
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        self.mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3).ascomplex()
+        print numpy.iscomplexobj(self.mesh)
+
         if fortran_flag:
-            self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+            self.mtx, self.rhs = lib.assemblestructmtx(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
                                 self.M_a, self.M_t, self.M_y, self.M_z,
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
                                 self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
                                 self.const2, self.const_y, self.const_z, self.n, self.size)
         else:
-            _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+            _assemble_system(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
                                 self.M_a, self.M_t, self.M_y, self.M_z,
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
@@ -210,14 +219,14 @@ class SpatialBeamFEM(Component):
 
     def apply_nonlinear(self, params, unknowns, resids):
         if fortran_flag:
-            self.mtx, self.rhs = lib.assemblestructmtx(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+            self.mtx, self.rhs = lib.assemblestructmtx(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
                                 self.M_a, self.M_t, self.M_y, self.M_z,
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
                                 self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
                                 self.const2, self.const_y, self.const_z, self.n, self.size)
         else:
-            _assemble_system(params['mesh'], params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
+            _assemble_system(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
                                 self.M_a, self.M_t, self.M_y, self.M_z,
                                 self.elem_IDs, self.cons, self.fem_origin,
                                 self.E, self.G, self.x_gl, self.T,
@@ -232,13 +241,10 @@ class SpatialBeamFEM(Component):
 
         jac = self.alloc_jacobian()
         fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
-                                            fd_params=['A','Iy','Iz','J','mesh'], \
+                                            fd_params=['A','Iy','Iz','J','mesh', 'loads'], \
                                             fd_states=[])
         jac.update(fd_jac)
         jac['disp_aug', 'disp_aug'] = self.mtx.real
-
-        arange = self.arange
-        jac['disp_aug', 'loads'][arange, arange] = -1.0
 
         self.lup = lu_factor(self.mtx.real)
 
@@ -261,8 +267,10 @@ class SpatialBeamFEM(Component):
 class SpatialBeamDisp(Component):
     """ Selects displacements from augmented vector """
 
-    def __init__(self, n, cons):
+    def __init__(self, mesh_ind, cons):
         super(SpatialBeamDisp, self).__init__()
+
+        n = mesh_ind[0, 1]
 
         size = 6 * n + 6 * cons.shape[0]
         self.n = n
@@ -291,8 +299,10 @@ class SpatialBeamDisp(Component):
 class SpatialBeamEnergy(Component):
     """ Computes strain energy """
 
-    def __init__(self, n):
+    def __init__(self, mesh_ind):
         super(SpatialBeamEnergy, self).__init__()
+
+        n = mesh_ind[0, 1]
 
         self.add_param('disp', val=numpy.zeros((n, 6)))
         self.add_param('loads', val=numpy.zeros((n, 6)))
@@ -316,27 +326,32 @@ class SpatialBeamEnergy(Component):
 class SpatialBeamWeight(Component):
     """ Computes total weight """
 
-    def __init__(self, n, mrho, fem_origin=0.35):
+    def __init__(self, mesh_ind, mrho, fem_origin=0.35):
         super(SpatialBeamWeight, self).__init__()
 
-        self.add_param('A', val=numpy.zeros((n-1)))
-        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
+        ny = mesh_ind[0, 1]
+        tot_n = numpy.sum(mesh_ind[:, 2])
+        self.mesh_ind = mesh_ind
+
+        self.add_param('A', val=numpy.zeros((ny-1)))
+        self.add_param('mesh', val=numpy.zeros((tot_n, 3)))
         self.add_output('weight', val=0.)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
 
-        elem_IDs = numpy.zeros((n-1, 2), int)
-        elem_IDs[:, 0] = numpy.arange(n-1)
-        elem_IDs[:, 1] = numpy.arange(n-1) + 1
+        elem_IDs = numpy.zeros((ny-1, 2), int)
+        elem_IDs[:, 0] = numpy.arange(ny-1)
+        elem_IDs[:, 1] = numpy.arange(ny-1) + 1
         self.elem_IDs = elem_IDs
 
         self.mrho = mrho
         self.fem_origin = fem_origin
 
     def solve_nonlinear(self, params, unknowns, resids):
-        mesh = params['mesh']
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
         A = params['A']
         num_elems = self.elem_IDs.shape[0]
 
@@ -363,22 +378,26 @@ class SpatialBeamWeight(Component):
 class SpatialBeamVonMisesTube(Component):
     """ Computes the max Von Mises stress in each element """
 
-    def __init__(self, n, E, G, fem_origin=0.35):
+    def __init__(self, mesh_ind, E, G, fem_origin=0.35):
         super(SpatialBeamVonMisesTube, self).__init__()
 
-        self.add_param('mesh', val=numpy.zeros((2, n, 3)))
-        self.add_param('r', val=numpy.zeros((n-1)))
-        self.add_param('disp', val=numpy.zeros((n, 6)))
+        ny = mesh_ind[0, 1]
+        tot_n = numpy.sum(mesh_ind[:, 2])
+        self.mesh_ind = mesh_ind
 
-        self.add_output('vonmises', val=numpy.zeros((n-1, 2)))
+        self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
+        self.add_param('r', val=numpy.zeros((ny-1), dtype="complex"))
+        self.add_param('disp', val=numpy.zeros((ny, 6), dtype="complex"))
+
+        self.add_output('vonmises', val=numpy.zeros((ny-1, 2), dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
 
-        elem_IDs = numpy.zeros((n-1, 2), int)
-        elem_IDs[:, 0] = numpy.arange(n-1)
-        elem_IDs[:, 1] = numpy.arange(n-1) + 1
+        elem_IDs = numpy.zeros((ny-1, 2), int)
+        elem_IDs[:, 0] = numpy.arange(ny-1)
+        elem_IDs[:, 1] = numpy.arange(ny-1) + 1
         self.elem_IDs = elem_IDs
 
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
@@ -393,7 +412,8 @@ class SpatialBeamVonMisesTube(Component):
         elem_IDs = self.elem_IDs
 
         r = params['r']
-        mesh = params['mesh']
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
         disp = params['disp']
         vonmises = unknowns['vonmises']
 
@@ -434,14 +454,15 @@ class SpatialBeamVonMisesTube(Component):
             vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
 
 
-
 class SpatialBeamFailureKS(Component):
     """ Aggregates failure constraints from the structure """
 
-    def __init__(self, n, sigma, rho=10):
+    def __init__(self, mesh_ind, sigma, rho=10):
         super(SpatialBeamFailureKS, self).__init__()
 
-        self.add_param('vonmises', val=numpy.zeros((n-1, 2)))
+        ny = mesh_ind[0, 1]
+
+        self.add_param('vonmises', val=numpy.zeros((ny-1, 2)))
 
         self.add_output('failure', val=0.)
 
@@ -467,34 +488,36 @@ class SpatialBeamFailureKS(Component):
 
 class SpatialBeamStates(Group):
 
-    def __init__(self, num_y, E, G):
+    def __init__(self, mesh_ind, E, G):
         super(SpatialBeamStates, self).__init__()
 
-        cons = numpy.array([int((num_y-1)/2)])
+        n = mesh_ind[0, 1]
+
+        cons = numpy.array([int((n-1)/2)])
 
         self.add('fem',
-                 SpatialBeamFEM(num_y, cons, E, G),
+                 SpatialBeamFEM(mesh_ind, cons, E, G),
                  promotes=['*'])
         self.add('disp',
-                 SpatialBeamDisp(num_y, cons),
+                 SpatialBeamDisp(mesh_ind, cons),
                  promotes=['*'])
 
 
 
 class SpatialBeamFunctionals(Group):
 
-    def __init__(self, num_y, E, G, stress, mrho):
+    def __init__(self, mesh_ind, E, G, stress, mrho):
         super(SpatialBeamFunctionals, self).__init__()
 
         self.add('energy',
-                 SpatialBeamEnergy(num_y),
+                 SpatialBeamEnergy(mesh_ind),
                  promotes=['*'])
         self.add('weight',
-                 SpatialBeamWeight(num_y, mrho),
+                 SpatialBeamWeight(mesh_ind, mrho),
                  promotes=['*'])
         self.add('vonmises',
-                 SpatialBeamVonMisesTube(num_y, E, G),
+                 SpatialBeamVonMisesTube(mesh_ind, E, G),
                  promotes=['*'])
         self.add('failure',
-                 SpatialBeamFailureKS(num_y, stress),
+                 SpatialBeamFailureKS(mesh_ind, stress),
                  promotes=['*'])

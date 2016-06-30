@@ -8,7 +8,21 @@ from openmdao.api import Component
 
 from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
-from b_spline import get_bspline_mtx
+
+def get_mesh_data(mesh_ind):
+    new_mesh_ind = numpy.zeros((mesh_ind.shape[0], 8), dtype=int)
+    new_mesh_ind[:, 0:2] = mesh_ind
+    for i, row in enumerate(mesh_ind):
+        nx, ny = mesh_ind[i, :]
+        new_mesh_ind[i, 2] = nx * ny
+        new_mesh_ind[i, 3] = (nx-1) * ny
+        new_mesh_ind[i, 4] = (nx-1) * (ny-1)
+
+        new_mesh_ind[i, 5] = numpy.sum(numpy.product(mesh_ind[:i], axis=1))
+        new_mesh_ind[i, 6] = numpy.sum((mesh_ind[:i, 0]-1) * mesh_ind[:i, 1])
+        new_mesh_ind[i, 7] = numpy.sum(numpy.product(mesh_ind[:i]-1, axis=1))
+
+    return new_mesh_ind
 
 
 def rotate(mesh, thetas):
@@ -148,7 +162,7 @@ def mirror(mesh, right_side=True):
     return new_mesh
 
 
-def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=3, mesh=crm_base_mesh):
+def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base_mesh):
     """ Builds the right hand side of the CRM wing with specified number
     of inboard and outboard panels
     """

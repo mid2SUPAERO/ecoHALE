@@ -7,9 +7,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
-from geometry import GeometryMesh, gen_crm_mesh, gen_mesh
+from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_mesh_data
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals, get_mesh_data
+from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
 
 numpy.random.seed(12345)

@@ -12,20 +12,6 @@ except:
     fortran_flag = False
 # fortran_flag = False
 
-def get_mesh_data(mesh_ind):
-    new_mesh_ind = numpy.zeros((mesh_ind.shape[0], 8), dtype=int)
-    new_mesh_ind[:, 0:2] = mesh_ind
-    for i, row in enumerate(mesh_ind):
-        nx, ny = mesh_ind[i, :]
-        new_mesh_ind[i, 2] = nx * ny
-        new_mesh_ind[i, 3] = (nx-1) * ny
-        new_mesh_ind[i, 4] = (nx-1) * (ny-1)
-
-        new_mesh_ind[i, 5] = numpy.sum(numpy.product(mesh_ind[:i], axis=1))
-        new_mesh_ind[i, 6] = numpy.sum((mesh_ind[:i, 0]-1) * mesh_ind[:i, 1])
-        new_mesh_ind[i, 7] = numpy.sum(numpy.product(mesh_ind[:i]-1, axis=1))
-
-    return new_mesh_ind
 
 def view_mat(mat):
     import matplotlib.pyplot as plt

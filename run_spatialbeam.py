@@ -6,18 +6,22 @@ import sys
 import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, profile
-from geometry import GeometryMesh, mesh_gen, LinearInterp
-from spatialbeam_orig import SpatialBeamStates, SpatialBeamFunctionals, radii
+from geometry import GeometryMesh, gen_crm_mesh, get_mesh_data
+from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from openmdao.devtools.partition_tree_n2 import view_tree
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=10, n_points_outboard=6)
-# mesh = mesh_gen(n_points_inboard=2, n_points_outboard=2)
-
-num_y = mesh.shape[1]
-num_twist = 5
+# mesh = gen_crm_mesh(n_points_inboard=6, n_points_outboard=10)
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
+mesh_ind = numpy.atleast_2d(numpy.array([2, mesh.shape[1]]))
+mesh_ind = get_mesh_data(mesh_ind)
 r = radii(mesh)
+mesh = mesh.reshape(-1, mesh.shape[-1])
+
+num_y = mesh_ind[0, 1]
+num_twist = 5
+
 t = r/10
 
 # Define the material properties
@@ -44,16 +48,16 @@ root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, num_twist),
+         GeometryMesh(mesh, mesh_ind, num_twist),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(num_y),
+         MaterialsTube(mesh_ind),
          promotes=['*'])
 root.add('spatialbeamstates',
-         SpatialBeamStates(num_y, E, G),
+         SpatialBeamStates(mesh_ind, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(num_y, E, G, stress, mrho),
+         SpatialBeamFunctionals(mesh_ind, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()
@@ -70,7 +74,7 @@ prob.driver.add_desvar('t',
 prob.driver.add_objective('energy')
 prob.driver.add_constraint('weight', upper=1e5)
 
-prob.root.deriv_options['type'] = 'cs'
+# prob.root.deriv_options['type'] = 'cs'
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 

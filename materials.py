@@ -8,8 +8,10 @@ from openmdao.api import Component
 class MaterialsTube(Component):
     """ Computes geometric properties for a tube element """
 
-    def __init__(self, n):
+    def __init__(self, mesh_ind):
         super(MaterialsTube, self).__init__()
+
+        n = mesh_ind[0, 1]
 
         self.add_param('r', val=numpy.zeros((n - 1)))
         self.add_param('t', val=numpy.zeros((n - 1)))
@@ -21,7 +23,7 @@ class MaterialsTube(Component):
 #        self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
-        
+
         self.arange = numpy.arange(n-1)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -36,7 +38,7 @@ class MaterialsTube(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        
+
         pi = numpy.pi
         r = params['r'].real
         t = params['t'].real
