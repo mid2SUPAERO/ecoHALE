@@ -95,111 +95,11 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
             # TODO: think up better names here
             pts = points[i_panels:i_panels+n_panels].reshape(nx-1, ny-1, 3)
 
-            small_mat = numpy.zeros((n_panels, n_panels_, 3))
-
-            # non-functioning for now
-            if 0: # kink
-                if fortran_flag:
-                    mtx[:, :, :] = lib.assembleaeromtx_kink(num_y, num_x, alpha, mesh, points, b_pts)
-                    # old_mtx = mtx.copy()
-                    # mtx[:, :, :] = 0.
-                else:
-                    # Spanwise loop through horseshoe elements
-                    for el_j in xrange(num_y - 1):
-
-                        el_loc_j = el_j * (num_x - 1)
-
-                        # Chordwise loop through horseshoe elements
-                        for el_i in xrange(num_x - 1):
-
-                            el_loc = el_i + el_loc_j
-
-                            A = b_pts[el_i, el_j + 0, :]
-                            B = b_pts[el_i, el_j + 1, :]
-                            D = mesh[el_i + 1, el_j + 0, :]
-                            E = mesh[el_i + 1, el_j + 1, :]
-                            F = D + u
-                            G = E + u
-
-                            # Spanwise loop through control points
-                            for cp_j in xrange(num_y - 1):
-
-                                cp_loc_j = cp_j * (num_x - 1)
-
-                                # Chordwise loop through control points
-                                for cp_i in xrange(num_x - 1):
-
-                                    cp_loc = cp_i + cp_loc_j
-
-                                    P = points[cp_i, cp_j]
-
-                                    chk = _biot_savart(A, B, P, inf=False, rev=False)
-                                    if numpy.isnan(chk).any() or numpy.isinf(chk).any():
-                                        pass
-                                    else:
-                                        mtx[cp_loc, el_loc, :] += chk
-
-                                    mtx[cp_loc, el_loc, :] += _biot_savart(B, E, P, inf=False, rev=False)
-                                    mtx[cp_loc, el_loc, :] += _biot_savart(A, D, P, inf=False, rev=True)
-                                    mtx[cp_loc, el_loc, :] += _biot_savart(E, G, P, inf=True,  rev=False)
-                                    mtx[cp_loc, el_loc, :] += _biot_savart(D, F, P, inf=True,  rev=True)
-
-                    mtx /=  4 * numpy.pi
-
-            # non-functioning for now
-            if 0: # paper version (Modern Adaptation of Prandtl's Classic Lifting-Line Theory)
-                if fortran_flag:
-                    mtx[:, :, :] = lib.assembleaeromtx_paper(num_y, num_x, alpha, points, b_pts, skip)
-                    # old_mtx = mtx.copy()
-                    # mtx[:, :, :] = 0.
-                else:
-                    # Spanwise loop through horseshoe elements
-                    for el_j in xrange(num_y - 1):
-
-                        el_loc_j = el_j * (num_x - 1)
-
-                        # Chordwise loop through horseshoe elements
-                        for el_i in xrange(num_x - 1):
-
-                            el_loc = el_i + el_loc_j
-
-                            A = b_pts[el_i, el_j + 0, :]
-                            B = b_pts[el_i, el_j + 1, :]
-
-                            # Spanwise loop through control points
-                            for cp_j in xrange(num_y - 1):
-
-                                cp_loc_j = cp_j * (num_x - 1)
-
-                                # Chordwise loop through control points
-                                for cp_i in xrange(num_x - 1):
-
-                                    cp_loc = cp_i + cp_loc_j
-
-                                    P = points[cp_i, cp_j]
-
-                                    r1 = P - A
-                                    r2 = P - B
-
-                                    r1_mag = norm(r1)
-                                    r2_mag = norm(r2)
-
-                                    t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                                    t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
-
-                                    if skip and el_loc == cp_loc:
-                                        mtx[cp_loc, el_loc, :] = t1 - t3
-                                    else:
-                                        t2 = _calc_vorticity(A, B, P)
-                                        mtx[cp_loc, el_loc, :] = t1 + t2 - t3
-
-                    mtx /= 4 * numpy.pi
+            small_mat = numpy.zeros((n_panels, n_panels_, 3)).astype("complex")
 
             if 1: # following planform but still horseshoe version
                 if fortran_flag:
                     small_mat[:, :, :] = lib.assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, pts, bpts, mesh, skip)
-                    # old_mtx = mtx.copy()
-                    # mtx[:, :, :] = 0.
                 else:
                     # Spanwise loop through horseshoe elements
                     for el_j in xrange(ny_ - 1):
@@ -268,9 +168,9 @@ class WeissingerGeometry(Component):
         tot_panels = numpy.sum(mesh_ind[:, 4])
         self.mesh_ind = mesh_ind
 
-        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
-        self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3)))
-        self.add_output('mid_b', val=numpy.zeros((tot_panels, 3)))
+        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
+        self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3), dtype="complex"))
+        self.add_output('mid_b', val=numpy.zeros((tot_panels, 3), dtype="complex"))
         self.add_output('c_pts', val=numpy.zeros((tot_panels, 3)))
         self.add_output('widths', val=numpy.zeros((tot_panels)))
         self.add_output('normals', val=numpy.zeros((tot_panels, 3)))
@@ -349,15 +249,17 @@ class WeissingerCirculations(Component):
         tot_panels = numpy.sum(mesh_ind[:, 4])
         self.mesh_ind = mesh_ind
 
-        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
-        self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3)))
-        self.add_param('c_pts', val=numpy.zeros((tot_panels, 3)))
+        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
+        self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3), dtype="complex"))
+        self.add_param('c_pts', val=numpy.zeros((tot_panels, 3), dtype="complex"))
         self.add_param('normals', val=numpy.zeros((tot_panels, 3)))
         self.add_param('v', val=10.)
         self.add_param('alpha', val=3.)
-        self.add_state('circulations', val=numpy.zeros((tot_panels)))
+        self.add_state('circulations', val=numpy.zeros((tot_panels), dtype="complex"))
 
+        self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
+
         self.deriv_options['linearize'] = True # only for circulations
 
         self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
@@ -455,7 +357,7 @@ class WeissingerForces(Component):
         self.add_param('rho', val=3.)
         self.add_output('sec_forces', val=numpy.zeros((tot_panels, 3)))
 
-        self.mtx = numpy.zeros((tot_panels, tot_panels, 3))
+        self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
 
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
 
@@ -494,7 +396,7 @@ class WeissingerForces(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['b_pts', 'alpha', 'rho',
-                                                    'circulations', 'v', 'mid_b'],
+                                                    'circulations', 'v', 'mid_b', 'def_mesh'],
                                          fd_states=[])
         jac.update(fd_jac)
         #

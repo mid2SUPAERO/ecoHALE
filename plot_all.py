@@ -105,7 +105,7 @@ class Display(object):
         alpha = []
         rho = []
         v = []
-        self.mesh_ind = self.db['mesh_ind']
+        self.mesh_ind = []
         self.CL = []
         self.AR = []
         self.S_ref = []
@@ -125,6 +125,7 @@ class Display(object):
                 continue
 
             self.mesh.append(case_data['Unknowns']['mesh'])
+            self.mesh_ind.append(case_data['Unknowns']['mesh_ind'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
@@ -139,7 +140,7 @@ class Display(object):
             try:
                 def_mesh = case_data['Unknowns']['def_mesh']
                 self.def_mesh.append(def_mesh)
-                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
                 def_mesh = def_mesh[:n, :].reshape(nx, ny, 3)
                 h_cp = case_data['Unknowns']['twist']
                 num_twist = h_cp.shape[0]
@@ -165,7 +166,7 @@ class Display(object):
 
         if self.show_wing:
 
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
 
             for i in range(self.num_iters + 1):
                 m_vals = self.mesh[i][:n, :].reshape(nx, ny, 3)
@@ -230,7 +231,7 @@ class Display(object):
             self.max_vm += diff
 
     def plot_sides(self):
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
         m_vals = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
         span = m_vals[0, :, 1] / m_vals[0, -1, 1]
         span_diff = (m_vals[0, :-1, 1] + m_vals[0, 1:, 1])/2 / m_vals[0, -1, 1]
@@ -288,13 +289,13 @@ class Display(object):
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
         mesh0 = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
 
         self.ax.set_axis_off()
 
         if self.show_wing:
-            for i_surf, row in enumerate(self.mesh_ind):
+            for i_surf, row in enumerate(self.mesh_ind[0]):
                 nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
                 mesh0 = self.mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3).copy()

@@ -67,7 +67,6 @@ class TransferDisplacements(Component):
             (def_mesh + mesh).reshape(self.n_wing, 3).astype("complex")
 
 
-
 class TransferLoads(Component):
     """ Performs load transfer """
 
