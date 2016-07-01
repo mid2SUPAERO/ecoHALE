@@ -222,18 +222,33 @@ class WeissingerGeometry(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['def_mesh'],
-                                         fd_unknowns=['widths', 'normals', 'S_ref',\
-                                            'b_pts', 'c_pts', 'mid_b'],
+                                         fd_unknowns=['widths', 'c_pts', 'normals',\
+                                            'S_ref', 'mid_b'],
                                          fd_states=[])
 
         jac.update(fd_jac)
 
-        # b_pts_size = n*3
-        # b_pts_eye = numpy.eye(b_pts_size)
-        # jac['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
+        # print jac['c_pts', 'def_mesh']
+        # view_mat(jac['c_pts', 'def_mesh'])
         #
-        # for i, v in zip((0, 3, n*3, (n+1)*3), (.125, .125, .375, .375)):
-        #     numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:,i:], v)
+        # jac['c_pts', 'def_mesh'][:] = 0.
+
+
+        for i_surf, row in enumerate(self.mesh_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+            i_ny = numpy.sum(self.mesh_ind[:i_surf, 1]) * nx
+
+            for iz, v in zip((i_bpts*3, (ny+i_ny)*3), (.75, .25)):
+                numpy.fill_diagonal(jac['b_pts', 'def_mesh'][i_bpts*3:(n_bpts+i_bpts)*3, iz+i_ny:], v)
+
+            # for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.125, .125, .375, .375)):
+            #     numpy.fill_diagonal(jac['c_pts', 'def_mesh'][i_panels*3:(n_panels+i)*3, iz:], v)
+
+            # for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.375, .375, .125, .125)):
+            #     numpy.fill_diagonal(jac['mid_b', 'def_mesh'][i_panels*3:(n_panels+i)*3, iz:], v)
+
+        # print jac['c_pts', 'def_mesh']
+        # view_mat(jac['c_pts', 'def_mesh'])
 
         return jac
 
@@ -297,7 +312,6 @@ class WeissingerCirculations(Component):
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for circulations."""
-
         self.lup = lu_factor(self.mtx.real)
         jac = self.alloc_jacobian()
 
@@ -345,9 +359,7 @@ class WeissingerForces(Component):
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
         self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3)))
-        self.add_param('c_pts', val=numpy.zeros((tot_panels, 3)))
         self.add_param('mid_b', val=numpy.zeros((tot_panels, 3)))
-        self.add_param('widths', val=numpy.zeros((tot_panels)))
 
         self.mesh_ind = mesh_ind
 
@@ -395,18 +407,15 @@ class WeissingerForces(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['b_pts', 'alpha', 'rho',
+                                         fd_params=['b_pts', 'alpha',
                                                     'circulations', 'v', 'mid_b', 'def_mesh'],
                                          fd_states=[])
         jac.update(fd_jac)
-        #
-        # arange = numpy.arange(n-1)
-        # circ = params['circulations'].real
-        # rho = params['rho'].real
-        # v = params['v'].real
-        # sec_forces = unknowns['sec_forces'].real
-        #
-        # jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
+
+        rho = params['rho'].real
+        sec_forces = unknowns['sec_forces'].real
+
+        jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
         return jac
 
@@ -428,7 +437,6 @@ class WeissingerLiftDrag(Component):
         self.add_output('L', val=numpy.zeros((n_surf)))
         self.add_output('D', val=numpy.zeros((n_surf)))
 
-        self.deriv_options['form'] = 'central'
         self.deriv_options['type'] = 'cs'
 
         #self.deriv_options['extra_check_partials_form'] = "central"
@@ -451,19 +459,22 @@ class WeissingerLiftDrag(Component):
 
         jac = self.alloc_jacobian()
 
-        # alpha = params['alpha'] * numpy.pi / 180.
-        # forces = params['sec_forces']
-        # cosa = numpy.cos(alpha)
-        # sina = numpy.sin(alpha)
-        # n = self.num_y
-        #
-        # tmp = numpy.array([-sina, 0, cosa])
-        # jac['L', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
-        # tmp = numpy.array([cosa, 0, sina])
-        # jac['D', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
-        #
-        # jac['L', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
-        # jac['D', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
+        alpha = params['alpha'] * numpy.pi / 180.
+        cosa = numpy.cos(alpha)
+        sina = numpy.sin(alpha)
+
+        for i_surf, row in enumerate(self.mesh_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+
+            forces = params['sec_forces'][i_panels:n_panels+i_panels].reshape(nx-1, ny-1, 3)
+
+            tmp = numpy.array([-sina, 0, cosa])
+            jac['L', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, ny-1))
+            tmp = numpy.array([cosa, 0, sina])
+            jac['D', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, ny-1))
+
+            jac['L', 'alpha'][i_surf] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
+            jac['D', 'alpha'][i_surf] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
 
         return jac
 
@@ -509,24 +520,27 @@ class WeissingerCoeffs(Component):
 
         jac = self.alloc_jacobian()
 
-        jac['CL1', 'D'] = 0.
-        jac['CDi', 'L'] = 0.
+        for i_surf, row in enumerate(self.mesh_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-        tmp = 0.5*rho*v**2*S_ref
-        jac['CL1', 'L'] = 1. / tmp
-        jac['CDi', 'D'] = 1. / tmp
+            jac['CL1', 'D'][i_surf] = 0.
+            jac['CDi', 'L'][i_surf] = 0.
 
-        tmp = -0.5*rho**2*v**2*S_ref
-        jac['CL1', 'rho'] = L / tmp
-        jac['CDi', 'rho'] = D / tmp
+            tmp = 0.5*rho*v**2*S_ref
+            jac['CL1', 'L'][i_surf, i_surf] = 1. / tmp[i_surf]
+            jac['CDi', 'D'][i_surf, i_surf] = 1. / tmp[i_surf]
 
-        tmp = -0.5*rho*v**2*S_ref**2
-        jac['CL1', 'S_ref'] = L / tmp
-        jac['CDi', 'S_ref'] = D / tmp
+            tmp = -0.5*rho**2*v**2*S_ref
+            jac['CL1', 'rho'][i_surf] = L[i_surf] / tmp[i_surf]
+            jac['CDi', 'rho'][i_surf] = D[i_surf] / tmp[i_surf]
 
-        tmp = -0.25*rho*v**3*S_ref
-        jac['CL1', 'v'] = L / tmp
-        jac['CDi', 'v'] = D / tmp
+            tmp = -0.5*rho*v**2*S_ref**2
+            jac['CL1', 'S_ref'][i_surf, i_surf] = L[i_surf] / tmp[i_surf]
+            jac['CDi', 'S_ref'][i_surf, i_surf] = D[i_surf] / tmp[i_surf]
+
+            tmp = -0.25*rho*v**3*S_ref
+            jac['CL1', 'v'][i_surf] = L[i_surf] / tmp[i_surf]
+            jac['CDi', 'v'][i_surf] = D[i_surf] / tmp[i_surf]
 
         return jac
 
@@ -537,9 +551,9 @@ class TotalLift(Component):
     def __init__(self, CL0, mesh_ind):
         super(TotalLift, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        self.add_param('CL1', val=numpy.zeros((n_surf)))
-        self.add_output('CL', val=numpy.zeros((n_surf)))
+        self.n_surf = mesh_ind.shape[0]
+        self.add_param('CL1', val=numpy.zeros((self.n_surf)))
+        self.add_output('CL', val=numpy.zeros((self.n_surf)))
         self.add_output('CL_wing', val=0.)
 
         self.deriv_options['form'] = 'central'
@@ -552,8 +566,8 @@ class TotalLift(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['CL', 'CL1'][:] = 1
-        jac['CL_wing', 'CL1'][0] = 1
+        jac['CL', 'CL1'][:] = numpy.eye(self.n_surf)
+        jac['CL_wing', 'CL1'][0][0] = 1
         return jac
 
 class TotalDrag(Component):
@@ -562,9 +576,9 @@ class TotalDrag(Component):
     def __init__(self, CD0, mesh_ind):
         super(TotalDrag, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        self.add_param('CDi', val=numpy.zeros((n_surf)))
-        self.add_output('CD', val=numpy.zeros((n_surf)))
+        self.n_surf = mesh_ind.shape[0]
+        self.add_param('CDi', val=numpy.zeros((self.n_surf)))
+        self.add_output('CD', val=numpy.zeros((self.n_surf)))
         self.add_output('CD_wing', val=0.)
 
         self.deriv_options['form'] = 'central'
@@ -577,8 +591,8 @@ class TotalDrag(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['CD', 'CDi'][:] = 1
-        jac['CD_wing', 'CDi'][0] = 1
+        jac['CD', 'CDi'][:] = numpy.eye(self.n_surf)
+        jac['CD_wing', 'CDi'][0][0] = 1
         return jac
 
 class WeissingerStates(Group):

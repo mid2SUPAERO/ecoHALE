@@ -23,8 +23,8 @@ except:
 execfile('CRM.py')
 
 if sys.argv[1].endswith('m'):
-    num_x = 2
-    num_y = 11
+    num_x = 4
+    num_y = 5
     span = 10.
     chord = 1.
     cosine_spacing = .5
@@ -34,8 +34,8 @@ if sys.argv[1].endswith('m'):
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
     mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
-    nx = 2
-    ny = 5
+    nx = 3
+    ny = 3
     span = 3.
     chord = 1.
     cosine_spacing = .5
@@ -65,7 +65,7 @@ else:
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_twist)),
+    ('twist', numpy.ones(num_twist)*numpy.random.rand(num_twist)),
     ('dihedral', 0.),
     ('sweep', 0.),
     ('span', span),

@@ -261,7 +261,7 @@ class GeometryMesh(Component):
         self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(num_twist))
         self.add_param('taper', val=1.)
-        self.add_output('mesh', val=numpy.zeros((mesh.shape), dtype="complex"))
+        self.add_output('mesh', val=mesh)
 
         self.deriv_options['type'] = 'fd'
         self.deriv_options['form'] = 'central'
