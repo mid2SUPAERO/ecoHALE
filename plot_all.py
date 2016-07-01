@@ -107,7 +107,6 @@ class Display(object):
         v = []
         self.mesh_ind = []
         self.CL = []
-        self.CX = []
         self.AR = []
         self.S_ref = []
         self.obj = []
@@ -126,6 +125,7 @@ class Display(object):
                 continue
 
             self.mesh.append(case_data['Unknowns']['mesh'])
+            self.mesh_ind.append(case_data['Unknowns']['mesh_ind'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
@@ -140,7 +140,6 @@ class Display(object):
             try:
                 def_mesh = case_data['Unknowns']['def_mesh']
                 self.def_mesh.append(def_mesh)
-                self.mesh_ind.append(case_data['Unknowns']['mesh_ind'])
                 nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0][0, :]
                 def_mesh = def_mesh[:n, :].reshape(nx, ny, 3)
                 h_cp = case_data['Unknowns']['twist']
@@ -157,7 +156,6 @@ class Display(object):
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
                 self.CL.append(case_data['Unknowns']['CL1'])
-                self.CX.append(case_data['Unknowns']['CX'])
                 self.S_ref.append(case_data['Unknowns']['S_ref'])
                 self.show_wing = True
             except:
@@ -358,9 +356,8 @@ class Display(object):
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
-        if self.show_wing:
-            span_eff = (self.CL[self.curr_pos]**2 + self.CX[self.curr_pos]**2) / \
-                numpy.pi / self.AR[self.curr_pos] / obj_val
+        if self.show_wing and not self.show_tube:
+            span_eff = self.CL[self.curr_pos]**2 / numpy.pi / self.AR[self.curr_pos] / obj_val
             self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff[0], 7)),
                 transform=self.ax.transAxes, color='k')
 

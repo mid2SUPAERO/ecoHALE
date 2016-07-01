@@ -320,21 +320,20 @@ class WeissingerGeometry(Component):
 
         jac = self.alloc_jacobian()
 
-        n = self.ny
-
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['def_mesh'],
-                                         fd_unknowns=['widths', 'normals', 'S_ref'],
+                                         fd_unknowns=['widths', 'normals', 'S_ref',\
+                                            'b_pts', 'c_pts'],
                                          fd_states=[])
 
         jac.update(fd_jac)
 
-        b_pts_size = n*3
-        b_pts_eye = numpy.eye(b_pts_size)
-        jac['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
-
-        for i, v in zip((0, 3, n*3, (n+1)*3), (.125, .125, .375, .375)):
-            numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:,i:], v)
+        # b_pts_size = n*3
+        # b_pts_eye = numpy.eye(b_pts_size)
+        # jac['b_pts', 'def_mesh'] = numpy.hstack((.75 * b_pts_eye, .25 * b_pts_eye))
+        #
+        # for i, v in zip((0, 3, n*3, (n+1)*3), (.125, .125, .375, .375)):
+        #     numpy.fill_diagonal(jac['c_pts', 'def_mesh'][:,i:], v)
 
         return jac
 
@@ -381,11 +380,11 @@ class WeissingerCirculations(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
-        a = 295.4 # hardcoded speed of sound
-        M = params['v'] / a
-        beta = numpy.sqrt(1 - M**2)
+        # a = 295.4 # hardcoded speed of sound
+        # M = params['v'] / a
+        # beta = numpy.sqrt(1 - M**2)
         # obtain compressible circulations
-        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs) / beta
+        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)# / beta
 
 
     def apply_nonlinear(self, params, unknowns, resids):
@@ -401,18 +400,18 @@ class WeissingerCirculations(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['normals', 'alpha'],
-                                         fd_states=[])
+                                         fd_params=['normals', 'alpha', 'v'],
+                                         fd_states=['circulations'])
         jac.update(fd_jac)
 
-        jac['circulations', 'circulations'] = self.mtx.real
-
-        normals = params['normals'].real
-        alpha = params['alpha'].real * numpy.pi / 180.
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
-
-        jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
+        # jac['circulations', 'circulations'] = self.mtx.real
+        #
+        # normals = params['normals'].real
+        # alpha = params['alpha'].real * numpy.pi / 180.
+        # cosa = numpy.cos(alpha)
+        # sina = numpy.sin(alpha)
+        #
+        # jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
 
         return jac
 
@@ -492,21 +491,19 @@ class WeissingerForces(Component):
 
         jac = self.alloc_jacobian()
 
-        n = self.num_y
-
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['b_pts', 'alpha',
+                                         fd_params=['b_pts', 'alpha', 'rho',
                                                     'circulations', 'v'],
                                          fd_states=[])
         jac.update(fd_jac)
-
-        arange = numpy.arange(n-1)
-        circ = params['circulations'].real
-        rho = params['rho'].real
-        v = params['v'].real
-        sec_forces = unknowns['sec_forces'].real
-
-        jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
+        #
+        # arange = numpy.arange(n-1)
+        # circ = params['circulations'].real
+        # rho = params['rho'].real
+        # v = params['v'].real
+        # sec_forces = unknowns['sec_forces'].real
+        #
+        # jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
         return jac
 
@@ -527,9 +524,10 @@ class WeissingerLiftDrag(Component):
         self.add_param('alpha', val=3.)
         self.add_output('L', val=numpy.zeros((n_surf)))
         self.add_output('D', val=numpy.zeros((n_surf)))
-        self.add_output('X', val=numpy.zeros((n_surf)))
 
         self.deriv_options['form'] = 'central'
+        self.deriv_options['type'] = 'cs'
+
         #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -543,7 +541,6 @@ class WeissingerLiftDrag(Component):
 
             unknowns['L'][i_surf] = numpy.sum(-forces[i_panels:i_panels+n_panels, 0] * sina + forces[i_panels:i_panels+n_panels, 2] * cosa)
             unknowns['D'][i_surf] = numpy.sum( forces[i_panels:i_panels+n_panels, 0] * cosa + forces[i_panels:i_panels+n_panels, 2] * sina)
-            unknowns['X'][i_surf] = numpy.sum( forces[i_panels:i_panels+n_panels, 1])
 
 
     def linearize(self, params, unknowns, resids):
@@ -551,19 +548,19 @@ class WeissingerLiftDrag(Component):
 
         jac = self.alloc_jacobian()
 
-        alpha = params['alpha'] * numpy.pi / 180.
-        forces = params['sec_forces']
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
-        n = self.num_y
-
-        tmp = numpy.array([-sina, 0, cosa])
-        jac['L', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
-        tmp = numpy.array([cosa, 0, sina])
-        jac['D', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
-
-        jac['L', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
-        jac['D', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
+        # alpha = params['alpha'] * numpy.pi / 180.
+        # forces = params['sec_forces']
+        # cosa = numpy.cos(alpha)
+        # sina = numpy.sin(alpha)
+        # n = self.num_y
+        #
+        # tmp = numpy.array([-sina, 0, cosa])
+        # jac['L', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
+        # tmp = numpy.array([cosa, 0, sina])
+        # jac['D', 'sec_forces'] = numpy.atleast_2d(numpy.tile(tmp, n-1))
+        #
+        # jac['L', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
+        # jac['D', 'alpha'] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
 
         return jac
 
@@ -578,14 +575,12 @@ class WeissingerCoeffs(Component):
         self.add_param('S_ref', val=numpy.zeros((n_surf)))
         self.add_param('L', val=numpy.zeros((n_surf)))
         self.add_param('D', val=numpy.zeros((n_surf)))
-        self.add_param('X', val=numpy.zeros((n_surf)))
         self.add_param('v', val=0.)
         self.add_param('rho', val=0.)
         self.add_output('CL1', val=numpy.zeros((n_surf)))
         self.add_output('CDi', val=numpy.zeros((n_surf)))
-        self.add_output('CX', val=numpy.zeros((n_surf)))
 
-        self.deriv_options['form'] = 'central'
+        self.deriv_options['type'] = 'cs'
         #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -593,14 +588,12 @@ class WeissingerCoeffs(Component):
         rho = params['rho']
         v = params['v']
         L = params['L']
-        X = params['X']
         D = params['D']
         for i_surf, row in enumerate(self.mesh_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             unknowns['CL1'][i_surf] = L[i_surf] / (0.5*rho*v**2*S_ref[i_surf])
             unknowns['CDi'][i_surf] = D[i_surf] / (0.5*rho*v**2*S_ref[i_surf])
-            unknowns['CX'][i_surf] = X[i_surf] / (0.5*rho*v**2*S_ref[i_surf])
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -656,7 +649,8 @@ class TotalLift(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['CL', 'CL1'] = 1
+        jac['CL', 'CL1'][:] = 1
+        jac['CL_wing', 'CL1'][0] = 1
         return jac
 
 class TotalDrag(Component):
@@ -680,7 +674,8 @@ class TotalDrag(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['CD', 'CDi'] = 1
+        jac['CD', 'CDi'][:] = 1
+        jac['CD_wing', 'CDi'][0] = 1
         return jac
 
 class WeissingerStates(Group):

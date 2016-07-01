@@ -197,8 +197,10 @@ class SpatialBeamFEM(Component):
     def solve_nonlinear(self, params, unknowns, resids):
 
         nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
-        self.mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3).ascomplex()
-        print numpy.iscomplexobj(self.mesh)
+        mesh_full = params['mesh'][i:i+n, :].reshape(nx, ny, 3).astype("complex")
+        self.mesh = numpy.zeros((2, ny, 3)).astype("complex")
+        self.mesh[0, :, :] = mesh_full[0, :, :]
+        self.mesh[-1, :, :] = mesh_full[-1, :, :]
 
         if fortran_flag:
             self.mtx, self.rhs = lib.assemblestructmtx(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],

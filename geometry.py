@@ -240,9 +240,9 @@ def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
     return mesh
 
 class GeometryMesh(Component):
-    """ Changes a given mesh with span, sweep, and twist
-    des-vars. Takes in a half mesh with symmetry plane about
-    the middle and outputs a full symmetric mesh.
+    """ Changes a given mesh with span, sweep, dihedral, taper,
+    and twist des-vars. Takes in a half mesh with symmetry plane
+    about the middle and outputs a full symmetric mesh.
     """
 
     def __init__(self, mesh, mesh_ind, num_twist):
@@ -261,9 +261,9 @@ class GeometryMesh(Component):
         self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(num_twist))
         self.add_param('taper', val=1.)
-        self.add_output('mesh', val=mesh)
+        self.add_output('mesh', val=numpy.zeros((mesh.shape), dtype="complex"))
 
-        self.deriv_options['type'] = 'cs'
+        self.deriv_options['type'] = 'fd'
         self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -277,7 +277,8 @@ class GeometryMesh(Component):
         rotate(self.wing_mesh, h)
         dihedral(self.wing_mesh, params['dihedral'])
         taper(self.wing_mesh, params['taper'])
-        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3)
+
+        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3).astype('complex')
 
 
 class LinearInterp(Component):

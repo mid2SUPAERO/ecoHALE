@@ -1,30 +1,30 @@
-""" Example script to run aero-only optimization """
+""" Example script to run aerodynamics-only optimization.
+Call as `python run_weissinger.py 0` to run a single analysis, or
+call as `python run_weissinger.py 1` to perform optimization. """
 
 from __future__ import division
 import numpy
 import sys
-import warnings
-warnings.filterwarnings("ignore")
+from time import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_mesh_data
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
 
-numpy.random.seed(12345)
-
-# Create the mesh with 2 inboard points and 3 outboard points
-num_x = 3
-mesh = gen_crm_mesh(n_points_inboard=4, n_points_outboard=6, num_x=num_x)
-num_y = mesh.shape[1]
+try:
+    from openmdao.api import pyOptSparseDriver
+    SNOPT = True
+except:
+    SNOPT = False
 
 # Define the aircraft properties
 execfile('CRM.py')
 
 if sys.argv[1].endswith('m'):
-    num_x = 5
-    num_y = 41
+    num_x = 2
+    num_y = 11
     span = 10.
     chord = 1.
     cosine_spacing = .5
@@ -34,8 +34,8 @@ if sys.argv[1].endswith('m'):
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
     mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
-    nx = 3
-    ny = 11
+    nx = 2
+    ny = 5
     span = 3.
     chord = 1.
     cosine_spacing = .5
@@ -61,9 +61,6 @@ else:
     mesh = mesh.reshape(-1, mesh.shape[-1])
     mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
     mesh_ind = get_mesh_data(mesh_ind)
-
-
-disp = numpy.zeros((num_y, 6))
 
 root = Group()
 
@@ -105,7 +102,7 @@ prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 prob.driver.options['tol'] = 1.0e-8
 
-if 1:
+if SNOPT:
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
@@ -118,34 +115,24 @@ prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
 # prob.driver.add_desvar('taper', lower=.5, upper=2.)
 prob.driver.add_objective('CD_wing', scaler=1e4)
 prob.driver.add_constraint('CL_wing', equals=0.5)
+
 # setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
-# profile.setup(prob)
-# profile.start()
-
-prob.root.deriv_options['type'] = 'fd'
+# prob.root.deriv_options['type'] = 'fd'
 prob.setup()
 
 view_tree(prob, outfile="aero.html", show_browser=False)
 
-import time
-st = time.time()
+st = time()
 prob.run_once()
 if sys.argv[1].startswith('0'):
-    # prob.check_partial_derivatives(compact_print=True)
-    # prob.check_total_derivatives()
-    print "run time", time.time() - st
-    print
-    print 'alpha', prob['alpha'], "; L", prob['L'], "; D", prob['D'], "; num", num_y
-    print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
-    print
-    print 'L/D', prob['L'] / prob['D']
+    # Uncomment this line to check derivatives.
+    prob.check_partial_derivatives(compact_print=True)
+    pass
 elif sys.argv[1].startswith('1'):
-    st = time.time()
+    st = time()
     prob.run()
-    print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
-    print
-    print "run time", time.time() - st
-    print
-    print 'L/D', prob['L'] / prob['D']
+print "run time", time() - st
+print
+print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
