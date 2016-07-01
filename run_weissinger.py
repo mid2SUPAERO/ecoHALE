@@ -119,6 +119,12 @@ prob.driver.add_constraint('CL_wing', equals=0.5)
 # setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
+from pyoptsparse import SqliteDict
+db = SqliteDict('weissinger.db', 'openmdao', autocommit=True)
+db['mesh_ind'] = mesh_ind
+db.close()
+
+
 # prob.root.deriv_options['type'] = 'fd'
 prob.setup()
 
@@ -128,7 +134,7 @@ st = time()
 prob.run_once()
 if sys.argv[1].startswith('0'):
     # Uncomment this line to check derivatives.
-    prob.check_partial_derivatives(compact_print=True)
+    # prob.check_partial_derivatives(compact_print=True)
     pass
 elif sys.argv[1].startswith('1'):
     st = time()

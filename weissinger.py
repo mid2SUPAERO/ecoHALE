@@ -323,7 +323,7 @@ class WeissingerGeometry(Component):
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['def_mesh'],
                                          fd_unknowns=['widths', 'normals', 'S_ref',\
-                                            'b_pts', 'c_pts'],
+                                            'b_pts', 'c_pts', 'mid_b'],
                                          fd_states=[])
 
         jac.update(fd_jac)
@@ -400,7 +400,8 @@ class WeissingerCirculations(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['normals', 'alpha', 'v'],
+                                         fd_params=['normals', 'alpha', 'v',\
+                                                    'def_mesh', 'b_pts', 'c_pts'],
                                          fd_states=['circulations'])
         jac.update(fd_jac)
 
@@ -493,7 +494,7 @@ class WeissingerForces(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['b_pts', 'alpha', 'rho',
-                                                    'circulations', 'v'],
+                                                    'circulations', 'v', 'mid_b'],
                                          fd_states=[])
         jac.update(fd_jac)
         #
