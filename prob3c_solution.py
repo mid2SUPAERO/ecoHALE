@@ -142,7 +142,7 @@ prob.driver.options['disp'] = True
 prob.driver.options['tol'] = 1.0e-3
 prob.driver.options['maxiter'] = 40
 
-if 0:
+if SNOPT:
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
@@ -154,8 +154,8 @@ prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 # Add design vars
 ###############################################################
 prob.driver.add_desvar('twist',lower= -10.,
-                       upper=10., scaler=1000)
-prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
+                       upper=10., scaler=1e0)
+prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1e0)
 prob.driver.add_desvar('t',
                        lower= 0.003,
                        upper= 0.25, scaler=1000)
@@ -173,6 +173,6 @@ prob.setup()
 # always need to run before you compute derivatives!
 prob.run()
 
-print prob['twist']
-print prob['alpha']
-print prob['t']
+print 'Optimized twist:', prob['twist']
+print 'Optimized alpha:', prob['alpha']
+print 'Optimized thicknesses:', prob['t']

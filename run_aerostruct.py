@@ -26,7 +26,7 @@ try:
 except:
     SNOPT = False
 
-if 0:
+if 1:
     # Use the CRM mesh
     # Create the mesh with 2 inboard points and 3 outboard points
     mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
@@ -43,7 +43,7 @@ else:
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
 r = radii(mesh)
-t = r/10
+t = r/15
 
 mesh = mesh.reshape(-1, mesh.shape[-1])
 aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
@@ -96,7 +96,6 @@ coupled.add('spatialbeamstates',
 
 coupled.nl_solver = Newton()
 coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.line_search.options['iprint'] = 1
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
@@ -150,7 +149,7 @@ prob.driver.add_desvar('twist',lower= -10.,
                        upper=10., scaler=1e0)
 #prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
 prob.driver.add_desvar('t',
-                       lower= 0.003,
+                       lower= 0.001,
                        upper= 0.25, scaler=1000)
 prob.driver.add_objective('fuelburn')
 prob.driver.add_constraint('failure', upper=0.0)

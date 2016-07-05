@@ -4,7 +4,7 @@ import sys
 import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
-from geometry import GeometryMesh, gen_crm_mesh
+from geometry import GeometryMesh, gen_crm_mesh, get_mesh_data
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
@@ -16,9 +16,14 @@ from gs_newton import HybridGSNewton
 
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
-num_y = mesh.shape[1]
+num_x, num_y, _ = mesh.shape
+num_twist = numpy.max([int((num_y - 1) / 5), 5])
 r = radii(mesh)
 t = r/10
+
+mesh = mesh.reshape(-1, mesh.shape[-1])
+aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+aero_ind = get_mesh_data(aero_ind)
 
 # Define the aircraft properties
 execfile('CRM.py')
@@ -32,12 +37,13 @@ root = Group()
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)),
+    ('twist', numpy.zeros(num_twist)),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
     ('r', r),
     ('t', t),
+    ('aero_ind', aero_ind)
 ]
 
 
@@ -48,18 +54,18 @@ indep_vars = [
 ############################################################
 
 indep_vars_comp = IndepVarComp(indep_vars)
-tube_comp = MaterialsTube(num_y)
+tube_comp = MaterialsTube(aero_ind)
 
 mesh_comp = GeometryMesh(mesh, aero_ind, num_twist)
-spatialbeamstates_comp = SpatialBeamStates(num_y, E, G)
-def_mesh_comp = TransferDisplacements(num_y)
-weissingerstates_comp = WeissingerStates(num_y)
-loads_comp = TransferLoads(num_y)
+spatialbeamstates_comp = SpatialBeamStates(aero_ind, E, G)
+def_mesh_comp = TransferDisplacements(aero_ind)
+weissingerstates_comp = WeissingerStates(aero_ind)
+loads_comp = TransferLoads(aero_ind)
 
-weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
-spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
-fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
-eq_con_comp = FunctionalEquilibrium(W0)
+weissingerfuncs_comp = WeissingerFunctionals(aero_ind, CL0, CD0, num_twist)
+spatialbeamfuncs_comp = SpatialBeamFunctionals(aero_ind, E, G, stress, mrho)
+fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M, aero_ind)
+eq_con_comp = FunctionalEquilibrium(W0, aero_ind)
 ############################################################
 ############################################################
 
