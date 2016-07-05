@@ -23,8 +23,8 @@ except:
 execfile('CRM.py')
 
 if sys.argv[1].endswith('m'):
-    num_x = 4
-    num_y = 5
+    num_x = 3
+    num_y = 3
     span = 10.
     chord = 1.
     cosine_spacing = .5
@@ -34,7 +34,7 @@ if sys.argv[1].endswith('m'):
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
     mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
-    nx = 3
+    nx = 2
     ny = 3
     span = 3.
     chord = 1.
@@ -43,7 +43,6 @@ if sys.argv[1].endswith('m'):
 
     mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
     mesh_tail[:, 0] += 1e1
-
 
     mesh_ind = numpy.vstack((mesh_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
     mesh = numpy.vstack((mesh_wing, mesh_tail))

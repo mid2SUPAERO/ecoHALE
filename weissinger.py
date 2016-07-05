@@ -92,66 +92,64 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
         for i_points, row in enumerate(mesh_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            # TODO: think up better names here
             pts = points[i_panels:i_panels+n_panels].reshape(nx-1, ny-1, 3)
 
             small_mat = numpy.zeros((n_panels, n_panels_, 3)).astype("complex")
 
-            if 1: # following planform but still horseshoe version
-                if fortran_flag:
-                    small_mat[:, :, :] = lib.assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, pts, bpts, mesh, skip)
-                else:
-                    # Spanwise loop through horseshoe elements
-                    for el_j in xrange(ny_ - 1):
-                        el_loc_j = el_j * (nx_ - 1)
-                        C_te = mesh[-1, el_j + 1, :]
-                        D_te = mesh[-1, el_j + 0, :]
+            if fortran_flag:
+                small_mat[:, :, :] = lib.assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, pts, bpts, mesh, skip)
+            else:
+                # Spanwise loop through horseshoe elements
+                for el_j in xrange(ny_ - 1):
+                    el_loc_j = el_j * (nx_ - 1)
+                    C_te = mesh[-1, el_j + 1, :]
+                    D_te = mesh[-1, el_j + 0, :]
 
-                        # Spanwise loop through control points
-                        for cp_j in xrange(ny - 1):
-                            cp_loc_j = cp_j * (nx - 1)
+                    # Spanwise loop through control points
+                    for cp_j in xrange(ny - 1):
+                        cp_loc_j = cp_j * (nx - 1)
 
-                            # Chordwise loop through control points
-                            for cp_i in xrange(nx - 1):
-                                cp_loc = cp_i + cp_loc_j
+                        # Chordwise loop through control points
+                        for cp_i in xrange(nx - 1):
+                            cp_loc = cp_i + cp_loc_j
 
-                                P = pts[cp_i, cp_j]
+                            P = pts[cp_i, cp_j]
 
-                                r1 = P - D_te
-                                r2 = P - C_te
+                            r1 = P - D_te
+                            r2 = P - C_te
 
-                                r1_mag = norm(r1)
-                                r2_mag = norm(r2)
+                            r1_mag = norm(r1)
+                            r2_mag = norm(r2)
 
-                                t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                                t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
+                            t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
+                            t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
 
-                                trailing = t1 - t3
-                                edges = 0
+                            trailing = t1 - t3
+                            edges = 0
 
-                                # Chordwise loop through horseshoe elements
-                                for el_i in reversed(xrange(nx_ - 1)):
-                                    el_loc = el_i + el_loc_j
+                            # Chordwise loop through horseshoe elements
+                            for el_i in reversed(xrange(nx_ - 1)):
+                                el_loc = el_i + el_loc_j
 
-                                    A = bpts[el_i, el_j + 0, :]
-                                    B = bpts[el_i, el_j + 1, :]
+                                A = bpts[el_i, el_j + 0, :]
+                                B = bpts[el_i, el_j + 1, :]
 
-                                    if el_i == nx_ - 2:
-                                        C = mesh[-1, el_j + 1, :]
-                                        D = mesh[-1, el_j + 0, :]
-                                    else:
-                                        C = bpts[el_i + 1, el_j + 1, :]
-                                        D = bpts[el_i + 1, el_j + 0, :]
-                                    edges += _calc_vorticity(B, C, P)
-                                    edges += _calc_vorticity(D, A, P)
+                                if el_i == nx_ - 2:
+                                    C = mesh[-1, el_j + 1, :]
+                                    D = mesh[-1, el_j + 0, :]
+                                else:
+                                    C = bpts[el_i + 1, el_j + 1, :]
+                                    D = bpts[el_i + 1, el_j + 0, :]
+                                edges += _calc_vorticity(B, C, P)
+                                edges += _calc_vorticity(D, A, P)
 
-                                    if skip and el_loc == cp_loc:
-                                        small_mat[cp_loc, el_loc, :] = trailing + edges
-                                    else:
-                                        bound = _calc_vorticity(A, B, P)
-                                        small_mat[cp_loc, el_loc, :] = trailing + edges + bound
+                                if skip and el_loc == cp_loc:
+                                    small_mat[cp_loc, el_loc, :] = trailing + edges
+                                else:
+                                    bound = _calc_vorticity(A, B, P)
+                                    small_mat[cp_loc, el_loc, :] = trailing + edges + bound
 
-                    small_mat /= 4 * numpy.pi
+                small_mat /= 4 * numpy.pi
 
             mtx[i_panels:i_panels+n_panels, i_panels_:i_panels_+n_panels_, :] = small_mat
 
@@ -222,33 +220,27 @@ class WeissingerGeometry(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['def_mesh'],
-                                         fd_unknowns=['widths', 'c_pts', 'normals',\
-                                            'S_ref', 'mid_b'],
+                                         fd_unknowns=['widths', 'normals', 'S_ref'],
                                          fd_states=[])
 
         jac.update(fd_jac)
 
-        # print jac['c_pts', 'def_mesh']
-        # view_mat(jac['c_pts', 'def_mesh'])
-        #
-        # jac['c_pts', 'def_mesh'][:] = 0.
-
-
+        i_ny = 0.
         for i_surf, row in enumerate(self.mesh_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
-            i_ny = numpy.sum(self.mesh_ind[:i_surf, 1]) * nx
 
-            for iz, v in zip((i_bpts*3, (ny+i_ny)*3), (.75, .25)):
-                numpy.fill_diagonal(jac['b_pts', 'def_mesh'][i_bpts*3:(n_bpts+i_bpts)*3, iz+i_ny:], v)
+            for iz, v in zip(((i_bpts+i_ny)*3, (i_bpts+i_ny+ny)*3), (.75, .25)):
+                numpy.fill_diagonal(jac['b_pts', 'def_mesh'][i_bpts*3:(n_bpts+i_bpts)*3, iz:], v)
 
-            # for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.125, .125, .375, .375)):
-            #     numpy.fill_diagonal(jac['c_pts', 'def_mesh'][i_panels*3:(n_panels+i)*3, iz:], v)
+            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.125, .125, .375, .375)):
+                for ix in range(nx-1):
+                    numpy.fill_diagonal(jac['c_pts', 'def_mesh'][(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
-            # for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.375, .375, .125, .125)):
-            #     numpy.fill_diagonal(jac['mid_b', 'def_mesh'][i_panels*3:(n_panels+i)*3, iz:], v)
+            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.375, .375, .125, .125)):
+                for ix in range(nx-1):
+                    numpy.fill_diagonal(jac['mid_b', 'def_mesh'][(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
-        # print jac['c_pts', 'def_mesh']
-        # view_mat(jac['c_pts', 'def_mesh'])
+            i_ny += ny
 
         return jac
 
@@ -297,12 +289,7 @@ class WeissingerCirculations(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
-        # a = 295.4 # hardcoded speed of sound
-        # M = params['v'] / a
-        # beta = numpy.sqrt(1 - M**2)
-        # obtain compressible circulations
-        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)# / beta
-
+        unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
@@ -316,19 +303,14 @@ class WeissingerCirculations(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['normals', 'alpha', 'v',\
+                                         fd_params=['normals', 'alpha',\
                                                     'def_mesh', 'b_pts', 'c_pts'],
-                                         fd_states=['circulations'])
+                                         fd_states=[])
         jac.update(fd_jac)
 
-        # jac['circulations', 'circulations'] = self.mtx.real
-        #
-        # normals = params['normals'].real
-        # alpha = params['alpha'].real * numpy.pi / 180.
-        # cosa = numpy.cos(alpha)
-        # sina = numpy.sin(alpha)
-        #
-        # jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
+        jac['circulations', 'circulations'] = self.mtx.real
+
+        jac['circulations', 'v'][:, 0] = -self.rhs.real / params['v'].real
 
         return jac
 
@@ -437,10 +419,6 @@ class WeissingerLiftDrag(Component):
         self.add_output('L', val=numpy.zeros((n_surf)))
         self.add_output('D', val=numpy.zeros((n_surf)))
 
-        self.deriv_options['type'] = 'cs'
-
-        #self.deriv_options['extra_check_partials_form'] = "central"
-
     def solve_nonlinear(self, params, unknowns, resids):
         alpha = params['alpha'] * numpy.pi / 180.
         forces = params['sec_forces']
@@ -469,9 +447,9 @@ class WeissingerLiftDrag(Component):
             forces = params['sec_forces'][i_panels:n_panels+i_panels].reshape(nx-1, ny-1, 3)
 
             tmp = numpy.array([-sina, 0, cosa])
-            jac['L', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, ny-1))
+            jac['L', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, n_panels))
             tmp = numpy.array([cosa, 0, sina])
-            jac['D', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, ny-1))
+            jac['D', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, n_panels))
 
             jac['L', 'alpha'][i_surf] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
             jac['D', 'alpha'][i_surf] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
@@ -493,9 +471,6 @@ class WeissingerCoeffs(Component):
         self.add_param('rho', val=0.)
         self.add_output('CL1', val=numpy.zeros((n_surf)))
         self.add_output('CDi', val=numpy.zeros((n_surf)))
-
-        self.deriv_options['type'] = 'cs'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         S_ref = params['S_ref']
@@ -556,8 +531,6 @@ class TotalLift(Component):
         self.add_output('CL', val=numpy.zeros((self.n_surf)))
         self.add_output('CL_wing', val=0.)
 
-        self.deriv_options['form'] = 'central'
-
         self.CL0 = CL0
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -580,8 +553,6 @@ class TotalDrag(Component):
         self.add_param('CDi', val=numpy.zeros((self.n_surf)))
         self.add_output('CD', val=numpy.zeros((self.n_surf)))
         self.add_output('CD_wing', val=0.)
-
-        self.deriv_options['form'] = 'central'
 
         self.CD0 = CD0
 

@@ -205,7 +205,10 @@ class Display(object):
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
+            # center defined as the average of all nodal points
             center = numpy.mean(self.mesh[i], axis=0)
+            # center defined as the mean of the min and max in each direction
+            center = (numpy.max(self.mesh[i], axis=0) + numpy.min(self.mesh[i], axis=0)) / 2
             self.mesh[i] = self.mesh[i] - center
 
 
