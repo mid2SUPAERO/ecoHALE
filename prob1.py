@@ -45,7 +45,7 @@ root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, mesh_ind, num_twist),
+         GeometryMesh(mesh, aero_ind, num_twist),
          promotes=['*'])
 root.add('tube',
          MaterialsTube(num_y),

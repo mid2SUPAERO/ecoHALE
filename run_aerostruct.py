@@ -46,8 +46,8 @@ r = radii(mesh)
 t = r/10
 
 mesh = mesh.reshape(-1, mesh.shape[-1])
-mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-mesh_ind = get_mesh_data(mesh_ind)
+aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+aero_ind = get_mesh_data(aero_ind)
 
 # Define the aircraft properties
 execfile('CRM.py')
@@ -67,31 +67,31 @@ indep_vars = [
     ('rho', rho),
     ('r', r),
     ('t', t),
-    ('mesh_ind', mesh_ind)
+    ('aero_ind', aero_ind)
 ]
 
 root.add('indep_vars',
          IndepVarComp(indep_vars),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(mesh_ind),
+         MaterialsTube(aero_ind),
          promotes=['*'])
 
 coupled = Group()
 coupled.add('mesh',
-            GeometryMesh(mesh, mesh_ind, num_twist),
+            GeometryMesh(mesh, aero_ind, num_twist),
             promotes=['*'])
 coupled.add('def_mesh',
-            TransferDisplacements(mesh_ind),
+            TransferDisplacements(aero_ind),
             promotes=['*'])
 coupled.add('weissingerstates',
-            WeissingerStates(mesh_ind),
+            WeissingerStates(aero_ind),
             promotes=['*'])
 coupled.add('loads',
-            TransferLoads(mesh_ind),
+            TransferLoads(aero_ind),
             promotes=['*'])
 coupled.add('spatialbeamstates',
-            SpatialBeamStates(mesh_ind, E, G),
+            SpatialBeamStates(aero_ind, E, G),
             promotes=['*'])
 
 coupled.nl_solver = Newton()
@@ -119,16 +119,16 @@ root.add('coupled',
          coupled,
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(mesh_ind, CL0, CD0, num_twist),
+         WeissingerFunctionals(aero_ind, CL0, CD0, num_twist),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(mesh_ind, E, G, stress, mrho),
+         SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
          promotes=['*'])
 root.add('fuelburn',
-         FunctionalBreguetRange(W0, CT, a, R, M, mesh_ind),
+         FunctionalBreguetRange(W0, CT, a, R, M, aero_ind),
          promotes=['*'])
 root.add('eq_con',
-         FunctionalEquilibrium(W0, mesh_ind),
+         FunctionalEquilibrium(W0, aero_ind),
          promotes=['*'])
 
 prob = Problem()

@@ -8,10 +8,10 @@ from openmdao.api import Component
 class MaterialsTube(Component):
     """ Computes geometric properties for a tube element """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(MaterialsTube, self).__init__()
 
-        n = mesh_ind[0, 1]
+        n = aero_ind[0, 1]
 
         self.add_param('r', val=numpy.zeros((n - 1)))
         self.add_param('t', val=numpy.zeros((n - 1)))

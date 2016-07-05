@@ -111,12 +111,12 @@ def _assemble_system(mesh, A, J, Iy, Iz, loads,
 class SpatialBeamFEM(Component):
     """ Computes the displacements and rotations """
 
-    def __init__(self, mesh_ind, cons, E, G, fem_origin=0.35):
+    def __init__(self, aero_ind, cons, E, G, fem_origin=0.35):
         super(SpatialBeamFEM, self).__init__()
 
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = mesh_ind[0, :]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        self.mesh_ind = mesh_ind
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = aero_ind[0, :]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        self.aero_ind = aero_ind
 
         self.size = size = 6 * ny + 6 * cons.shape[0]
         self.n = ny
@@ -196,7 +196,7 @@ class SpatialBeamFEM(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0, :]
         mesh_full = params['mesh'][i:i+n, :].reshape(nx, ny, 3).astype("complex")
         self.mesh = numpy.zeros((2, ny, 3)).astype("complex")
         self.mesh[0, :, :] = mesh_full[0, :, :]
@@ -269,10 +269,10 @@ class SpatialBeamFEM(Component):
 class SpatialBeamDisp(Component):
     """ Selects displacements from augmented vector """
 
-    def __init__(self, mesh_ind, cons):
+    def __init__(self, aero_ind, cons):
         super(SpatialBeamDisp, self).__init__()
 
-        n = mesh_ind[0, 1]
+        n = aero_ind[0, 1]
 
         size = 6 * n + 6 * cons.shape[0]
         self.n = n
@@ -301,10 +301,10 @@ class SpatialBeamDisp(Component):
 class SpatialBeamEnergy(Component):
     """ Computes strain energy """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(SpatialBeamEnergy, self).__init__()
 
-        n = mesh_ind[0, 1]
+        n = aero_ind[0, 1]
 
         self.add_param('disp', val=numpy.zeros((n, 6)))
         self.add_param('loads', val=numpy.zeros((n, 6)))
@@ -328,12 +328,12 @@ class SpatialBeamEnergy(Component):
 class SpatialBeamWeight(Component):
     """ Computes total weight """
 
-    def __init__(self, mesh_ind, mrho, fem_origin=0.35):
+    def __init__(self, aero_ind, mrho, fem_origin=0.35):
         super(SpatialBeamWeight, self).__init__()
 
-        ny = mesh_ind[0, 1]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        self.mesh_ind = mesh_ind
+        ny = aero_ind[0, 1]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        self.aero_ind = aero_ind
 
         self.add_param('A', val=numpy.zeros((ny-1)))
         self.add_param('mesh', val=numpy.zeros((tot_n, 3)))
@@ -352,7 +352,7 @@ class SpatialBeamWeight(Component):
         self.fem_origin = fem_origin
 
     def solve_nonlinear(self, params, unknowns, resids):
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0, :]
         mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
         A = params['A']
         num_elems = self.elem_IDs.shape[0]
@@ -380,12 +380,12 @@ class SpatialBeamWeight(Component):
 class SpatialBeamVonMisesTube(Component):
     """ Computes the max Von Mises stress in each element """
 
-    def __init__(self, mesh_ind, E, G, fem_origin=0.35):
+    def __init__(self, aero_ind, E, G, fem_origin=0.35):
         super(SpatialBeamVonMisesTube, self).__init__()
 
-        ny = mesh_ind[0, 1]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        self.mesh_ind = mesh_ind
+        ny = aero_ind[0, 1]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        self.aero_ind = aero_ind
 
         self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
         self.add_param('r', val=numpy.zeros((ny-1), dtype="complex"))
@@ -414,7 +414,7 @@ class SpatialBeamVonMisesTube(Component):
         elem_IDs = self.elem_IDs
 
         r = params['r']
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.mesh_ind[0, :]
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0, :]
         mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
         disp = params['disp']
         vonmises = unknowns['vonmises']
@@ -459,10 +459,10 @@ class SpatialBeamVonMisesTube(Component):
 class SpatialBeamFailureKS(Component):
     """ Aggregates failure constraints from the structure """
 
-    def __init__(self, mesh_ind, sigma, rho=10):
+    def __init__(self, aero_ind, sigma, rho=10):
         super(SpatialBeamFailureKS, self).__init__()
 
-        ny = mesh_ind[0, 1]
+        ny = aero_ind[0, 1]
 
         self.add_param('vonmises', val=numpy.zeros((ny-1, 2)))
 
@@ -490,36 +490,36 @@ class SpatialBeamFailureKS(Component):
 
 class SpatialBeamStates(Group):
 
-    def __init__(self, mesh_ind, E, G):
+    def __init__(self, aero_ind, E, G):
         super(SpatialBeamStates, self).__init__()
 
-        n = mesh_ind[0, 1]
+        n = aero_ind[0, 1]
 
         cons = numpy.array([int((n-1)/2)])
 
         self.add('fem',
-                 SpatialBeamFEM(mesh_ind, cons, E, G),
+                 SpatialBeamFEM(aero_ind, cons, E, G),
                  promotes=['*'])
         self.add('disp',
-                 SpatialBeamDisp(mesh_ind, cons),
+                 SpatialBeamDisp(aero_ind, cons),
                  promotes=['*'])
 
 
 
 class SpatialBeamFunctionals(Group):
 
-    def __init__(self, mesh_ind, E, G, stress, mrho):
+    def __init__(self, aero_ind, E, G, stress, mrho):
         super(SpatialBeamFunctionals, self).__init__()
 
         self.add('energy',
-                 SpatialBeamEnergy(mesh_ind),
+                 SpatialBeamEnergy(aero_ind),
                  promotes=['*'])
         self.add('weight',
-                 SpatialBeamWeight(mesh_ind, mrho),
+                 SpatialBeamWeight(aero_ind, mrho),
                  promotes=['*'])
         self.add('vonmises',
-                 SpatialBeamVonMisesTube(mesh_ind, E, G),
+                 SpatialBeamVonMisesTube(aero_ind, E, G),
                  promotes=['*'])
         self.add('failure',
-                 SpatialBeamFailureKS(mesh_ind, stress),
+                 SpatialBeamFailureKS(aero_ind, stress),
                  promotes=['*'])

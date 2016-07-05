@@ -32,7 +32,7 @@ if sys.argv[1].endswith('m'):
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
-    mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
     nx = 2
     ny = 3
@@ -44,9 +44,9 @@ if sys.argv[1].endswith('m'):
     mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
     mesh_tail[:, 0] += 1e1
 
-    mesh_ind = numpy.vstack((mesh_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
+    aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
     mesh = numpy.vstack((mesh_wing, mesh_tail))
-    mesh_ind = get_mesh_data(mesh_ind)
+    aero_ind = get_mesh_data(aero_ind)
 
 else:
     num_x = 2
@@ -58,8 +58,8 @@ else:
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
     mesh = mesh.reshape(-1, mesh.shape[-1])
-    mesh_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-    mesh_ind = get_mesh_data(mesh_ind)
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    aero_ind = get_mesh_data(aero_ind)
 
 root = Group()
 
@@ -73,7 +73,7 @@ des_vars = [
     ('alpha', alpha),
     ('rho', rho),
     ('disp', numpy.zeros((num_y, 6))),
-    ('mesh_ind', mesh_ind)
+    ('aero_ind', aero_ind)
 ]
 
 
@@ -81,16 +81,16 @@ root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, mesh_ind, num_twist),
+         GeometryMesh(mesh, aero_ind, num_twist),
          promotes=['*'])
 root.add('def_mesh',
-         TransferDisplacements(mesh_ind),
+         TransferDisplacements(aero_ind),
          promotes=['*'])
 root.add('weissingerstates',
-         WeissingerStates(mesh_ind),
+         WeissingerStates(aero_ind),
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(mesh_ind, CL0, CD0, num_twist),
+         WeissingerFunctionals(aero_ind, CL0, CD0, num_twist),
          promotes=['*'])
 
 prob = Problem()

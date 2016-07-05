@@ -54,7 +54,7 @@ indep_vars = [
 indep_vars_comp = IndepVarComp(indep_vars)
 tube_comp = MaterialsTube(num_y)
 
-mesh_comp = GeometryMesh(mesh, mesh_ind, num_twist)
+mesh_comp = GeometryMesh(mesh, aero_ind, num_twist)
 spatialbeamstates_comp = SpatialBeamStates(num_y, E, G)
 def_mesh_comp = TransferDisplacements(num_y)
 weissingerstates_comp = WeissingerStates(num_y)

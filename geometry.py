@@ -9,20 +9,35 @@ from openmdao.api import Component
 from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
 
-def get_mesh_data(mesh_ind):
-    new_mesh_ind = numpy.zeros((mesh_ind.shape[0], 8), dtype=int)
-    new_mesh_ind[:, 0:2] = mesh_ind
-    for i, row in enumerate(mesh_ind):
-        nx, ny = mesh_ind[i, :]
-        new_mesh_ind[i, 2] = nx * ny
-        new_mesh_ind[i, 3] = (nx-1) * ny
-        new_mesh_ind[i, 4] = (nx-1) * (ny-1)
+def get_mesh_data(aero_ind):
+    """ Calculates and stores indices to describe panels for aero analysis.
+    Each row has information for each individually defined surface,
+    store in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]:
 
-        new_mesh_ind[i, 5] = numpy.sum(numpy.product(mesh_ind[:i], axis=1))
-        new_mesh_ind[i, 6] = numpy.sum((mesh_ind[:i, 0]-1) * mesh_ind[:i, 1])
-        new_mesh_ind[i, 7] = numpy.sum(numpy.product(mesh_ind[:i]-1, axis=1))
+    nx : number of nodes in the chordwise direction
+    ny : number of nodes in the spanwise direction
+    n : total number of nodes
+    n_bpts : total number of b_pts nodes
+    n_panels : total number of panels
+    i : current index of nodes when considering all surfaces
+    i_bpts: current index of b_pts nodes when considering all surfaces
+    i_panels : current index of panels when considering all surfaces
 
-    return new_mesh_ind
+    """
+
+    new_aero_ind = numpy.zeros((aero_ind.shape[0], 8), dtype=int)
+    new_aero_ind[:, 0:2] = aero_ind
+    for i, row in enumerate(aero_ind):
+        nx, ny = aero_ind[i, :]
+        new_aero_ind[i, 2] = nx * ny
+        new_aero_ind[i, 3] = (nx-1) * ny
+        new_aero_ind[i, 4] = (nx-1) * (ny-1)
+
+        new_aero_ind[i, 5] = numpy.sum(numpy.product(aero_ind[:i], axis=1))
+        new_aero_ind[i, 6] = numpy.sum((aero_ind[:i, 0]-1) * aero_ind[:i, 1])
+        new_aero_ind[i, 7] = numpy.sum(numpy.product(aero_ind[:i]-1, axis=1))
+
+    return new_aero_ind
 
 
 def rotate(mesh, thetas):
@@ -245,13 +260,13 @@ class GeometryMesh(Component):
     about the middle and outputs a full symmetric mesh.
     """
 
-    def __init__(self, mesh, mesh_ind, num_twist):
+    def __init__(self, mesh, aero_ind, num_twist):
         super(GeometryMesh, self).__init__()
 
         self.num_twist = num_twist
 
-        self.ny = mesh_ind[0, 1]
-        self.nx = mesh_ind[0, 0]
+        self.ny = aero_ind[0, 1]
+        self.nx = aero_ind[0, 0]
         self.n = self.nx * self.ny
         self.mesh = mesh
         self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')

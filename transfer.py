@@ -9,17 +9,17 @@ from openmdao.api import Component
 class TransferDisplacements(Component):
     """ Performs displacement transfer """
 
-    def __init__(self, mesh_ind, fem_origin=0.35):
+    def __init__(self, aero_ind, fem_origin=0.35):
         super(TransferDisplacements, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        tot_bpts = numpy.sum(mesh_ind[:, 3])
-        tot_panels = numpy.sum(mesh_ind[:, 4])
-        self.mesh_ind = mesh_ind
+        n_surf = aero_ind.shape[0]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        tot_bpts = numpy.sum(aero_ind[:, 3])
+        tot_panels = numpy.sum(aero_ind[:, 4])
+        self.aero_ind = aero_ind
 
-        self.nx, self.ny = mesh_ind[0, 0:2]
-        self.n_wing = mesh_ind[0, 2]
+        self.nx, self.ny = aero_ind[0, 0:2]
+        self.n_wing = aero_ind[0, 2]
 
         self.fem_origin = fem_origin
 
@@ -70,18 +70,18 @@ class TransferDisplacements(Component):
 class TransferLoads(Component):
     """ Performs load transfer """
 
-    def __init__(self, mesh_ind, fem_origin=0.35):
+    def __init__(self, aero_ind, fem_origin=0.35):
         super(TransferLoads, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        tot_bpts = numpy.sum(mesh_ind[:, 3])
-        tot_panels = numpy.sum(mesh_ind[:, 4])
-        self.mesh_ind = mesh_ind
+        n_surf = aero_ind.shape[0]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        tot_bpts = numpy.sum(aero_ind[:, 3])
+        tot_panels = numpy.sum(aero_ind[:, 4])
+        self.aero_ind = aero_ind
 
-        self.nx, self.ny = mesh_ind[0, 0:2]
-        self.n_wing = mesh_ind[0, 2]
-        self.n_panels = mesh_ind[0, 4]
+        self.nx, self.ny = aero_ind[0, 0:2]
+        self.n_wing = aero_ind[0, 2]
+        self.n_panels = aero_ind[0, 4]
 
         self.fem_origin = fem_origin
 

@@ -23,12 +23,12 @@ except:
 # This will be mirrored to produce a mesh with 7 spanwise points,
 # or 6 spanwise panels
 mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=3)
-mesh_ind = numpy.atleast_2d(numpy.array([mesh.shape[0], mesh.shape[1]]))
-mesh_ind = get_mesh_data(mesh_ind)
+aero_ind = numpy.atleast_2d(numpy.array([mesh.shape[0], mesh.shape[1]]))
+aero_ind = get_mesh_data(aero_ind)
 r = radii(mesh)
 mesh = mesh.reshape(-1, mesh.shape[-1])
 
-num_y = mesh_ind[0, 1]
+num_y = aero_ind[0, 1]
 num_twist = 5
 t = r/10
 
@@ -53,23 +53,23 @@ des_vars = [
     ('r', r),
     ('t', t),
     ('loads', loads),
-    ('mesh_ind', mesh_ind)
+    ('aero_ind', aero_ind)
 ]
 
 root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, mesh_ind, num_twist),
+         GeometryMesh(mesh, aero_ind, num_twist),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(mesh_ind),
+         MaterialsTube(aero_ind),
          promotes=['*'])
 root.add('spatialbeamstates',
-         SpatialBeamStates(mesh_ind, E, G),
+         SpatialBeamStates(aero_ind, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(mesh_ind, E, G, stress, mrho),
+         SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()

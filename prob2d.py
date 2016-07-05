@@ -63,7 +63,7 @@ root.add('tube',
 
 coupled = Group() # add components for MDA to this group
 coupled.add('mesh',
-            GeometryMesh(mesh, mesh_ind, num_twist),
+            GeometryMesh(mesh, aero_ind, num_twist),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(num_y),

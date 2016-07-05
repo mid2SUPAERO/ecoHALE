@@ -68,7 +68,7 @@ def _calc_vorticity(A, B, P):
          (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
 
 
-def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False):
+def _assemble_AIC_mtx(mtx, full_mesh, aero_ind, points, b_pts, alpha, skip=False):
     """
     Compute the aerodynamic influence coefficient matrix
     either for the ation linear system or Trefftz-plane drag computation
@@ -83,13 +83,13 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
     sina = numpy.sin(alpha * numpy.pi / 180.)
     u = numpy.array([cosa, 0, sina])
 
-    for i_surf, row in enumerate(mesh_ind):
+    for i_surf, row in enumerate(aero_ind):
         nx_, ny_, n_, n_bpts_, n_panels_, i_, i_bpts_, i_panels_ = row.copy()
         n = nx_ * ny_
         mesh = full_mesh[i_:i_+n_, :].reshape(nx_, ny_, 3)
         bpts = b_pts[i_bpts_:i_bpts_+n_bpts_].reshape(nx_-1, ny_, 3)
 
-        for i_points, row in enumerate(mesh_ind):
+        for i_points, row in enumerate(aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             pts = points[i_panels:i_panels+n_panels].reshape(nx-1, ny-1, 3)
@@ -149,22 +149,22 @@ def _assemble_AIC_mtx(mtx, full_mesh, mesh_ind, points, b_pts, alpha, skip=False
                                     bound = _calc_vorticity(A, B, P)
                                     small_mat[cp_loc, el_loc, :] = trailing + edges + bound
 
-                small_mat /= 4 * numpy.pi
-
             mtx[i_panels:i_panels+n_panels, i_panels_:i_panels_+n_panels_, :] = small_mat
+
+    mtx /= 4 * numpy.pi
 
 
 class WeissingerGeometry(Component):
     """ Compute various geometric properties for Weissinger analysis """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(WeissingerGeometry, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        tot_bpts = numpy.sum(mesh_ind[:, 3])
-        tot_panels = numpy.sum(mesh_ind[:, 4])
-        self.mesh_ind = mesh_ind
+        n_surf = aero_ind.shape[0]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        tot_bpts = numpy.sum(aero_ind[:, 3])
+        tot_panels = numpy.sum(aero_ind[:, 4])
+        self.aero_ind = aero_ind
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
         self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3), dtype="complex"))
@@ -180,7 +180,7 @@ class WeissingerGeometry(Component):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        for i_surf, row in enumerate(self.mesh_ind):
+        for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             mesh = params['def_mesh'][i:i+n, :].reshape(nx, ny, 3)
@@ -226,7 +226,7 @@ class WeissingerGeometry(Component):
         jac.update(fd_jac)
 
         i_ny = 0.
-        for i_surf, row in enumerate(self.mesh_ind):
+        for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             for iz, v in zip(((i_bpts+i_ny)*3, (i_bpts+i_ny+ny)*3), (.75, .25)):
@@ -248,13 +248,13 @@ class WeissingerGeometry(Component):
 class WeissingerCirculations(Component):
     """ Define circulations """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(WeissingerCirculations, self).__init__()
 
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        tot_bpts = numpy.sum(mesh_ind[:, 3])
-        tot_panels = numpy.sum(mesh_ind[:, 4])
-        self.mesh_ind = mesh_ind
+        tot_n = numpy.sum(aero_ind[:, 2])
+        tot_bpts = numpy.sum(aero_ind[:, 3])
+        tot_panels = numpy.sum(aero_ind[:, 4])
+        self.aero_ind = aero_ind
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
         self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3), dtype="complex"))
@@ -274,7 +274,7 @@ class WeissingerCirculations(Component):
         self.rhs = numpy.zeros((tot_panels), dtype="complex")
 
     def _assemble_system(self, params):
-        _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'], self.mesh_ind,
+        _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'], self.aero_ind,
                         params['c_pts'], params['b_pts'], params['alpha'])
 
         self.mtx[:, :] = 0.
@@ -330,20 +330,20 @@ class WeissingerCirculations(Component):
 class WeissingerForces(Component):
     """ Define aerodynamic forces acting on each section """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(WeissingerForces, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        tot_bpts = numpy.sum(mesh_ind[:, 3])
-        tot_panels = numpy.sum(mesh_ind[:, 4])
-        self.mesh_ind = mesh_ind
+        n_surf = aero_ind.shape[0]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        tot_bpts = numpy.sum(aero_ind[:, 3])
+        tot_panels = numpy.sum(aero_ind[:, 4])
+        self.aero_ind = aero_ind
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
         self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3)))
         self.add_param('mid_b', val=numpy.zeros((tot_panels, 3)))
 
-        self.mesh_ind = mesh_ind
+        self.aero_ind = aero_ind
 
         self.add_param('circulations', val=numpy.zeros((tot_panels)))
         self.add_param('alpha', val=3.)
@@ -363,10 +363,10 @@ class WeissingerForces(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.mesh_ind,
+        _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.aero_ind,
                           params['mid_b'], params['b_pts'], params['alpha'], skip=True)
 
-        for i_surf, row in enumerate(self.mesh_ind):
+        for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             for ind in xrange(3):
@@ -405,14 +405,14 @@ class WeissingerForces(Component):
 class WeissingerLiftDrag(Component):
     """ Calculate total lift and drag in force units based on section forces """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(WeissingerLiftDrag, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        tot_n = numpy.sum(mesh_ind[:, 2])
-        tot_bpts = numpy.sum(mesh_ind[:, 3])
-        tot_panels = numpy.sum(mesh_ind[:, 4])
-        self.mesh_ind = mesh_ind
+        n_surf = aero_ind.shape[0]
+        tot_n = numpy.sum(aero_ind[:, 2])
+        tot_bpts = numpy.sum(aero_ind[:, 3])
+        tot_panels = numpy.sum(aero_ind[:, 4])
+        self.aero_ind = aero_ind
 
         self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3)))
         self.add_param('alpha', val=3.)
@@ -425,7 +425,7 @@ class WeissingerLiftDrag(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        for i_surf, row in enumerate(self.mesh_ind):
+        for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             unknowns['L'][i_surf] = numpy.sum(-forces[i_panels:i_panels+n_panels, 0] * sina + forces[i_panels:i_panels+n_panels, 2] * cosa)
@@ -441,7 +441,7 @@ class WeissingerLiftDrag(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        for i_surf, row in enumerate(self.mesh_ind):
+        for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             forces = params['sec_forces'][i_panels:n_panels+i_panels].reshape(nx-1, ny-1, 3)
@@ -459,11 +459,11 @@ class WeissingerLiftDrag(Component):
 class WeissingerCoeffs(Component):
     """ Compute lift and drag coefficients """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(WeissingerCoeffs, self).__init__()
 
-        n_surf = mesh_ind.shape[0]
-        self.mesh_ind = mesh_ind
+        n_surf = aero_ind.shape[0]
+        self.aero_ind = aero_ind
         self.add_param('S_ref', val=numpy.zeros((n_surf)))
         self.add_param('L', val=numpy.zeros((n_surf)))
         self.add_param('D', val=numpy.zeros((n_surf)))
@@ -478,7 +478,7 @@ class WeissingerCoeffs(Component):
         v = params['v']
         L = params['L']
         D = params['D']
-        for i_surf, row in enumerate(self.mesh_ind):
+        for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             unknowns['CL1'][i_surf] = L[i_surf] / (0.5*rho*v**2*S_ref[i_surf])
@@ -495,7 +495,7 @@ class WeissingerCoeffs(Component):
 
         jac = self.alloc_jacobian()
 
-        for i_surf, row in enumerate(self.mesh_ind):
+        for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             jac['CL1', 'D'][i_surf] = 0.
@@ -523,10 +523,10 @@ class WeissingerCoeffs(Component):
 class TotalLift(Component):
     """ Calculate total lift in force units """
 
-    def __init__(self, CL0, mesh_ind):
+    def __init__(self, CL0, aero_ind):
         super(TotalLift, self).__init__()
 
-        self.n_surf = mesh_ind.shape[0]
+        self.n_surf = aero_ind.shape[0]
         self.add_param('CL1', val=numpy.zeros((self.n_surf)))
         self.add_output('CL', val=numpy.zeros((self.n_surf)))
         self.add_output('CL_wing', val=0.)
@@ -546,10 +546,10 @@ class TotalLift(Component):
 class TotalDrag(Component):
     """ Calculate total drag in force units """
 
-    def __init__(self, CD0, mesh_ind):
+    def __init__(self, CD0, aero_ind):
         super(TotalDrag, self).__init__()
 
-        self.n_surf = mesh_ind.shape[0]
+        self.n_surf = aero_ind.shape[0]
         self.add_param('CDi', val=numpy.zeros((self.n_surf)))
         self.add_output('CD', val=numpy.zeros((self.n_surf)))
         self.add_output('CD_wing', val=0.)
@@ -569,17 +569,17 @@ class TotalDrag(Component):
 class WeissingerStates(Group):
     """ Group that contains the aerodynamic states """
 
-    def __init__(self, mesh_ind):
+    def __init__(self, aero_ind):
         super(WeissingerStates, self).__init__()
 
         self.add('wgeom',
-                 WeissingerGeometry(mesh_ind),
+                 WeissingerGeometry(aero_ind),
                  promotes=['*'])
         self.add('circ',
-                 WeissingerCirculations(mesh_ind),
+                 WeissingerCirculations(aero_ind),
                  promotes=['*'])
         self.add('forces',
-                 WeissingerForces(mesh_ind),
+                 WeissingerForces(aero_ind),
                  promotes=['*'])
 
 
@@ -587,18 +587,18 @@ class WeissingerStates(Group):
 class WeissingerFunctionals(Group):
     """ Group that contains the aerodynamic functionals used to evaluate performance """
 
-    def __init__(self, mesh_ind, CL0, CD0, num_twist):
+    def __init__(self, aero_ind, CL0, CD0, num_twist):
         super(WeissingerFunctionals, self).__init__()
 
         self.add('liftdrag',
-                 WeissingerLiftDrag(mesh_ind),
+                 WeissingerLiftDrag(aero_ind),
                  promotes=['*'])
         self.add('coeffs',
-                 WeissingerCoeffs(mesh_ind),
+                 WeissingerCoeffs(aero_ind),
                  promotes=['*'])
         self.add('CL',
-                 TotalLift(CL0, mesh_ind),
+                 TotalLift(CL0, aero_ind),
                  promotes=['*'])
         self.add('CD',
-                 TotalDrag(CD0, mesh_ind),
+                 TotalDrag(CD0, aero_ind),
                  promotes=['*'])
