@@ -8,7 +8,7 @@ import sys
 from time import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh, gen_crm_mesh, get_inds
+from geometry import GeometryMesh, gen_crm_mesh, get_inds, gen_mesh
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from openmdao.devtools.partition_tree_n2 import view_tree
@@ -22,7 +22,16 @@ except:
 # Create the mesh with 2 inboard points and 3 outboard points.
 # This will be mirrored to produce a mesh with 7 spanwise points,
 # or 6 spanwise panels
-mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2)
+mesh = gen_crm_mesh(n_points_inboard=6, n_points_outboard=9, num_x=2)
+
+num_x = 2
+num_y = 21
+span = 10.
+chord = 1.
+cosine_spacing = 1.
+mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
 aero_ind = numpy.atleast_2d(numpy.array([mesh.shape[0], mesh.shape[1]]))
 fem_ind = [mesh.shape[1]]
 aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
@@ -55,7 +64,8 @@ des_vars = [
     ('r', r),
     ('t', t),
     ('loads', loads),
-    ('fem_ind', fem_ind)
+    ('fem_ind', fem_ind),
+    ('aero_ind', aero_ind),
 ]
 
 root.add('des_vars',

@@ -281,6 +281,8 @@ class SpatialBeamFEM(Component):
 
 
     def apply_nonlinear(self, params, unknowns, resids):
+        self.mesh = params['mesh']
+
         self.mtx, self.rhs = _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
                             params['Iy'], params['Iz'], params['loads'],
                             self.M_a, self.M_t, self.M_y, self.M_z,
