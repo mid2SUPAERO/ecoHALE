@@ -8,7 +8,7 @@ import sys
 from time import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh, gen_crm_mesh, get_mesh_data
+from geometry import GeometryMesh, gen_crm_mesh, get_inds
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from openmdao.devtools.partition_tree_n2 import view_tree
@@ -22,13 +22,15 @@ except:
 # Create the mesh with 2 inboard points and 3 outboard points.
 # This will be mirrored to produce a mesh with 7 spanwise points,
 # or 6 spanwise panels
-mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=3)
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
 aero_ind = numpy.atleast_2d(numpy.array([mesh.shape[0], mesh.shape[1]]))
-aero_ind = get_mesh_data(aero_ind)
+fem_ind = [mesh.shape[1]]
+aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+
 r = radii(mesh)
 mesh = mesh.reshape(-1, mesh.shape[-1])
 
-num_y = aero_ind[0, 1]
+num_y = fem_ind[0, 0]
 num_twist = 5
 t = r/10
 
@@ -53,7 +55,7 @@ des_vars = [
     ('r', r),
     ('t', t),
     ('loads', loads),
-    ('aero_ind', aero_ind)
+    ('fem_ind', fem_ind)
 ]
 
 root.add('des_vars',
@@ -66,7 +68,7 @@ root.add('tube',
          MaterialsTube(aero_ind),
          promotes=['*'])
 root.add('spatialbeamstates',
-         SpatialBeamStates(aero_ind, E, G),
+         SpatialBeamStates(aero_ind, fem_ind, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
          SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
@@ -93,7 +95,7 @@ prob.driver.add_constraint('weight', upper=1e5)
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 
-
+# prob.root.deriv_options['type'] = 'fd'
 prob.setup()
 view_tree(prob, outfile="spatialbeam.html", show_browser=False)
 

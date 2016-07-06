@@ -10,6 +10,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
+fortran_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -18,134 +19,167 @@ def unit(vec):
     return vec / norm(vec)
 
 def radii(mesh, t_c=0.15):
-    vectors = mesh[1, :, :] - mesh[0, :, :]
+    vectors = mesh[-1, :, :] - mesh[0, :, :]
     chords = numpy.sqrt(numpy.sum(vectors**2, axis=1))
     chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
     return t_c * chords
 
-def _assemble_system(mesh, A, J, Iy, Iz, loads,
+def _assemble_system(aero_ind, fem_ind, flat_mesh, A, J, Iy, Iz, loads,
                      M_a, M_t, M_y, M_z,
                      elem_IDs, cons, fem_origin,
                      E, G, x_gl, T,
                      K_elem, S_a, S_t, S_y, S_z, T_elem,
                      const2, const_y, const_z, n, size, mtx, rhs):
 
-    w = fem_origin
-    nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+    for i_surf, row in enumerate(fem_ind):
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = aero_ind[i_surf, :]
+        n_fem, i_fem = row
 
-    num_elems = elem_IDs.shape[0]
-    num_nodes = nodes.shape[0]
-    num_cons = cons.shape[0]
+        num_cons = cons.shape[0]
 
-    elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
+        small_mat = numpy.zeros((size, size), dtype="complex")
+        full_mesh = flat_mesh[i:i+n, :].reshape(nx, ny, 3)
+        mesh = numpy.zeros((2, ny, 3), dtype="complex")
+        mesh[0] = full_mesh[0]
+        mesh[1] = full_mesh[-1]
 
-    for ielem in xrange(num_elems):
-        in0, in1 = elem_IDs[ielem, :]
-        elem_nodes[ielem, 0, :] = nodes[in0, :]
-        elem_nodes[ielem, 1, :] = nodes[in1, :]
 
-    E, G = E * numpy.ones(num_nodes - 1), G * numpy.ones(num_nodes - 1)
+        if 1:
+            small_mat, rhs = lib.assemblestructmtx(mesh, A, J, Iy, Iz, loads,
+                                M_a, M_t, M_y, M_z,
+                                elem_IDs, cons, fem_origin,
+                                E, G, x_gl, T,
+                                K_elem, S_a, S_t, S_y, S_z, T_elem,
+                                const2, const_y, const_z, n_fem, size)
+            fort_mat = small_mat.copy()
+            small_mat[:] = 0.
 
-    mtx[:] = 0.
-    for ielem in xrange(num_elems):
-        P0 = elem_nodes[ielem, 0, :]
-        P1 = elem_nodes[ielem, 1, :]
+        if 1:
+            w = fem_origin
+            nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
-        x_loc = unit(P1 - P0)
-        y_loc = unit(numpy.cross(x_loc, x_gl))
-        z_loc = unit(numpy.cross(x_loc, y_loc))
+            num_elems = elem_IDs.shape[0]
+            num_nodes = nodes.shape[0]
+            num_cons = cons.shape[0]
 
-        T[0, :] = x_loc
-        T[1, :] = y_loc
-        T[2, :] = z_loc
+            elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
 
-        for ind in xrange(4):
-            T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
+            for ielem in xrange(num_elems):
+                in0, in1 = elem_IDs[ielem, :]
+                elem_nodes[ielem, 0, :] = nodes[in0, :]
+                elem_nodes[ielem, 1, :] = nodes[in1, :]
 
-        L = norm(P1 - P0)
-        EA_L = E[ielem] * A[ielem] / L
-        GJ_L = G[ielem] * J[ielem] / L
-        EIy_L3 = E[ielem] * Iy[ielem] / L**3
-        EIz_L3 = E[ielem] * Iz[ielem] / L**3
+            E, G = E * numpy.ones(num_nodes - 1), G * numpy.ones(num_nodes - 1)
 
-        M_a[:, :] = EA_L * const2
-        M_t[:, :] = GJ_L * const2
+            mtx[:] = 0.
+            for ielem in xrange(num_elems):
+                P0 = elem_nodes[ielem, 0, :]
+                P1 = elem_nodes[ielem, 1, :]
 
-        M_y[:, :] = EIy_L3 * const_y
-        M_y[1, :] *= L
-        M_y[3, :] *= L
-        M_y[:, 1] *= L
-        M_y[:, 3] *= L
+                x_loc = unit(P1 - P0)
+                y_loc = unit(numpy.cross(x_loc, x_gl))
+                z_loc = unit(numpy.cross(x_loc, y_loc))
 
-        M_z[:, :] = EIz_L3 * const_z
-        M_z[1, :] *= L
-        M_z[3, :] *= L
-        M_z[:, 1] *= L
-        M_z[:, 3] *= L
+                T[0, :] = x_loc
+                T[1, :] = y_loc
+                T[2, :] = z_loc
 
-        K_elem[:] = 0
-        K_elem += S_a.T.dot(M_a).dot(S_a)
-        K_elem += S_t.T.dot(M_t).dot(S_t)
-        K_elem += S_y.T.dot(M_y).dot(S_y)
-        K_elem += S_z.T.dot(M_z).dot(S_z)
+                for ind in xrange(4):
+                    T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
 
-        res = T_elem.T.dot(K_elem).dot(T_elem)
+                L = norm(P1 - P0)
+                EA_L = E[ielem] * A[ielem] / L
+                GJ_L = G[ielem] * J[ielem] / L
+                EIy_L3 = E[ielem] * Iy[ielem] / L**3
+                EIz_L3 = E[ielem] * Iz[ielem] / L**3
 
-        in0, in1 = elem_IDs[ielem, :]
+                M_a[:, :] = EA_L * const2
+                M_t[:, :] = GJ_L * const2
 
-        mtx[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
-        mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
-        mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
-        mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
+                M_y[:, :] = EIy_L3 * const_y
+                M_y[1, :] *= L
+                M_y[3, :] *= L
+                M_y[:, 1] *= L
+                M_y[:, 3] *= L
 
-    for ind in xrange(num_cons):
-        for k in xrange(6):
-            mtx[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
-            mtx[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
+                M_z[:, :] = EIz_L3 * const_z
+                M_z[1, :] *= L
+                M_z[3, :] *= L
+                M_z[:, 1] *= L
+                M_z[:, 3] *= L
 
-    rhs[:] = 0.0
-    rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
+                K_elem[:] = 0
+                K_elem += S_a.T.dot(M_a).dot(S_a)
+                K_elem += S_t.T.dot(M_t).dot(S_t)
+                K_elem += S_y.T.dot(M_y).dot(S_y)
+                K_elem += S_z.T.dot(M_z).dot(S_z)
 
+                res = T_elem.T.dot(K_elem).dot(T_elem)
+
+                in0, in1 = elem_IDs[ielem, :]
+
+                small_mat[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
+                small_mat[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
+                small_mat[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
+                small_mat[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
+
+            for ind in xrange(num_cons):
+                for k in xrange(6):
+                    small_mat[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
+                    small_mat[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
+
+            rhs[:] = 0.0
+            rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
+
+        from weissinger import view_mat
+        py_mat = small_mat.copy()
+        diff = fort_mat - py_mat
+
+        if not numpy.iscomplexobj(small_mat):
+            '====== not complex ======='
+
+        mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = small_mat
 
 
 class SpatialBeamFEM(Component):
     """ Computes the displacements and rotations """
 
-    def __init__(self, aero_ind, cons, E, G, fem_origin=0.35):
+    def __init__(self, aero_ind, fem_ind, cons, E, G, fem_origin=0.35):
         super(SpatialBeamFEM, self).__init__()
 
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = aero_ind[0, :]
-        tot_n = numpy.sum(aero_ind[:, 2])
+        n_fem, i_fem = fem_ind[0, :]
+        tot_n = numpy.sum(fem_ind[:, 0])
+        self.fem_ind = fem_ind
         self.aero_ind = aero_ind
 
-        self.size = size = 6 * ny + 6 * cons.shape[0]
-        self.n = ny
+        self.size = size = 6 * n_fem + 6 * cons.shape[0]
+        self.n = n_fem
 
-        self.add_param('A', val=numpy.zeros((ny - 1)))
-        self.add_param('Iy', val=numpy.zeros((ny - 1)))
-        self.add_param('Iz', val=numpy.zeros((ny - 1)))
-        self.add_param('J', val=numpy.zeros((ny - 1)))
-        self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
+        self.add_param('A', val=numpy.zeros((n_fem - 1)))
+        self.add_param('Iy', val=numpy.zeros((n_fem - 1)))
+        self.add_param('Iz', val=numpy.zeros((n_fem - 1)))
+        self.add_param('J', val=numpy.zeros((n_fem - 1)))
+        self.add_param('mesh', val=numpy.zeros((2*tot_n, 3), dtype="complex"))
 
-        self.add_param('loads', val=numpy.zeros((ny, 6)))
+        self.add_param('loads', val=numpy.zeros((n_fem, 6)))
 
         self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
         self.deriv_options['linearize'] = True # only for circulations
 
-        self.arange = numpy.arange(6*n)
+        self.arange = numpy.arange(6*n_fem)
 
         self.E = E
         self.G = G
         self.cons = cons
         self.fem_origin = fem_origin
 
-        elem_IDs = numpy.zeros((ny-1, 2), int)
-        elem_IDs[:, 0] = numpy.arange(ny-1)
-        elem_IDs[:, 1] = numpy.arange(ny-1) + 1
+        elem_IDs = numpy.zeros((n_fem-1, 2), int)
+        elem_IDs[:, 0] = numpy.arange(n_fem-1)
+        elem_IDs[:, 1] = numpy.arange(n_fem-1) + 1
         self.elem_IDs = elem_IDs
 
         self.const2 = numpy.array([
@@ -170,7 +204,7 @@ class SpatialBeamFEM(Component):
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
 
-        num_nodes = ny
+        num_nodes = n_fem
         num_cons = self.cons.shape[0]
         size = 6*num_nodes + 6*num_cons
         self.mtx = numpy.zeros((size, size), dtype='complex')
@@ -195,45 +229,26 @@ class SpatialBeamFEM(Component):
 
 
     def solve_nonlinear(self, params, unknowns, resids):
+        self.mesh = params['mesh']
 
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0, :]
-        mesh_full = params['mesh'][i:i+n, :].reshape(nx, ny, 3).astype("complex")
-        self.mesh = numpy.zeros((2, ny, 3)).astype("complex")
-        self.mesh[0, :, :] = mesh_full[0, :, :]
-        self.mesh[-1, :, :] = mesh_full[-1, :, :]
-
-        if fortran_flag:
-            self.mtx, self.rhs = lib.assemblestructmtx(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                                self.M_a, self.M_t, self.M_y, self.M_z,
-                                self.elem_IDs, self.cons, self.fem_origin,
-                                self.E, self.G, self.x_gl, self.T,
-                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                self.const2, self.const_y, self.const_z, self.n, self.size)
-        else:
-            _assemble_system(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                                self.M_a, self.M_t, self.M_y, self.M_z,
-                                self.elem_IDs, self.cons, self.fem_origin,
-                                self.E, self.G, self.x_gl, self.T,
-                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
+        _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
+                            params['Iy'], params['Iz'], params['loads'],
+                            self.M_a, self.M_t, self.M_y, self.M_z,
+                            self.elem_IDs, self.cons, self.fem_origin,
+                            self.E, self.G, self.x_gl, self.T,
+                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                            self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
 
         unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
-        if fortran_flag:
-            self.mtx, self.rhs = lib.assemblestructmtx(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                                self.M_a, self.M_t, self.M_y, self.M_z,
-                                self.elem_IDs, self.cons, self.fem_origin,
-                                self.E, self.G, self.x_gl, self.T,
-                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                self.const2, self.const_y, self.const_z, self.n, self.size)
-        else:
-            _assemble_system(self.mesh, params['A'], params['J'], params['Iy'], params['Iz'], params['loads'],
-                                self.M_a, self.M_t, self.M_y, self.M_z,
-                                self.elem_IDs, self.cons, self.fem_origin,
-                                self.E, self.G, self.x_gl, self.T,
-                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
+        _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
+                            params['Iy'], params['Iz'], params['loads'],
+                            self.M_a, self.M_t, self.M_y, self.M_z,
+                            self.elem_IDs, self.cons, self.fem_origin,
+                            self.E, self.G, self.x_gl, self.T,
+                            self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                            self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
 
         disp_aug = unknowns['disp_aug']
         resids['disp_aug'] = self.mtx.dot(disp_aug) - self.rhs
@@ -279,11 +294,6 @@ class SpatialBeamDisp(Component):
 
         self.add_param('disp_aug', val=numpy.zeros((size)))
         self.add_output('disp', val=numpy.zeros((n, 6)))
-
-        #self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
-
         self.arange = numpy.arange(6*n)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -309,10 +319,6 @@ class SpatialBeamEnergy(Component):
         self.add_param('disp', val=numpy.zeros((n, 6)))
         self.add_param('loads', val=numpy.zeros((n, 6)))
         self.add_output('energy', val=0.)
-
-#        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['energy'] = numpy.sum(params['disp'] * params['loads'])
@@ -341,7 +347,6 @@ class SpatialBeamWeight(Component):
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
         elem_IDs = numpy.zeros((ny-1, 2), int)
         elem_IDs[:, 0] = numpy.arange(ny-1)
@@ -395,7 +400,6 @@ class SpatialBeamVonMisesTube(Component):
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
         elem_IDs = numpy.zeros((ny-1, 2), int)
         elem_IDs[:, 0] = numpy.arange(ny-1)
@@ -470,7 +474,6 @@ class SpatialBeamFailureKS(Component):
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.sigma = sigma
         self.rho = rho
@@ -490,7 +493,7 @@ class SpatialBeamFailureKS(Component):
 
 class SpatialBeamStates(Group):
 
-    def __init__(self, aero_ind, E, G):
+    def __init__(self, aero_ind, fem_ind, E, G):
         super(SpatialBeamStates, self).__init__()
 
         n = aero_ind[0, 1]
@@ -498,7 +501,7 @@ class SpatialBeamStates(Group):
         cons = numpy.array([int((n-1)/2)])
 
         self.add('fem',
-                 SpatialBeamFEM(aero_ind, cons, E, G),
+                 SpatialBeamFEM(aero_ind, fem_ind, cons, E, G),
                  promotes=['*'])
         self.add('disp',
                  SpatialBeamDisp(aero_ind, cons),

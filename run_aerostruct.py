@@ -31,23 +31,25 @@ if 1:
     # Create the mesh with 2 inboard points and 3 outboard points
     mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
     num_x, num_y, _ = mesh.shape
-    num_twist = 5
 else:
     # Use a rectangular wing mesh
     num_x = 2
-    num_y = 11
+    num_y = 7
     span = 10.
     chord = 1.
     cosine_spacing = 1.
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
-    num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
+num_twist = numpy.max([int((num_y - 1) / 5), 5])
 r = radii(mesh)
-t = r/15
+t = r/10
 
+n_fem = num_y
 mesh = mesh.reshape(-1, mesh.shape[-1])
 aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-aero_ind = get_mesh_data(aero_ind)
+fem_ind = [n_fem]
+
+aero_ind, fem_ind = get_mesh_data(aero_ind, fem_ind)
 
 # Define the aircraft properties
 execfile('CRM.py')

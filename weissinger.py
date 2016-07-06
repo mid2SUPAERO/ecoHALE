@@ -174,8 +174,6 @@ class WeissingerGeometry(Component):
         self.add_output('normals', val=numpy.zeros((tot_panels, 3)))
         self.add_output('S_ref', val=numpy.zeros((n_surf)))
 
-        self.deriv_options['form'] = 'central'
-
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 

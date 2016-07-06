@@ -9,10 +9,12 @@ from openmdao.api import Component
 from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
 
-def get_mesh_data(aero_ind):
+
+def get_inds(aero_ind, fem_ind):
     """ Calculates and stores indices to describe panels for aero analysis.
     Each row has information for each individually defined surface,
-    store in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]:
+    store in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]
+    with the indices   [ 0,  1, 2,      3,        4, 5,      6,        7]
 
     nx : number of nodes in the chordwise direction
     ny : number of nodes in the spanwise direction
@@ -23,6 +25,12 @@ def get_mesh_data(aero_ind):
     i_bpts: current index of b_pts nodes when considering all surfaces
     i_panels : current index of panels when considering all surfaces
 
+    Calculates indices for structural (fem) analysis.
+    Simpler than the aero case, this array contains:
+    [n_fem, i_fem]
+
+    n_fem : number of fem nodes per surface
+    i_fem : current index of fem nodes when considering all fem nodes
     """
 
     new_aero_ind = numpy.zeros((aero_ind.shape[0], 8), dtype=int)
@@ -37,8 +45,12 @@ def get_mesh_data(aero_ind):
         new_aero_ind[i, 6] = numpy.sum((aero_ind[:i, 0]-1) * aero_ind[:i, 1])
         new_aero_ind[i, 7] = numpy.sum(numpy.product(aero_ind[:i]-1, axis=1))
 
-    return new_aero_ind
+    new_fem_ind = numpy.zeros((len(fem_ind), 2), dtype=int)
+    new_fem_ind[:, 0] = fem_ind
+    for i, row in enumerate(fem_ind):
+        new_fem_ind[i, 1] = numpy.sum(fem_ind[:i])
 
+    return new_aero_ind, new_fem_ind
 
 def rotate(mesh, thetas):
     """ Computes rotation matricies given mesh and rotation angles in degress """

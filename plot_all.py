@@ -369,8 +369,7 @@ class Display(object):
 
     def save_video(self):
         FFMpegWriter = manimation.writers['ffmpeg']
-        metadata = dict(title='Movie', artist='Matplotlib',
-                        comment='Movie support!')
+        metadata = dict(title='Movie', artist='Matplotlib')
         writer = FFMpegWriter(fps=5, metadata=metadata, bitrate=3000)
 
         with writer.saving(self.f, "movie.mp4", 100):
