@@ -1,3 +1,146 @@
+subroutine assemblesparsemtx(num_nodes, num_elems, nnz, x_gl, &
+    E, G, A, J, Iy, Iz, nodes, elems, &
+    coeff_at, coeff_y, coeff_z, &
+    Pelem_a, Pelem_t, Pelem_y, Pelem_z, &
+    data, rows, cols)
+
+    implicit none
+    !f2py intent(in) num_nodes, num_elems, nnz, x_gl, E, G, A, J, Iy, Iz, nodes, elems, coeff_at, coeff_y, coeff_z, Pelem_a, Pelem_t, Pelem_y, Pelem_z
+    !f2py intent(out) data, rows, cols
+    !f2py depend(num_nodes) nodes
+    !f2py depend(num_elems) E, G, A, J, Iy, Iz, elems
+    !f2py depend(nnz) data, rows, cols
+
+    ! Input
+    integer, intent(in) :: num_nodes, num_elems, nnz
+    complex*16, intent(in) :: x_gl(3)
+    complex*16, intent(in) :: E(num_elems), G(num_elems)
+    complex*16, intent(in) :: A(num_elems), J(num_elems)
+    complex*16, intent(in) :: Iy(num_elems), Iz(num_elems)
+    complex*16, intent(in) :: nodes(num_nodes, 3)
+    integer, intent(in) :: elems(num_elems, 2)
+    ! Local stiffness matrix coefficients
+    complex*16, intent(in) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4, 4)
+    ! Local permutation matrices to map to list of dofs for local element
+    complex*16, intent(in) :: Pelem_a(2, 12), Pelem_t(2, 12)
+    complex*16, intent(in) :: Pelem_y(4, 12), Pelem_z(4, 12)
+
+    ! Output
+    complex*16, intent(out) :: data(nnz)
+    integer, intent(out) :: rows(nnz), cols(nnz)
+
+    ! Local stiffness matrices for axial, torsion, bending (y,z)
+    complex*16 :: Kelem_a(2, 2), Kelem_t(2, 2)
+    complex*16 :: Kelem_y(4, 4), Kelem_z(4, 4)
+    ! Local transformation matrix (12,12) to map from local to global frame
+    complex*16 :: Telem(12, 12), T(3, 3)
+    ! Arrays that help in mapping from local element ordering to global ordering
+    integer :: rows_elem(12, 12), cols_elem(12, 12)
+    integer :: ones11(12, 12), ones12(12, 12)
+    integer :: ones21(12, 12), ones22(12, 12)
+    ! Local stiffness matrix in global frame
+    complex*16 :: Kelem(12, 12)
+
+    ! Miscellaneous
+    complex*16 :: L, xyz1(3), xyz2(3)
+    complex*16 :: x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
+    integer :: k, k1, k2, ind, ind1, ind2, ielem
+    complex*16 :: norm
+
+    do k1 = 1, 12
+        do k2 = 1, 12
+            rows_elem(k1, k2) = mod(k1-1, 6)
+            cols_elem(k1, k2) = mod(k2-1, 6)
+        end do
+    end do
+
+    ones11(:, :) = 0
+    ones12(:, :) = 0
+    ones21(:, :) = 0
+    ones22(:, :) = 0
+
+    ones11( 1:6 , 1:6 ) = 1
+    ones12( 1:6 , 7:12) = 1
+    ones21( 7:12, 1:6 ) = 1
+    ones22( 7:12, 7:12) = 1
+
+    Telem(:, :) = 0.
+
+    data(:) = 0.
+    rows(:) = 0
+    cols(:) = 0
+
+    ind = 0
+    do ielem = 1, num_elems
+        xyz1 = nodes(elems(ielem, 1), :)
+        xyz2 = nodes(elems(ielem, 2), :)
+        L = norm(xyz2 - xyz1)
+
+        x_loc = (xyz2 - xyz1) / norm(xyz2 - xyz1)
+        call cross(x_loc, x_gl, x_cross)
+        y_loc = x_cross / norm(x_cross)
+        call cross(x_loc, y_loc, y_cross)
+        z_loc = y_cross / norm(y_cross)
+
+        T(1, :) = x_loc
+        T(2, :) = y_loc
+        T(3, :) = z_loc
+
+        do k = 1, 4
+            Telem(3*(k-1)+1:3*(k-1)+3, 3*(k-1)+1:3*(k-1)+3) = T
+        end do
+
+        Kelem_a = coeff_at * E(ielem) * A(ielem) / L
+        Kelem_t = coeff_at * G(ielem) * J(ielem) / L
+        Kelem_y = coeff_y * E(ielem) * Iy(ielem) / L**3
+        Kelem_y(2:4:2, :) = Kelem_y(2:4:2, :) * L
+        Kelem_y(:, 2:4:2) = Kelem_y(:, 2:4:2) * L
+        Kelem_z = coeff_z * E(ielem) * Iz(ielem) / L**3
+        Kelem_z(2:4:2, :) = Kelem_z(2:4:2, :) * L
+        Kelem_z(:, 2:4:2) = Kelem_z(:, 2:4:2) * L
+
+        Kelem(:, :) = &
+          matmul(matmul(transpose(Pelem_a), Kelem_a), Pelem_a) + &
+          matmul(matmul(transpose(Pelem_t), Kelem_t), Pelem_t) + &
+          matmul(matmul(transpose(Pelem_y), Kelem_y), Pelem_y) + &
+          matmul(matmul(transpose(Pelem_z), Kelem_z), Pelem_z)
+        Kelem = matmul(matmul(transpose(Telem), Kelem), Telem)
+
+        ind1 = 6 * (elems(ielem, 1)-1)
+        ind2 = 6 * (elems(ielem, 2)-1)
+
+        do k1 = 1, 12
+            do k2 = 1, 12
+                ind = ind + 1
+                data(ind) = data(ind) + Kelem(k1, k2)
+                rows(ind) = rows(ind) + rows_elem(k1, k2) + 1
+                cols(ind) = cols(ind) + cols_elem(k1, k2) + 1
+
+                rows(ind) = rows(ind) + ones11(k1, k2) * ind1
+                cols(ind) = cols(ind) + ones11(k1, k2) * ind1
+
+                rows(ind) = rows(ind) + ones12(k1, k2) * ind1
+                cols(ind) = cols(ind) + ones12(k1, k2) * ind2
+
+                rows(ind) = rows(ind) + ones21(k1, k2) * ind2
+                cols(ind) = cols(ind) + ones21(k1, k2) * ind1
+
+                rows(ind) = rows(ind) + ones22(k1, k2) * ind2
+                cols(ind) = cols(ind) + ones22(k1, k2) * ind2
+            end do
+        end do
+    end do
+
+    if (ind .ne. nnz) then
+        print *, 'Error in assemblesparsemtx: did not reach end of nnz vectors'
+    end if
+
+    rows(:) = rows(:) - 1
+    cols(:) = cols(:) - 1
+
+end subroutine assemblesparsemtx
+
+
 subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
   M_a, M_t, M_y, M_z, & ! 4
   elem_IDs, cons, fem_origin, & ! 3

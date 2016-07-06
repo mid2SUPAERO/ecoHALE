@@ -5,6 +5,8 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
+import scipy.sparse
+import scipy.sparse.linalg
 from weissinger import view_mat
 
 try:
@@ -12,7 +14,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-# fortran_flag = False
+#fortran_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -38,21 +40,51 @@ def _assemble_system(aero_ind, fem_ind, flat_mesh, A, J, Iy, Iz, loads,
         n_fem, i_fem = row
 
         num_cons = cons.shape[0]
+        size = 6 * (n_fem + num_cons)
 
         small_mat = numpy.zeros((size, size), dtype="complex")
-        full_mesh = flat_mesh[i:i+n, :].reshape(nx, ny, 3)
+        full_mesh = flat_mesh[i:i+n, :].reshape((nx, ny, 3))
         mesh = numpy.zeros((2, ny, 3), dtype="complex")
         mesh[0] = full_mesh[0]
         mesh[1] = full_mesh[-1]
 
         if fortran_flag:
-            small_mat, rhs = lib.assemblestructmtx(mesh, A, J, Iy, Iz, loads,
+            mtx, rhs = lib.assemblestructmtx(mesh, A, J, Iy, Iz, loads,
                                 M_a, M_t, M_y, M_z,
                                 elem_IDs, cons, fem_origin,
                                 E, G, x_gl, T,
                                 K_elem, S_a, S_t, S_y, S_z, T_elem,
                                 const2, const_y, const_z, n_fem, size)
         else:
+            w = fem_origin
+            nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+
+            num_elems = elem_IDs.shape[0]
+            num_nodes = nodes.shape[0]
+            num_cons = cons.shape[0]
+
+            nnz = 144 * num_elems
+
+            data1, rows1, cols1 = lib.assemblesparsemtx(num_nodes, num_elems,
+                nnz, x_gl, E*numpy.ones(num_elems), G*numpy.ones(num_elems), A, J, Iy, Iz, nodes, elem_IDs+1,
+                const2, const_y, const_z, S_a, S_t, S_y, S_z)
+
+            data2 = numpy.ones(6*num_cons)
+            rows2 = numpy.arange(6*num_cons) + 6*num_nodes
+            cols2 = numpy.zeros(6*num_cons)
+            for ind in xrange(6):
+                cols2[ind::6] = 6*cons + ind
+
+            data = numpy.concatenate([data1, data2, data2])
+            rows = numpy.concatenate([rows1, rows2, cols2])
+            cols = numpy.concatenate([cols1, cols2, rows2])
+            mtx = scipy.sparse.csc_matrix((data, (rows, cols)),
+                                          shape=(size, size))
+
+            rhs[:] = 0.0
+            rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
+
+        if 0:
             w = fem_origin
             nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
@@ -129,7 +161,9 @@ def _assemble_system(aero_ind, fem_ind, flat_mesh, A, J, Iy, Iz, loads,
             rhs[:] = 0.0
             rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
 
-        mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = small_mat
+        # mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = small_mat
+
+
 
         return mtx, rhs
 
@@ -170,10 +204,17 @@ class SpatialBeamFEM(Component):
         self.cons = cons
         self.fem_origin = fem_origin
 
-        elem_IDs = numpy.zeros((n_fem-1, 2), int)
-        elem_IDs[:, 0] = numpy.arange(n_fem-1)
-        elem_IDs[:, 1] = numpy.arange(n_fem-1) + 1
-        self.elem_IDs = elem_IDs
+        tot_n_fem = numpy.sum(fem_ind[:, 0])
+        num_surf = fem_ind.shape[0]
+        elem_IDs = numpy.zeros((tot_n_fem - num_surf, 2), int)
+
+        for i_surf, row in enumerate(fem_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = aero_ind[i_surf, :]
+            n_fem, i_fem = row
+
+            elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem, 0] = numpy.arange(n_fem-1)
+            elem_IDs[:, 1] = numpy.arange(n_fem-1) + 1
+            self.elem_IDs = elem_IDs
 
         self.const2 = numpy.array([
             [1, -1],
@@ -232,7 +273,12 @@ class SpatialBeamFEM(Component):
                             self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
                             self.const2, self.const_y, self.const_z, self.n, self.size, self.mtx, self.rhs)
 
-        unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
+        if type(self.mtx) == numpy.ndarray:
+            unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
+        else:
+            self.splu = scipy.sparse.linalg.splu(self.mtx)
+            unknowns['disp_aug'] = self.splu.solve(self.rhs)
+
 
     def apply_nonlinear(self, params, unknowns, resids):
         self.mtx, self.rhs = _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
@@ -256,7 +302,11 @@ class SpatialBeamFEM(Component):
         jac.update(fd_jac)
         jac['disp_aug', 'disp_aug'] = self.mtx.real
 
-        self.lup = lu_factor(self.mtx.real)
+        if type(self.mtx) == numpy.ndarray:
+            self.lup = lu_factor(self.mtx.real)
+        else:
+            self.splu = scipy.sparse.linalg.splu(self.mtx)
+            self.spluT = scipy.sparse.linalg.splu(self.mtx.real.transpose())
 
         return jac
 
@@ -270,7 +320,14 @@ class SpatialBeamFEM(Component):
             t = 1
 
         for voi in vois:
-            sol_vec[voi].vec[:] = lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
+            if type(self.mtx) == numpy.ndarray:
+                sol_vec[voi].vec[:] = lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
+            else:
+                if t == 0:
+                    sol_vec[voi].vec[:] = self.splu.solve(self.rhs)
+                elif t == 1:
+                    sol_vec[voi].vec[:] = self.spluT.solve(self.rhs.real)
+                    sol_vec[voi].vec.imag[:] = self.spluT.solve(self.rhs.complex)
 
 
 

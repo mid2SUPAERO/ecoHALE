@@ -22,7 +22,7 @@ except:
 # Create the mesh with 2 inboard points and 3 outboard points.
 # This will be mirrored to produce a mesh with 7 spanwise points,
 # or 6 spanwise panels
-mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2)
 aero_ind = numpy.atleast_2d(numpy.array([mesh.shape[0], mesh.shape[1]]))
 fem_ind = [mesh.shape[1]]
 aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
