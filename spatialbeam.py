@@ -5,12 +5,14 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
+from weissinger import view_mat
+
 try:
     import lib
     fortran_flag = True
 except:
     fortran_flag = False
-fortran_flag = False
+# fortran_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -43,18 +45,14 @@ def _assemble_system(aero_ind, fem_ind, flat_mesh, A, J, Iy, Iz, loads,
         mesh[0] = full_mesh[0]
         mesh[1] = full_mesh[-1]
 
-
-        if 1:
+        if fortran_flag:
             small_mat, rhs = lib.assemblestructmtx(mesh, A, J, Iy, Iz, loads,
                                 M_a, M_t, M_y, M_z,
                                 elem_IDs, cons, fem_origin,
                                 E, G, x_gl, T,
                                 K_elem, S_a, S_t, S_y, S_z, T_elem,
                                 const2, const_y, const_z, n_fem, size)
-            fort_mat = small_mat.copy()
-            small_mat[:] = 0.
-
-        if 1:
+        else:
             w = fem_origin
             nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
@@ -131,14 +129,9 @@ def _assemble_system(aero_ind, fem_ind, flat_mesh, A, J, Iy, Iz, loads,
             rhs[:] = 0.0
             rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
 
-        from weissinger import view_mat
-        py_mat = small_mat.copy()
-        diff = fort_mat - py_mat
-
-        if not numpy.iscomplexobj(small_mat):
-            '====== not complex ======='
-
         mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = small_mat
+
+        return mtx, rhs
 
 
 class SpatialBeamFEM(Component):
@@ -231,7 +224,7 @@ class SpatialBeamFEM(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         self.mesh = params['mesh']
 
-        _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
+        self.mtx, self.rhs = _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
                             params['Iy'], params['Iz'], params['loads'],
                             self.M_a, self.M_t, self.M_y, self.M_z,
                             self.elem_IDs, self.cons, self.fem_origin,
@@ -242,7 +235,7 @@ class SpatialBeamFEM(Component):
         unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
-        _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
+        self.mtx, self.rhs = _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
                             params['Iy'], params['Iz'], params['loads'],
                             self.M_a, self.M_t, self.M_y, self.M_z,
                             self.elem_IDs, self.cons, self.fem_origin,
