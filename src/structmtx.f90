@@ -175,7 +175,7 @@ subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
   integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, k
 
 
-  nodes = (1-fem_origin) * mesh(1, :, :) + fem_origin * mesh(2, :, :)
+  nodes = (1-fem_origin) * mesh(1, :, :) + fem_origin * mesh(n, :, :)
 
   num_elems = n - 1
   num_nodes = n

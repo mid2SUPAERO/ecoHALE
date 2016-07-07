@@ -115,7 +115,7 @@ class TransferLoads(Component):
         for ind in xrange(self.ny - 1):
             r = a_pts[0, ind, :] - s_pts[0, ind, :]
             F = sec_forces[ind, :]
-            moment[ind, :] = numpy.cross(r, F)0
+            moment[ind, :] = numpy.cross(r, F)
 
         loads = numpy.zeros((self.ny, 6), dtype="complex")
         loads[:-1, :3] += 0.5 * sec_forces[:, :]

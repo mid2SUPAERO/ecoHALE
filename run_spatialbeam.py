@@ -22,26 +22,55 @@ except:
 # Create the mesh with 2 inboard points and 3 outboard points.
 # This will be mirrored to produce a mesh with 7 spanwise points,
 # or 6 spanwise panels
-mesh = gen_crm_mesh(n_points_inboard=6, n_points_outboard=9, num_x=2)
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
 
-num_x = 2
-num_y = 21
-span = 10.
-chord = 1.
-cosine_spacing = 1.
-mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
-num_twist = numpy.max([int((num_y - 1) / 5), 5])
+if sys.argv[1].endswith('m'):
+    num_x = 3
+    num_y = 5
+    span = 10.
+    chord = 1.
+    cosine_spacing = .5
+    mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-aero_ind = numpy.atleast_2d(numpy.array([mesh.shape[0], mesh.shape[1]]))
-fem_ind = [mesh.shape[1]]
-aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+    r = radii(mesh_wing)
+    mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
 
-r = radii(mesh)
-mesh = mesh.reshape(-1, mesh.shape[-1])
+    nx = 2
+    ny = 3
+    span = 3.
+    chord = 1.
+    cosine_spacing = .5
+    mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
 
-num_y = fem_ind[0, 0]
+    mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
+    mesh_tail[:, 0] += 1e1
+
+    aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
+    mesh = numpy.vstack((mesh_wing, mesh_tail))
+
+    fem_ind.append(ny)
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+
+else:
+    num_x = 2
+    num_y = 5
+    span = 10.
+    chord = 5.
+    cosine_spacing = .5
+    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+    r = radii(mesh)
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+
 num_twist = 5
-t = r/10
+t = r/20
 
 # Define the material properties
 execfile('aluminum.py')
@@ -81,7 +110,7 @@ root.add('spatialbeamstates',
          SpatialBeamStates(aero_ind, fem_ind, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
+         SpatialBeamFunctionals(aero_ind, fem_ind, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()
@@ -111,11 +140,11 @@ view_tree(prob, outfile="spatialbeam.html", show_browser=False)
 
 st = time()
 prob.run_once()
-if sys.argv[1] == '0':
+if sys.argv[1].startswith('0'):
     # Uncomment this line to check derivatives.
     prob.check_partial_derivatives(compact_print=True)
     pass
-elif sys.argv[1] == '1':
+elif sys.argv[1].startswith('1'):
     prob.run()
 print "weight", prob['weight']
 print "run time", time()-st

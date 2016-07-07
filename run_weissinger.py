@@ -8,7 +8,7 @@ import sys
 from time import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_mesh_data
+from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
@@ -24,7 +24,7 @@ execfile('CRM.py')
 
 if sys.argv[1].endswith('m'):
     num_x = 3
-    num_y = 3
+    num_y = 11
     span = 10.
     chord = 1.
     cosine_spacing = .5
@@ -46,7 +46,9 @@ if sys.argv[1].endswith('m'):
 
     aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
     mesh = numpy.vstack((mesh_wing, mesh_tail))
-    aero_ind = get_mesh_data(aero_ind)
+
+    fem_ind = [mesh.shape[1]]
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 else:
     num_x = 2
@@ -59,7 +61,8 @@ else:
 
     mesh = mesh.reshape(-1, mesh.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-    aero_ind = get_mesh_data(aero_ind)
+    fem_ind = [mesh.shape[1]]
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 root = Group()
 

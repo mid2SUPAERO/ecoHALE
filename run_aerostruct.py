@@ -10,7 +10,7 @@ import sys
 from time import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
-from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_mesh_data
+from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
@@ -49,7 +49,7 @@ mesh = mesh.reshape(-1, mesh.shape[-1])
 aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 fem_ind = [n_fem]
 
-aero_ind, fem_ind = get_mesh_data(aero_ind, fem_ind)
+aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 # Define the aircraft properties
 execfile('CRM.py')
@@ -93,7 +93,7 @@ coupled.add('loads',
             TransferLoads(aero_ind),
             promotes=['*'])
 coupled.add('spatialbeamstates',
-            SpatialBeamStates(aero_ind, E, G),
+            SpatialBeamStates(aero_ind, fem_ind, E, G),
             promotes=['*'])
 
 coupled.nl_solver = Newton()
