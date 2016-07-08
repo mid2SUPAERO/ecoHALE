@@ -8,10 +8,11 @@ import sys
 from time import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh, gen_crm_mesh, get_inds, gen_mesh
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, get_inds, gen_mesh
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from openmdao.devtools.partition_tree_n2 import view_tree
+from b_spline import get_bspline_mtx
 
 try:
     from openmdao.api import pyOptSparseDriver
@@ -70,6 +71,7 @@ else:
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 num_twist = 5
+num_thickness = num_twist
 t = r/20
 
 # Define the material properties
@@ -83,9 +85,12 @@ loads[:, 2] = 1e3 # load of 1 kN at each node
 span = 58.7630524 # [m] baseline CRM
 
 root = Group()
+jac_twist = get_bspline_mtx(num_twist, num_y)
+jac_thickness = get_bspline_mtx(num_thickness, num_y-1)
 
 des_vars = [
-    ('twist', numpy.zeros(num_twist)),
+    ('twist_cp', numpy.zeros(num_twist)),
+    ('thickness_cp', numpy.ones(num_thickness)*numpy.max(t)),
     ('dihedral', 0.),
     ('sweep', 0.),
     ('span', span),
@@ -100,8 +105,14 @@ des_vars = [
 root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
+root.add('twist_bsp',
+         Bspline('twist_cp', 'twist', jac_twist),
+         promotes=['*'])
+root.add('thickness_bsp',
+         Bspline('thickness_cp', 'thickness', jac_thickness),
+         promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, aero_ind, num_twist),
+         GeometryMesh(mesh, aero_ind),
          promotes=['*'])
 root.add('tube',
          MaterialsTube(aero_ind),
@@ -110,7 +121,7 @@ root.add('spatialbeamstates',
          SpatialBeamStates(aero_ind, fem_ind, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(aero_ind, fem_ind, E, G, stress, mrho),
+         SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()
@@ -126,11 +137,14 @@ if SNOPT:
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                 'Major feasibility tolerance': 1.0e-8}
 
-prob.driver.add_desvar('t',
-                       lower=numpy.ones((num_y-1)) * 0.003,
-                       upper=numpy.ones((num_y-1)) * 0.25)
-prob.driver.add_objective('energy')
-prob.driver.add_constraint('weight', upper=1e5)
+prob.driver.add_desvar('thickness_cp',
+                       lower=numpy.ones((num_thickness)) * 0.003,
+                       upper=numpy.ones((num_thickness)) * 0.25,
+                       scaler=1e4)
+# prob.driver.add_objective('energy')
+# prob.driver.add_constraint('weight', upper=1e5)
+prob.driver.add_objective('weight')
+prob.driver.add_constraint('failure', upper=0.0)
 
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 

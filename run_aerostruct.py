@@ -10,7 +10,7 @@ import sys
 from time import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
-from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_inds
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
@@ -19,6 +19,7 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
 from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
+from b_spline import get_bspline_mtx
 
 try:
     from openmdao.api import pyOptSparseDriver
@@ -41,6 +42,7 @@ else:
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
 
 num_twist = numpy.max([int((num_y - 1) / 5), 5])
+num_thickness = num_twist
 r = radii(mesh)
 t = r/10
 
@@ -59,11 +61,13 @@ execfile('aluminum.py')
 
 # Create the top-level system
 root = Group()
-
+jac_twist = get_bspline_mtx(num_twist, num_y)
+jac_thickness = get_bspline_mtx(num_thickness, num_y-1)
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_twist)),
+    ('twist_cp', numpy.zeros(num_twist)),
+    ('thickness_cp', numpy.ones(num_thickness)*numpy.max(t)),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
@@ -75,13 +79,19 @@ indep_vars = [
 root.add('indep_vars',
          IndepVarComp(indep_vars),
          promotes=['*'])
+root.add('twist_bsp',
+         Bspline('twist_cp', 'twist', jac_twist),
+         promotes=['*'])
+root.add('thickness_bsp',
+         Bspline('thickness_cp', 'thickness', jac_thickness),
+         promotes=['*'])
 root.add('tube',
          MaterialsTube(aero_ind),
          promotes=['*'])
 
 coupled = Group()
 coupled.add('mesh',
-            GeometryMesh(mesh, aero_ind, num_twist),
+            GeometryMesh(mesh, aero_ind),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(aero_ind),
@@ -111,7 +121,9 @@ coupled.nl_solver.options['rtol'] = 1e-12
 
 coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
 coupled.nl_solver.nlgs.options['iprint'] = 1
-coupled.nl_solver.nlgs.options['maxiter'] = 5
+coupled.nl_solver.nlgs.options['maxiter'] = 10
+coupled.nl_solver.nlgs.options['atol'] = 1e-8
+coupled.nl_solver.nlgs.options['rtol'] = 1e-12
 coupled.nl_solver.newton.options['atol'] = 1e-7
 coupled.nl_solver.newton.options['rtol'] = 1e-7
 coupled.nl_solver.newton.options['iprint'] = 1
@@ -120,7 +132,7 @@ root.add('coupled',
          coupled,
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(aero_ind, CL0, CD0, num_twist),
+         WeissingerFunctionals(aero_ind, CL0, CD0),
          promotes=['*'])
 root.add('spatialbeamfuncs',
          SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
@@ -147,12 +159,12 @@ if SNOPT:
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
                                 'Major feasibility tolerance': 1.0e-7}
 
-prob.driver.add_desvar('twist',lower= -10.,
+prob.driver.add_desvar('twist_cp',lower= -10.,
                        upper=10., scaler=1e0)
 #prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
-prob.driver.add_desvar('t',
+prob.driver.add_desvar('thickness_cp',
                        lower= 0.001,
-                       upper= 0.25, scaler=1000)
+                       upper= 0.25, scaler=1e4)
 prob.driver.add_objective('fuelburn')
 prob.driver.add_constraint('failure', upper=0.0)
 prob.driver.add_constraint('eq_con', equals=0.0)

@@ -32,7 +32,6 @@ import matplotlib.animation as manimation
 import numpy
 import sqlitedict
 import aluminum
-from b_spline import get_bspline_mtx
 
 #####################
 # User-set parameters
@@ -130,7 +129,7 @@ class Display(object):
 
             try:
                 self.r.append(case_data['Unknowns']['r'])
-                self.t.append(case_data['Unknowns']['t'])
+                self.t.append(case_data['Unknowns']['thickness'])
                 self.vonmises.append(
                     numpy.max(case_data['Unknowns']['vonmises'], axis=1))
                 self.show_tube = True
@@ -142,12 +141,8 @@ class Display(object):
                 self.def_mesh.append(def_mesh)
                 nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
                 def_mesh = def_mesh[:n, :].reshape(nx, ny, 3)
-                h_cp = case_data['Unknowns']['twist']
-                num_twist = h_cp.shape[0]
-                jac = get_bspline_mtx(num_twist, ny, def_mesh)
-                h = jac.dot(h_cp)
-
-                self.twist.append(h)
+                
+                self.twist.append(case_data['Unknowns']['twist'])
 
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
@@ -200,7 +195,7 @@ class Display(object):
 
             # recenter def_mesh points for better viewing
             for i in range(self.num_iters + 1):
-                center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+                center = numpy.mean(self.mesh[i], axis=0)
                 self.def_mesh[i] = self.def_mesh[i] - center
 
         # recenter mesh points for better viewing
@@ -208,7 +203,7 @@ class Display(object):
             # center defined as the average of all nodal points
             center = numpy.mean(self.mesh[i], axis=0)
             # center defined as the mean of the min and max in each direction
-            center = (numpy.max(self.mesh[i], axis=0) + numpy.min(self.mesh[i], axis=0)) / 2
+            # center = (numpy.max(self.mesh[i], axis=0) + numpy.min(self.mesh[i], axis=0)) / 2
             self.mesh[i] = self.mesh[i] - center
 
 

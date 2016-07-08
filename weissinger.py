@@ -585,7 +585,7 @@ class WeissingerStates(Group):
 class WeissingerFunctionals(Group):
     """ Group that contains the aerodynamic functionals used to evaluate performance """
 
-    def __init__(self, aero_ind, CL0, CD0, num_twist):
+    def __init__(self, aero_ind, CL0, CD0):
         super(WeissingerFunctionals, self).__init__()
 
         self.add('liftdrag',

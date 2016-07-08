@@ -85,8 +85,9 @@ def sweep(mesh, angle):
     te = mesh[-1]
 
     y0 = le[ny2, 1]
+    p180 = numpy.pi / 180
 
-    tan_theta = tan(numpy.radians(angle))
+    tan_theta = tan(p180*angle)
     dx_right = (le[ny2:, 1] - y0) * tan_theta
     dx_left = -(le[:ny2, 1] - y0) * tan_theta
     dx = numpy.hstack((dx_left, dx_right))
@@ -106,8 +107,9 @@ def dihedral(mesh, angle):
     te = mesh[-1]
 
     y0 = le[ny2, 1]
+    p180 = numpy.pi / 180
 
-    tan_theta = tan(numpy.radians(angle))
+    tan_theta = tan(p180*angle)
     dx_right = (le[ny2:, 1] - y0) * tan_theta
     dx_left = -(le[:ny2, 1] - y0) * tan_theta
     dx = numpy.hstack((dx_left, dx_right))
@@ -147,7 +149,7 @@ def taper(mesh, taper_ratio):
     span = le[-1, 1] - le[0, 1]
     taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
 
-    jac = get_bspline_mtx(ny2, ny2, mesh, order=2)
+    jac = get_bspline_mtx(ny2, ny2, order=2)
     taper = jac.dot(taper)
 
     dx = numpy.hstack((taper, taper[::-1][1:]))
@@ -272,10 +274,8 @@ class GeometryMesh(Component):
     about the middle and outputs a full symmetric mesh.
     """
 
-    def __init__(self, mesh, aero_ind, num_twist):
+    def __init__(self, mesh, aero_ind):
         super(GeometryMesh, self).__init__()
-
-        self.num_twist = num_twist
 
         self.ny = aero_ind[0, 1]
         self.nx = aero_ind[0, 0]
@@ -286,26 +286,52 @@ class GeometryMesh(Component):
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=numpy.zeros(num_twist))
+        self.add_param('twist', val=numpy.zeros(self.ny))
         self.add_param('taper', val=1.)
         self.add_output('mesh', val=mesh)
 
         self.deriv_options['type'] = 'fd'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         self.wing_mesh = self.mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
-        jac = get_bspline_mtx(self.num_twist, self.ny, self.wing_mesh)
-        h_cp = params['twist']
-        h = jac.dot(h_cp)
 
         # stretch(self.wing_mesh, params['span'])
         sweep(self.wing_mesh, params['sweep'])
-        rotate(self.wing_mesh, h)
+        rotate(self.wing_mesh, params['twist'])
         dihedral(self.wing_mesh, params['dihedral'])
         taper(self.wing_mesh, params['taper'])
 
         unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3).astype('complex')
+
+    def linearize(self, params, unknowns, resids):
+
+        jac = self.alloc_jacobian()
+
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                         fd_params=['span', 'sweep', 'dihedral', 'twist', 'taper'],
+                                         fd_states=[])
+        jac.update(fd_jac)
+        return jac
+
+class Bspline(Component):
+    """ General function to translate from control points to actual points
+    using a b-spline representation.
+    """
+
+    def __init__(self, cpname, ptname, jac):
+        super(Bspline, self).__init__()
+        self.cpname = cpname
+        self.ptname = ptname
+        self.jac = jac
+        self.add_param(cpname, val=numpy.zeros(jac.shape[1]))
+        self.add_output(ptname, val=numpy.zeros(jac.shape[0]))
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        unknowns[self.ptname] = self.jac.dot(params[self.cpname])
+
+    def linearize(self, params, unknowns, resids):
+        return {(self.ptname, self.cpname): self.jac}
 
 
 class LinearInterp(Component):

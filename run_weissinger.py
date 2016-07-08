@@ -8,10 +8,11 @@ import sys
 from time import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
-from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_inds
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
+from b_spline import get_bspline_mtx
 
 try:
     from openmdao.api import pyOptSparseDriver
@@ -24,7 +25,7 @@ execfile('CRM.py')
 
 if sys.argv[1].endswith('m'):
     num_x = 3
-    num_y = 11
+    num_y = 3
     span = 10.
     chord = 1.
     cosine_spacing = .5
@@ -47,12 +48,9 @@ if sys.argv[1].endswith('m'):
     aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
     mesh = numpy.vstack((mesh_wing, mesh_tail))
 
-    fem_ind = [mesh.shape[1]]
-    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
-
 else:
     num_x = 2
-    num_y = 3
+    num_y = 4
     span = 10.
     chord = 1.
     cosine_spacing = 1.
@@ -61,13 +59,14 @@ else:
 
     mesh = mesh.reshape(-1, mesh.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-    fem_ind = [mesh.shape[1]]
-    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+fem_ind = [num_y]
+aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 root = Group()
 
+jac = get_bspline_mtx(num_twist, num_y)
 des_vars = [
-    ('twist', numpy.ones(num_twist)*numpy.random.rand(num_twist)),
+    ('twist_cp', numpy.zeros(num_twist)),
     ('dihedral', 0.),
     ('sweep', 0.),
     ('span', span),
@@ -83,8 +82,11 @@ des_vars = [
 root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
+root.add('twist_bsp',
+         Bspline('twist_cp', 'twist', jac),
+         promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, aero_ind, num_twist),
+         GeometryMesh(mesh, aero_ind),
          promotes=['*'])
 root.add('def_mesh',
          TransferDisplacements(aero_ind),
@@ -93,7 +95,7 @@ root.add('weissingerstates',
          WeissingerStates(aero_ind),
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(aero_ind, CL0, CD0, num_twist),
+         WeissingerFunctionals(aero_ind, CL0, CD0),
          promotes=['*'])
 
 prob = Problem()
@@ -110,7 +112,7 @@ if SNOPT:
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                 'Major feasibility tolerance': 1.0e-8}
 
-prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
+prob.driver.add_desvar('twist_cp', lower=-10., upper=15., scaler=1e0)
 # prob.driver.add_desvar('alpha', lower=-10., upper=10.)
 # prob.driver.add_desvar('sweep', lower=-10., upper=30.)
 # prob.driver.add_desvar('dihedral', lower=-10., upper=20.)
@@ -130,7 +132,7 @@ st = time()
 prob.run_once()
 if sys.argv[1].startswith('0'):
     # Uncomment this line to check derivatives.
-    # prob.check_partial_derivatives(compact_print=True)
+    prob.check_partial_derivatives(compact_print=True)
     pass
 elif sys.argv[1].startswith('1'):
     st = time()

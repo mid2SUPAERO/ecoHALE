@@ -14,7 +14,7 @@ class MaterialsTube(Component):
         n = aero_ind[0, 1]
 
         self.add_param('r', val=numpy.zeros((n - 1)))
-        self.add_param('t', val=numpy.zeros((n - 1)))
+        self.add_param('thickness', val=numpy.zeros((n - 1)))
         self.add_output('A', val=numpy.zeros((n - 1)))
         self.add_output('Iy', val=numpy.zeros((n - 1)))
         self.add_output('Iz', val=numpy.zeros((n - 1)))
@@ -28,8 +28,8 @@ class MaterialsTube(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         pi = numpy.pi
-        r1 = params['r'] - 0.5 * params['t']
-        r2 = params['r'] + 0.5 * params['t']
+        r1 = params['r'] - 0.5 * params['thickness']
+        r2 = params['r'] + 0.5 * params['thickness']
 
         unknowns['A'] = pi * (r2**2 - r1**2)
         unknowns['Iy'] = pi * (r2**4 - r1**4) / 4.
@@ -41,7 +41,7 @@ class MaterialsTube(Component):
 
         pi = numpy.pi
         r = params['r'].real
-        t = params['t'].real
+        t = params['thickness'].real
         r1 = r - 0.5 * t
         r2 = r + 0.5 * t
 
@@ -55,12 +55,12 @@ class MaterialsTube(Component):
 
         a = self.arange
         jac['A', 'r'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
-        jac['A', 't'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
+        jac['A', 'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
         jac['Iy', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['Iy', 't'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['Iy', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
         jac['Iz', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['Iz', 't'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['Iz', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
         jac['J', 'r'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['J', 't'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['J', 'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
 
         return jac
