@@ -26,29 +26,30 @@ except:
 mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
 
 if sys.argv[1].endswith('m'):
-    num_x = 3
+    num_x = 2
     num_y = 5
-    span = 10.
-    chord = 2.
-    cosine_spacing = .5
+    span = 5.
+    chord = 5.
+    cosine_spacing = 0.
     mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    mesh_wing[:, :, 1] = mesh_wing[:, :, 1] - span/2
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-    r_wing = radii(mesh_wing) / 10
+    r_wing = radii(mesh_wing)
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
     fem_ind = [num_y]
 
     nx = 2
-    ny = 3
-    span = 3.
-    chord = 1.
-    cosine_spacing = .5
+    ny = 5
+    span = 5.
+    chord = 5.
+    cosine_spacing = 0.
     mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
+    mesh_tail[:, :, 1] = mesh_tail[:, :, 1] + span/2
 
-    r_tail = radii(mesh_tail) / 10
+    r_tail = radii(mesh_tail)
     mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
-    mesh_tail[:, 0] += 1e1
 
     aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
     mesh = numpy.vstack((mesh_wing, mesh_tail))
@@ -59,34 +60,34 @@ if sys.argv[1].endswith('m'):
 
 else:
     num_x = 2
-    num_y = 11
+    num_y = 9
     span = 10.
     chord = 5.
-    cosine_spacing = .5
+    cosine_spacing = 0.
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-    r = radii(mesh) / 10
+    r = radii(mesh)
     mesh = mesh.reshape(-1, mesh.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
     fem_ind = [num_y]
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
+
+
 num_twist = 5
 num_thickness = num_twist
 t = r/20
+r /= 5
 
 # Define the material properties
 execfile('aluminum.py')
 
 # Define the loads
-loads_wing = numpy.zeros((num_y, 6))
-loads_wing[0, 2] = loads_wing[-1, 2] = 1e3 # tip load of 1 kN
-loads_wing[:, 2] = 1e3 # load of 1 kN at each node
 tot_n_fem = numpy.sum(fem_ind[:, 0])
 num_surf = fem_ind.shape[0]
 loads = numpy.zeros((tot_n_fem, 6))
-loads[:num_y, :] = loads_wing
+loads[0, 2] = loads[-1, 2] = 1e3 # tip load of 1 kN
 
 span = 58.7630524 # [m] baseline CRM
 
@@ -121,7 +122,7 @@ root.add('mesh',
          GeometryMesh(mesh, aero_ind),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(fem_ind),
+         MaterialsTube(aero_ind, fem_ind),
          promotes=['*'])
 root.add('spatialbeamstates',
          SpatialBeamStates(aero_ind, fem_ind, E, G),
@@ -144,9 +145,9 @@ if SNOPT:
                                 'Major feasibility tolerance': 1.0e-8}
 
 prob.driver.add_desvar('thickness_cp',
-                       lower=numpy.ones((num_thickness)) * 0.003,
+                       lower=numpy.ones((num_thickness)) * 0.0003,
                        upper=numpy.ones((num_thickness)) * 0.25,
-                       scaler=1e4)
+                       scaler=1e5)
 # prob.driver.add_objective('energy')
 # prob.driver.add_constraint('weight', upper=1e5)
 prob.driver.add_objective('weight')

@@ -290,7 +290,7 @@ class GeometryMesh(Component):
         self.add_param('taper', val=1.)
         self.add_output('mesh', val=mesh)
 
-        self.deriv_options['type'] = 'fd'
+        self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):

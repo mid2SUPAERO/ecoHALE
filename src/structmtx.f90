@@ -1,23 +1,23 @@
-subroutine assemblesparsemtx(num_nodes, num_elems, nnz, x_gl, &
+subroutine assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, &
     E, G, A, J, Iy, Iz, nodes, elems, &
     coeff_at, coeff_y, coeff_z, &
     Pelem_a, Pelem_t, Pelem_y, Pelem_z, &
     data, rows, cols)
 
     implicit none
-    !f2py intent(in) num_nodes, num_elems, nnz, x_gl, E, G, A, J, Iy, Iz, nodes, elems, coeff_at, coeff_y, coeff_z, Pelem_a, Pelem_t, Pelem_y, Pelem_z
+    !f2py intent(in) tot_n_fem, num_elems, nnz, x_gl, E, G, A, J, Iy, Iz, nodes, elems, coeff_at, coeff_y, coeff_z, Pelem_a, Pelem_t, Pelem_y, Pelem_z
     !f2py intent(out) data, rows, cols
-    !f2py depend(num_nodes) nodes
+    !f2py depend(tot_n_fem) nodes
     !f2py depend(num_elems) E, G, A, J, Iy, Iz, elems
     !f2py depend(nnz) data, rows, cols
 
     ! Input
-    integer, intent(in) :: num_nodes, num_elems, nnz
+    integer, intent(in) :: tot_n_fem, num_elems, nnz
     complex*16, intent(in) :: x_gl(3)
     complex*16, intent(in) :: E(num_elems), G(num_elems)
     complex*16, intent(in) :: A(num_elems), J(num_elems)
     complex*16, intent(in) :: Iy(num_elems), Iz(num_elems)
-    complex*16, intent(in) :: nodes(num_nodes, 3)
+    complex*16, intent(in) :: nodes(tot_n_fem, 3)
     integer, intent(in) :: elems(num_elems, 2)
     ! Local stiffness matrix coefficients
     complex*16, intent(in) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4, 4)
@@ -143,14 +143,14 @@ end subroutine assemblesparsemtx
 
 subroutine assemblestructmtx(nodes, A, J, Iy, Iz, loads, & ! 6
   M_a, M_t, M_y, M_z, & ! 4
-  elem_IDs, cons, fem_origin, & ! 3
+  elem_IDs, cons, & ! 3
   E_py, G_py, x_gl, T, & ! 3
   K_elem, S_a, S_t, S_y, S_z, T_elem, & ! 6
   const2, const_y, const_z, n, size, mtx, rhs) ! 7
 
   implicit none
 
-  !f2py intent(in)   n, size, elem_IDs, cons, mesh, A, J, Iy, Iz, loads, fem_origin, E_py, G_py, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
+  !f2py intent(in)   n, size, elem_IDs, cons, nodes, A, J, Iy, Iz, loads, E_py, G_py, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
   !f2py intent(out) mtx, rhs
   !f2py depend(n) elem_IDs, nodes, A, J, Iy, Iz, loads
   !f2py depend(size) mtx, rhs
@@ -159,7 +159,7 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, loads, & ! 6
   integer, intent(in) :: n, size, cons
   integer, intent(inout) :: elem_IDs(n-1, 2)
   complex*16, intent(in) :: nodes(n, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
-  complex*16, intent(in) :: loads(n, 6), fem_origin, E_py, G_py, x_gl(3)
+  complex*16, intent(in) :: loads(n, 6), E_py, G_py, x_gl(3)
   complex*16, intent(inout) :: M_a(2, 2), M_t(2, 2), M_y(4, 4), M_z(4, 4)
   complex*16, intent(inout) :: T(3, 3), K_elem(12, 12), T_elem(12, 12)
   complex*16, intent(in) :: S_a(2, 12), S_t(2, 12), S_y(4, 12), S_z(4, 12)
