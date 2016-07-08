@@ -386,6 +386,40 @@ class SpatialBeamDisp(Component):
         jac.update(fd_jac)
         return jac
 
+class ComputeNodes(Component):
+    """ Compute FEM nodes based on aerodynamic mesh. """
+
+    def __init__(self, fem_ind, aero_ind, fem_origin=0.35):
+        super(ComputeNodes, self).__init__()
+
+        self.num_surf = fem_ind.shape[0]
+        tot_n_fem = numpy.sum(fem_ind[:, 0])
+        tot_n = numpy.sum(aero_ind[:, 2])
+        size = 6 * tot_n_fem + 6 * self.num_surf
+        self.tot_n_fem = tot_n_fem
+        self.fem_ind = fem_ind
+        self.aero_ind = aero_ind
+        self.fem_origin = fem_origin
+
+        self.add_param('mesh', val=numpy.zeros((tot_n, 3)))
+        self.add_output('nodes', val=numpy.zeros((tot_n_fem, 3)))
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        w = self.fem_origin
+        for i_surf, row in enumerate(self.fem_ind):
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[i_surf, :]
+            n_fem, i_fem = row
+            mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
+            unknowns['nodes'][i_fem:i_fem+n_fem] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids, \
+                                            fd_params=['mesh'], \
+                                            fd_states=[])
+        jac.update(fd_jac)
+        return jac
+
 
 
 class SpatialBeamEnergy(Component):
@@ -595,6 +629,9 @@ class SpatialBeamStates(Group):
     def __init__(self, aero_ind, fem_ind, E, G):
         super(SpatialBeamStates, self).__init__()
 
+        self.add('nodes',
+                 ComputeNodes(fem_ind, aero_ind),
+                 promotes=['*'])
         self.add('fem',
                  SpatialBeamFEM(aero_ind, fem_ind, E, G),
                  promotes=['*'])

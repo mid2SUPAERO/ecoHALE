@@ -73,8 +73,6 @@ else:
     fem_ind = [num_y]
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
-
-
 num_twist = 5
 num_thickness = num_twist
 t = r/20
@@ -122,7 +120,7 @@ root.add('mesh',
          GeometryMesh(mesh, aero_ind),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(aero_ind, fem_ind),
+         MaterialsTube(fem_ind),
          promotes=['*'])
 root.add('spatialbeamstates',
          SpatialBeamStates(aero_ind, fem_ind, E, G),

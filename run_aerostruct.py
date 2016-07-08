@@ -27,31 +27,58 @@ try:
 except:
     SNOPT = False
 
-if 1:
-    # Use the CRM mesh
-    # Create the mesh with 2 inboard points and 3 outboard points
-    mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
-    num_x, num_y, _ = mesh.shape
-else:
-    # Use a rectangular wing mesh
+if sys.argv[1].endswith('m'):
     num_x = 2
-    num_y = 7
+    num_y = 5
+    span = 5.
+    chord = 5.
+    cosine_spacing = 0.
+    mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    mesh_wing[:, :, 1] = mesh_wing[:, :, 1] - span/2
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+    r_wing = radii(mesh_wing)
+    mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
+
+    nx = 2
+    ny = 5
+    span = 5.
+    chord = 5.
+    cosine_spacing = 0.
+    mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
+    mesh_tail[:, :, 1] = mesh_tail[:, :, 1] + span/2
+
+    r_tail = radii(mesh_tail)
+    mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
+
+    aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
+    mesh = numpy.vstack((mesh_wing, mesh_tail))
+    r = numpy.hstack((r_wing, r_tail))
+
+    fem_ind.append(ny)
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+
+else:
+    num_x = 2
+    num_y = 9
     span = 10.
-    chord = 1.
-    cosine_spacing = 1.
+    chord = 5.
+    cosine_spacing = 0.
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-num_twist = numpy.max([int((num_y - 1) / 5), 5])
+    r = radii(mesh)
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+
+num_twist = 5
 num_thickness = num_twist
-r = radii(mesh)
-t = r/10
-
-n_fem = num_y
-mesh = mesh.reshape(-1, mesh.shape[-1])
-aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-fem_ind = [n_fem]
-
-aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+t = r/20
+r /= 5
 
 # Define the aircraft properties
 execfile('CRM.py')
@@ -61,8 +88,10 @@ execfile('aluminum.py')
 
 # Create the top-level system
 root = Group()
+tot_n_fem = numpy.sum(fem_ind[:, 0])
+num_surf = fem_ind.shape[0]
 jac_twist = get_bspline_mtx(num_twist, num_y)
-jac_thickness = get_bspline_mtx(num_thickness, num_y-1)
+jac_thickness = get_bspline_mtx(num_thickness, tot_n_fem-num_surf)
 # Define the independent variables
 indep_vars = [
     ('span', span),
@@ -86,7 +115,7 @@ root.add('thickness_bsp',
          Bspline('thickness_cp', 'thickness', jac_thickness),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(aero_ind),
+         MaterialsTube(fem_ind),
          promotes=['*'])
 
 coupled = Group()
@@ -94,13 +123,13 @@ coupled.add('mesh',
             GeometryMesh(mesh, aero_ind),
             promotes=['*'])
 coupled.add('def_mesh',
-            TransferDisplacements(aero_ind),
+            TransferDisplacements(aero_ind, fem_ind),
             promotes=['*'])
 coupled.add('weissingerstates',
             WeissingerStates(aero_ind),
             promotes=['*'])
 coupled.add('loads',
-            TransferLoads(aero_ind),
+            TransferLoads(aero_ind, fem_ind),
             promotes=['*'])
 coupled.add('spatialbeamstates',
             SpatialBeamStates(aero_ind, fem_ind, E, G),
@@ -181,8 +210,8 @@ st = time()
 prob.run_once()
 if len(sys.argv) == 1:
     pass
-elif sys.argv[1] == '0':
+elif sys.argv[1].startswith('0'):
     prob.check_partial_derivatives(compact_print=True)
-elif sys.argv[1] == '1':
+elif sys.argv[1].startswith('1'):
     prob.run()
 print "runtime: ", time() - st

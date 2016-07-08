@@ -50,10 +50,10 @@ if sys.argv[1].endswith('m'):
 
 else:
     num_x = 2
-    num_y = 4
+    num_y = 21
     span = 10.
     chord = 1.
-    cosine_spacing = 1.
+    cosine_spacing = .5
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
@@ -89,7 +89,7 @@ root.add('mesh',
          GeometryMesh(mesh, aero_ind),
          promotes=['*'])
 root.add('def_mesh',
-         TransferDisplacements(aero_ind),
+         TransferDisplacements(aero_ind, fem_ind),
          promotes=['*'])
 root.add('weissingerstates',
          WeissingerStates(aero_ind),
