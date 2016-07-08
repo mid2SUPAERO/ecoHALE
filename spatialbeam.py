@@ -35,59 +35,71 @@ def _assemble_system(aero_ind, fem_ind, mesh, A, J, Iy, Iz, loads,
                      K_elem, S_a, S_t, S_y, S_z, T_elem,
                      const2, const_y, const_z, n, size, mtx, rhs):
 
+    data_list = []
+    rows_list = []
+    cols_list = []
+
     for i_surf, row in enumerate(fem_ind):
         nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = aero_ind[i_surf, :]
         n_fem, i_fem = row
 
-        num_cons = cons.shape[0]
-        size = 6 * (n_fem + num_cons)
-
-        small_mat = numpy.zeros((size, size), dtype="complex")
-        small_rhs = numpy.zeros((size), dtype="complex")
-        small_mesh = mesh[i:i+n, :].reshape((nx, ny, 3))
+        num_cons = 1 # just one constraint per structural component
+        size_ = 6 * (n_fem + num_cons)
+        mtx_ = numpy.zeros((size_, size_), dtype="complex")
+        rhs_ = numpy.zeros((size_), dtype="complex")
+        mesh_ = mesh[i:i+n, :].reshape((nx, ny, 3))
+        A_ = A[i_fem-i_surf:i_fem-i_surf+n_fem-1]
+        J_ = J[i_fem-i_surf:i_fem-i_surf+n_fem-1]
+        Iy_ = Iy[i_fem-i_surf:i_fem-i_surf+n_fem-1]
+        Iz_ = Iz[i_fem-i_surf:i_fem-i_surf+n_fem-1]
+        elem_IDs_ = elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, :] - i_fem
+        loads_ = loads[i_fem:i_fem+n_fem]
+        w = fem_origin
+        nodes = (1-w) * mesh_[0, :, :] + w * mesh_[-1, :, :]
 
         if fortran_flag and not sparse_flag:
-            small_mat, small_rhs = lib.assemblestructmtx(small_mesh, A, J, Iy, Iz, loads,
+            mtx_, rhs_ = lib.assemblestructmtx(nodes, A_, J_, Iy_, Iz_, loads_,
                                 M_a, M_t, M_y, M_z,
-                                elem_IDs, cons, fem_origin,
+                                elem_IDs_, cons[i_surf], fem_origin,
                                 E, G, x_gl, T,
                                 K_elem, S_a, S_t, S_y, S_z, T_elem,
-                                const2, const_y, const_z, n_fem, size)
-            mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = small_mat
-            rhs[i_fem*6:(i_fem+n_fem+num_cons)*6] = small_rhs
+                                const2, const_y, const_z, n_fem, size_)
+            mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = mtx_
+            rhs[i_fem*6:(i_fem+n_fem+num_cons)*6] = rhs_
+            view_mat(mtx_)
 
-        if fortran_flag and sparse_flag:
-            w = fem_origin
-            nodes = (1-w) * small_mesh[0, :, :] + w * small_mesh[-1, :, :]
+        elif fortran_flag and sparse_flag:
 
-            num_elems = elem_IDs.shape[0]
+
+            num_elems = elem_IDs_.shape[0]
             num_nodes = nodes.shape[0]
-            num_cons = cons.shape[0]
 
             nnz = 144 * num_elems
 
             data1, rows1, cols1 = lib.assemblesparsemtx(num_nodes, num_elems,
-                nnz, x_gl, E*numpy.ones(num_elems), G*numpy.ones(num_elems), A, J, Iy, Iz, nodes, elem_IDs+1,
+                nnz, x_gl, E*numpy.ones(num_elems), G*numpy.ones(num_elems), A_, J_, Iy_, Iz_, nodes, elem_IDs_+1,
                 const2, const_y, const_z, S_a, S_t, S_y, S_z)
 
             data2 = numpy.ones(6*num_cons)
             rows2 = numpy.arange(6*num_cons) + 6*num_nodes
             cols2 = numpy.zeros(6*num_cons)
             for ind in xrange(6):
-                cols2[ind::6] = 6*cons + ind
+                cols2[ind::6] = 6*cons[i_surf] + ind
 
             data = numpy.concatenate([data1, data2, data2])
             rows = numpy.concatenate([rows1, rows2, cols2]) + i_fem*6
             cols = numpy.concatenate([cols1, cols2, rows2]) + i_fem*6
-            mtx = scipy.sparse.csc_matrix((data, (rows, cols)),
-                                          shape=(size, size))
+            data_list.append(data)
+            rows_list.append(rows)
+            cols_list.append(cols)
 
-            rhs[:] = 0.0
-            rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
+            rhs_[:] = 0.0
+            rhs_[:6*num_nodes] = loads_.reshape((6*num_nodes))
+            rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
 
         else:
             w = fem_origin
-            nodes = (1-w) * small_mesh[0, :, :] + w * small_mesh[-1, :, :]
+            nodes = (1-w) * mesh_[0, :, :] + w * mesh_[-1, :, :]
 
             num_elems = elem_IDs.shape[0]
             num_nodes = nodes.shape[0]
@@ -149,22 +161,29 @@ def _assemble_system(aero_ind, fem_ind, mesh, A, J, Iy, Iz, loads,
 
                 in0, in1 = elem_IDs[ielem, :]
 
-                small_mat[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
-                small_mat[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
-                small_mat[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
-                small_mat[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
+                mtx_[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
+                mtx_[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
+                mtx_[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
+                mtx_[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
 
             for ind in xrange(num_cons):
                 for k in xrange(6):
-                    small_mat[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
-                    small_mat[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
+                    mtx_[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
+                    mtx_[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
 
             rhs[:] = 0.0
             rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
 
-            mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = small_mat
+            mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = mtx_
 
-        return mtx, rhs
+    if fortran_flag and sparse_flag:
+        data = numpy.concatenate(data_list)
+        rows = numpy.concatenate(rows_list)
+        cols = numpy.concatenate(cols_list)
+        mtx = scipy.sparse.csc_matrix((data, (rows, cols)),
+                                      shape=(size, size))
+
+    return mtx, rhs
 
 
 class SpatialBeamFEM(Component):
@@ -174,21 +193,26 @@ class SpatialBeamFEM(Component):
         super(SpatialBeamFEM, self).__init__()
 
         n_fem, i_fem = fem_ind[0, :]
-        tot_n = numpy.sum(fem_ind[:, 0])
+        tot_n = numpy.sum(aero_ind[:, 2])
         num_surf = fem_ind.shape[0]
         self.fem_ind = fem_ind
         self.aero_ind = aero_ind
 
-        self.size = size = 6 * n_fem + 6 * num_surf
+        num_surf = fem_ind.shape[0]
+        tot_n_fem = numpy.sum(fem_ind[:, 0])
+        size = 6 * tot_n_fem + 6 * num_surf
+        self.tot_n_fem = tot_n_fem
+
+        self.size = size = 6 * tot_n_fem + 6 * num_surf
         self.n = n_fem
 
-        self.add_param('A', val=numpy.zeros((n_fem - 1)))
-        self.add_param('Iy', val=numpy.zeros((n_fem - 1)))
-        self.add_param('Iz', val=numpy.zeros((n_fem - 1)))
-        self.add_param('J', val=numpy.zeros((n_fem - 1)))
-        self.add_param('mesh', val=numpy.zeros((2*tot_n, 3), dtype="complex"))
+        self.add_param('A', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_param('Iy', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_param('Iz', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_param('J', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
 
-        self.add_param('loads', val=numpy.zeros((n_fem, 6)))
+        self.add_param('loads', val=numpy.zeros((tot_n_fem, 6)))
 
         self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
@@ -196,8 +220,6 @@ class SpatialBeamFEM(Component):
         # self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
         self.deriv_options['linearize'] = True # only for circulations
-
-        self.arange = numpy.arange(6*n_fem)
 
         self.E = E
         self.G = G
@@ -240,7 +262,7 @@ class SpatialBeamFEM(Component):
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
 
-        num_nodes = n_fem
+        num_nodes = tot_n_fem
         num_cons = self.num_surf
         size = 6*num_nodes + 6*num_cons
         self.mtx = numpy.zeros((size, size), dtype='complex')
@@ -276,7 +298,6 @@ class SpatialBeamFEM(Component):
             nodes = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
             idx = (numpy.linalg.norm(nodes-numpy.array([self.cg_x, 0, 0]), axis=1)).argmin()
             self.cons[i_surf] = idx
-
 
         self.mtx, self.rhs = _assemble_system(self.aero_ind, self.fem_ind, self.mesh, params['A'], params['J'],
                             params['Iy'], params['Iz'], params['loads'],
@@ -355,15 +376,15 @@ class SpatialBeamDisp(Component):
         num_surf = fem_ind.shape[0]
         tot_n_fem = numpy.sum(fem_ind[:, 0])
         size = 6 * tot_n_fem + 6 * num_surf
-        self.n = tot_n_fem
+        self.tot_n_fem = tot_n_fem
 
         self.add_param('disp_aug', val=numpy.zeros((size)))
         self.add_output('disp', val=numpy.zeros((tot_n_fem, 6)))
         self.arange = numpy.arange(6*tot_n_fem)
 
     def solve_nonlinear(self, params, unknowns, resids):
-        n = self.n
-        unknowns['disp'] = numpy.array(params['disp_aug'][:6*n].reshape((n, 6)))
+        tot_n_fem = self.tot_n_fem
+        unknowns['disp'] = numpy.array(params['disp_aug'][:6*tot_n_fem].reshape((tot_n_fem, 6)))
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -411,7 +432,7 @@ class SpatialBeamWeight(Component):
         self.n = tot_n_fem
 
         self.fem_ind = fem_ind
-        self.aer_ind = aero_ind
+        self.aero_ind = aero_ind
 
         self.add_param('A', val=numpy.zeros((tot_n_fem-num_surf)))
         self.add_param('mesh', val=numpy.zeros((tot_n, 3)))
@@ -471,21 +492,21 @@ class SpatialBeamVonMisesTube(Component):
         num_surf = fem_ind.shape[0]
         tot_n_fem = numpy.sum(fem_ind[:, 0])
         size = 6 * tot_n_fem + 6 * num_surf
-        self.n = tot_n_fem
+        self.tot_n_fem = tot_n_fem
 
         self.aero_ind = aero_ind
         self.fem_ind = fem_ind
 
         self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
-        self.add_param('r', val=numpy.zeros((tot_n-1), dtype="complex"))
-        self.add_param('disp', val=numpy.zeros((ny, 6), dtype="complex"))
+        self.add_param('r', val=numpy.zeros((tot_n_fem-num_surf), dtype="complex"))
+        self.add_param('disp', val=numpy.zeros((tot_n_fem, 6), dtype="complex"))
 
-        self.add_output('vonmises', val=numpy.zeros((ny-1, 2), dtype="complex"))
+        self.add_output('vonmises', val=numpy.zeros((tot_n_fem-num_surf, 2), dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
 
-        elem_IDs = numpy.zeros((tot_n_fem-self.num_surf, 2), int)
+        elem_IDs = numpy.zeros((tot_n_fem-num_surf, 2), int)
 
         for i_surf, row in enumerate(fem_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = aero_ind[i_surf, :]
@@ -554,13 +575,15 @@ class SpatialBeamVonMisesTube(Component):
 class SpatialBeamFailureKS(Component):
     """ Aggregates failure constraints from the structure """
 
-    def __init__(self, aero_ind, sigma, rho=10):
+    def __init__(self, fem_ind, sigma, rho=10):
         super(SpatialBeamFailureKS, self).__init__()
 
-        ny = aero_ind[0, 1]
+        num_surf = fem_ind.shape[0]
+        tot_n_fem = numpy.sum(fem_ind[:, 0])
+        size = 6 * tot_n_fem + 6 * num_surf
+        self.tot_n_fem = tot_n_fem
 
-        self.add_param('vonmises', val=numpy.zeros((ny-1, 2)))
-
+        self.add_param('vonmises', val=numpy.zeros((tot_n_fem - num_surf, 2)))
         self.add_output('failure', val=0.)
 
         self.deriv_options['type'] = 'cs'
@@ -611,5 +634,5 @@ class SpatialBeamFunctionals(Group):
                  SpatialBeamVonMisesTube(aero_ind, fem_ind, E, G),
                  promotes=['*'])
         self.add('failure',
-                 SpatialBeamFailureKS(aero_ind, stress),
+                 SpatialBeamFailureKS(fem_ind, stress),
                  promotes=['*'])

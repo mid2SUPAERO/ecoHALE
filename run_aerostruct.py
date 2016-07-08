@@ -135,7 +135,7 @@ root.add('weissingerfuncs',
          WeissingerFunctionals(aero_ind, CL0, CD0),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
+         SpatialBeamFunctionals(aero_ind, fem_ind, E, G, stress, mrho),
          promotes=['*'])
 root.add('fuelburn',
          FunctionalBreguetRange(W0, CT, a, R, M, aero_ind),
@@ -164,7 +164,7 @@ prob.driver.add_desvar('twist_cp',lower= -10.,
 #prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
 prob.driver.add_desvar('thickness_cp',
                        lower= 0.001,
-                       upper= 0.25, scaler=1e4)
+                       upper= 0.25, scaler=1e3)
 prob.driver.add_objective('fuelburn')
 prob.driver.add_constraint('failure', upper=0.0)
 prob.driver.add_constraint('eq_con', equals=0.0)

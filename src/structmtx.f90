@@ -141,7 +141,7 @@ subroutine assemblesparsemtx(num_nodes, num_elems, nnz, x_gl, &
 end subroutine assemblesparsemtx
 
 
-subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
+subroutine assemblestructmtx(nodes, A, J, Iy, Iz, loads, & ! 6
   M_a, M_t, M_y, M_z, & ! 4
   elem_IDs, cons, fem_origin, & ! 3
   E_py, G_py, x_gl, T, & ! 3
@@ -152,13 +152,13 @@ subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
 
   !f2py intent(in)   n, size, elem_IDs, cons, mesh, A, J, Iy, Iz, loads, fem_origin, E_py, G_py, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
   !f2py intent(out) mtx, rhs
-  !f2py depend(n) elem_IDs, mesh, A, J, Iy, Iz, loads
+  !f2py depend(n) elem_IDs, nodes, A, J, Iy, Iz, loads
   !f2py depend(size) mtx, rhs
 
   ! Input
   integer, intent(in) :: n, size, cons
   integer, intent(inout) :: elem_IDs(n-1, 2)
-  complex*16, intent(in) :: mesh(2, n, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
+  complex*16, intent(in) :: nodes(n, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
   complex*16, intent(in) :: loads(n, 6), fem_origin, E_py, G_py, x_gl(3)
   complex*16, intent(inout) :: M_a(2, 2), M_t(2, 2), M_y(4, 4), M_z(4, 4)
   complex*16, intent(inout) :: T(3, 3), K_elem(12, 12), T_elem(12, 12)
@@ -169,13 +169,11 @@ subroutine assemblestructmtx(mesh, A, J, Iy, Iz, loads, & ! 6
   complex*16, intent(out) :: mtx(size, size), rhs(size)
 
   ! Working
-  complex*16 :: nodes(n, 3), elem_nodes(n-1, 2, 3), E(n-1), G(n-1)
+  complex*16 :: elem_nodes(n-1, 2, 3), E(n-1), G(n-1)
   complex*16 :: P0(3), P1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
   complex*16 :: L, EA_L, GJ_L, EIy_L3, EIz_L3, norm, res(12, 12), loads_C(6, n)
   integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, k
 
-
-  nodes = (1-fem_origin) * mesh(1, :, :) + fem_origin * mesh(n, :, :)
 
   num_elems = n - 1
   num_nodes = n

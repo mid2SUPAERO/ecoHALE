@@ -29,12 +29,12 @@ if sys.argv[1].endswith('m'):
     num_x = 3
     num_y = 5
     span = 10.
-    chord = 1.
+    chord = 2.
     cosine_spacing = .5
     mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-    r = radii(mesh_wing)
+    r_wing = radii(mesh_wing) / 10
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
     fem_ind = [num_y]
@@ -46,25 +46,27 @@ if sys.argv[1].endswith('m'):
     cosine_spacing = .5
     mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
 
+    r_tail = radii(mesh_tail) / 10
     mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
     mesh_tail[:, 0] += 1e1
 
     aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
     mesh = numpy.vstack((mesh_wing, mesh_tail))
+    r = numpy.hstack((r_wing, r_tail))
 
     fem_ind.append(ny)
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 else:
     num_x = 2
-    num_y = 5
+    num_y = 11
     span = 10.
     chord = 5.
     cosine_spacing = .5
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-    r = radii(mesh)
+    r = radii(mesh) / 10
     mesh = mesh.reshape(-1, mesh.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
     fem_ind = [num_y]
@@ -78,15 +80,19 @@ t = r/20
 execfile('aluminum.py')
 
 # Define the loads
-loads = numpy.zeros((num_y, 6))
-loads[0, 2] = loads[-1, 2] = 1e3 # tip load of 1 kN
-loads[:, 2] = 1e3 # load of 1 kN at each node
+loads_wing = numpy.zeros((num_y, 6))
+loads_wing[0, 2] = loads_wing[-1, 2] = 1e3 # tip load of 1 kN
+loads_wing[:, 2] = 1e3 # load of 1 kN at each node
+tot_n_fem = numpy.sum(fem_ind[:, 0])
+num_surf = fem_ind.shape[0]
+loads = numpy.zeros((tot_n_fem, 6))
+loads[:num_y, :] = loads_wing
 
 span = 58.7630524 # [m] baseline CRM
 
 root = Group()
 jac_twist = get_bspline_mtx(num_twist, num_y)
-jac_thickness = get_bspline_mtx(num_thickness, num_y-1)
+jac_thickness = get_bspline_mtx(num_thickness, tot_n_fem-num_surf)
 
 des_vars = [
     ('twist_cp', numpy.zeros(num_twist)),
@@ -115,13 +121,13 @@ root.add('mesh',
          GeometryMesh(mesh, aero_ind),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(aero_ind),
+         MaterialsTube(fem_ind),
          promotes=['*'])
 root.add('spatialbeamstates',
          SpatialBeamStates(aero_ind, fem_ind, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
+         SpatialBeamFunctionals(aero_ind, fem_ind, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()

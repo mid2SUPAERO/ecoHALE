@@ -8,23 +8,26 @@ from openmdao.api import Component
 class MaterialsTube(Component):
     """ Computes geometric properties for a tube element """
 
-    def __init__(self, aero_ind):
+    def __init__(self, fem_ind):
         super(MaterialsTube, self).__init__()
 
-        n = aero_ind[0, 1]
+        num_surf = fem_ind.shape[0]
+        tot_n_fem = numpy.sum(fem_ind[:, 0])
+        size = 6 * tot_n_fem + 6 * num_surf
+        self.tot_n_fem = tot_n_fem
 
-        self.add_param('r', val=numpy.zeros((n - 1)))
-        self.add_param('thickness', val=numpy.zeros((n - 1)))
-        self.add_output('A', val=numpy.zeros((n - 1)))
-        self.add_output('Iy', val=numpy.zeros((n - 1)))
-        self.add_output('Iz', val=numpy.zeros((n - 1)))
-        self.add_output('J', val=numpy.zeros((n - 1)))
+        self.add_param('r', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_param('thickness', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_output('A', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_output('Iy', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_output('Iz', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_output('J', val=numpy.zeros((tot_n_fem - num_surf)))
 
 #        self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
 
-        self.arange = numpy.arange(n-1)
+        self.arange = numpy.arange(tot_n_fem - num_surf)
 
     def solve_nonlinear(self, params, unknowns, resids):
         pi = numpy.pi
