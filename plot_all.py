@@ -40,7 +40,7 @@ import aluminum
 if sys.argv[1] == 'as':
     filename = 'aerostruct'
 elif sys.argv[1] == 'a':
-    filename = 'weissinger'
+    filename = 'vlm'
 elif sys.argv[1] == 's':
     filename = 'spatialbeam'
 else:
@@ -141,7 +141,7 @@ class Display(object):
                 self.def_mesh.append(def_mesh)
                 nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
                 def_mesh = def_mesh[:n, :].reshape(nx, ny, 3)
-                
+
                 self.twist.append(case_data['Unknowns']['twist'])
 
                 normals.append(case_data['Unknowns']['normals'])

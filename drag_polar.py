@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
 from geometry import GeometryMesh, gen_mesh, LinearInterp
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from vlm import VLMStates, VLMFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
 
 # Define the aircraft properties
@@ -60,11 +60,11 @@ root.add('mesh',
 root.add('def_mesh',
          TransferDisplacements(aero_ind),
          promotes=['*'])
-root.add('weissingerstates',
-         WeissingerStates(aero_ind),
+root.add('vlmstates',
+         VLMStates(aero_ind),
          promotes=['*'])
-root.add('weissingerfuncs',
-         WeissingerFunctionals(aero_ind, CL0, CD0, num_twist),
+root.add('vlmfuncs',
+         VLMFunctionals(aero_ind, CL0, CD0, num_twist),
          promotes=['*'])
 
 prob = Problem()

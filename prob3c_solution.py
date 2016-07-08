@@ -6,7 +6,7 @@ import time
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
 from geometry import GeometryMesh, gen_crm_mesh, get_mesh_data
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from vlm import VLMStates, VLMFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
@@ -61,10 +61,10 @@ tube_comp = MaterialsTube(aero_ind)
 mesh_comp = GeometryMesh(mesh, aero_ind, num_twist)
 spatialbeamstates_comp = SpatialBeamStates(aero_ind, E, G)
 def_mesh_comp = TransferDisplacements(aero_ind)
-weissingerstates_comp = WeissingerStates(aero_ind)
+vlmstates_comp = VLMStates(aero_ind)
 loads_comp = TransferLoads(aero_ind)
 
-weissingerfuncs_comp = WeissingerFunctionals(aero_ind, CL0, CD0, num_twist)
+vlmfuncs_comp = VLMFunctionals(aero_ind, CL0, CD0, num_twist)
 spatialbeamfuncs_comp = SpatialBeamFunctionals(aero_ind, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M, aero_ind)
 eq_con_comp = FunctionalEquilibrium(W0, aero_ind)
@@ -87,8 +87,8 @@ coupled.add('spatialbeamstates',
 coupled.add('def_mesh',
     def_mesh_comp,
     promotes=["*"])
-coupled.add('weissingerstates',
-    weissingerstates_comp,
+coupled.add('vlmstates',
+    vlmstates_comp,
     promotes=["*"])
 coupled.add('loads',
     loads_comp,
@@ -107,7 +107,7 @@ coupled.nl_solver.newton.options['iprint'] = 1
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.vlmstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 
@@ -117,8 +117,8 @@ root.add('coupled',
          promotes=['*'])
 
 # Add functional components here
-root.add('weissingerfuncs',
-        weissingerfuncs_comp,
+root.add('vlmfuncs',
+        vlmfuncs_comp,
         promotes=['*'])
 root.add('spatialbeamfuncs',
         spatialbeamfuncs_comp,

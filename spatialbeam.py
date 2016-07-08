@@ -7,7 +7,7 @@ from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 import scipy.sparse
 import scipy.sparse.linalg
-from weissinger import view_mat
+from vlm import view_mat
 
 try:
     import lib
@@ -564,8 +564,6 @@ class SpatialBeamVonMisesTube(Component):
             P0 = nodes[in0, :]
             P1 = nodes[in1, :]
             L = norm(P1 - P0)
-
-            d1 = disp[in0, :3]
 
             x_loc = unit(P1 - P0)
             y_loc = unit(numpy.cross(x_loc, self.x_gl))

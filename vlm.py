@@ -1,4 +1,4 @@
-""" Defines the aerodynamic analysis component using Weissinger's lifting line theory """
+""" Defines the aerodynamic analysis component using VLM's lifting line theory """
 
 from __future__ import division
 import numpy
@@ -24,38 +24,6 @@ def view_mat(mat):
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
-
-def _biot_savart(A, B, P, inf=False, rev=False, eps=1e-5):
-    """
-    Apply Biot-Savart's law to compute v
-    induced at a control point by a vortex line
-    - A[3], B[3] : coordinates associated with the vortex line
-    - inf : the vortex line is semi-infinite, originating at A
-    - rev : signifies the following about the direction of the vortex line:
-       If False, points from A to B
-       If True,  points from B to A
-    - eps : parameter used to avoid singularities when points are on a vortex line
-    """
-
-    rPA = norm(A - P)
-    rPB = norm(B - P)
-    rAB = norm(B - A)
-    rH = norm(P - A - numpy.dot((B - A), (P - A)) / \
-              numpy.dot((B - A), (B - A)) * (B - A)) + eps
-    cosA = numpy.dot((P - A), (B - A)) / (rPA * rAB)
-    cosB = numpy.dot((P - B), (A - B)) / (rPB * rAB)
-    C = numpy.cross(B - P, A - P)
-    C /= norm(C)
-
-    if inf:
-        v = -C / rH * (cosA + 1)
-    else:
-        v = -C / rH * (cosA + cosB)
-
-    if rev:
-        v = -v
-
-    return v
 
 def _calc_vorticity(A, B, P):
     r1 = P - A
@@ -154,11 +122,11 @@ def _assemble_AIC_mtx(mtx, full_mesh, aero_ind, points, b_pts, alpha, skip=False
     mtx /= 4 * numpy.pi
 
 
-class WeissingerGeometry(Component):
-    """ Compute various geometric properties for Weissinger analysis """
+class VLMGeometry(Component):
+    """ Compute various geometric properties for VLM analysis """
 
     def __init__(self, aero_ind):
-        super(WeissingerGeometry, self).__init__()
+        super(VLMGeometry, self).__init__()
 
         n_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
@@ -243,11 +211,11 @@ class WeissingerGeometry(Component):
         return jac
 
 
-class WeissingerCirculations(Component):
+class VLMCirculations(Component):
     """ Define circulations """
 
     def __init__(self, aero_ind):
-        super(WeissingerCirculations, self).__init__()
+        super(VLMCirculations, self).__init__()
 
         tot_n = numpy.sum(aero_ind[:, 2])
         tot_bpts = numpy.sum(aero_ind[:, 3])
@@ -325,11 +293,11 @@ class WeissingerCirculations(Component):
             sol_vec[voi].vec[:] = lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
 
 
-class WeissingerForces(Component):
+class VLMForces(Component):
     """ Define aerodynamic forces acting on each section """
 
     def __init__(self, aero_ind):
-        super(WeissingerForces, self).__init__()
+        super(VLMForces, self).__init__()
 
         n_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
@@ -400,11 +368,11 @@ class WeissingerForces(Component):
         return jac
 
 
-class WeissingerLiftDrag(Component):
+class VLMLiftDrag(Component):
     """ Calculate total lift and drag in force units based on section forces """
 
     def __init__(self, aero_ind):
-        super(WeissingerLiftDrag, self).__init__()
+        super(VLMLiftDrag, self).__init__()
 
         n_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
@@ -454,11 +422,11 @@ class WeissingerLiftDrag(Component):
 
         return jac
 
-class WeissingerCoeffs(Component):
+class VLMCoeffs(Component):
     """ Compute lift and drag coefficients """
 
     def __init__(self, aero_ind):
-        super(WeissingerCoeffs, self).__init__()
+        super(VLMCoeffs, self).__init__()
 
         n_surf = aero_ind.shape[0]
         self.aero_ind = aero_ind
@@ -564,35 +532,35 @@ class TotalDrag(Component):
         jac['CD_wing', 'CDi'][0][0] = 1
         return jac
 
-class WeissingerStates(Group):
+class VLMStates(Group):
     """ Group that contains the aerodynamic states """
 
     def __init__(self, aero_ind):
-        super(WeissingerStates, self).__init__()
+        super(VLMStates, self).__init__()
 
         self.add('wgeom',
-                 WeissingerGeometry(aero_ind),
+                 VLMGeometry(aero_ind),
                  promotes=['*'])
         self.add('circ',
-                 WeissingerCirculations(aero_ind),
+                 VLMCirculations(aero_ind),
                  promotes=['*'])
         self.add('forces',
-                 WeissingerForces(aero_ind),
+                 VLMForces(aero_ind),
                  promotes=['*'])
 
 
 
-class WeissingerFunctionals(Group):
+class VLMFunctionals(Group):
     """ Group that contains the aerodynamic functionals used to evaluate performance """
 
     def __init__(self, aero_ind, CL0, CD0):
-        super(WeissingerFunctionals, self).__init__()
+        super(VLMFunctionals, self).__init__()
 
         self.add('liftdrag',
-                 WeissingerLiftDrag(aero_ind),
+                 VLMLiftDrag(aero_ind),
                  promotes=['*'])
         self.add('coeffs',
-                 WeissingerCoeffs(aero_ind),
+                 VLMCoeffs(aero_ind),
                  promotes=['*'])
         self.add('CL',
                  TotalLift(CL0, aero_ind),

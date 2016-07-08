@@ -12,7 +12,7 @@ from time import time
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
 from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from vlm import VLMStates, VLMFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
@@ -125,8 +125,8 @@ coupled.add('mesh',
 coupled.add('def_mesh',
             TransferDisplacements(aero_ind, fem_ind),
             promotes=['*'])
-coupled.add('weissingerstates',
-            WeissingerStates(aero_ind),
+coupled.add('vlmstates',
+            VLMStates(aero_ind),
             promotes=['*'])
 coupled.add('loads',
             TransferLoads(aero_ind, fem_ind),
@@ -140,7 +140,7 @@ coupled.nl_solver.options['iprint'] = 1
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.vlmstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
@@ -160,8 +160,8 @@ coupled.nl_solver.newton.options['iprint'] = 1
 root.add('coupled',
          coupled,
          promotes=['*'])
-root.add('weissingerfuncs',
-         WeissingerFunctionals(aero_ind, CL0, CD0),
+root.add('vlmfuncs',
+         VLMFunctionals(aero_ind, CL0, CD0),
          promotes=['*'])
 root.add('spatialbeamfuncs',
          SpatialBeamFunctionals(aero_ind, fem_ind, E, G, stress, mrho),

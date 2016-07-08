@@ -1,6 +1,6 @@
 """ Example script to run aerodynamics-only optimization.
-Call as `python run_weissinger.py 0` to run a single analysis, or
-call as `python run_weissinger.py 1` to perform optimization. """
+Call as `python run_vlm.py 0` to run a single analysis, or
+call as `python run_vlm.py 1` to perform optimization. """
 
 from __future__ import division
 import numpy
@@ -10,7 +10,7 @@ from time import time
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from vlm import VLMStates, VLMFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
 from b_spline import get_bspline_mtx
 
@@ -91,11 +91,11 @@ root.add('mesh',
 root.add('def_mesh',
          TransferDisplacements(aero_ind, fem_ind),
          promotes=['*'])
-root.add('weissingerstates',
-         WeissingerStates(aero_ind),
+root.add('vlmstates',
+         VLMStates(aero_ind),
          promotes=['*'])
-root.add('weissingerfuncs',
-         WeissingerFunctionals(aero_ind, CL0, CD0),
+root.add('vlmfuncs',
+         VLMFunctionals(aero_ind, CL0, CD0),
          promotes=['*'])
 
 prob = Problem()
@@ -121,7 +121,7 @@ prob.driver.add_objective('CD_wing', scaler=1e4)
 prob.driver.add_constraint('CL_wing', equals=0.5)
 
 # setup data recording
-prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
+prob.driver.add_recorder(SqliteRecorder('vlm.db'))
 
 # prob.root.deriv_options['type'] = 'fd'
 prob.setup()
