@@ -12,7 +12,6 @@ except:
     fortran_flag = False
 # fortran_flag = False
 
-
 def view_mat(mat):
     import matplotlib.pyplot as plt
     if len(mat.shape) > 2:

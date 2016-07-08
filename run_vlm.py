@@ -59,7 +59,8 @@ else:
 
     mesh = mesh.reshape(-1, mesh.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-fem_ind = [num_y]
+
+fem_ind = [num_y, ny]
 aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 root = Group()
@@ -74,8 +75,9 @@ des_vars = [
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
-    ('disp', numpy.zeros((num_y, 6))),
-    ('aero_ind', aero_ind)
+    ('disp', numpy.zeros((num_y+ny, 6))),
+    ('aero_ind', aero_ind),
+    ('fem_ind', fem_ind)
 ]
 
 

@@ -57,16 +57,17 @@ if sys.argv[1].endswith('m'):
     mesh = numpy.vstack((mesh_wing, mesh_tail))
     r = numpy.hstack((r_wing, r_tail))
 
+    r /= 5
+
     fem_ind.append(ny)
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 else:
-    num_x = 2
-    num_y = 9
-    span = 10.
-    chord = 5.
-    cosine_spacing = 0.
-    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    # Create the mesh with 2 inboard points and 3 outboard points.
+    # This will be mirrored to produce a mesh with 7 spanwise points,
+    # or 6 spanwise panels
+    mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
+    num_x, num_y = mesh.shape[:2]
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
     r = radii(mesh)
@@ -77,8 +78,7 @@ else:
 
 num_twist = 5
 num_thickness = num_twist
-t = r/20
-r /= 5
+t = r/4
 
 # Define the aircraft properties
 execfile('CRM.py')
