@@ -46,6 +46,8 @@ if sys.argv[1].endswith('m'):
     mesh_tail[:, 0] += 1e1
 
     aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
+    fem_ind = [num_y, ny]
+
     mesh = numpy.vstack((mesh_wing, mesh_tail))
 
 else:
@@ -59,9 +61,10 @@ else:
 
     mesh = mesh.reshape(-1, mesh.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
 
-fem_ind = [num_y, ny]
 aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+tot_n_fem = numpy.sum(fem_ind[:, 0])
 
 root = Group()
 
@@ -75,7 +78,7 @@ des_vars = [
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
-    ('disp', numpy.zeros((num_y+ny, 6))),
+    ('disp', numpy.zeros((tot_n_fem, 6))),
     ('aero_ind', aero_ind),
     ('fem_ind', fem_ind)
 ]

@@ -14,7 +14,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-sparse_flag = True
+sparse_flag = False
 
 def norm(vec):
     return numpy.sqrt(numpy.sum(vec**2))
@@ -59,18 +59,20 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
         loads_ = loads[i_fem:i_fem+n_fem]
 
         if fortran_flag and not sparse_flag:
-            mtx_, rhs_ = lib.assemblestructmtx(nodes, A_, J_, Iy_, Iz_, loads_,
+            mtx_ = lib.assemblestructmtx(nodes, A_, J_, Iy_, Iz_,
                                 M_a, M_t, M_y, M_z,
-                                elem_IDs_, cons[i_surf],
+                                elem_IDs_+1, cons[i_surf],
                                 E, G, x_gl, T,
                                 K_elem, S_a, S_t, S_y, S_z, T_elem,
-                                const2, const_y, const_z, n_fem, size_)
+                                const2, const_y, const_z, n_fem, tot_n_fem, size_)
             mtx[(i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6, (i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6] = mtx_
-            rhs[(i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6] = rhs_
+
+            rhs_[:] = 0.0
+            rhs_[:6*n_fem] = loads_.reshape((6*n_fem))
+            rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
 
         elif fortran_flag and sparse_flag:
             num_elems = elem_IDs_.shape[0]
-            num_nodes = n_fem
 
             nnz = 144 * num_elems
 
@@ -78,7 +80,7 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
                 nnz, x_gl, E*numpy.ones(num_elems), G*numpy.ones(num_elems), A_, J_, Iy_, Iz_, nodes, elem_IDs_+1, const2, const_y, const_z, S_a, S_t, S_y, S_z)
 
             data2 = numpy.ones(6*num_cons)
-            rows2 = numpy.arange(6*num_cons) + 6*num_nodes
+            rows2 = numpy.arange(6*num_cons) + 6*n_fem
             cols2 = numpy.zeros(6*num_cons)
             for ind in xrange(6):
                 cols2[ind::6] = 6*cons[i_surf] + ind
@@ -91,7 +93,7 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
             cols_list.append(cols)
 
             rhs_[:] = 0.0
-            rhs_[:6*num_nodes] = loads_.reshape((6*num_nodes))
+            rhs_[:6*n_fem] = loads_.reshape((6*n_fem))
             rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
 
         else:

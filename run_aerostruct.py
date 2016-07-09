@@ -215,3 +215,4 @@ elif sys.argv[1].startswith('0'):
 elif sys.argv[1].startswith('1'):
     prob.run()
 print "runtime: ", time() - st
+prob.check_partial_derivatives(compact_print=True)

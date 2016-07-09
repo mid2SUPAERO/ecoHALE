@@ -60,7 +60,7 @@ if sys.argv[1].endswith('m'):
 
 else:
     num_x = 2
-    num_y = 9
+    num_y = 11
     span = 10.
     chord = 5.
     cosine_spacing = 0.

@@ -141,61 +141,53 @@ subroutine assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, &
 end subroutine assemblesparsemtx
 
 
-subroutine assemblestructmtx(nodes, A, J, Iy, Iz, loads, & ! 6
+subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
   M_a, M_t, M_y, M_z, & ! 4
   elem_IDs, cons, & ! 3
   E_py, G_py, x_gl, T, & ! 3
   K_elem, S_a, S_t, S_y, S_z, T_elem, & ! 6
-  const2, const_y, const_z, n, size, mtx, rhs) ! 7
+  const2, const_y, const_z, n, tot_n_fem, size, mtx) ! 7
 
   implicit none
 
-  !f2py intent(in)   n, size, elem_IDs, cons, nodes, A, J, Iy, Iz, loads, E_py, G_py, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
-  !f2py intent(out) mtx, rhs
-  !f2py depend(n) elem_IDs, nodes, A, J, Iy, Iz, loads
-  !f2py depend(size) mtx, rhs
+  !f2py intent(in)   n, tot_n_fem, size, elem_IDs, cons, nodes, A, J, Iy, Iz, E_py, G_py, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
+  !f2py intent(out) mtx
+  !f2py depend(tot_n_fem) nodes
+  !f2py depend(n) elem_IDs, nodes, A, J, Iy, Iz
+  !f2py depend(size) mtx
 
   ! Input
-  integer, intent(in) :: n, size, cons
+  integer, intent(in) :: n, size, cons, tot_n_fem
   integer, intent(inout) :: elem_IDs(n-1, 2)
-  complex*16, intent(in) :: nodes(n, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
-  complex*16, intent(in) :: loads(n, 6), E_py, G_py, x_gl(3)
+  complex*16, intent(in) :: nodes(tot_n_fem, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
+  complex*16, intent(in) :: E_py, G_py, x_gl(3)
   complex*16, intent(inout) :: M_a(2, 2), M_t(2, 2), M_y(4, 4), M_z(4, 4)
   complex*16, intent(inout) :: T(3, 3), K_elem(12, 12), T_elem(12, 12)
   complex*16, intent(in) :: S_a(2, 12), S_t(2, 12), S_y(4, 12), S_z(4, 12)
   complex*16, intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, 4)
 
   ! Output
-  complex*16, intent(out) :: mtx(size, size), rhs(size)
+  complex*16, intent(out) :: mtx(size, size)
 
   ! Working
-  complex*16 :: elem_nodes(n-1, 2, 3), E(n-1), G(n-1)
+  complex*16 :: E(n-1), G(n-1)
   complex*16 :: P0(3), P1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-  complex*16 :: L, EA_L, GJ_L, EIy_L3, EIz_L3, norm, res(12, 12), loads_C(6, n)
+  complex*16 :: L, EA_L, GJ_L, EIy_L3, EIz_L3, norm, res(12, 12)
   integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, k
 
 
   num_elems = n - 1
   num_nodes = n
-  num_cons = 1 ! this may change? only 1 con in current spatialbeam code
+  num_cons = 1 ! only 1 con in current spatialbeam code
 
-  elem_IDs(:, :) = elem_IDs(:, :) + 1 ! account for 1-indexing in Fortran vs 0-indexing in Python
-
-  do ielem = 1, num_elems ! loop over num elements
-    in0 = elem_IDs(ielem, 1)
-    in1 = elem_IDs(ielem, 2)
-
-    elem_nodes(ielem, 1, :) = nodes(in0, :)
-    elem_nodes(ielem, 2, :) = nodes(in1, :)
-  end do
 
   E(:) = E_py * 1.0d0
   G(:) = G_py * 1.0d0
 
   mtx(:, :) = 0.
   do ielem = 1, num_elems ! loop over num elements
-    P0 = elem_nodes(ielem, 1, :)
-    P1 = elem_nodes(ielem, 2, :)
+    P0 = nodes(elem_IDs(ielem, 1), :)
+    P1 = nodes(elem_IDs(ielem, 2), :)
 
     call unit(P1 - P0, x_loc)
     call cross(x_loc, x_gl, x_cross)
@@ -257,17 +249,10 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, loads, & ! 6
 
   end do
 
-
   do k = 1, 6
     mtx(6*num_nodes+k, 6*cons+k) = 1.
     mtx(6*cons+k, 6*num_nodes+k) = 1.
   end do
-
-  rhs(:) = 0.0
-  ! change ordering from Fortran to C
-  loads_C = reshape(loads, shape(loads_C), order=(/2, 1/))
-  rhs(:6*num_nodes) = reshape(loads_C, (/6*num_nodes/))
-
 
 end subroutine assemblestructmtx
 
