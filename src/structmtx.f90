@@ -250,8 +250,8 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
   end do
 
   do k = 1, 6
-    mtx(6*num_nodes+k, 6*cons+k) = 10**12.
-    mtx(6*cons+k, 6*num_nodes+k) = 10**12.
+    mtx(6*num_nodes+k, 6*cons+k) = 10**9.
+    mtx(6*cons+k, 6*num_nodes+k) = 10**9.
   end do
 
 end subroutine assemblestructmtx

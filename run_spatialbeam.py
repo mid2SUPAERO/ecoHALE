@@ -60,7 +60,7 @@ if sys.argv[1].endswith('m'):
 
 else:
     num_x = 2
-    num_y = 11
+    num_y = 9
     span = 10.
     chord = 5.
     cosine_spacing = 0.
@@ -161,7 +161,7 @@ st = time()
 prob.run_once()
 if sys.argv[1].startswith('0'):
     # Uncomment this line to check derivatives.
-    prob.check_partial_derivatives(compact_print=True)
+    # prob.check_partial_derivatives(compact_print=True)
     pass
 elif sys.argv[1].startswith('1'):
     prob.run()

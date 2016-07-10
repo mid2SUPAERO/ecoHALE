@@ -28,6 +28,7 @@ except:
     SNOPT = False
 
 if sys.argv[1].endswith('m'):
+    # Multiple surface aerostructural optimization currently not working
     num_x = 2
     num_y = 5
     span = 5.
@@ -66,7 +67,7 @@ else:
     # Create the mesh with 2 inboard points and 3 outboard points.
     # This will be mirrored to produce a mesh with 7 spanwise points,
     # or 6 spanwise panels
-    mesh = gen_crm_mesh(n_points_inboard=3, n_points_outboard=3, num_x=2)
+    mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
     num_x, num_y = mesh.shape[:2]
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
@@ -149,11 +150,12 @@ coupled.nl_solver.options['rtol'] = 1e-12
 
 coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
 coupled.nl_solver.nlgs.options['iprint'] = 1
-coupled.nl_solver.nlgs.options['maxiter'] = 10
+coupled.nl_solver.nlgs.options['maxiter'] = 6
 coupled.nl_solver.nlgs.options['atol'] = 1e-8
 coupled.nl_solver.nlgs.options['rtol'] = 1e-12
 coupled.nl_solver.newton.options['atol'] = 1e-7
 coupled.nl_solver.newton.options['rtol'] = 1e-7
+coupled.nl_solver.newton.options['maxiter'] = 1
 coupled.nl_solver.newton.options['iprint'] = 1
 
 root.add('coupled',
@@ -191,7 +193,7 @@ prob.driver.add_desvar('twist_cp',lower= -10.,
                        upper=10., scaler=1e0)
 #prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
 prob.driver.add_desvar('thickness_cp',
-                       lower= 0.001,
+                       lower= 0.01,
                        upper= 0.25, scaler=1e3)
 prob.driver.add_objective('fuelburn', scaler=1e-4)
 prob.driver.add_constraint('failure', upper=0.0)
@@ -216,6 +218,3 @@ elif sys.argv[1].startswith('0'):
 elif sys.argv[1].startswith('1'):
     prob.run()
 print "runtime: ", time() - st
-print prob['vonmises']
-print prob['nodes']
-print prob['disp']

@@ -78,7 +78,7 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
             data1, rows1, cols1 = lib.assemblesparsemtx(num_elems, tot_n_fem,
                 nnz, x_gl, E*numpy.ones(num_elems), G*numpy.ones(num_elems), A_, J_, Iy_, Iz_, nodes, elem_IDs_+1, const2, const_y, const_z, S_a, S_t, S_y, S_z)
 
-            data2 = numpy.ones(6*num_cons)*1.e12
+            data2 = numpy.ones(6*num_cons)*1.e9
             rows2 = numpy.arange(6*num_cons) + 6*n_fem
             cols2 = numpy.zeros(6*num_cons)
             for ind in xrange(6):
@@ -96,23 +96,17 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
             rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
 
         else:
-            num_elems = elem_IDs.shape[0]
-            num_nodes = nodes.shape[0]
-            num_cons = cons.shape[0]
+            num_elems = elem_IDs_.shape[0]
+            num_nodes = num_elems + 1
 
             elem_nodes = numpy.zeros((num_elems, 2, 3), dtype='complex')
 
-            for ielem in xrange(num_elems):
-                in0, in1 = elem_IDs[ielem, :]
-                elem_nodes[ielem, 0, :] = nodes[in0, :]
-                elem_nodes[ielem, 1, :] = nodes[in1, :]
+            E, G = E * numpy.ones(num_elems), G * numpy.ones(num_elems)
 
-            E, G = E * numpy.ones(num_nodes - 1), G * numpy.ones(num_nodes - 1)
-
-            mtx[:] = 0.
+            mtx_[:] = 0.
             for ielem in xrange(num_elems):
-                P0 = elem_nodes[ielem, 0, :]
-                P1 = elem_nodes[ielem, 1, :]
+                P0 = nodes[elem_IDs_[ielem, 0], :]
+                P1 = nodes[elem_IDs_[ielem, 1], :]
 
                 x_loc = unit(P1 - P0)
                 y_loc = unit(numpy.cross(x_loc, x_gl))
@@ -163,13 +157,14 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
 
             for ind in xrange(num_cons):
                 for k in xrange(6):
-                    mtx_[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.e12
-                    mtx_[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.e12
+                    mtx_[6*num_nodes + 6*ind + k, 6*cons[i_surf]+k] = 1.e9
+                    mtx_[6*cons[i_surf]+k, 6*num_nodes + 6*ind + k] = 1.e9
 
-            rhs[:] = 0.0
-            rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
+            rhs_[:] = 0.0
+            rhs_[:6*n_fem] = loads_.reshape((6*n_fem))
+            rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
 
-            mtx[i_fem*6:(i_fem+n_fem+num_cons)*6, i_fem*6:(i_fem+n_fem+num_cons)*6] = mtx_
+            mtx[(i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6, (i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6] = mtx_
 
     if fortran_flag and sparse_flag:
         data = numpy.concatenate(data_list)

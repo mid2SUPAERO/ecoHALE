@@ -25,7 +25,7 @@ execfile('CRM.py')
 
 if sys.argv[1].endswith('m'):
     num_x = 3
-    num_y = 3
+    num_y = 5
     span = 10.
     chord = 1.
     cosine_spacing = .5
