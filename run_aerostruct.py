@@ -66,7 +66,7 @@ else:
     # Create the mesh with 2 inboard points and 3 outboard points.
     # This will be mirrored to produce a mesh with 7 spanwise points,
     # or 6 spanwise panels
-    mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
+    mesh = gen_crm_mesh(n_points_inboard=3, n_points_outboard=3, num_x=2)
     num_x, num_y = mesh.shape[:2]
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
@@ -76,9 +76,8 @@ else:
     fem_ind = [num_y]
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
-num_twist = 5
 num_thickness = num_twist
-t = r/4
+t = r/10
 
 # Define the aircraft properties
 execfile('CRM.py')
@@ -194,7 +193,7 @@ prob.driver.add_desvar('twist_cp',lower= -10.,
 prob.driver.add_desvar('thickness_cp',
                        lower= 0.001,
                        upper= 0.25, scaler=1e3)
-prob.driver.add_objective('fuelburn')
+prob.driver.add_objective('fuelburn', scaler=1e-4)
 prob.driver.add_constraint('failure', upper=0.0)
 prob.driver.add_constraint('eq_con', equals=0.0)
 
@@ -211,8 +210,12 @@ prob.run_once()
 if len(sys.argv) == 1:
     pass
 elif sys.argv[1].startswith('0'):
-    prob.check_partial_derivatives(compact_print=True)
+    # prob.check_partial_derivatives(compact_print=True)
+    pass
+
 elif sys.argv[1].startswith('1'):
     prob.run()
 print "runtime: ", time() - st
-prob.check_partial_derivatives(compact_print=True)
+print prob['vonmises']
+print prob['nodes']
+print prob['disp']

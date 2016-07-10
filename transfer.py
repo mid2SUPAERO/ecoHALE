@@ -9,7 +9,7 @@ from openmdao.api import Component
 class TransferDisplacements(Component):
     """ Performs displacement transfer """
 
-    def __init__(self, aero_ind, fem_ind, fem_origin=0.35):
+    def __init__(self, aero_ind, fem_ind):
         super(TransferDisplacements, self).__init__()
 
         n_surf = aero_ind.shape[0]
@@ -19,10 +19,10 @@ class TransferDisplacements(Component):
         self.aero_ind = aero_ind
         self.fem_ind = fem_ind
         tot_n_fem = numpy.sum(fem_ind[:, 0])
-        self.fem_origin = fem_origin
 
         self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
         self.add_param('disp', val=numpy.zeros((tot_n_fem, 6), dtype="complex"))
+        self.add_param('nodes', val=numpy.zeros((tot_n_fem, 3)))
         self.add_output('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
@@ -38,8 +38,7 @@ class TransferDisplacements(Component):
             mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
             disp = params['disp'][i_fem:i_fem+n_fem]
 
-            w = self.fem_origin
-            ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+            ref_curve = params['nodes']
 
             Smesh = numpy.zeros(mesh.shape, dtype="complex")
             for ind in xrange(nx):
@@ -62,7 +61,6 @@ class TransferDisplacements(Component):
                 def_mesh[:, ind, 1] += dy
                 def_mesh[:, ind, 2] += dz
 
-
             unknowns['def_mesh'][i:i+n, :] = \
                 (def_mesh + mesh).reshape(n, 3).astype("complex")
 
@@ -82,7 +80,6 @@ class TransferLoads(Component):
         tot_n_fem = numpy.sum(fem_ind[:, 0])
         self.fem_origin = fem_origin
 
-        self.fem_origin = fem_origin
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
         self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3), dtype="complex"))
@@ -99,7 +96,7 @@ class TransferLoads(Component):
 
             mesh = params['def_mesh'][i:i+n, :].reshape(nx, ny, 3)
 
-            sec_forces = params['sec_forces'][i_panels:i_panels+n_panels, :].reshape(nx-1, ny-1, 3)
+            sec_forces = params['sec_forces'][i_panels:i_panels+n_panels, :].reshape(nx-1, ny-1, 3, order='F')
             sec_forces = numpy.sum(sec_forces, axis=0)
 
             w = 0.25

@@ -235,6 +235,7 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base
 
     full_mesh = mirror(half_mesh)
     full_mesh = add_chordwise_panels(full_mesh, num_x)
+    full_mesh[:, :, 1] -= numpy.mean(full_mesh[:, :, 1])
     return full_mesh
 
 def add_chordwise_panels(mesh, num_x):

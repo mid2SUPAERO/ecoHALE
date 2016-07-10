@@ -44,7 +44,6 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
     size = 6 * tot_n_fem + 6 * num_surf
 
     for i_surf, row in enumerate(fem_ind):
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = aero_ind[i_surf, :]
         n_fem, i_fem = row
 
         num_cons = 1 # just one constraint per structural component
@@ -79,7 +78,7 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
             data1, rows1, cols1 = lib.assemblesparsemtx(num_elems, tot_n_fem,
                 nnz, x_gl, E*numpy.ones(num_elems), G*numpy.ones(num_elems), A_, J_, Iy_, Iz_, nodes, elem_IDs_+1, const2, const_y, const_z, S_a, S_t, S_y, S_z)
 
-            data2 = numpy.ones(6*num_cons)
+            data2 = numpy.ones(6*num_cons)*1.e12
             rows2 = numpy.arange(6*num_cons) + 6*n_fem
             cols2 = numpy.zeros(6*num_cons)
             for ind in xrange(6):
@@ -164,8 +163,8 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
 
             for ind in xrange(num_cons):
                 for k in xrange(6):
-                    mtx_[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.
-                    mtx_[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.
+                    mtx_[6*num_nodes + 6*ind + k, 6*cons[ind]+k] = 1.e12
+                    mtx_[6*cons[ind]+k, 6*num_nodes + 6*ind + k] = 1.e12
 
             rhs[:] = 0.0
             rhs[:6*num_nodes] = loads.reshape((6*num_nodes))
@@ -179,6 +178,8 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
         mtx = scipy.sparse.csc_matrix((data, (rows, cols)),
                                       shape=(size, size))
 
+
+    rhs[numpy.abs(rhs) < 1e-6] = 0.
     return mtx, rhs
 
 
@@ -285,7 +286,6 @@ class SpatialBeamFEM(Component):
         self.cons = numpy.zeros((self.num_surf))
 
         for i_surf, row in enumerate(self.fem_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[i_surf, :]
             n_fem, i_fem = row
             nodes = params['nodes'][i_fem:i_fem+n_fem]
             idx = (numpy.linalg.norm(nodes-numpy.array([self.cg_x, 0, 0]), axis=1)).argmin()
@@ -304,7 +304,6 @@ class SpatialBeamFEM(Component):
         else:
             self.splu = scipy.sparse.linalg.splu(self.mtx)
             unknowns['disp_aug'] = self.splu.solve(self.rhs)
-
 
     def apply_nonlinear(self, params, unknowns, resids):
         nodes = params['nodes']
@@ -589,6 +588,7 @@ class SpatialBeamVonMisesTube(Component):
 
             vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
             vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
+
 
 
 class SpatialBeamFailureKS(Component):

@@ -335,12 +335,12 @@ class Display(object):
                 r = numpy.array((r0[i], r0[i]))
                 R, P = numpy.meshgrid(r, p)
                 X, Z = R*numpy.cos(P), R*numpy.sin(P)
-                chords = mesh0[1, :, 0] - mesh0[0, :, 0]
+                chords = mesh0[-1, :, 0] - mesh0[0, :, 0]
                 comp = fem_origin * chords + mesh0[0, :, 0]
                 X[:, 0] += comp[i]
                 X[:, 1] += comp[i+1]
-                Z[:, 0] += fem_origin * mesh0[1, i, 2]
-                Z[:, 1] += fem_origin * mesh0[1, i+1, 2]
+                Z[:, 0] += fem_origin * mesh0[-1, i, 2]
+                Z[:, 1] += fem_origin * mesh0[-1, i+1, 2]
                 Y = numpy.empty(X.shape)
                 Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
                 col = numpy.zeros(X.shape)
