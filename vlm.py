@@ -10,9 +10,9 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-# fortran_flag = False
 
 def view_mat(mat):
+    """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
     if len(mat.shape) > 2:
         mat = numpy.sum(mat, axis=2)
@@ -22,9 +22,29 @@ def view_mat(mat):
     plt.show()
 
 def norm(vec):
+    """ Finds the 2-norm of a vector. """
     return numpy.sqrt(numpy.sum(vec**2))
 
 def _calc_vorticity(A, B, P):
+    """ Calculates the influence coefficient for a vortex filament.
+
+    Parameters
+    ----------
+    A[3] : array_like
+        Coordinates for the start point of the filament.
+    B[3] : array_like
+        Coordinates for the end point of the filament.
+    P[3] : array_like
+        Coordinates for the collocation point where the influence coefficient
+        is computed.
+
+    Returns
+    -------
+    out[3] : array_like
+        Influence coefficient contribution for the described filament.
+
+    """
+
     r1 = P - A
     r2 = P - B
 
@@ -35,14 +55,42 @@ def _calc_vorticity(A, B, P):
          (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
 
 
-def _assemble_AIC_mtx(mtx, full_mesh, aero_ind, points, b_pts, alpha, skip=False):
+def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points, b_pts, alpha, skip=False):
     """
     Compute the aerodynamic influence coefficient matrix
-    either for the ation linear system or Trefftz-plane drag computation
-    - mtx[num_y-1, num_y-1, 3] : derivative of v w.r.t. circulation
-    - mesh[2, num_y, 3] : contains LE and TE coordinates at each section
-    - points[num_y-1, 3] : control points
-    - b_pts[num_y, 3] : bound vortex coordinates
+    for either solving the linear system or solving for the drag.
+
+    Parameters
+    ----------
+    mtx[num_y-1, num_y-1, 3] : array_like
+        Aerodynamic influence coefficient (AIC) matrix, or the
+        derivative of v w.r.t. circulations.
+    flat_mesh[num_x*num_y, 3] : array_like
+        Flat array containing nodal coordinates.
+    aero_ind[num_surf, 7] : array_like
+        Array containing index information for the aerodynamic surfaces.
+        See geometry.py/get_inds for more details.
+    fem_ind[num_surf, 3] : array_like
+        Array containing index information for the aerodynamic surfaces.
+        See geometry.py/get_inds for more details.
+    points[num_y-1, 3] : array_like
+        Collocation points used to find influence coefficient strength.
+        Found at 3/4 chord for the linear system and at the midpoint of
+        the bound vortices (1/4 chord) for the drag computation.
+    b_pts[num_x-1, num_y, 3] : array_like
+        Bound vortex coordinates from the 1/4 chord line.
+    alpha : float
+        Angle of attack.
+    skip : boolean
+        If false, the bound vortex contributions on the collocation point
+        corresponding to the same panel are not included. Used for the drag
+        computation.
+
+    Returns
+    -------
+    mtx[num_y-1, num_y-1, 3] : array_like
+        Aerodynamic influence coefficient (AIC) matrix, or the
+        derivative of v w.r.t. circulations.
     """
 
     mtx[:, :, :] = 0.0
@@ -53,7 +101,7 @@ def _assemble_AIC_mtx(mtx, full_mesh, aero_ind, points, b_pts, alpha, skip=False
     for i_surf, row in enumerate(aero_ind):
         nx_, ny_, n_, n_bpts_, n_panels_, i_, i_bpts_, i_panels_ = row.copy()
         n = nx_ * ny_
-        mesh = full_mesh[i_:i_+n_, :].reshape(nx_, ny_, 3)
+        mesh = flat_mesh[i_:i_+n_, :].reshape(nx_, ny_, 3)
         bpts = b_pts[i_bpts_:i_bpts_+n_bpts_].reshape(nx_-1, ny_, 3)
 
         for i_points, row in enumerate(aero_ind):

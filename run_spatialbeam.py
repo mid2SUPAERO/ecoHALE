@@ -65,7 +65,6 @@ else:
     chord = 5.
     cosine_spacing = 0.
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
-    num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
     r = radii(mesh)
     mesh = mesh.reshape(-1, mesh.shape[-1])
@@ -73,9 +72,9 @@ else:
     fem_ind = [num_y]
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
-num_twist = 5
+num_twist = numpy.max([int((num_y - 1) / 5), 5])
 num_thickness = num_twist
-t = r/20
+t = r / 20
 r /= 5
 
 # Define the material properties
