@@ -58,6 +58,7 @@ def get_inds(aero_ind, fem_ind):
 
     return new_aero_ind, new_fem_ind
 
+
 def rotate(mesh, thetas):
     """
     Computes rotation matrices given mesh and rotation angles in degrees.
@@ -85,6 +86,7 @@ def rotate(mesh, thetas):
         row += quarter_chord
     return mesh
 
+
 def sweep(mesh, angle):
     """ Apply shearing sweep. Positive sweeps back. """
 
@@ -92,7 +94,6 @@ def sweep(mesh, angle):
     ny2 = (num_y-1)/2
 
     le = mesh[0]
-    te = mesh[-1]
 
     y0 = le[ny2, 1]
     p180 = numpy.pi / 180
@@ -107,14 +108,14 @@ def sweep(mesh, angle):
 
     return mesh
 
+
 def dihedral(mesh, angle):
     """ Apply dihedral angle. Positive bends up. """
 
     num_x, num_y, _ = mesh.shape
-    ny2 = (num_y-1)/2
+    ny2 = (num_y-1) / 2
 
     le = mesh[0]
-    te = mesh[-1]
 
     y0 = le[ny2, 1]
     p180 = numpy.pi / 180
@@ -134,7 +135,6 @@ def stretch(mesh, length):
     """ Strech mesh in spanwise direction to reach specified length. """
 
     le = mesh[0]
-    te = mesh[-1]
 
     num_x, num_y, _ = mesh.shape
 
@@ -146,6 +146,7 @@ def stretch(mesh, length):
 
     return mesh
 
+
 def taper(mesh, taper_ratio):
     """ Alter the spanwise chord to produce a tapered wing. """
 
@@ -154,9 +155,7 @@ def taper(mesh, taper_ratio):
     num_x, num_y, _ = mesh.shape
     ny2 = int((num_y+1)/2)
 
-    tele = te - le
     center_chord = .5 * te + .5 * le
-    span = le[-1, 1] - le[0, 1]
     taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
 
     jac = get_bspline_mtx(ny2, ny2, order=2)
@@ -204,7 +203,8 @@ def mirror(mesh, right_side=True):
     return new_mesh
 
 
-def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base_mesh):
+def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
+                 num_x=2, mesh=crm_base_mesh):
     """
     Build the right hand side of the CRM wing with specified number
     of inboard and outboard panels.
@@ -243,9 +243,9 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base
     dy = (mesh[0, 1, 1] - mesh[0, 0, 1]) / (n_points_inboard - 1)
     for i in xrange(n_points_inboard):
         y = half_mesh[0, i, 1] = i * dy
-        half_mesh[0, i, 0] = s1 * y + o1 # le point
+        half_mesh[0, i, 0] = s1 * y + o1  # le point
         half_mesh[1, i, 1] = y
-        half_mesh[1, i, 0] = s2 * y + o2 # te point
+        half_mesh[1, i, 0] = s2 * y + o2  # te point
 
     yehudi_break = mesh[0, 1, 1]
     # generate outboard points
@@ -253,14 +253,15 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base
     for j in xrange(n_points_outboard):
         i = j + n_points_inboard - 1
         y = half_mesh[0, i, 1] = j * dy + yehudi_break
-        half_mesh[0, i, 0] = s3 * y + o3 # le point
+        half_mesh[0, i, 0] = s3 * y + o3  # le point
         half_mesh[1, i, 1] = y
-        half_mesh[1, i, 0] = s4 * y + o4 # te point
+        half_mesh[1, i, 0] = s4 * y + o4  # te point
 
     full_mesh = mirror(half_mesh)
     full_mesh = add_chordwise_panels(full_mesh, num_x)
     full_mesh[:, :, 1] -= numpy.mean(full_mesh[:, :, 1])
     return full_mesh
+
 
 def add_chordwise_panels(mesh, num_x):
     """ Divide the wing into multiple chordwise panels. """
@@ -278,6 +279,7 @@ def add_chordwise_panels(mesh, num_x):
 
     return new_mesh
 
+
 def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
     """ Generate simple rectangular wing mesh. """
 
@@ -286,15 +288,17 @@ def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 
     # mixed spacing with w as a weighting factor
-    cosine = .5 * numpy.cos(beta) #  cosine spacing
-    uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
+    cosine = .5 * numpy.cos(beta)  # cosine spacing
+    uniform = numpy.linspace(0, .5, ny2)[::-1]  # uniform spacing
     half_wing = cosine * cosine_spacing + (1 - cosine_spacing) * uniform
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0]
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord,
+                                     full_wing[ind_y], 0]
     return mesh
+
 
 class GeometryMesh(Component):
     """
@@ -309,7 +313,8 @@ class GeometryMesh(Component):
         self.nx = aero_ind[0, 0]
         self.n = self.nx * self.ny
         self.mesh = mesh
-        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
+        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).\
+            astype('complex')
 
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
@@ -322,7 +327,8 @@ class GeometryMesh(Component):
         # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        self.wing_mesh = self.mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
+        self.wing_mesh = self.mesh[:self.n, :].reshape(self.nx, self.ny, 3).\
+            astype('complex')
 
         # stretch(self.wing_mesh, params['span'])
         sweep(self.wing_mesh, params['sweep'])
@@ -330,17 +336,21 @@ class GeometryMesh(Component):
         dihedral(self.wing_mesh, params['dihedral'])
         taper(self.wing_mesh, params['taper'])
 
-        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3).astype('complex')
+        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3).\
+            astype('complex')
 
     def linearize(self, params, unknowns, resids):
 
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['span', 'sweep', 'dihedral', 'twist', 'taper'],
-                                         fd_states=[])
+                                            fd_params=['span', 'sweep',
+                                                       'dihedral', 'twist',
+                                                       'taper'],
+                                            fd_states=[])
         jac.update(fd_jac)
         return jac
+
 
 class Bspline(Component):
     """
@@ -392,6 +402,7 @@ class LinearInterp(Component):
 
             unknowns[self.vname][ind] = a*(1-w) + b*w
             unknowns[self.vname][-1-ind] = a*(1-w) + b*w
+
 
 if __name__ == "__main__":
     """ Test mesh generation and view results in .html file. """

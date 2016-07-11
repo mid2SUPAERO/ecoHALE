@@ -1,5 +1,5 @@
 """
-Defines the aerodynamic analysis component using a vortex lattice method.
+Define the aerodynamic analysis component using a vortex lattice method.
 
 We input a nodal mesh and properties of the airflow to calculate the
 circulations of the horseshoe vortices. We then compute the forces, lift,
@@ -18,6 +18,7 @@ try:
 except:
     fortran_flag = False
 
+
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
@@ -28,9 +29,11 @@ def view_mat(mat):
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
+
 def norm(vec):
     """ Finds the 2-norm of a vector. """
     return numpy.sqrt(numpy.sum(vec**2))
+
 
 def _calc_vorticity(A, B, P):
     """ Calculates the influence coefficient for a vortex filament.
@@ -59,10 +62,11 @@ def _calc_vorticity(A, B, P):
     r2_mag = norm(r2)
 
     return (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
-         (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
+           (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
 
 
-def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points, b_pts, alpha, skip=False):
+def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
+                      b_pts, alpha, skip=False):
     """
     Compute the aerodynamic influence coefficient matrix
     for either solving the linear system or solving for the drag.
@@ -119,7 +123,9 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points, b_pts, alpha, skip=False
             small_mat = numpy.zeros((n_panels, n_panels_, 3)).astype("complex")
 
             if fortran_flag:
-                small_mat[:, :, :] = lib.assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, pts, bpts, mesh, skip)
+                small_mat[:, :, :] = lib.assembleaeromtx(ny, nx, ny_, nx_,
+                                                         alpha, pts, bpts,
+                                                         mesh, skip)
             else:
                 # Spanwise loop through horseshoe elements
                 for el_j in xrange(ny_ - 1):
@@ -143,8 +149,10 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points, b_pts, alpha, skip=False
                             r1_mag = norm(r1)
                             r2_mag = norm(r2)
 
-                            t1 = numpy.cross(u, r2) / (r2_mag * (r2_mag - u.dot(r2)))
-                            t3 = numpy.cross(u, r1) / (r1_mag * (r1_mag - u.dot(r1)))
+                            t1 = numpy.cross(u, r2) / \
+                                (r2_mag * (r2_mag - u.dot(r2)))
+                            t3 = numpy.cross(u, r1) / \
+                                (r1_mag * (r1_mag - u.dot(r1)))
 
                             trailing = t1 - t3
                             edges = 0
@@ -166,12 +174,15 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points, b_pts, alpha, skip=False
                                 edges += _calc_vorticity(D, A, P)
 
                                 if skip and el_loc == cp_loc:
-                                    small_mat[cp_loc, el_loc, :] = trailing + edges
+                                    small_mat[cp_loc, el_loc, :] = \
+                                        trailing + edges
                                 else:
                                     bound = _calc_vorticity(A, B, P)
-                                    small_mat[cp_loc, el_loc, :] = trailing + edges + bound
+                                    small_mat[cp_loc, el_loc, :] = \
+                                        trailing + edges + bound
 
-            mtx[i_panels:i_panels+n_panels, i_panels_:i_panels_+n_panels_, :] = small_mat
+            mtx[i_panels:i_panels+n_panels,
+                i_panels_:i_panels_+n_panels_, :] = small_mat
 
     mtx /= 4 * numpy.pi
 
@@ -213,9 +224,12 @@ class VLMGeometry(Component):
         tot_panels = numpy.sum(aero_ind[:, 4])
         self.aero_ind = aero_ind
 
-        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
-        self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3), dtype="complex"))
-        self.add_output('mid_b', val=numpy.zeros((tot_panels, 3), dtype="complex"))
+        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3),
+                       dtype="complex"))
+        self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3),
+                        dtype="complex"))
+        self.add_output('mid_b', val=numpy.zeros((tot_panels, 3),
+                        dtype="complex"))
         self.add_output('c_pts', val=numpy.zeros((tot_panels, 3)))
         self.add_output('widths', val=numpy.zeros((tot_panels)))
         self.add_output('normals', val=numpy.zeros((tot_panels, 3)))
@@ -242,8 +256,8 @@ class VLMGeometry(Component):
             widths = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
 
             normals = numpy.cross(
-                mesh[:-1,  1:, :] - mesh[ 1:, :-1, :],
-                mesh[:-1, :-1, :] - mesh[ 1:,  1:, :],
+                mesh[:-1,  1:, :] - mesh[1:, :-1, :],
+                mesh[:-1, :-1, :] - mesh[1:,  1:, :],
                 axis=2)
 
             norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
@@ -251,11 +265,16 @@ class VLMGeometry(Component):
             for j in xrange(3):
                 normals[:, :, j] /= norms
 
-            unknowns['b_pts'][i_bpts:i_bpts+n_bpts, :] = b_pts.reshape(-1, b_pts.shape[-1])
-            unknowns['mid_b'][i_panels:i_panels+n_panels, :] = mid_b.reshape(-1, mid_b.shape[-1])
-            unknowns['c_pts'][i_panels:i_panels+n_panels, :] = c_pts.reshape(-1, c_pts.shape[-1])
-            unknowns['widths'][i_panels:i_panels+n_panels] = widths.flatten()
-            unknowns['normals'][i_panels:i_panels+n_panels, :] = normals.reshape(-1, normals.shape[-1], order='F')
+            unknowns['b_pts'][i_bpts:i_bpts+n_bpts, :] = \
+                b_pts.reshape(-1, b_pts.shape[-1])
+            unknowns['mid_b'][i_panels:i_panels+n_panels, :] = \
+                mid_b.reshape(-1, mid_b.shape[-1])
+            unknowns['c_pts'][i_panels:i_panels+n_panels, :] = \
+                c_pts.reshape(-1, c_pts.shape[-1])
+            unknowns['widths'][i_panels:i_panels+n_panels] = \
+                widths.flatten()
+            unknowns['normals'][i_panels:i_panels+n_panels, :] = \
+                normals.reshape(-1, normals.shape[-1], order='F')
             unknowns['S_ref'][i_surf] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
@@ -264,26 +283,34 @@ class VLMGeometry(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['def_mesh'],
-                                         fd_unknowns=['widths', 'normals', 'S_ref'],
-                                         fd_states=[])
-
+                                            fd_params=['def_mesh'],
+                                            fd_unknowns=['widths', 'normals',
+                                                         'S_ref'],
+                                            fd_states=[])
         jac.update(fd_jac)
 
         i_ny = 0.
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            for iz, v in zip(((i_bpts+i_ny)*3, (i_bpts+i_ny+ny)*3), (.75, .25)):
-                numpy.fill_diagonal(jac['b_pts', 'def_mesh'][i_bpts*3:(n_bpts+i_bpts)*3, iz:], v)
+            for iz, v in zip(((i_bpts+i_ny)*3, (i_bpts+i_ny+ny)*3),
+                             (.75, .25)):
+                numpy.fill_diagonal(jac['b_pts', 'def_mesh']
+                    [i_bpts*3:(n_bpts+i_bpts)*3, iz:], v)
 
-            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.125, .125, .375, .375)):
+            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
+                             (.125, .125, .375, .375)):
                 for ix in range(nx-1):
-                    numpy.fill_diagonal(jac['c_pts', 'def_mesh'][(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
+                    numpy.fill_diagonal(jac['c_pts', 'def_mesh']
+                        [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
+                     iz+ix*ny*3:], v)
 
-            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3), (.375, .375, .125, .125)):
+            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
+                             (.375, .375, .125, .125)):
                 for ix in range(nx-1):
-                    numpy.fill_diagonal(jac['mid_b', 'def_mesh'][(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
+                    numpy.fill_diagonal(jac['mid_b', 'def_mesh']
+                        [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
+                     iz+ix*ny*3:], v)
 
             i_ny += ny
 
@@ -305,20 +332,25 @@ class VLMCirculations(Component):
         tot_panels = numpy.sum(aero_ind[:, 4])
         self.aero_ind = aero_ind
 
-        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
-        self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3), dtype="complex"))
-        self.add_param('c_pts', val=numpy.zeros((tot_panels, 3), dtype="complex"))
+        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3),
+                       dtype="complex"))
+        self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3),
+                       dtype="complex"))
+        self.add_param('c_pts', val=numpy.zeros((tot_panels, 3),
+                       dtype="complex"))
         self.add_param('normals', val=numpy.zeros((tot_panels, 3)))
         self.add_param('v', val=10.)
         self.add_param('alpha', val=3.)
-        self.add_state('circulations', val=numpy.zeros((tot_panels), dtype="complex"))
+        self.add_state('circulations', val=numpy.zeros((tot_panels),
+                       dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
 
-        self.deriv_options['linearize'] = True # only for circulations
+        self.deriv_options['linearize'] = True  # only for circulations
 
-        self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
+        self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3),
+                                   dtype="complex")
         self.mtx = numpy.zeros((tot_panels, tot_panels), dtype="complex")
         self.rhs = numpy.zeros((tot_panels), dtype="complex")
 
@@ -328,13 +360,15 @@ class VLMCirculations(Component):
 
         self.mtx[:, :] = 0.
         for ind in xrange(3):
-            self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T * params['normals'][:, ind]).T
+            self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
+                params['normals'][:, ind]).T
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
         v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex")
-        self.rhs[:] = -params['normals'].reshape(-1, params['normals'].shape[-1], order='F').dot(v_inf)
+        self.rhs[:] = -params['normals'].\
+            reshape(-1, params['normals'].shape[-1], order='F').dot(v_inf)
 
     def solve_nonlinear(self, params, unknowns, resids):
         self._assemble_system(params)
@@ -352,8 +386,9 @@ class VLMCirculations(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['normals', 'alpha',\
-                                                    'def_mesh', 'b_pts', 'c_pts'],
+                                         fd_params=['normals', 'alpha',
+                                                    'def_mesh', 'b_pts',
+                                                    'c_pts'],
                                          fd_states=[])
         jac.update(fd_jac)
 
@@ -382,7 +417,6 @@ class VLMForces(Component):
     def __init__(self, aero_ind):
         super(VLMForces, self).__init__()
 
-        num_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
         tot_bpts = numpy.sum(aero_ind[:, 3])
         tot_panels = numpy.sum(aero_ind[:, 4])
@@ -404,7 +438,6 @@ class VLMForces(Component):
 
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
 
-
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
 
@@ -413,7 +446,8 @@ class VLMForces(Component):
         sina = numpy.sin(alpha)
 
         _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.aero_ind,
-                          params['mid_b'], params['b_pts'], params['alpha'], skip=True)
+                          params['mid_b'], params['b_pts'], params['alpha'],
+                          skip=True)
 
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
@@ -423,14 +457,18 @@ class VLMForces(Component):
             self.v[:, 0] += cosa * params['v']
             self.v[:, 2] += sina * params['v']
 
-            b_pts = params['b_pts'][i_bpts:i_bpts+n_bpts, :].reshape(nx-1, ny, 3)
+            b_pts = params['b_pts'][i_bpts:i_bpts+n_bpts, :].\
+                reshape(nx-1, ny, 3)
 
             bound = b_pts[:, 1:, :] - b_pts[:, :-1, :]
 
-            cross = numpy.cross(self.v[i_panels:i_panels+n_panels], bound.reshape(-1, bound.shape[-1], order='F'))
+            cross = numpy.cross(self.v[i_panels:i_panels+n_panels],
+                                bound.reshape(-1, bound.shape[-1], order='F'))
 
             for ind in xrange(3):
-                unknowns['sec_forces'][i_panels:i_panels+n_panels, ind] = (params['rho'] * circ[i_panels:i_panels+n_panels] * cross[:, ind])
+                unknowns['sec_forces'][i_panels:i_panels+n_panels, ind] = \
+                    (params['rho'] * circ[i_panels:i_panels+n_panels] *
+                    cross[:, ind])
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -439,7 +477,8 @@ class VLMForces(Component):
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['b_pts', 'alpha',
-                                                    'circulations', 'v', 'mid_b', 'def_mesh'],
+                                                    'circulations', 'v',
+                                                    'mid_b', 'def_mesh'],
                                          fd_states=[])
         jac.update(fd_jac)
 
@@ -452,14 +491,13 @@ class VLMForces(Component):
 
 
 class VLMLiftDrag(Component):
-    """ Calculate total lift and drag in force units based on section forces """
+    """
+    Calculate total lift and drag in force units based on section forces. """
 
     def __init__(self, aero_ind):
         super(VLMLiftDrag, self).__init__()
 
         num_surf = aero_ind.shape[0]
-        tot_n = numpy.sum(aero_ind[:, 2])
-        tot_bpts = numpy.sum(aero_ind[:, 3])
         tot_panels = numpy.sum(aero_ind[:, 4])
         self.aero_ind = aero_ind
 
@@ -477,9 +515,12 @@ class VLMLiftDrag(Component):
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            unknowns['L'][i_surf] = numpy.sum(-forces[i_panels:i_panels+n_panels, 0] * sina + forces[i_panels:i_panels+n_panels, 2] * cosa)
-            unknowns['D'][i_surf] = numpy.sum( forces[i_panels:i_panels+n_panels, 0] * cosa + forces[i_panels:i_panels+n_panels, 2] * sina)
-
+            unknowns['L'][i_surf] = \
+                numpy.sum(-forces[i_panels:i_panels+n_panels, 0] * sina +
+                           forces[i_panels:i_panels+n_panels, 2] * cosa)
+            unknowns['D'][i_surf] = \
+                numpy.sum( forces[i_panels:i_panels+n_panels, 0] * cosa +
+                           forces[i_panels:i_panels+n_panels, 2] * sina)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -493,17 +534,26 @@ class VLMLiftDrag(Component):
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            forces = params['sec_forces'][i_panels:n_panels+i_panels].reshape(nx-1, ny-1, 3)
+            forces = params['sec_forces'][i_panels:n_panels+i_panels].\
+                reshape(nx-1, ny-1, 3)
 
             tmp = numpy.array([-sina, 0, cosa])
-            jac['L', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, n_panels))
+            panel_start = i_panels*3
+            panel_end = i_panels*3+n_panels*3
+            jac['L', 'sec_forces'][i_surf, panel_start:panel_end] = \
+                numpy.atleast_2d(numpy.tile(tmp, n_panels))
             tmp = numpy.array([cosa, 0, sina])
-            jac['D', 'sec_forces'][i_surf, i_panels*3:i_panels*3+n_panels*3] = numpy.atleast_2d(numpy.tile(tmp, n_panels))
+            jac['D', 'sec_forces'][i_surf, panel_start:panel_end] = \
+                numpy.atleast_2d(numpy.tile(tmp, n_panels))
 
-            jac['L', 'alpha'][i_surf] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
-            jac['D', 'alpha'][i_surf] = numpy.pi / 180. * numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
+            p180 = numpy.pi / 180.
+            jac['L', 'alpha'][i_surf] = p180 * \
+                numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
+            jac['D', 'alpha'][i_surf] = p180 * \
+                numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
 
         return jac
+
 
 class VLMCoeffs(Component):
     """ Compute lift and drag coefficients """
@@ -592,6 +642,7 @@ class TotalLift(Component):
         jac['CL_wing', 'CL1'][0][0] = 1
         return jac
 
+
 class TotalDrag(Component):
     """ Calculate total drag in force units. """
 
@@ -615,6 +666,7 @@ class TotalDrag(Component):
         jac['CD_wing', 'CDi'][0][0] = 1
         return jac
 
+
 class VLMStates(Group):
     """ Group that contains the aerodynamic states. """
 
@@ -630,7 +682,6 @@ class VLMStates(Group):
         self.add('forces',
                  VLMForces(aero_ind),
                  promotes=['*'])
-
 
 
 class VLMFunctionals(Group):

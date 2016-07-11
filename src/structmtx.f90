@@ -144,23 +144,23 @@ end subroutine assemblesparsemtx
 subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
   M_a, M_t, M_y, M_z, & ! 4
   elem_IDs, cons, & ! 3
-  E_py, G_py, x_gl, T, & ! 3
+  E, G, x_gl, T, & ! 3
   K_elem, S_a, S_t, S_y, S_z, T_elem, & ! 6
   const2, const_y, const_z, n, tot_n_fem, size, mtx) ! 7
 
   implicit none
 
-  !f2py intent(in)   n, tot_n_fem, size, elem_IDs, cons, nodes, A, J, Iy, Iz, E_py, G_py, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
+  !f2py intent(in)   n, tot_n_fem, size, elem_IDs, cons, nodes, A, J, Iy, Iz, E, G, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
   !f2py intent(out) mtx
   !f2py depend(tot_n_fem) nodes
-  !f2py depend(n) elem_IDs, nodes, A, J, Iy, Iz
+  !f2py depend(n) elem_IDs, nodes, A, J, Iy, Iz, E, G
   !f2py depend(size) mtx
 
   ! Input
   integer, intent(in) :: n, size, cons, tot_n_fem
   integer, intent(inout) :: elem_IDs(n-1, 2)
   complex*16, intent(in) :: nodes(tot_n_fem, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
-  complex*16, intent(in) :: E_py, G_py, x_gl(3)
+  complex*16, intent(in) :: E(n-1), G(n-1), x_gl(3)
   complex*16, intent(inout) :: M_a(2, 2), M_t(2, 2), M_y(4, 4), M_z(4, 4)
   complex*16, intent(inout) :: T(3, 3), K_elem(12, 12), T_elem(12, 12)
   complex*16, intent(in) :: S_a(2, 12), S_t(2, 12), S_y(4, 12), S_z(4, 12)
@@ -170,7 +170,6 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
   complex*16, intent(out) :: mtx(size, size)
 
   ! Working
-  complex*16 :: E(n-1), G(n-1)
   complex*16 :: P0(3), P1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
   complex*16 :: L, EA_L, GJ_L, EIy_L3, EIz_L3, norm, res(12, 12)
   integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, k
@@ -179,10 +178,6 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
   num_elems = n - 1
   num_nodes = n
   num_cons = 1 ! only 1 con in current spatialbeam code
-
-
-  E(:) = E_py * 1.0d0
-  G(:) = G_py * 1.0d0
 
   mtx(:, :) = 0.
   do ielem = 1, num_elems ! loop over num elements

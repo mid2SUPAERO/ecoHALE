@@ -5,6 +5,7 @@ import numpy
 
 from openmdao.api import Component
 
+
 class TransferDisplacements(Component):
     """
     Perform displacement transfer.
@@ -24,8 +25,10 @@ class TransferDisplacements(Component):
         self.fem_origin = fem_origin
 
         self.add_param('mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
-        self.add_param('disp', val=numpy.zeros((tot_n_fem, 6), dtype="complex"))
-        self.add_output('def_mesh', val=numpy.zeros((tot_n, 3), dtype="complex"))
+        self.add_param('disp', val=numpy.zeros((tot_n_fem, 6),
+                       dtype="complex"))
+        self.add_output('def_mesh', val=numpy.zeros((tot_n, 3),
+                        dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
@@ -34,7 +37,8 @@ class TransferDisplacements(Component):
     def solve_nonlinear(self, params, unknowns, resids):
 
         for i_surf, row in enumerate(self.fem_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[i_surf, :]
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = \
+                self.aero_ind[i_surf, :]
             n_fem, i_fem = row
 
             mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
@@ -88,8 +92,10 @@ class TransferLoads(Component):
         self.fem_origin = fem_origin
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
-        self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3), dtype="complex"))
-        self.add_output('loads', val=numpy.zeros((tot_n_fem, 6), dtype="complex"))
+        self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3),
+                       dtype="complex"))
+        self.add_output('loads', val=numpy.zeros((tot_n_fem, 6),
+                        dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -97,12 +103,14 @@ class TransferLoads(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         for i_surf, row in enumerate(self.fem_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[i_surf, :]
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = \
+                self.aero_ind[i_surf, :]
             n_fem, i_fem = row
 
             mesh = params['def_mesh'][i:i+n, :].reshape(nx, ny, 3)
 
-            sec_forces = params['sec_forces'][i_panels:i_panels+n_panels, :].reshape(nx-1, ny-1, 3, order='F')
+            sec_forces = params['sec_forces'][i_panels:i_panels+n_panels, :]. \
+                reshape(nx-1, ny-1, 3, order='F')
             sec_forces = numpy.sum(sec_forces, axis=0)
 
             w = 0.25
