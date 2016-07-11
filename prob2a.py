@@ -11,7 +11,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 ############################################################
@@ -36,18 +36,18 @@ root = Group()
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist', numpy.zeros(num_y)), 
+    ('twist', numpy.zeros(num_y)),
     ('v', v),
-    ('alpha', alpha), 
+    ('alpha', alpha),
     ('rho', rho),
-    ('r', r),  
-    ('t', t), 
+    ('r', r),
+    ('t', t),
 ]
 
 
 ############################################################
 # These are your components, put them in the correct groups.
-# indep_vars_comp, tube_comp, and weiss_func_comp have been 
+# indep_vars_comp, tube_comp, and weiss_func_comp have been
 # done for you as examples
 ############################################################
 
@@ -67,7 +67,7 @@ eq_con_comp = FunctionalEquilibrium(W0)
 ############################################################
 ############################################################
 
-root.add('indep_vars', 
+root.add('indep_vars',
          indep_vars_comp,
          promotes=['*'])
 root.add('tube',
@@ -76,13 +76,13 @@ root.add('tube',
 
 # Add components to the MDA here
 coupled = Group()
-coupled.add('mesh', 
-    <insert mesh_comp here>, 
+coupled.add('mesh',
+    <insert mesh_comp here>,
     promotes=["*"])
 <add more components here>
 
-# Nonlinear Gauss Seidel 
-coupled.nl_solver = NLGaussSeidel()   
+# Nonlinear Gauss Seidel
+coupled.nl_solver = NLGaussSeidel()
 coupled.nl_solver.options['iprint'] = 1
 coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
@@ -93,15 +93,15 @@ coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
-    
+
 # adds the MDA to root (do not remove!)
 root.add('coupled',
          coupled,
          promotes=['*'])
 
 # Add functional components here
-root.add('weissingerfuncs', 
-        weissingerfuncs_comp, 
+root.add('weissingerfuncs',
+        weissingerfuncs_comp,
         promotes=['*'])
 <add more components here>
 
@@ -111,15 +111,12 @@ prob.root = root
 prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
 # change file name to save data from each experiment separately
-prob.driver.add_recorder(SqliteRecorder('prob1a.db')) 
+prob.driver.add_recorder(SqliteRecorder('prob1a.db'))
 
 prob.setup()
 # uncomment this to see an n2 diagram of your implementation
-# view_tree(prob, outfile="prob2a_aerostruct.html", show_browser=True) 
+# view_tree(prob, outfile="prob2a_aerostruct.html", show_browser=True)
 
 st = time.time()
 prob.run_once()
 print "runtime: ", time.time() - st
-
-
-

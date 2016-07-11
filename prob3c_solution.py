@@ -11,7 +11,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from model_helpers import view_tree
+from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 ############################################################
@@ -121,8 +121,8 @@ root.add('eq_con',
 prob = Problem()
 prob.root = root
 
-prob.root.fd_options['force_fd'] = True
-prob.root.fd_options['form'] = 'complex_step'
+prob.root.deriv_options['type'] = 'cs'
+prob.root.deriv_options['form'] = 'central'
 
 prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'

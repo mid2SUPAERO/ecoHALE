@@ -28,7 +28,7 @@ subroutine assembleaeromtx(n, alpha, mesh, points, bpts, mtx)
 
   do i = 1, n-1 ! Loop over control points
      P = points(i, :)
-     
+
      do j = 1, n-1 ! Loop over elements
         A = bpts(j + 0, :)
         B = bpts(j + 1, :)
@@ -69,7 +69,7 @@ subroutine biotsavart(A, B, P, inf, rev, out)
 
   pi = 4.*atan(1.)
   eps = 1e-5
-  
+
   rPA = norm(A - P)
   rPB = norm(B - P)
   rAB = norm(B - A)
@@ -85,7 +85,7 @@ subroutine biotsavart(A, B, P, inf, rev, out)
   else
      tmp = -C / rH * (cosA + cosB) / (4 * pi)
   end if
-  
+
   if (rev) then
      tmp = -tmp
   end if
@@ -102,7 +102,7 @@ complex*16 function norm(v)
 
   complex*16, intent(in) :: v(3)
   complex*16 :: dot
-  
+
   !norm = sqrt(dot_product(v, v))
   norm = dot(v, v) ** 0.5
 

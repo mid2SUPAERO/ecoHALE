@@ -23,9 +23,9 @@ class FunctionalBreguetRange(Component):
         self.R = R
         self.M = M
         
-        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         W0 = self.W0
@@ -54,9 +54,9 @@ class FunctionalEquilibrium(Component):
 
         self.add_output('eq_con', val=0.)
 
-        self.fd_options['force_fd'] = True
-        self.fd_options['form'] = "complex_step"
-        self.fd_options['extra_check_partials_form'] = "central"
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+        #self.deriv_options['extra_check_partials_form'] = "central"
 
         self.W0 = W0
 

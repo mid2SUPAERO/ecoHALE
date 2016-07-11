@@ -3,7 +3,7 @@ import numpy
 import sys
 import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
 from geometry import GeometryMesh, mesh_gen
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
@@ -11,9 +11,15 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from openmdao.devtools.partition_tree_n2 import view_tree
+from model_helpers import view_tree
 from gs_newton import HybridGSNewton
 
+# Start the clock
+st = time.time()
+
+############################################################
+# Change mesh size here
+############################################################
 # Create the mesh with 2 inboard points and 3 outboard points
 mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
@@ -40,13 +46,6 @@ indep_vars = [
     ('t', t),
 ]
 
-
-############################################################
-# These are your components, put them in the correct groups.
-# indep_vars_comp, tube_comp, and weiss_func_comp have been
-# done for you as examples
-############################################################
-
 indep_vars_comp = IndepVarComp(indep_vars)
 tube_comp = MaterialsTube(num_y)
 
@@ -60,8 +59,6 @@ weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
 spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
 eq_con_comp = FunctionalEquilibrium(W0)
-############################################################
-############################################################
 
 root.add('indep_vars',
          indep_vars_comp,
@@ -88,18 +85,22 @@ coupled.add('loads',
     loads_comp,
     promotes=["*"])
 
-# Nonlinear Gauss Seidel
-coupled.nl_solver = NLGaussSeidel()
-coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.options['atol'] = 1e-5
-coupled.nl_solver.options['rtol'] = 1e-12
+## Hybrid NLGS-Newton on the coupled group
+coupled.nl_solver = HybridGSNewton()
+coupled.nl_solver.nlgs.options['iprint'] = 1
+coupled.nl_solver.nlgs.options['maxiter'] = 5
+coupled.nl_solver.newton.options['atol'] = 1e-6
+coupled.nl_solver.newton.options['rtol'] = 1e-6
+coupled.nl_solver.newton.options['iprint'] = 1
 
-# linear solver configuration
+
+# Krylov Solver - LNGS preconditioning
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.weissingerstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+
 
 # adds the MDA to root (do not remove!)
 root.add('coupled',
@@ -122,15 +123,42 @@ root.add('eq_con',
 
 prob = Problem()
 prob.root = root
-prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
-# change file name to save data from each experiment separately
-prob.driver.add_recorder(SqliteRecorder('prob1a.db'))
+#prob.root.fd_options['force_fd'] = True
+#prob.root.fd_options['form'] = 'complex_step'
+
+prob.driver = ScipyOptimizer()
+prob.driver.options['optimizer'] = 'SLSQP'
+prob.driver.options['disp'] = True
+prob.driver.options['tol'] = 1.0e-3
+prob.driver.options['maxiter'] = 40
+
+prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
+
+###############################################################
+# Add design vars
+###############################################################
+prob.driver.add_desvar('twist',lower= -10.,
+                       upper=10., scaler=1000)
+prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1000)
+prob.driver.add_desvar('t',
+                       lower= 0.003,
+                       upper= 0.25, scaler=1000)
+
+###############################################################
+# Add constraints, and objectives
+###############################################################
+prob.driver.add_objective('fuelburn')
+prob.driver.add_constraint('failure', upper=0.0)
+prob.driver.add_constraint('eq_con', equals=0.0)
 
 prob.setup()
-# uncomment this to see an n2 diagram of your problem
-# view_tree(prob, outfile="aerostruct_n2.html", show_browser=True)
+view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
-st = time.time()
-prob.run_once()
-print "runtime: ", time.time() - st
+# always need to run before you compute derivatives!
+prob.run()
+
+# find run time
+run_time = time.time() - st
+
+print "runtime: ", '{:.2f} seconds'.format(run_time)
