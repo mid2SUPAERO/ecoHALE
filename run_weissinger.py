@@ -39,7 +39,6 @@ if 1:
             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
             mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
 
-
 disp = numpy.zeros((num_y, 6))
 
 root = Group()

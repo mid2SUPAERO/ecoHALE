@@ -12,6 +12,7 @@ from crm_data import crm_base_mesh
 def rotate(mesh, thetas):
     """ Computes rotation matricies given mesh and rotation angles in degress """
 
+
     le = mesh[0]
     te = mesh[1]
 
@@ -47,6 +48,7 @@ def sweep(mesh, angle):
     te[:,0] += dx
 
     return mesh
+
 
 
 def stretch(mesh, length):
@@ -97,8 +99,7 @@ def mirror(mesh, right_side=True):
 
 def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
     """ Builds the right hand side of the CRM wing with specified number
-    of inboard and outboard panels
-    """
+    of inboard and outboard panels """
 
     # LE pre-yehudi
     s1 = (mesh[0,1,0] - mesh[0,0,0])/(mesh[0,1,1]-mesh[0,0,1])

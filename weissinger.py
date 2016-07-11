@@ -2,6 +2,7 @@
 
 from __future__ import division
 import numpy
+from time import time
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
@@ -63,6 +64,7 @@ def _assemble_AIC_mtx(mtx, mesh, points, b_pts, alpha):
 
     if fortran_flag:
         mtx[:, :, :] = lib.assembleaeromtx(num_y, alpha, mesh, points, b_pts)
+        #mtx[:, :, :] = lib.assembleaeromtx(num_y, alpha.real, mesh.real, points.real, b_pts.real)
     else:
         alpha = alpha * numpy.pi / 180.
         cosa = numpy.cos(alpha)
@@ -209,11 +211,17 @@ class WeissingerCirculations(Component):
         self.lup = lu_factor(self.mtx.real)
         jac = self.alloc_jacobian()
 
+        n = self.num_y
+
+        boop = time()
+
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['normals', 'def_mesh',
-                                                    'b_pts', 'c_pts', 'alpha'],
+                                                    'b_pts', 'c_pts'],
                                          fd_states=[])
         jac.update(fd_jac)
+
+        print '@@@@ cost: {} secs'.format(numpy.round(time()-boop, 5))
 
         jac['circulations', 'circulations'] = self.mtx.real
 
@@ -227,6 +235,9 @@ class WeissingerCirculations(Component):
         # dv_da = params['v'].real * numpy.array([-sina, 0., cosa]) * numpy.pi / 180.
         # jac['circulations', 'alpha'][:, 0] = normals.dot(dv_da)
 
+
+        # print jac['circulations', 'normals']
+        # print normals
 
         return jac
 
@@ -290,14 +301,15 @@ class WeissingerForces(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
 
+        s = time()
+
         jac = self.alloc_jacobian()
 
         n = self.num_y
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['def_mesh', 'b_pts',
-                                                    'c_pts', 'alpha',
-                                                    'circulations', 'v'],
+                                                    'c_pts', 'alpha'],
                                          fd_states=[])
         jac.update(fd_jac)
 
@@ -305,8 +317,8 @@ class WeissingerForces(Component):
         circ = params['circulations'].real
         rho = params['rho'].real
         v = params['v'].real
+        widths = params['widths'].real
         sec_forces = unknowns['sec_forces'].real
-
         jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
 
         return jac
