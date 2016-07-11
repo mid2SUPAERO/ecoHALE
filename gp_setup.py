@@ -8,6 +8,7 @@
 from __future__ import division
 import numpy
 import sys
+import os
 
 # get OpenAeroStruct files from parent directory
 from pathlib import Path
@@ -25,7 +26,7 @@ def setup(num_inboard=2, num_outboard=3):
     t = r/10
 
     # Define the aircraft properties
-    execfile('../CRM.py')  # from parent directory
+    from CRM import span, v, alpha, rho
 
     des_vars = [
         ('twist', numpy.zeros(num_y)),
@@ -39,3 +40,6 @@ def setup(num_inboard=2, num_outboard=3):
     ]
 
     return {'mesh':mesh, 'num_x':num_x, 'num_y':num_y, 'des_vars':des_vars}
+
+if __name__ == '__main__':
+    setup()
