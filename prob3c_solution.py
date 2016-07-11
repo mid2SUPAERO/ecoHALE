@@ -1,9 +1,12 @@
+""" Example runscript to perform aerostructural optimization. """
+
 from __future__ import division
 import numpy
 import sys
-import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
+
+from openmdao.devtools.partition_tree_n2 import view_tree
 from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals
@@ -11,16 +14,9 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
-
-try:
-    from openmdao.api import pyOptSparseDriver
-    SNOPT = True
-except:
-    SNOPT = False
 
 ############################################################
 # Change mesh size here
@@ -153,17 +149,18 @@ prob.root = root
 # prob.root.deriv_options['type'] = 'cs'
 # prob.root.deriv_options['form'] = 'central'
 
-prob.driver = ScipyOptimizer()
-prob.driver.options['optimizer'] = 'SLSQP'
-prob.driver.options['disp'] = True
-prob.driver.options['tol'] = 1.0e-3
-prob.driver.options['maxiter'] = 40
-
-if SNOPT:
+try:  # Use SNOPT optimizer if installed
+    from openmdao.api import pyOptSparseDriver
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
                                 'Major feasibility tolerance': 1.0e-7}
+except:  # Use SLSQP optimizer if SNOPT not installed
+    prob.driver = ScipyOptimizer()
+    prob.driver.options['optimizer'] = 'SLSQP'
+    prob.driver.options['disp'] = True
+    prob.driver.options['tol'] = 1.0e-3
+    prob.driver.options['maxiter'] = 40
 
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 

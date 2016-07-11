@@ -1,4 +1,4 @@
-""" Example script to run aerodynamics-only optimization.
+""" Example runscript to perform aerodynamics-only optimization.
 
 Call as `python run_vlm.py 0` to run a single analysis, or
 call as `python run_vlm.py 1` to perform optimization.
@@ -21,34 +21,44 @@ from transfer import TransferDisplacements
 from vlm import VLMStates, VLMFunctionals
 from b_spline import get_bspline_mtx
 
-# Try to import SNOPT; use it if installed
-try:
-    from openmdao.api import pyOptSparseDriver
-    SNOPT = True
-except:
-    SNOPT = False
-
 # Define the aircraft properties
 execfile('CRM.py')
 
+# Single lifting surface
+if not sys.argv[1].endswith('m'):
+    num_x = 2  # number of chordwise node points
+    num_y = 21  # number of spanwise node points, can only be odd numbers
+    span = 10.  # full wingspan
+    chord = 1.  # root chord
+    cosine_spacing = .5  # spacing distribution; 0 is uniform, 1 is cosine
+    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
+
 # Multiple lifting surfaces
-if sys.argv[1].endswith('m'):
-    num_x = 3
-    num_y = 5
-    span = 10.
-    chord = 1.
-    cosine_spacing = .5
+else:
+    # Wing mesh generation
+    num_x = 3  # number of chordwise node points
+    num_y = 5  # number of spanwise node points, can only be odd numbers
+    span = 10.  # full wingspan
+    chord = 1.  # root chord
+    cosine_spacing = .5  # spacing distribution; 0 is uniform, 1 is cosine
     mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
+    # Add wing indices to aero_ind and fem_ind
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
-    nx = 2
-    ny = 3
-    span = 3.
-    chord = 1.
-    cosine_spacing = .5
+    # Tail mesh generation
+    nx = 2  # number of chordwise node points
+    ny = 3  # number of spanwise node points, can only be odd numbers
+    span = 3.  # full tailspan
+    chord = 1.  # root chord
+    cosine_spacing = .5  # spacing distribution; 0 is uniform, 1 is cosine
     mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
 
     mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
@@ -59,22 +69,13 @@ if sys.argv[1].endswith('m'):
 
     mesh = numpy.vstack((mesh_wing, mesh_tail))
 
-# Single lifting surface
-else:
-    num_x = 2
-    num_y = 21
-    span = 10.
-    chord = 1.
-    cosine_spacing = .5
-    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
-    num_twist = numpy.max([int((num_y - 1) / 5), 5])
-
-    mesh = mesh.reshape(-1, mesh.shape[-1])
-    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-    fem_ind = [num_y]
-
 # Compute the aero and fem indices
 aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
+
+# Set additional mesh parameters
+dihedral = 0.  # dihedral angle in degrees
+sweep = 0.  # shearing sweep angle in degrees
+taper = 1.  # taper ratio
 
 # Create the top-level system
 root = Group()
@@ -86,10 +87,10 @@ jac = get_bspline_mtx(num_twist, num_y)
 # Define the independent variables
 des_vars = [
     ('twist_cp', numpy.zeros(num_twist)),
-    ('dihedral', 0.),
-    ('sweep', 0.),
+    ('dihedral', dihedral),
+    ('sweep', sweep),
     ('span', span),
-    ('taper', 1.),
+    ('taper', taper),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
@@ -122,14 +123,13 @@ root.add('vlmfuncs',
 prob = Problem()
 prob.root = root
 
-if SNOPT:
-    # Use SNOPT optimizer if installed
+try:  # Use SNOPT optimizer if installed
+    from openmdao.api import pyOptSparseDriver
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                 'Major feasibility tolerance': 1.0e-8}
-else:
-    # Use SLSQP optimizer if SNOPT not installed
+except:  # Use SLSQP optimizer if SNOPT not installed
     prob.driver = ScipyOptimizer()
     prob.driver.options['optimizer'] = 'SLSQP'
     prob.driver.options['disp'] = True

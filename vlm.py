@@ -5,6 +5,22 @@ We input a nodal mesh and properties of the airflow to calculate the
 circulations of the horseshoe vortices. We then compute the forces, lift,
 and drag acting on the lifting surfaces.
 
+
+Depiction of wing:
+
+    y -->
+ x  -----------------
+ |  | + | + | + | + |
+ v  |   |   |   |   |
+    | o | o | o | o |
+    -----------------
+
+The '+' symbols represent the bound points on the 1/4 chord line, which are
+used to compute drag.
+The 'o' symbols represent the collocation points on the 3/4 chord line, where
+the flow tangency condition is inforced.
+
+For this depiction, num_x = 2 and num_y = 5.
 """
 
 from __future__ import division
@@ -79,10 +95,10 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
     flat_mesh[num_x*num_y, 3] : array_like
         Flat array containing nodal coordinates.
     aero_ind[num_surf, 7] : array_like
-        Array containing index information for the aerodynamic surfaces.
+        Array containing index information for the lifting surfaces.
         See geometry.py/get_inds for more details.
     fem_ind[num_surf, 3] : array_like
-        Array containing index information for the aerodynamic surfaces.
+        Array containing index information for the lifting surfaces.
         See geometry.py/get_inds for more details.
     points[num_y-1, 3] : array_like
         Collocation points used to find influence coefficient strength.
@@ -201,7 +217,7 @@ class VLMGeometry(Component):
         Bound points for the horseshoe vortices, found along the 1/4 chord.
     mid_b : array_like
         Midpoints of the bound vortex segments, used as the collocation
-        points to compute drag
+        points to compute drag.
     c_pts : array_like
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
@@ -213,7 +229,7 @@ class VLMGeometry(Component):
     S_ref : array_like
         The reference areas of each lifting surface.
 
-     """
+    """
 
     def __init__(self, aero_ind):
         super(VLMGeometry, self).__init__()
@@ -322,6 +338,30 @@ class VLMCirculations(Component):
     Compute the circulations based on the AIC matrix and the panel velocities.
     Note that the flow tangency condition is enforced at the 3/4 chord point.
 
+    Parameters
+    ----------
+    def_mesh : array_like
+        Flattened array defining the lifting surfaces.
+    b_pts : array_like
+        Bound points for the horseshoe vortices, found along the 1/4 chord.
+    c_pts : array_like
+        Collocation points on the 3/4 chord line where the flow tangency
+        condition is satisfed. Used to set up the linear system.
+    normals : array_like
+        The normal vector for each panel, computed as the cross of the two
+        diagonals from the mesh points.
+    v : float
+        Freestream air velocity in m/s.
+    alpha : float
+        Angle of attack in degrees.
+
+    Returns
+    -------
+    circulations : array_like
+        Flattened vector of horseshoe vortex strengths calculated by solving
+        the linear system of AIC_mtx * circulations = rhs, where rhs is
+        based on the air velocity at each collocation point.
+
     """
 
     def __init__(self, aero_ind):
@@ -412,7 +452,36 @@ class VLMCirculations(Component):
 
 
 class VLMForces(Component):
-    """ Compute aerodynamic forces acting on each section. """
+    """ Compute aerodynamic forces acting on each section.
+
+    Parameters
+    ----------
+    def_mesh : array_like
+        Flattened array defining the lifting surfaces.
+    b_pts : array_like
+        Bound points for the horseshoe vortices, found along the 1/4 chord.
+    mid_b : array_like
+        Midpoints of the bound vortex segments, used as the collocation
+        points to compute drag.
+    circulations : array_like
+        Flattened vector of horseshoe vortex strengths calculated by solving
+        the linear system of AIC_mtx * circulations = rhs, where rhs is
+        based on the air velocity at each collocation point.
+    alpha : float
+        Angle of attack in degrees.
+    v : float
+        Freestream air velocity in m/s.
+    rho : float
+        Air density in kg/m^3.
+
+    Returns
+    -------
+    sec_forces : array_like
+        Flattened array containing the sectional forces acting on each panel.
+        Stored in Fortran order (only relevant when more than one chordwise
+        panel).
+
+    """
 
     def __init__(self, aero_ind):
         super(VLMForces, self).__init__()
@@ -425,9 +494,6 @@ class VLMForces(Component):
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
         self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3)))
         self.add_param('mid_b', val=numpy.zeros((tot_panels, 3)))
-
-        self.aero_ind = aero_ind
-
         self.add_param('circulations', val=numpy.zeros((tot_panels)))
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
@@ -492,7 +558,25 @@ class VLMForces(Component):
 
 class VLMLiftDrag(Component):
     """
-    Calculate total lift and drag in force units based on section forces. """
+    Calculate total lift and drag in force units based on section forces.
+
+    Parameters
+    ----------
+    sec_forces : array_like
+        Flattened array containing the sectional forces acting on each panel.
+        Stored in Fortran order (only relevant when more than one chordwise
+        panel).
+    alpha : float
+        Angle of attack in degrees.
+
+    Returns
+    -------
+    L : array_like
+        Total lift for each lifting surface.
+    D : array_like
+        Total drag for each lifting surface.
+
+    """
 
     def __init__(self, aero_ind):
         super(VLMLiftDrag, self).__init__()
@@ -523,7 +607,7 @@ class VLMLiftDrag(Component):
                            forces[i_panels:i_panels+n_panels, 2] * sina)
 
     def linearize(self, params, unknowns, resids):
-        """ Jacobian for forces."""
+        """ Jacobian for lift and drag."""
 
         jac = self.alloc_jacobian()
 
@@ -556,7 +640,30 @@ class VLMLiftDrag(Component):
 
 
 class VLMCoeffs(Component):
-    """ Compute lift and drag coefficients """
+    """ Compute lift and drag coefficients.
+
+    Parameters
+    ----------
+    S_ref : array_like
+        The reference areas of each lifting surface.
+    L : array_like
+        Total lift for each lifting surface.
+    D : array_like
+        Total drag for each lifting surface.
+    v : float
+        Freestream air velocity in m/s.
+    rho : float
+        Air density in kg/m^3.
+
+    Returns
+    -------
+    CL1 : array_like
+        Induced coefficient of lift (CL) for each lifting surface.
+    CDi : array_like
+        Induced coefficient of drag (CD) for each lifting surface.
+
+    """
+
 
     def __init__(self, aero_ind):
         super(VLMCoeffs, self).__init__()
@@ -620,7 +727,21 @@ class VLMCoeffs(Component):
 
 
 class TotalLift(Component):
-    """ Calculate total lift in force units. """
+    """ Calculate total lift in force units.
+
+    Parameters
+    ----------
+    CL1 : array_like
+        Induced coefficient of lift (CL) for each lifting surface.
+
+    Returns
+    -------
+    CL : array_like
+        Total coefficient of lift (CL) for each lifting surface.
+    CL_wing : float
+        CL of the main wing, used for CL constrained optimization.
+
+    """
 
     def __init__(self, CL0, aero_ind):
         super(TotalLift, self).__init__()
@@ -644,7 +765,21 @@ class TotalLift(Component):
 
 
 class TotalDrag(Component):
-    """ Calculate total drag in force units. """
+    """ Calculate total drag in force units.
+
+    Parameters
+    ----------
+    CDi : array_like
+        Induced coefficient of drag (CD) for each lifting surface.
+
+    Returns
+    -------
+    CD : array_like
+        Total coefficient of drag (CD) for each lifting surface.
+    CD_wing : float
+        CD of the main wing, used for CD minimization.
+
+    """
 
     def __init__(self, CD0, aero_ind):
         super(TotalDrag, self).__init__()

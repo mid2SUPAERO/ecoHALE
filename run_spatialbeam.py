@@ -1,4 +1,4 @@
-""" Example script to run structural-only optimization.
+""" Example runscript to perform structural-only optimization.
 
 Call as `python run_spatialbeam.py 0` to run a single analysis, or
 call as `python run_spatialbeam.py 1` to perform optimization.
@@ -21,34 +21,45 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from b_spline import get_bspline_mtx
 
-# Try to import SNOPT; use it if installed
-try:
-    from openmdao.api import pyOptSparseDriver
-    SNOPT = True
-except:
-    SNOPT = False
+# Single structural component
+if not sys.argv[1].endswith('m'):
+    num_x = 2  # number of chordwise node points
+    num_y = 9  # number of spanwise node points, can only be odd numbers
+    span = 10.  # full wingspan
+    chord = 5.  # root chord
+    cosine_spacing = 0.  # spacing distribution; 0 is uniform, 1 is cosine
+    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+
+    r = radii(mesh)
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 # Multiple structural components
-if sys.argv[1].endswith('m'):
-    num_x = 2
-    num_y = 5
-    span = 5.
-    chord = 5.
-    cosine_spacing = 0.
+else:
+    # Wing mesh generation
+    num_x = 2  # number of chordwise node points
+    num_y = 5  # number of spanwise node points, can only be odd numbers
+    span = 5.  # full wingspan
+    chord = 5.  # root chord
+    cosine_spacing = 0.  # spacing distribution; 0 is uniform, 1 is cosine
     mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     mesh_wing[:, :, 1] = mesh_wing[:, :, 1] - span/2
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
+    # Add wing indices to aero_ind and fem_ind
     r_wing = radii(mesh_wing)
     mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
     fem_ind = [num_y]
 
-    nx = 2
-    ny = 5
-    span = 5.
-    chord = 5.
-    cosine_spacing = 0.
+    # Tail mesh generation
+    nx = 2  # number of chordwise node points
+    ny = 5  # number of spanwise node points, can only be odd numbers
+    span = 5.  # full tailspan
+    chord = 5.  # tail root chord
+    cosine_spacing = 0.  # spacing distribution; 0 is uniform, 1 is cosine
     mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
     mesh_tail[:, :, 1] = mesh_tail[:, :, 1] + span/2
 
@@ -62,26 +73,16 @@ if sys.argv[1].endswith('m'):
     fem_ind.append(ny)
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
-# Single structural component
-else:
-    num_x = 2
-    num_y = 9
-    span = 10.
-    chord = 5.
-    cosine_spacing = 0.
-    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
-
-    r = radii(mesh)
-    mesh = mesh.reshape(-1, mesh.shape[-1])
-    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-    fem_ind = [num_y]
-    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
-
 # Set the number of thickness control points and the initial thicknesses
 num_twist = numpy.max([int((num_y - 1) / 5), 5])
 num_thickness = num_twist
 t = r / 20
 r /= 5
+
+# Set additional mesh parameters
+dihedral = 0.  # dihedral angle in degrees
+sweep = 0.  # shearing sweep angle in degrees
+taper = 1.  # taper ratio
 
 # Define the material properties
 execfile('aluminum.py')
@@ -103,10 +104,10 @@ jac_thickness = get_bspline_mtx(num_thickness, tot_n_fem-num_surf)
 des_vars = [
     ('twist_cp', numpy.zeros(num_twist)),
     ('thickness_cp', numpy.ones(num_thickness)*numpy.max(t)),
-    ('dihedral', 0.),
-    ('sweep', 0.),
+    ('dihedral', dihedral),
+    ('sweep', sweep),
     ('span', span),
-    ('taper', 1.),
+    ('taper', taper),
     ('r', r),
     ('loads', loads),
     ('fem_ind', fem_ind),
@@ -140,14 +141,13 @@ root.add('spatialbeamfuncs',
 prob = Problem()
 prob.root = root
 
-if SNOPT:
-    # Use SNOPT optimizer if installed
+try:  # Use SNOPT optimizer if installed
+    from openmdao.api import pyOptSparseDriver
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                 'Major feasibility tolerance': 1.0e-8}
-else:
-    # Use SLSQP optimizer if SNOPT not installed
+except:  # Use SLSQP optimizer if SNOPT not installed
     prob.driver = ScipyOptimizer()
     prob.driver.options['optimizer'] = 'SLSQP'
     prob.driver.options['disp'] = True
@@ -172,7 +172,7 @@ prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 # Can finite difference over the entire model
 # Generally faster than using component derivatives
 # Note that for this case, you may need to loosen the optimizer tolerances
-prob.root.deriv_options['type'] = 'fd'
+# prob.root.deriv_options['type'] = 'fd'
 
 # Setup the problem and produce an N^2 diagram
 prob.setup()

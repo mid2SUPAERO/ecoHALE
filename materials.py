@@ -6,7 +6,27 @@ from openmdao.api import Component
 
 
 class MaterialsTube(Component):
-    """ Computes geometric properties for a tube element """
+    """ Compute geometric properties for a tube element.
+
+    Parameters
+    ----------
+    r : array_like
+        Radii for each FEM element.
+    thickness : array_like
+        Tube thickness for each FEM element.
+
+    Returns
+    -------
+    A : array_like
+        Areas for each FEM element.
+    Iy : array_like
+        Mass moment of inertia around the y-axis for each FEM element.
+    Iz : array_like
+        Mass moment of inertia around the z-axis for each FEM element.
+    J : array_like
+        Polar moment of inertia for each FEM element.
+
+    """
 
     def __init__(self, fem_ind):
         super(MaterialsTube, self).__init__()

@@ -1,3 +1,5 @@
+""" Example runscript to perform aerostructural analysis. """
+
 from __future__ import division
 import numpy
 import sys
@@ -28,7 +30,6 @@ aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 num_thickness = num_twist
 t = r/10
 
-
 # Define the aircraft properties
 execfile('CRM.py')
 
@@ -55,7 +56,6 @@ indep_vars = [
     ('aero_ind', aero_ind)
 ]
 
-
 ############################################################
 # These are your components, put them in the correct groups.
 # indep_vars_comp, tube_comp, and weiss_func_comp have been
@@ -77,6 +77,7 @@ vlmfuncs_comp = VLMFunctionals(aero_ind, CL0, CD0)
 spatialbeamfuncs_comp = SpatialBeamFunctionals(aero_ind, fem_ind, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M, aero_ind)
 eq_con_comp = FunctionalEquilibrium(W0, aero_ind)
+
 ############################################################
 ############################################################
 

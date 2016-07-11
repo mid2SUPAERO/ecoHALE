@@ -33,7 +33,7 @@ def radii(mesh, t_c=0.15):
 
 
 def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
-                     M_a, M_t, M_y, M_z,
+                     K_a, K_t, K_y, K_z,
                      elem_IDs, cons,
                      E, G, x_gl, T,
                      K_elem, S_a, S_t, S_y, S_z, T_elem,
@@ -80,7 +80,7 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
         # dense Fortran
         if fortran_flag and not sparse_flag:
             mtx_ = lib.assemblestructmtx(nodes, A_, J_, Iy_, Iz_,
-                                         M_a, M_t, M_y, M_z,
+                                         K_a, K_t, K_y, K_z,
                                          elem_IDs_+1, cons[i_surf],
                                          E_vec, G_vec, x_gl, T,
                                          K_elem, S_a, S_t, S_y, S_z, T_elem,
@@ -146,26 +146,26 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
                 EIy_L3 = E_vec[ielem] * Iy[ielem] / L**3
                 EIz_L3 = E_vec[ielem] * Iz[ielem] / L**3
 
-                M_a[:, :] = EA_L * const2
-                M_t[:, :] = GJ_L * const2
+                K_a[:, :] = EA_L * const2
+                K_t[:, :] = GJ_L * const2
 
-                M_y[:, :] = EIy_L3 * const_y
-                M_y[1, :] *= L
-                M_y[3, :] *= L
-                M_y[:, 1] *= L
-                M_y[:, 3] *= L
+                K_y[:, :] = EIy_L3 * const_y
+                K_y[1, :] *= L
+                K_y[3, :] *= L
+                K_y[:, 1] *= L
+                K_y[:, 3] *= L
 
-                M_z[:, :] = EIz_L3 * const_z
-                M_z[1, :] *= L
-                M_z[3, :] *= L
-                M_z[:, 1] *= L
-                M_z[:, 3] *= L
+                K_z[:, :] = EIz_L3 * const_z
+                K_z[1, :] *= L
+                K_z[3, :] *= L
+                K_z[:, 1] *= L
+                K_z[:, 3] *= L
 
                 K_elem[:] = 0
-                K_elem += S_a.T.dot(M_a).dot(S_a)
-                K_elem += S_t.T.dot(M_t).dot(S_t)
-                K_elem += S_y.T.dot(M_y).dot(S_y)
-                K_elem += S_z.T.dot(M_z).dot(S_z)
+                K_elem += S_a.T.dot(K_a).dot(S_a)
+                K_elem += S_t.T.dot(K_t).dot(S_t)
+                K_elem += S_y.T.dot(K_y).dot(S_y)
+                K_elem += S_z.T.dot(K_z).dot(S_z)
 
                 res = T_elem.T.dot(K_elem).dot(T_elem)
 
@@ -203,6 +203,28 @@ class SpatialBeamFEM(Component):
     """
     Compute the displacements and rotations by solving the linear system
     using the structural stiffness matrix.
+
+    Parameters
+    ----------
+    A : array_like
+        Areas for each FEM element.
+    Iy : array_like
+        Mass moment of inertia around the y-axis for each FEM element.
+    Iz : array_like
+        Mass moment of inertia around the z-axis for each FEM element.
+    J : array_like
+        Polar moment of inertia for each FEM element.
+    nodes : array_like
+        Flattened array with coordinates for each FEM node.
+    loads : array_like
+        Flattened array containing the loads applied on the FEM component,
+        computed from the sectional forces.
+
+    Returns
+    -------
+    disp_aug : array_like
+        Augmented displacement array. Obtained by solving the system
+        mtx * disp_aug = rhs, where rhs is a flattened version of loads.
 
     """
 
@@ -282,10 +304,10 @@ class SpatialBeamFEM(Component):
         self.mtx = numpy.zeros((size, size), dtype='complex')
         self.rhs = numpy.zeros(size, dtype='complex')
 
-        self.M_a = numpy.zeros((2, 2), dtype='complex')
-        self.M_t = numpy.zeros((2, 2), dtype='complex')
-        self.M_y = numpy.zeros((4, 4), dtype='complex')
-        self.M_z = numpy.zeros((4, 4), dtype='complex')
+        self.K_a = numpy.zeros((2, 2), dtype='complex')
+        self.K_t = numpy.zeros((2, 2), dtype='complex')
+        self.K_y = numpy.zeros((4, 4), dtype='complex')
+        self.K_z = numpy.zeros((4, 4), dtype='complex')
 
         self.S_a = numpy.zeros((2, 12), dtype='complex')
         self.S_a[(0, 1), (0, 6)] = 1.
@@ -313,8 +335,8 @@ class SpatialBeamFEM(Component):
         self.mtx, self.rhs = \
             _assemble_system(self.aero_ind, self.fem_ind, params['nodes'],
                              params['A'], params['J'], params['Iy'],
-                             params['Iz'], params['loads'], self.M_a, self.M_t,
-                             self.M_y, self.M_z, self.elem_IDs, self.cons,
+                             params['Iz'], params['loads'], self.K_a, self.K_t,
+                             self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
                              self.T_elem, self.const2, self.const_y,
@@ -331,8 +353,8 @@ class SpatialBeamFEM(Component):
         self.mtx, self.rhs = \
             _assemble_system(self.aero_ind, self.fem_ind, params['nodes'],
                              params['A'], params['J'], params['Iy'],
-                             params['Iz'], params['loads'], self.M_a, self.M_t,
-                             self.M_y, self.M_z, self.elem_IDs, self.cons,
+                             params['Iz'], params['loads'], self.K_a, self.K_t,
+                             self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
                              self.T_elem, self.const2, self.const_y,
@@ -390,6 +412,17 @@ class SpatialBeamDisp(Component):
     the linear system is not needed, so we select only the relevant
     portion of the displacements for further calculations.
 
+    Parameters
+    ----------
+    disp_aug : array_like
+        Augmented displacement array. Obtained by solving the system
+        mtx * disp_aug = rhs, where rhs is a flattened version of loads.
+
+    Returns
+    -------
+    disp : array_like
+        Actual displacement array formed by truncating disp_aug.
+
     """
 
     def __init__(self, fem_ind):
@@ -427,6 +460,16 @@ class ComputeNodes(Component):
 
     The FEM nodes are placed at 0.35*chord, or based on the fem_origin value.
 
+    Parameters
+    ----------
+    mesh : array_like
+        Flattened array defining the lifting surfaces.
+
+    Returns
+    -------
+    nodes : array_like
+        Flattened array with coordinates for each FEM node.
+
     """
 
     def __init__(self, fem_ind, aero_ind, fem_origin=0.35):
@@ -463,7 +506,22 @@ class ComputeNodes(Component):
 
 
 class SpatialBeamEnergy(Component):
-    """ Compute strain energy. """
+    """ Compute strain energy.
+
+    Parameters
+    ----------
+    disp : array_like
+        Actual displacement array formed by truncating disp_aug.
+    loads : array_like
+        Flattened array containing the loads applied on the FEM component,
+        computed from the sectional forces.
+
+    Returns
+    -------
+    energy : float
+        Total strain energy of the structural component.
+
+    """
 
     def __init__(self, aero_ind, fem_ind):
         super(SpatialBeamEnergy, self).__init__()
@@ -486,7 +544,19 @@ class SpatialBeamEnergy(Component):
 
 
 class SpatialBeamWeight(Component):
-    """ Compute total weight. """
+    """ Compute total weight.
+
+    Parameters
+    ----------
+    A : array_like
+        Areas for each FEM element.
+    nodes : array_like
+        Flattened array with coordinates for each FEM node.
+
+    Returns
+    -------
+    weight : float
+        Total weight of the structural component."""
 
     def __init__(self, aero_ind, fem_ind, mrho):
         super(SpatialBeamWeight, self).__init__()
@@ -543,7 +613,23 @@ class SpatialBeamWeight(Component):
 
 
 class SpatialBeamVonMisesTube(Component):
-    """ Compute the max von Mises stress in each element. """
+    """ Compute the max von Mises stress in each element.
+
+    Parameters
+    ----------
+    r : array_like
+        Radii for each FEM element.
+    nodes : array_like
+        Flattened array with coordinates for each FEM node.
+    disp : array_like
+        Displacements of each FEM node.
+
+    Returns
+    -------
+    vonmises : array_like
+        von Mises stress magnitudes for each FEM element.
+
+    """
 
     def __init__(self, aero_ind, fem_ind, E, G):
         super(SpatialBeamVonMisesTube, self).__init__()
@@ -632,6 +718,18 @@ class SpatialBeamFailureKS(Component):
     To simplify the optimization problem, we aggregate the individual
     elemental failure constraints using a Kreisselmeier-Steinhauser (KS)
     function.
+
+    Parameters
+    ----------
+    vonmises : array_like
+        von Mises stress magnitudes for each FEM element.
+
+    Returns
+    -------
+    failure : float
+        KS aggregation quantity obtained by combining the failure criteria
+        for each FEM node. Used to simplify the optimization problem by
+        reducing the number of constraints.
 
     """
 

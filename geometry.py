@@ -61,7 +61,7 @@ def get_inds(aero_ind, fem_ind):
 
 def rotate(mesh, thetas):
     """
-    Computes rotation matrices given mesh and rotation angles in degrees.
+    Compute rotation matrices given mesh and rotation angles in degrees.
 
     """
 
@@ -132,7 +132,7 @@ def dihedral(mesh, angle):
 
 
 def stretch(mesh, length):
-    """ Strech mesh in spanwise direction to reach specified length. """
+    """ Stretch mesh in spanwise direction to reach specified length. """
 
     le = mesh[0]
 
@@ -302,7 +302,8 @@ def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
 
 class GeometryMesh(Component):
     """
-    Create a mesh with span, sweep, dihedral, taper, and twist des-vars.
+    Create a mesh with span, sweep, dihedral, taper, and
+    twist design variables.
 
     """
 

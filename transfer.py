@@ -13,6 +13,21 @@ class TransferDisplacements(Component):
     Apply the computed displacements on the original mesh to obtain
     the deformed mesh.
 
+    Parameters
+    ----------
+    mesh : array_like
+        Flattened array defining the lifting surfaces.
+    disp : array_like
+        Flattened array containing displacements on the FEM component.
+        Contains displacements for all six degrees of freedom, including
+        displacements in the x, y, and z directions, and rotations about the
+        x, y, and z axes.
+
+    Returns
+    -------
+    def_mesh : array_like
+        Flattened array defining the lifting surfaces after deformation.
+
     """
 
     def __init__(self, aero_ind, fem_ind, fem_origin=0.35):
@@ -78,6 +93,21 @@ class TransferLoads(Component):
 
     Apply the computed sectional forces on the aerodynamic surfaces to
     obtain the deformed mesh FEM loads.
+
+    Parameters
+    ----------
+    def_mesh : array_like
+        Flattened array defining the lifting surfaces after deformation.
+    sec_forces : array_like
+        Flattened array containing the sectional forces acting on each panel.
+        Stored in Fortran order (only relevant when more than one chordwise
+        panel).
+
+    Returns
+    -------
+    loads : array_like
+        Flattened array containing the loads applied on the FEM component,
+        computed from the sectional forces.
 
     """
 

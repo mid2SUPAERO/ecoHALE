@@ -1,4 +1,4 @@
-""" Example script to run aerostructural optimization.
+""" Example runscript to perform aerostructural optimization.
 
 Call as `python run_aerostruct.py` to check derivatives, or
 call as `python run_aerostruct.py 0` to run a single analysis, or
@@ -21,20 +21,28 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
-# Try to import SNOPT; use it if installed
-try:
-    from openmdao.api import pyOptSparseDriver
-    SNOPT = True
-except:
-    SNOPT = False
+# Single surface aerostructural optimization
+if not sys.argv[1].endswith('m'):
+    # Create the mesh with 2 inboard points and 3 outboard points.
+    # This will be mirrored to produce a mesh with 7 spanwise points,
+    # or 6 spanwise panels
+    mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
+    num_x, num_y = mesh.shape[:2]
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+    r = radii(mesh)
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    fem_ind = [num_y]
+    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 # Multiple surface aerostructural optimization (currently not working)
-if sys.argv[1].endswith('m'):
-    num_x = 2
-    num_y = 5
-    span = 30.
-    chord = 15.
-    cosine_spacing = 0.
+else:
+    num_x = 2  # number of chordwise node points
+    num_y = 5  # number of spanwise node points, can only be odd numbers
+    span = 30.  # full wingspan
+    chord = 15.  # root chord
+    cosine_spacing = 0.  # spacing distribution; 0 is uniform, 1 is cosine
     mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     mesh_wing[:, :, 1] = mesh_wing[:, :, 1] - span/2
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
@@ -44,11 +52,11 @@ if sys.argv[1].endswith('m'):
     aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
     fem_ind = [num_y]
 
-    nx = 2
-    ny = 5
-    span = 30.
-    chord = 15.
-    cosine_spacing = 0.
+    nx = 2  # number of chordwise node points
+    ny = 5  # number of spanwise node points, can only be odd numbers
+    span = 30.  # full tailspan
+    chord = 15.  # root chord
+    cosine_spacing = 0.  # spacing distribution; 0 is uniform, 1 is cosine
     mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
     mesh_tail[:, :, 1] = mesh_tail[:, :, 1] + span/2
 
@@ -64,20 +72,6 @@ if sys.argv[1].endswith('m'):
     fem_ind.append(ny)
     aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
-# Single surface aerostructural optimization
-else:
-    # Create the mesh with 2 inboard points and 3 outboard points.
-    # This will be mirrored to produce a mesh with 7 spanwise points,
-    # or 6 spanwise panels
-    mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
-    num_x, num_y = mesh.shape[:2]
-    num_twist = numpy.max([int((num_y - 1) / 5), 5])
-
-    r = radii(mesh)
-    mesh = mesh.reshape(-1, mesh.shape[-1])
-    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-    fem_ind = [num_y]
-    aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
 # Set the number of thickness control points and the initial thicknesses
 num_thickness = num_twist
@@ -188,14 +182,13 @@ prob = Problem()
 prob.root = root
 prob.print_all_convergence()
 
-if SNOPT:
-    # Use SNOPT optimizer if installed
+try:  # Use SNOPT optimizer if installed
+    from openmdao.api import pyOptSparseDriver
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
     prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
                                 'Major feasibility tolerance': 1.0e-7}
-else:
-    # Use SLSQP optimizer if SNOPT not installed
+except:  # Use SLSQP optimizer if SNOPT not installed
     prob.driver = ScipyOptimizer()
     prob.driver.options['optimizer'] = 'SLSQP'
     prob.driver.options['disp'] = True

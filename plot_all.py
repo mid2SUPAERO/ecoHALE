@@ -164,7 +164,7 @@ class Display(object):
 
             for i in range(self.num_iters + 1):
                 m_vals = self.mesh[i][:n, :].reshape(nx, ny, 3)
-                cvec = m_vals[0, :, :] - m_vals[1, :, :]
+                cvec = m_vals[0, :, :] - m_vals[-1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                 chords = 0.5 * (chords[1:] + chords[:-1])
                 a = alpha[i]
@@ -301,22 +301,25 @@ class Display(object):
                 y = mesh0[:, :, 1]
                 z = mesh0[:, :, 2]
 
-                if self.show_def_mesh.get():
-                    x_def = def_mesh0[:, :, 0]
-                    y_def = def_mesh0[:, :, 1]
-                    z_def = def_mesh0[:, :, 2]
+                try:  # show deformed mesh option may not be available
+                    if self.show_def_mesh.get():
+                        x_def = def_mesh0[:, :, 0]
+                        y_def = def_mesh0[:, :, 1]
+                        z_def = def_mesh0[:, :, 2]
 
-                    self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
-                    if self.ex_def.get():
-                        z_def = (z_def - z) * 10 + z_def
-                        def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
+                        self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+                        if self.ex_def.get():
+                            z_def = (z_def - z) * 10 + z_def
+                            def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
+                        else:
+                            def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
+                        self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
+                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
                     else:
-                        def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
-                    self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
-                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
-                else:
+                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
+                        self.c2.grid_forget()
+                except:
                     self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-                    self.c2.grid_forget()
 
         if self.show_tube:
             r0 = self.r[self.curr_pos]
@@ -344,8 +347,12 @@ class Display(object):
                 Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
                 col = numpy.zeros(X.shape)
                 col[:] = colors[i]
-                self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                    facecolors=cm.viridis(col), linewidth=0)
+                try:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.viridis(col), linewidth=0)
+                except:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.coolwarm(col), linewidth=0)
         lim = numpy.max(numpy.max(mesh0)) / 2.8
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
@@ -466,7 +473,7 @@ class Display(object):
 
         self.draw_slider()
 
-        if self.show_wing:
+        if self.show_wing and self.show_tube:
             # checkbox to show deformed mesh
             self.show_def_mesh = Tk.IntVar()
             c1 = Tk.Checkbutton(
