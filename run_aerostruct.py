@@ -92,6 +92,7 @@ tot_n_fem = numpy.sum(fem_ind[:, 0])
 num_surf = fem_ind.shape[0]
 jac_twist = get_bspline_mtx(num_twist, num_y)
 jac_thickness = get_bspline_mtx(num_thickness, tot_n_fem-num_surf)
+
 # Define the independent variables
 indep_vars = [
     ('span', span),

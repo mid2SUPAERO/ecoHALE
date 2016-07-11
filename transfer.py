@@ -1,21 +1,23 @@
-""" Defines the transfer component to couple aero and struct analyses """
+""" Define the transfer components to couple aero and struct analyses. """
 
 from __future__ import division
 import numpy
 
 from openmdao.api import Component
 
-
 class TransferDisplacements(Component):
-    """ Performs displacement transfer """
+    """
+    Perform displacement transfer.
+
+    Apply the computed displacements on the original mesh to obtain
+    the deformed mesh.
+
+    """
 
     def __init__(self, aero_ind, fem_ind, fem_origin=0.35):
         super(TransferDisplacements, self).__init__()
 
-        n_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
-        tot_bpts = numpy.sum(aero_ind[:, 3])
-        tot_panels = numpy.sum(aero_ind[:, 4])
         self.aero_ind = aero_ind
         self.fem_ind = fem_ind
         tot_n_fem = numpy.sum(fem_ind[:, 0])
@@ -67,20 +69,23 @@ class TransferDisplacements(Component):
 
 
 class TransferLoads(Component):
-    """ Performs load transfer """
+    """
+    Perform aerodynamic load transfer.
+
+    Apply the computed sectional forces on the aerodynamic surfaces to
+    obtain the deformed mesh FEM loads.
+
+    """
 
     def __init__(self, aero_ind, fem_ind, fem_origin=0.35):
         super(TransferLoads, self).__init__()
 
-        n_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
-        tot_bpts = numpy.sum(aero_ind[:, 3])
         tot_panels = numpy.sum(aero_ind[:, 4])
         self.aero_ind = aero_ind
         self.fem_ind = fem_ind
         tot_n_fem = numpy.sum(fem_ind[:, 0])
         self.fem_origin = fem_origin
-
 
         self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
         self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3), dtype="complex"))

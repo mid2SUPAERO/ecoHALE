@@ -1,6 +1,13 @@
 """ Example script to run structural-only optimization.
+
 Call as `python run_spatialbeam.py 0` to run a single analysis, or
-call as `python run_spatialbeam.py 1` to perform optimization. """
+call as `python run_spatialbeam.py 1` to perform optimization.
+
+To run with multiple structural components instead of a single one,
+call as `python run_spatialbeam.py 0m` to run a single analysis, or
+call as `python run_spatialbeam.py 1m` to perform optimization.
+
+"""
 
 from __future__ import division
 import numpy
@@ -159,7 +166,7 @@ view_tree(prob, outfile="spatialbeam.html", show_browser=False)
 st = time()
 prob.run_once()
 if sys.argv[1].startswith('0'):
-    # Uncomment this line to check derivatives.
+    # Uncomment the following line to check derivatives.
     # prob.check_partial_derivatives(compact_print=True)
     pass
 elif sys.argv[1].startswith('1'):

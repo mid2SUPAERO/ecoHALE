@@ -35,6 +35,16 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
                      K_elem, S_a, S_t, S_y, S_z, T_elem,
                      const2, const_y, const_z, n, size, mtx, rhs):
 
+    """
+    Assemble the structural stiffness matrix based on 6 degrees of freedom
+    per element.
+
+    Can be run in dense Fortran, Sparse Fortran, or dense
+    Python code depending on the flags used. Currently, dense Fortran
+    seems to be the fastest version across many matrix sizes.
+
+    """
+
     data_list = []
     rows_list = []
     cols_list = []
@@ -179,7 +189,11 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
 
 
 class SpatialBeamFEM(Component):
-    """ Computes the displacements and rotations """
+    """
+    Compute the displacements and rotations by solving the linear system
+    using the structural stiffness matrix.
+
+    """
 
     def __init__(self, aero_ind, fem_ind, E, G, cg_x=5):
         super(SpatialBeamFEM, self).__init__()
@@ -203,9 +217,7 @@ class SpatialBeamFEM(Component):
         self.add_param('Iz', val=numpy.zeros((tot_n_fem - num_surf)))
         self.add_param('J', val=numpy.zeros((tot_n_fem - num_surf)))
         self.add_param('nodes', val=numpy.zeros((tot_n_fem, 3)))
-
         self.add_param('loads', val=numpy.zeros((tot_n_fem, 6)))
-
         self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
@@ -352,7 +364,15 @@ class SpatialBeamFEM(Component):
 
 
 class SpatialBeamDisp(Component):
-    """ Selects displacements from augmented vector """
+    """
+    Select displacements from augmented vector.
+
+    The solution to the linear system has additional results due to the
+    constraints on the FEM model. The displacements from this portion of
+    the linear system is not needed, so we select only the relevant
+    portion of the displacements for further calculations.
+
+    """
 
     def __init__(self, fem_ind):
         super(SpatialBeamDisp, self).__init__()
@@ -383,7 +403,12 @@ class SpatialBeamDisp(Component):
         return jac
 
 class ComputeNodes(Component):
-    """ Compute FEM nodes based on aerodynamic mesh. """
+    """
+    Compute FEM nodes based on aerodynamic mesh.
+
+    The FEM nodes are placed at 0.35*chord, based on the fem_origin value.
+
+    """
 
     def __init__(self, fem_ind, aero_ind, fem_origin=0.35):
         super(ComputeNodes, self).__init__()
@@ -419,7 +444,7 @@ class ComputeNodes(Component):
 
 
 class SpatialBeamEnergy(Component):
-    """ Computes strain energy """
+    """ Compute strain energy. """
 
     def __init__(self, aero_ind, fem_ind):
         super(SpatialBeamEnergy, self).__init__()
@@ -444,7 +469,7 @@ class SpatialBeamEnergy(Component):
 
 
 class SpatialBeamWeight(Component):
-    """ Computes total weight """
+    """ Compute total weight. """
 
     def __init__(self, aero_ind, fem_ind, mrho):
         super(SpatialBeamWeight, self).__init__()
@@ -502,9 +527,8 @@ class SpatialBeamWeight(Component):
         return jac
 
 
-
 class SpatialBeamVonMisesTube(Component):
-    """ Computes the max Von Mises stress in each element """
+    """ Compute the max von Mises stress in each element. """
 
     def __init__(self, aero_ind, fem_ind, E, G):
         super(SpatialBeamVonMisesTube, self).__init__()
@@ -587,7 +611,14 @@ class SpatialBeamVonMisesTube(Component):
 
 
 class SpatialBeamFailureKS(Component):
-    """ Aggregates failure constraints from the structure """
+    """
+    Aggregate failure constraints from the structure.
+
+    To simplify the optimization problem, we aggregate the individual
+    elemental failure constraints using a Kreisselmeier-Steinhauser (KS)
+    function.
+
+    """
 
     def __init__(self, fem_ind, sigma, rho=10):
         super(SpatialBeamFailureKS, self).__init__()
@@ -620,6 +651,7 @@ class SpatialBeamFailureKS(Component):
 
 
 class SpatialBeamStates(Group):
+    """ Group that contains the spatial beam states. """
 
     def __init__(self, aero_ind, fem_ind, E, G):
         super(SpatialBeamStates, self).__init__()
@@ -637,6 +669,8 @@ class SpatialBeamStates(Group):
 
 
 class SpatialBeamFunctionals(Group):
+    """ Group that contains the spatial beam functionals used to evaluate
+    performance. """
 
     def __init__(self, aero_ind, fem_ind, E, G, stress, mrho):
         super(SpatialBeamFunctionals, self).__init__()

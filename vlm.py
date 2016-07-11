@@ -1,4 +1,11 @@
-""" Defines the aerodynamic analysis component using VLM's lifting line theory """
+"""
+Defines the aerodynamic analysis component using a vortex lattice method.
+
+We input a nodal mesh and properties of the airflow to calculate the
+circulations of the horseshoe vortices. We then compute the forces, lift,
+and drag acting on the lifting surfaces.
+
+"""
 
 from __future__ import division
 import numpy
@@ -170,12 +177,37 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points, b_pts, alpha, skip=False
 
 
 class VLMGeometry(Component):
-    """ Compute various geometric properties for VLM analysis """
+    """ Compute various geometric properties for VLM analysis.
+
+    Parameters
+    ----------
+    def_mesh : array_like
+        Flattened array defining the lifting surfaces.
+
+    Returns
+    -------
+    b_pts : array_like
+        Bound points for the horseshoe vortices, found along the 1/4 chord.
+    mid_b : array_like
+        Midpoints of the bound vortex segments, used as the collocation
+        points to compute drag
+    c_pts : array_like
+        Collocation points on the 3/4 chord line where the flow tangency
+        condition is satisfed. Used to set up the linear system.
+    widths : array_like
+        The spanwise widths of each individual panel.
+    normals : array_like
+        The normal vector for each panel, computed as the cross of the two
+        diagonals from the mesh points.
+    S_ref : array_like
+        The reference areas of each lifting surface.
+
+     """
 
     def __init__(self, aero_ind):
         super(VLMGeometry, self).__init__()
 
-        n_surf = aero_ind.shape[0]
+        num_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
         tot_bpts = numpy.sum(aero_ind[:, 3])
         tot_panels = numpy.sum(aero_ind[:, 4])
@@ -187,7 +219,7 @@ class VLMGeometry(Component):
         self.add_output('c_pts', val=numpy.zeros((tot_panels, 3)))
         self.add_output('widths', val=numpy.zeros((tot_panels)))
         self.add_output('normals', val=numpy.zeros((tot_panels, 3)))
-        self.add_output('S_ref', val=numpy.zeros((n_surf)))
+        self.add_output('S_ref', val=numpy.zeros((num_surf)))
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
@@ -259,7 +291,11 @@ class VLMGeometry(Component):
 
 
 class VLMCirculations(Component):
-    """ Define circulations """
+    """
+    Compute the circulations based on the AIC matrix and the panel velocities.
+    Note that the flow tangency condition is enforced at the 3/4 chord point.
+
+    """
 
     def __init__(self, aero_ind):
         super(VLMCirculations, self).__init__()
@@ -341,12 +377,12 @@ class VLMCirculations(Component):
 
 
 class VLMForces(Component):
-    """ Define aerodynamic forces acting on each section """
+    """ Compute aerodynamic forces acting on each section. """
 
     def __init__(self, aero_ind):
         super(VLMForces, self).__init__()
 
-        n_surf = aero_ind.shape[0]
+        num_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
         tot_bpts = numpy.sum(aero_ind[:, 3])
         tot_panels = numpy.sum(aero_ind[:, 4])
@@ -421,7 +457,7 @@ class VLMLiftDrag(Component):
     def __init__(self, aero_ind):
         super(VLMLiftDrag, self).__init__()
 
-        n_surf = aero_ind.shape[0]
+        num_surf = aero_ind.shape[0]
         tot_n = numpy.sum(aero_ind[:, 2])
         tot_bpts = numpy.sum(aero_ind[:, 3])
         tot_panels = numpy.sum(aero_ind[:, 4])
@@ -429,8 +465,8 @@ class VLMLiftDrag(Component):
 
         self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3)))
         self.add_param('alpha', val=3.)
-        self.add_output('L', val=numpy.zeros((n_surf)))
-        self.add_output('D', val=numpy.zeros((n_surf)))
+        self.add_output('L', val=numpy.zeros((num_surf)))
+        self.add_output('D', val=numpy.zeros((num_surf)))
 
     def solve_nonlinear(self, params, unknowns, resids):
         alpha = params['alpha'] * numpy.pi / 180.
@@ -475,15 +511,15 @@ class VLMCoeffs(Component):
     def __init__(self, aero_ind):
         super(VLMCoeffs, self).__init__()
 
-        n_surf = aero_ind.shape[0]
+        num_surf = aero_ind.shape[0]
         self.aero_ind = aero_ind
-        self.add_param('S_ref', val=numpy.zeros((n_surf)))
-        self.add_param('L', val=numpy.zeros((n_surf)))
-        self.add_param('D', val=numpy.zeros((n_surf)))
+        self.add_param('S_ref', val=numpy.zeros((num_surf)))
+        self.add_param('L', val=numpy.zeros((num_surf)))
+        self.add_param('D', val=numpy.zeros((num_surf)))
         self.add_param('v', val=0.)
         self.add_param('rho', val=0.)
-        self.add_output('CL1', val=numpy.zeros((n_surf)))
-        self.add_output('CDi', val=numpy.zeros((n_surf)))
+        self.add_output('CL1', val=numpy.zeros((num_surf)))
+        self.add_output('CDi', val=numpy.zeros((num_surf)))
 
     def solve_nonlinear(self, params, unknowns, resids):
         S_ref = params['S_ref']
@@ -534,14 +570,14 @@ class VLMCoeffs(Component):
 
 
 class TotalLift(Component):
-    """ Calculate total lift in force units """
+    """ Calculate total lift in force units. """
 
     def __init__(self, CL0, aero_ind):
         super(TotalLift, self).__init__()
 
-        self.n_surf = aero_ind.shape[0]
-        self.add_param('CL1', val=numpy.zeros((self.n_surf)))
-        self.add_output('CL', val=numpy.zeros((self.n_surf)))
+        self.num_surf = aero_ind.shape[0]
+        self.add_param('CL1', val=numpy.zeros((self.num_surf)))
+        self.add_output('CL', val=numpy.zeros((self.num_surf)))
         self.add_output('CL_wing', val=0.)
 
         self.CL0 = CL0
@@ -552,19 +588,19 @@ class TotalLift(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['CL', 'CL1'][:] = numpy.eye(self.n_surf)
+        jac['CL', 'CL1'][:] = numpy.eye(self.num_surf)
         jac['CL_wing', 'CL1'][0][0] = 1
         return jac
 
 class TotalDrag(Component):
-    """ Calculate total drag in force units """
+    """ Calculate total drag in force units. """
 
     def __init__(self, CD0, aero_ind):
         super(TotalDrag, self).__init__()
 
-        self.n_surf = aero_ind.shape[0]
-        self.add_param('CDi', val=numpy.zeros((self.n_surf)))
-        self.add_output('CD', val=numpy.zeros((self.n_surf)))
+        self.num_surf = aero_ind.shape[0]
+        self.add_param('CDi', val=numpy.zeros((self.num_surf)))
+        self.add_output('CD', val=numpy.zeros((self.num_surf)))
         self.add_output('CD_wing', val=0.)
 
         self.CD0 = CD0
@@ -575,12 +611,12 @@ class TotalDrag(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['CD', 'CDi'][:] = numpy.eye(self.n_surf)
+        jac['CD', 'CDi'][:] = numpy.eye(self.num_surf)
         jac['CD_wing', 'CDi'][0][0] = 1
         return jac
 
 class VLMStates(Group):
-    """ Group that contains the aerodynamic states """
+    """ Group that contains the aerodynamic states. """
 
     def __init__(self, aero_ind):
         super(VLMStates, self).__init__()
@@ -598,7 +634,8 @@ class VLMStates(Group):
 
 
 class VLMFunctionals(Group):
-    """ Group that contains the aerodynamic functionals used to evaluate performance """
+    """ Group that contains the aerodynamic functionals used to evaluate
+    performance. """
 
     def __init__(self, aero_ind, CL0, CD0):
         super(VLMFunctionals, self).__init__()

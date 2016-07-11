@@ -11,10 +11,16 @@ from crm_data import crm_base_mesh
 
 
 def get_inds(aero_ind, fem_ind):
-    """ Calculates and stores indices to describe panels for aero analysis.
-    Each row has information for each individually defined surface,
-    store in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]
-    with the indices   [ 0,  1, 2,      3,        4, 5,      6,        7]
+    """
+    Calculate and store indices to describe panels for aero and
+    structural analysis.
+
+    Takes in aero_ind with each row containing [nx, ny] and fem_ind with
+    each row containing [n_fem].
+
+    Each outputted row has information for each individually defined surface,
+    stored in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]
+    with the indices    [ 0,  1, 2,      3,        4, 5,      6,        7]
 
     nx : number of nodes in the chordwise direction
     ny : number of nodes in the spanwise direction
@@ -25,12 +31,12 @@ def get_inds(aero_ind, fem_ind):
     i_bpts: current index of b_pts nodes when considering all surfaces
     i_panels : current index of panels when considering all surfaces
 
-    Calculates indices for structural (fem) analysis.
-    Simpler than the aero case, this array contains:
+    Simpler than the aero case, the fem_ind array contains:
     [n_fem, i_fem]
 
     n_fem : number of fem nodes per surface
     i_fem : current index of fem nodes when considering all fem nodes
+
     """
 
     new_aero_ind = numpy.zeros((aero_ind.shape[0], 8), dtype=int)
@@ -53,7 +59,11 @@ def get_inds(aero_ind, fem_ind):
     return new_aero_ind, new_fem_ind
 
 def rotate(mesh, thetas):
-    """ Computes rotation matricies given mesh and rotation angles in degress """
+    """
+    Computes rotation matrices given mesh and rotation angles in degrees.
+
+    """
+
     te = mesh[-1]
     le = mesh[ 0]
     quarter_chord = 0.25*te + 0.75*le
@@ -76,7 +86,7 @@ def rotate(mesh, thetas):
     return mesh
 
 def sweep(mesh, angle):
-    """ Shearing sweep angle. Positive sweeps back. """
+    """ Apply shearing sweep. Positive sweeps back. """
 
     num_x, num_y, _ = mesh.shape
     ny2 = (num_y-1)/2
@@ -98,7 +108,7 @@ def sweep(mesh, angle):
     return mesh
 
 def dihedral(mesh, angle):
-    """ Dihedral angle. Positive bends up. """
+    """ Apply dihedral angle. Positive bends up. """
 
     num_x, num_y, _ = mesh.shape
     ny2 = (num_y-1)/2
@@ -121,7 +131,7 @@ def dihedral(mesh, angle):
 
 
 def stretch(mesh, length):
-    """ Strech mesh in span-wise direction to reach specified length"""
+    """ Strech mesh in spanwise direction to reach specified length. """
 
     le = mesh[0]
     te = mesh[-1]
@@ -137,7 +147,7 @@ def stretch(mesh, length):
     return mesh
 
 def taper(mesh, taper_ratio):
-    """ Change the spanwise chord to produce a tapered wing"""
+    """ Alter the spanwise chord to produce a tapered wing. """
 
     le = mesh[0]
     te = mesh[-1]
@@ -163,11 +173,14 @@ def taper(mesh, taper_ratio):
 
 
 def mirror(mesh, right_side=True):
-    """ Takes a half geometry and mirrors it across the symmetry plane.
+    """
+    Take a half geometry and mirror it across the symmetry plane.
+
     If right_side==True, it mirrors from right to left,
     assuming that the first point is on the symmetry plane. Else
     it mirrors from left to right, assuming the last point is on the
     symmetry plane.
+
     """
 
     num_x, num_y, _ = mesh.shape
@@ -192,8 +205,19 @@ def mirror(mesh, right_side=True):
 
 
 def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base_mesh):
-    """ Builds the right hand side of the CRM wing with specified number
-    of inboard and outboard panels
+    """
+    Build the right hand side of the CRM wing with specified number
+    of inboard and outboard panels.
+
+    n_points_inboard : int
+        Number of spanwise points between the wing root and yehudi break per
+        wing side.
+    n_points_outboard : int
+        Number of spanwise points between the yehudi break and wingtip per
+        wing side.
+    num_x : int
+        Number of chordwise points.
+
     """
 
     # LE pre-yehudi
@@ -239,7 +263,8 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base
     return full_mesh
 
 def add_chordwise_panels(mesh, num_x):
-    """ Divides the wing into multiple chordwise panels. """
+    """ Divide the wing into multiple chordwise panels. """
+
     le = mesh[ 0, :, :]
     te = mesh[-1, :, :]
 
@@ -254,6 +279,8 @@ def add_chordwise_panels(mesh, num_x):
     return new_mesh
 
 def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
+    """ Generate simple rectangular wing mesh. """
+
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     beta = numpy.linspace(0, numpy.pi/2, ny2)
@@ -270,9 +297,9 @@ def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
     return mesh
 
 class GeometryMesh(Component):
-    """ Changes a given mesh with span, sweep, dihedral, taper,
-    and twist des-vars. Takes in a half mesh with symmetry plane
-    about the middle and outputs a full symmetric mesh.
+    """
+    Create a mesh with span, sweep, dihedral, taper, and twist des-vars.
+
     """
 
     def __init__(self, mesh, aero_ind):
@@ -316,8 +343,10 @@ class GeometryMesh(Component):
         return jac
 
 class Bspline(Component):
-    """ General function to translate from control points to actual points
+    """
+    General function to translate from control points to actual points
     using a b-spline representation.
+
     """
 
     def __init__(self, cpname, ptname, jac):
@@ -336,7 +365,7 @@ class Bspline(Component):
 
 
 class LinearInterp(Component):
-    """ Linear interpolation used to create linearly varying parameters """
+    """ Linear interpolation used to create linearly varying parameters. """
 
     def __init__(self, num_y, name):
         super(LinearInterp, self).__init__()
@@ -365,7 +394,7 @@ class LinearInterp(Component):
             unknowns[self.vname][-1-ind] = a*(1-w) + b*w
 
 if __name__ == "__main__":
-    """ Test mesh generation and view results in .html file """
+    """ Test mesh generation and view results in .html file. """
 
     import plotly.offline as plt
     import plotly.graph_objs as go

@@ -8,13 +8,13 @@ Usage is
 
 The script automatically appends '.db' to the provided name.
 Ex: `python plot_all.py example` opens 'example.db'.
+
 """
 
 
 from __future__ import division
 import tkFont
 import Tkinter as Tk
-from time import time
 import sys
 
 import matplotlib
@@ -52,7 +52,6 @@ db_name = filename + '.db'
 class Display(object):
     def __init__(self, db_name):
 
-        self.s = time()
         self.root = Tk.Tk()
         self.root.wm_title("Viewer")
 
@@ -478,7 +477,7 @@ class Display(object):
                 font=font)
             c1.grid(row=0, column=2, padx=5, sticky=Tk.W)
 
-            # checkbox to exaggerated deformed mesh
+            # checkbox to exaggerate deformed mesh
             self.ex_def = Tk.IntVar()
             self.c2 = Tk.Checkbutton(
                 self.options_frame,
@@ -489,7 +488,7 @@ class Display(object):
             self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
 
         # Option to automatically refresh history file
-        # especially useful for running optimizations
+        # especially useful for currently running optimizations
         self.var_ref = Tk.IntVar()
         # self.var_ref.set(1)
         c11 = Tk.Checkbutton(

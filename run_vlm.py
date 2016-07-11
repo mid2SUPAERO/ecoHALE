@@ -1,6 +1,13 @@
 """ Example script to run aerodynamics-only optimization.
+
 Call as `python run_vlm.py 0` to run a single analysis, or
-call as `python run_vlm.py 1` to perform optimization. """
+call as `python run_vlm.py 1` to perform optimization.
+
+To run with multiple lifting surfaces instead of a single one,
+Call as `python run_vlm.py 0m` to run a single analysis, or
+call as `python run_vlm.py 1m` to perform optimization.
+
+"""
 
 from __future__ import division
 import numpy
@@ -136,8 +143,8 @@ view_tree(prob, outfile="aero.html", show_browser=False)
 st = time()
 prob.run_once()
 if sys.argv[1].startswith('0'):
-    # Uncomment this line to check derivatives.
-    prob.check_partial_derivatives(compact_print=True)
+    # Uncomment the following line to check derivatives.
+    # prob.check_partial_derivatives(compact_print=True)
     pass
 elif sys.argv[1].startswith('1'):
     st = time()
