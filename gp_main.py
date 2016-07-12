@@ -2,6 +2,13 @@
 
 import gp_setup, gp_aero
 
-kwargs = gp_setup.setup()
+def_mesh, kwargs = gp_setup.setup()
 
-gp_aero.aero(kwargs)
+print "from main... def_mesh"
+print def_mesh
+
+loads = gp_aero.aero(def_mesh,**kwargs)
+
+
+print "from main... loads"
+print loads

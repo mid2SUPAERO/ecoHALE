@@ -4,7 +4,7 @@ import sys
 
 from openmdao.api import IndepVarComp, Problem, Group
 from geometry import GeometryMesh, Bspline, gen_mesh, get_inds
-from transfer import TransferDisplacements, TransferLoads
+from transfer import TransferLoads
 from vlm import VLMStates, VLMFunctionals
 from b_spline import get_bspline_mtx
 #from model_helpers import view_tree
@@ -23,7 +23,7 @@ from b_spline import get_bspline_mtx
 #         for ind_y in xrange(num_y):
 #             mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, ind_y / (num_y - 1) * span, 0]
 
-def aero(kwargs):
+def aero(def_mesh, **kwargs):
 
     #print "before: ",kwargs
     if not kwargs:
@@ -49,6 +49,7 @@ def aero(kwargs):
     sweep = kwargs.get('sweep')
     taper = kwargs.get('taper')
     disp = kwargs.get('disp')
+    dihedral = kwargs.get('dihedral')
 
     # print "after: ",mesh,num_x,num_y,des_vars
 
@@ -59,11 +60,6 @@ def aero(kwargs):
     jac_thickness = get_bspline_mtx(num_thickness, tot_n_fem-num_surf)
 
     disp = numpy.zeros((num_y, 6))  # for display?
-
-    # Set additional mesh parameters
-    dihedral = 0.  # dihedral angle in degrees
-    sweep = 0.  # shearing sweep angle in degrees
-    taper = 1.  # taper ratio
 
     # Define the design variables
     des_vars = [
@@ -76,53 +72,48 @@ def aero(kwargs):
         ('alpha', alpha),
         ('rho', rho),
         ('disp', numpy.zeros((tot_n_fem, 6))),
-        ('aero_ind', aero_ind),
-        ('fem_ind', fem_ind)
+        ('def_mesh', def_mesh)
     ]
 
     root = Group()
 
     root.add('des_vars',
              IndepVarComp(des_vars),
-             # explicitly list design variables
-             promotes=['twist_cp','span','v','alpha','rho','disp'])
-    root.add('twist_bsp',
-             Bspline('twist_cp', 'twist', jac_twist),
-             promotes=['*'])
-    root.add('thickness_bsp',
-             Bspline('thickness_cp', 'thickness', jac_thickness),
-             promotes=['*'])
+             promotes=['twist_cp','span','v','alpha','rho','disp','dihedral','def_mesh'])
+    # root.add('twist_bsp',  # What is this doing?
+    #          Bspline('twist_cp', 'twist', jac_twist),
+    #          promotes=['*'])
+    # root.add('thickness_bsp',    # What is this doing?
+    #          Bspline('thickness_cp', 'thickness', jac_thickness),
+    #          promotes=['*'])
     # root.add('tube',
     #          MaterialsTube(fem_ind),
     #          promotes=['*'])
-    root.add('mesh',
-             GeometryMesh(mesh, aero_ind), # changes mesh given span, sweep, twist, and des_vars
-             promotes=['*'])
-    root.add('def_mesh',
-             TransferDisplacements(aero_ind, fem_ind),
-             promotes=['*'])
+
     root.add('VLMstates',
              VLMStates(aero_ind),
-             promotes=['*'])
+             promotes=[
+                'def_mesh','b_pts','mid_b','c_pts','widths','normals','S_ref', # VLMGeometry
+                'alpha','circulations','v',  # VLMCirculations
+                'rho','sec_forces'           # VLMForces
+             ])
     root.add('loads',
              TransferLoads(aero_ind, fem_ind),
-             # explicitly list variables
              promotes=['def_mesh','sec_forces','loads'])
 
     prob = Problem()
     prob.root = root
-
     prob.setup()
-
-    # prob.run_once()
     prob.run()
-    print 'Aero Complete'
-    print "Loads:"
-    print prob['loads']
-    print ''
-    print 'Def_Mesh:'
-    print prob['def_mesh']
-    return
+
+    # print 'Aero Complete'
+    # print "Loads:"
+    # print prob['loads']
+    # print ''
+    # print 'Def_Mesh:'
+    # print prob['def_mesh']
+
+    return prob['loads']  # Output the Loads matrix
 
 if __name__ == "__main__":
     aero(sys.argv[1:])
