@@ -4,9 +4,9 @@ import sys
 import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
-from geometry import GeometryMesh, mesh_gen
+from geometry import GeometryMesh, gen_crm_mesh
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from vlm import VLMStates, VLMFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
@@ -18,7 +18,7 @@ from gs_newton import HybridGSNewton
 # Change mesh size here
 ############################################################
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 r = radii(mesh)
 t = r/10
@@ -46,13 +46,13 @@ indep_vars = [
 indep_vars_comp = IndepVarComp(indep_vars)
 tube_comp = MaterialsTube(num_y)
 
-mesh_comp = GeometryMesh(mesh)
+mesh_comp = GeometryMesh(mesh, aero_ind, num_twist)
 spatialbeamstates_comp = SpatialBeamStates(num_y, E, G)
 def_mesh_comp = TransferDisplacements(num_y)
-weissingerstates_comp = WeissingerStates(num_y)
+vlmstates_comp = VLMStates(num_y)
 loads_comp = TransferLoads(num_y)
 
-weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
+vlmfuncs_comp = VLMFunctionals(num_y, CL0, CD0)
 spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
 eq_con_comp = FunctionalEquilibrium(W0)
@@ -75,8 +75,8 @@ coupled.add('spatialbeamstates',
 coupled.add('def_mesh',
     def_mesh_comp,
     promotes=["*"])
-coupled.add('weissingerstates',
-    weissingerstates_comp,
+coupled.add('vlmstates',
+    vlmstates_comp,
     promotes=["*"])
 coupled.add('loads',
     loads_comp,
@@ -106,7 +106,7 @@ coupled.ln_solver.options['maxiter'] = 100
 # coupled.ln_solver = ScipyGMRES()
 # coupled.ln_solver.options['iprint'] = 1
 # coupled.ln_solver.preconditioner = LinearGaussSeidel()
-# coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+# coupled.vlmstates.ln_solver = LinearGaussSeidel()
 # coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 ##Direct Solver
@@ -120,8 +120,8 @@ root.add('coupled',
          promotes=['*'])
 
 # Add functional components here
-root.add('weissingerfuncs',
-        weissingerfuncs_comp,
+root.add('vlmfuncs',
+        vlmfuncs_comp,
         promotes=['*'])
 root.add('spatialbeamfuncs',
         spatialbeamfuncs_comp,

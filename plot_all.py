@@ -2,16 +2,19 @@
 
 Usage is
 `python plot_all.py a` for aero only,
-`python plot_all.py as` for struct only,
+`python plot_all.py s` for struct only,
 `python plot_all.py as` for aerostruct, or
-`python plot_all.py __name__.db` for user-named database.
+`python plot_all.py __name__` for user-named database.
+
+The script automatically appends '.db' to the provided name.
+Ex: `python plot_all.py example` opens 'example.db'.
+
 """
 
 
 from __future__ import division
 import tkFont
 import Tkinter as Tk
-from time import time
 import sys
 
 import matplotlib
@@ -29,7 +32,6 @@ import matplotlib.animation as manimation
 import numpy
 import sqlitedict
 import aluminum
-from b_spline import get_bspline_mtx
 
 #####################
 # User-set parameters
@@ -38,7 +40,7 @@ from b_spline import get_bspline_mtx
 if sys.argv[1] == 'as':
     filename = 'aerostruct'
 elif sys.argv[1] == 'a':
-    filename = 'weissinger'
+    filename = 'vlm'
 elif sys.argv[1] == 's':
     filename = 'spatialbeam'
 else:
@@ -46,13 +48,10 @@ else:
 
 db_name = filename + '.db'
 
-def _get_lengths(self, A, B, axis):
-    return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
 class Display(object):
     def __init__(self, db_name):
 
-        self.s = time()
         self.root = Tk.Tk()
         self.root.wm_title("Viewer")
 
@@ -64,27 +63,29 @@ class Display(object):
         self.options_frame.pack()
 
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-        self.ax = plt.subplot2grid((4,8), (0,0), rowspan=4, colspan=4, projection='3d')
+        self.ax = plt.subplot2grid((4, 8), (0, 0), rowspan=4,
+                                   colspan=4, projection='3d')
 
         self.num_iters = 0
         self.db_name = db_name
         self.show_wing = True
         self.show_tube = True
         self.curr_pos = 0
+        self.old_n = 0
 
         self.load_db()
 
         if self.show_wing and not self.show_tube:
-            self.ax2 = plt.subplot2grid((4,8), (0,4), rowspan=2, colspan=4)
-            self.ax3 = plt.subplot2grid((4,8), (2,4), rowspan=2, colspan=4)
+            self.ax2 = plt.subplot2grid((4, 8), (0, 4), rowspan=2, colspan=4)
+            self.ax3 = plt.subplot2grid((4, 8), (2, 4), rowspan=2, colspan=4)
         if self.show_tube and not self.show_wing:
-            self.ax4 = plt.subplot2grid((4,8), (0,4), rowspan=2, colspan=4)
-            self.ax5 = plt.subplot2grid((4,8), (2,4), rowspan=2, colspan=4)
+            self.ax4 = plt.subplot2grid((4, 8), (0, 4), rowspan=2, colspan=4)
+            self.ax5 = plt.subplot2grid((4, 8), (2, 4), rowspan=2, colspan=4)
         if self.show_wing and self.show_tube:
-            self.ax2 = plt.subplot2grid((4,8), (0,4), colspan=4)
-            self.ax3 = plt.subplot2grid((4,8), (1,4), colspan=4)
-            self.ax4 = plt.subplot2grid((4,8), (2,4), colspan=4)
-            self.ax5 = plt.subplot2grid((4,8), (3,4), colspan=4)
+            self.ax2 = plt.subplot2grid((4, 8), (0, 4), colspan=4)
+            self.ax3 = plt.subplot2grid((4, 8), (1, 4), colspan=4)
+            self.ax4 = plt.subplot2grid((4, 8), (2, 4), colspan=4)
+            self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
         self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
@@ -96,13 +97,16 @@ class Display(object):
         sec_forces = []
         normals = []
         widths = []
-        cos_dih = []
         self.lift = []
         self.lift_ell = []
         self.vonmises = []
         alpha = []
         rho = []
         v = []
+        self.aero_ind = []
+        self.CL = []
+        self.AR = []
+        self.S_ref = []
         self.obj = []
 
         for tag in self.db['metadata']:
@@ -112,18 +116,19 @@ class Display(object):
                         self.obj_key = item
         for case_name, case_data in self.db.iteritems():
             if "metadata" in case_name or "derivs" in case_name:
-                continue # don't plot these cases
+                continue  # don't plot these cases
             try:
                 self.db[case_name + '/derivs']
             except:
                 continue
 
             self.mesh.append(case_data['Unknowns']['mesh'])
+            self.aero_ind.append(case_data['Unknowns']['aero_ind'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
                 self.r.append(case_data['Unknowns']['r'])
-                self.t.append(case_data['Unknowns']['t'])
+                self.t.append(case_data['Unknowns']['thickness'])
                 self.vonmises.append(
                     numpy.max(case_data['Unknowns']['vonmises'], axis=1))
                 self.show_tube = True
@@ -133,21 +138,19 @@ class Display(object):
             try:
                 def_mesh = case_data['Unknowns']['def_mesh']
                 self.def_mesh.append(def_mesh)
-                n = def_mesh.shape[1]
-                h_cp = case_data['Unknowns']['twist']
-                num_twist = h_cp.shape[0]
-                jac = get_bspline_mtx(num_twist, n)
-                h = jac.dot(h_cp)
+                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
+                def_mesh = def_mesh[:n, :].reshape(nx, ny, 3)
 
-                self.twist.append(h)
+                self.twist.append(case_data['Unknowns']['twist'])
 
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
-                cos_dih.append(case_data['Unknowns']['cos_dih'])
                 sec_forces.append(case_data['Unknowns']['sec_forces'])
                 alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
+                self.CL.append(case_data['Unknowns']['CL1'])
+                self.S_ref.append(case_data['Unknowns']['S_ref'])
                 self.show_wing = True
             except:
                 self.show_wing = False
@@ -157,41 +160,51 @@ class Display(object):
 
         if self.show_wing:
 
+            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
+
             for i in range(self.num_iters + 1):
-                cvec = self.mesh[i][0, :, :] - self.mesh[i][1, :, :]
+                m_vals = self.mesh[i][:n, :].reshape(nx, ny, 3)
+                cvec = m_vals[0, :, :] - m_vals[-1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                 chords = 0.5 * (chords[1:] + chords[:-1])
-                #L = sec_forces[i][:, 2] / normals[i][:, 2]
-                #self.lift.append(L.T * cos_dih[i])
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
-                forces = sec_forces[i]
+                forces = numpy.sum(sec_forces[i][:n_panels, :].reshape(nx-1, ny-1, 3, order='F'), axis=0)
+                widths_ = widths[i][:ny-1]
 
-                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/widths[i]/0.5/rho[i]/v[i]**2
-                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
-                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
+                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
+                    widths_/0.5/rho[i]/v[i]**2
+                # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
+                # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 
-                m_vals = self.mesh[i]
                 span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                 span = span - (span[0] + .5)
 
                 lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
 
-                lift_ell = 4 * lift_area / numpy.pi * numpy.sqrt(1 - (2*span)**2)
+                lift_ell = 4 * lift_area / numpy.pi * \
+                    numpy.sqrt(1 - (2*span)**2)
 
                 self.lift.append(lift)
                 self.lift_ell.append(lift_ell)
 
+                wingspan = numpy.abs(m_vals[0, -1, 1] - m_vals[0, 0, 1])
+                self.AR.append(wingspan**2 / self.S_ref[i])
+
             # recenter def_mesh points for better viewing
             for i in range(self.num_iters + 1):
-                center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+                center = numpy.mean(self.mesh[i], axis=0)
                 self.def_mesh[i] = self.def_mesh[i] - center
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
-            center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+            # center defined as the average of all nodal points
+            center = numpy.mean(self.mesh[i], axis=0)
+            # center defined as the mean of the min and max in each direction
+            # center = (numpy.max(self.mesh[i], axis=0) + numpy.min(self.mesh[i], axis=0)) / 2
             self.mesh[i] = self.mesh[i] - center
+
 
         if self.show_wing:
             self.min_twist, self.max_twist = numpy.min(self.twist), numpy.max(self.twist)
@@ -215,7 +228,8 @@ class Display(object):
             self.max_vm += diff
 
     def plot_sides(self):
-        m_vals = self.mesh[self.curr_pos]
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
+        m_vals = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
         span = m_vals[0, :, 1] / m_vals[0, -1, 1]
         span_diff = (m_vals[0, :-1, 1] + m_vals[0, 1:, 1])/2 / m_vals[0, -1, 1]
 
@@ -227,7 +241,7 @@ class Display(object):
             le_vals = self.lift_ell[self.curr_pos]
 
             self.ax2.plot(span, t_vals, lw=2, c='b')
-            self.ax2.locator_params(axis='y',nbins=4)
+            self.ax2.locator_params(axis='y',nbins=5)
             self.ax2.locator_params(axis='x',nbins=3)
             self.ax2.set_ylim([self.min_twist, self.max_twist])
             self.ax2.set_xlim([-1, 1])
@@ -272,32 +286,40 @@ class Display(object):
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
-        mesh0 = self.mesh[self.curr_pos].copy()
+        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
+        mesh0 = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
 
         self.ax.set_axis_off()
 
         if self.show_wing:
-            def_mesh0 = self.def_mesh[self.curr_pos]
-            x = mesh0[:, :, 0]
-            y = mesh0[:, :, 1]
-            z = mesh0[:, :, 2]
+            for i_surf, row in enumerate(self.aero_ind[0]):
+                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            if self.show_def_mesh.get():
-                x_def = def_mesh0[:, :, 0]
-                y_def = def_mesh0[:, :, 1]
-                z_def = def_mesh0[:, :, 2]
+                mesh0 = self.mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3).copy()
+                def_mesh0 = self.def_mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3)
+                x = mesh0[:, :, 0]
+                y = mesh0[:, :, 1]
+                z = mesh0[:, :, 2]
 
-                self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
-                if self.ex_def.get():
-                    z_def = (z_def - z) * 10 + z_def
-                    def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
-                else:
-                    def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
-                self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
-                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
-            else:
-                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-                self.c2.grid_forget()
+                try:  # show deformed mesh option may not be available
+                    if self.show_def_mesh.get():
+                        x_def = def_mesh0[:, :, 0]
+                        y_def = def_mesh0[:, :, 1]
+                        z_def = def_mesh0[:, :, 2]
+
+                        self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+                        if self.ex_def.get():
+                            z_def = (z_def - z) * 10 + z_def
+                            def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
+                        else:
+                            def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
+                        self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
+                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
+                    else:
+                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
+                        self.c2.grid_forget()
+                except:
+                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
         if self.show_tube:
             r0 = self.r[self.curr_pos]
@@ -315,18 +337,22 @@ class Display(object):
                 r = numpy.array((r0[i], r0[i]))
                 R, P = numpy.meshgrid(r, p)
                 X, Z = R*numpy.cos(P), R*numpy.sin(P)
-                chords = mesh0[1, :, 0] - mesh0[0, :, 0]
+                chords = mesh0[-1, :, 0] - mesh0[0, :, 0]
                 comp = fem_origin * chords + mesh0[0, :, 0]
                 X[:, 0] += comp[i]
                 X[:, 1] += comp[i+1]
-                Z[:, 0] += fem_origin * mesh0[1, i, 2]
-                Z[:, 1] += fem_origin * mesh0[1, i+1, 2]
+                Z[:, 0] += fem_origin * mesh0[-1, i, 2]
+                Z[:, 1] += fem_origin * mesh0[-1, i+1, 2]
                 Y = numpy.empty(X.shape)
                 Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
                 col = numpy.zeros(X.shape)
                 col[:] = colors[i]
-                self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                    facecolors=cm.viridis(col), linewidth=0)
+                try:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.viridis(col), linewidth=0)
+                except:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.coolwarm(col), linewidth=0)
         lim = numpy.max(numpy.max(mesh0)) / 2.8
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
@@ -334,23 +360,41 @@ class Display(object):
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
+        if self.show_wing and not self.show_tube:
+            span_eff = self.CL[self.curr_pos]**2 / numpy.pi / self.AR[self.curr_pos] / obj_val
+            self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff[0], 7)),
+                transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist
 
     def save_video(self):
         FFMpegWriter = manimation.writers['ffmpeg']
-        metadata = dict(title='Movie', artist='Matplotlib',
-                        comment='Movie support!')
+        metadata = dict(title='Movie', artist='Matplotlib')
         writer = FFMpegWriter(fps=5, metadata=metadata, bitrate=3000)
 
         with writer.saving(self.f, "movie.mp4", 100):
+            self.curr_pos = 0
+            self.update_graphs()
+            self.f.canvas.draw()
+            plt.draw()
+            for i in range(10):
+                writer.grab_frame()
+
             for i in range(self.num_iters):
                 self.curr_pos = i
                 self.update_graphs()
                 self.f.canvas.draw()
                 plt.draw()
                 writer.grab_frame()
+
+            self.curr_pos = self.num_iters
+            self.update_graphs()
+            self.f.canvas.draw()
+            plt.draw()
+            for i in range(20):
+                writer.grab_frame()
+
     def update_graphs(self, e=None):
         if e is not None:
             self.curr_pos = int(e)
@@ -360,12 +404,60 @@ class Display(object):
         self.plot_sides()
         self.canvas.show()
 
+    def check_length(self):
+        db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+        n = 0
+        for case_name, case_data in db.iteritems():
+            if "metadata" in case_name or "derivs" in case_name:
+                continue  # don't plot these cases
+            try:
+                db[case_name + '/derivs']
+            except:
+                continue
+            n += 1
+        self.num_iters = n
+
+    def auto_ref(self):
+        """
+        Automatically refreshes the history file, which is
+        useful if examining a running optimization.
+        """
+        if self.var_ref.get():
+            self.root.after(800, self.auto_ref)
+            self.check_length()
+            self.update_graphs()
+
+            if self.num_iters > self.old_n:
+                self.load_db()
+                self.old_n = self.num_iters
+                self.draw_slider()
+
+    def save_image(self):
+        fname = 'fig' + '.png'
+        plt.savefig(fname)
+
     def quit(self):
         """
         Destroy GUI window cleanly if quit button pressed.
         """
         self.root.quit()
         self.root.destroy()
+
+    def draw_slider(self):
+        # scale to choose iteration to view
+        self.w = Tk.Scale(
+            self.options_frame,
+            from_=0, to=self.num_iters,
+            orient=Tk.HORIZONTAL,
+            resolution=1,
+            font=tkFont.Font(family="Helvetica", size=10),
+            command=self.update_graphs,
+            length=200)
+
+        if self.curr_pos == self.num_iters - 1 or self.curr_pos == 0:
+            self.curr_pos = self.num_iters
+        self.w.set(self.curr_pos)
+        self.w.grid(row=0, column=1, padx=5, sticky=Tk.W)
 
     def draw_GUI(self):
         """
@@ -379,19 +471,9 @@ class Display(object):
             font=font)
         lab_font.grid(row=0, column=0, sticky=Tk.S)
 
-        # scale to choose iteration to view
-        self.w = Tk.Scale(
-            self.options_frame,
-            from_=0, to=self.num_iters,
-            orient=Tk.HORIZONTAL,
-            resolution=1,
-            font=font,
-            command=self.update_graphs,
-            length=200)
-        self.w.set(0)
-        self.w.grid(row=0, column=1, padx=5, sticky=Tk.W)
+        self.draw_slider()
 
-        if self.show_wing:
+        if self.show_wing and self.show_tube:
             # checkbox to show deformed mesh
             self.show_def_mesh = Tk.IntVar()
             c1 = Tk.Checkbutton(
@@ -402,7 +484,7 @@ class Display(object):
                 font=font)
             c1.grid(row=0, column=2, padx=5, sticky=Tk.W)
 
-            # checkbox to exaggerated deformed mesh
+            # checkbox to exaggerate deformed mesh
             self.ex_def = Tk.IntVar()
             self.c2 = Tk.Checkbutton(
                 self.options_frame,
@@ -412,20 +494,40 @@ class Display(object):
                 font=font)
             self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
 
+        # Option to automatically refresh history file
+        # especially useful for currently running optimizations
+        self.var_ref = Tk.IntVar()
+        # self.var_ref.set(1)
+        c11 = Tk.Checkbutton(
+            self.options_frame,
+            text="Automatically refresh",
+            variable=self.var_ref,
+            command=self.auto_ref,
+            font=font)
+        c11.grid(row=0, column=4, sticky=Tk.W, pady=6)
+
         button = Tk.Button(
             self.options_frame,
             text='Save video',
             command=self.save_video,
             font=font)
-        button.grid(row=0, column=4, padx=5, sticky=Tk.W)
+        button.grid(row=0, column=5, padx=5, sticky=Tk.W)
+
+        button4 = Tk.Button(
+            self.options_frame,
+            text='Save image',
+            command=self.save_image,
+            font=font)
+        button4.grid(row=0, column=6, padx=5, sticky=Tk.W)
 
         button5 = Tk.Button(
             self.options_frame,
             text='Quit',
             command=self.quit,
             font=font)
-        button5.grid(row=0, column=5, padx=5, sticky=Tk.W)
+        button5.grid(row=0, column=7, padx=5, sticky=Tk.W)
 
+        self.auto_ref()
 
 def disp_plot(db_name):
     disp = Display(db_name)
