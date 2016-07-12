@@ -9,11 +9,11 @@ and drag acting on the lifting surfaces.
 Depiction of wing:
 
     y -->
- x  -----------------
+ x  -----------------  Leading edge
  |  | + | + | + | + |
  v  |   |   |   |   |
     | o | o | o | o |
-    -----------------
+    -----------------  Trailing edge
 
 The '+' symbols represent the bound points on the 1/4 chord line, which are
 used to compute drag.
