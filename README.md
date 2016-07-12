@@ -39,9 +39,9 @@ The keywords used for each file are explained in their respective docstrings at 
 
 ## Known Issues
 
-* Cannot use multiple lifting surfaces for aerostructural optimization.
-* Aerostructural optimization sometimes fails to converge.
-* The residual of the structural system solution is sometimes too large and prevents convergence of the optimization problem.
+* Aerostructural optimization sometimes fails to converge for certain geometries. The example provided in `run_aerostruct.py` should converge.
+* Aerostructural optimization using multiple lifting surfaces does not converge.
+* The residual of the structural system solution for very large problems is sometimes too large and prevents convergence of the optimization problem.
 * Internal documentation is lacking.
-* `plot_all.py` does not correctly display multiple structural components, but does work for aero-only components.
-* Multiple surface optimization for structures is not formulated in the best way.
+* `plot_all.py` does not correctly display multiple structural components, but does work for multiple surfaces if using only aerodynamic optimization.
+* Multiple surface optimization for structures is not optimally coded.
