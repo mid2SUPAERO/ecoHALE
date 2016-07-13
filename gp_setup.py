@@ -20,6 +20,9 @@ def setup(num_inboard=2, num_outboard=3):
     # Define the aircraft properties
     from CRM import span, v, alpha, rho
 
+    # Define spatialbeam properties
+    from aluminum import E, G, stress, mrho
+
     # Create the mesh with 2 inboard points and 3 outboard points.
     # This will be mirrored to produce a mesh with 7 spanwise points,
     # or 6 spanwise panels
@@ -47,9 +50,19 @@ def setup(num_inboard=2, num_outboard=3):
     tot_n_fem = numpy.sum(fem_ind[:, 0])
     disp = numpy.zeros((tot_n_fem, 6))
 
+    # Define Jacobians for b-spline controls
+    tot_n_fem = numpy.sum(fem_ind[:, 0])
+    num_surf = fem_ind.shape[0]
+    jac_twist = get_bspline_mtx(num_twist, num_y)
+    jac_thickness = get_bspline_mtx(num_thickness, tot_n_fem-num_surf)
+
+    # Define ...
+    twist_cp = numpy.zeros(num_twist)
+    thickness_cp = numpy.ones(num_thickness)*numpy.max(t)
+
     # Define the design variables
     des_vars = [
-        ('twist_cp', numpy.zeros(num_twist)),
+        ('twist_cp', twist_cp),
         ('dihedral', dihedral),
         ('sweep', sweep),
         ('span', span),
@@ -88,8 +101,8 @@ def setup(num_inboard=2, num_outboard=3):
         'num_x': num_x,
         'num_y': num_y,
         'span': span,
-        'twist_cp': numpy.zeros(num_twist),
-        'thickness_cp': numpy.ones(num_thickness)*numpy.max(t),
+        'twist_cp': twist_cp,
+        'thickness_cp': thickness_cp,
         'v': v,
         'alpha': alpha,
         'rho': rho,
@@ -101,7 +114,15 @@ def setup(num_inboard=2, num_outboard=3):
         'num_twist': num_twist,
         'sweep': sweep,
         'taper': taper,
-        'dihedral': dihedral
+        'dihedral': dihedral,
+        'E': E,
+        'G': G,
+        'stress': stress,
+        'mrho': mrho,
+        'tot_n_fem': tot_n_fem,
+        'num_surf': num_surf,
+        'jac_twist': jac_twist,
+        'jac_thickness': jac_thickness
     }
 
     return def_mesh, kwargs
