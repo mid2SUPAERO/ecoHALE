@@ -5,7 +5,7 @@ We input a nodal mesh and properties of the airflow to calculate the
 circulations of the horseshoe vortices. We then compute the forces, lift,
 and drag acting on the lifting surfaces.
 
-
+.. todo:: fix depiction of wing
 Depiction of wing:
 
     y -->

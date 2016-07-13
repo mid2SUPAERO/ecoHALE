@@ -15,6 +15,22 @@ def get_inds(aero_ind, fem_ind):
     Calculate and store indices to describe panels for aero and
     structural analysis.
 
+    Parameters
+    ----------
+    aero_ind : array_like
+        Small initial array with aero mesh index information.
+    fem_ind : array_like
+        Small initial array with FEM component index information.
+
+    Returns
+    -------
+    new_aero_ind : array_like
+        Completed array with all aero mesh index information.
+    new_fem_ind : array_like
+        Completed array with all FEM component index information.
+
+    Notes
+    -----
     Takes in aero_ind with each row containing [nx, ny] and fem_ind with
     each row containing [n_fem].
 
@@ -60,8 +76,19 @@ def get_inds(aero_ind, fem_ind):
 
 
 def rotate(mesh, thetas):
-    """
-    Compute rotation matrices given mesh and rotation angles in degrees.
+    """ Compute rotation matrices given mesh and rotation angles in degrees.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    thetas : array_like
+        1-D array of rotation angles for each wing slice in degrees.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the twisted aerodynamic surface.
 
     """
 
@@ -88,7 +115,21 @@ def rotate(mesh, thetas):
 
 
 def sweep(mesh, angle):
-    """ Apply shearing sweep. Positive sweeps back. """
+    """ Apply shearing sweep. Positive sweeps back.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    angle : float
+        Shearing sweep angle in degrees.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the swept aerodynamic surface.
+
+    """
 
     num_x, num_y, _ = mesh.shape
     ny2 = (num_y-1)/2
@@ -110,7 +151,21 @@ def sweep(mesh, angle):
 
 
 def dihedral(mesh, angle):
-    """ Apply dihedral angle. Positive bends up. """
+    """ Apply dihedral angle. Positive bends up.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    angle : float
+        Dihedral angle in degrees.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the aerodynamic surface with dihedral angle.
+
+    """
 
     num_x, num_y, _ = mesh.shape
     ny2 = (num_y-1) / 2
@@ -132,7 +187,21 @@ def dihedral(mesh, angle):
 
 
 def stretch(mesh, length):
-    """ Stretch mesh in spanwise direction to reach specified length. """
+    """ Stretch mesh in spanwise direction to reach specified length.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    length : float
+        Relative stetch ratio in the spanwise direction.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the stretch aerodynamic surface.
+
+    """
 
     le = mesh[0]
 
