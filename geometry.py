@@ -1,4 +1,4 @@
-""" Manipulate geometry mesh based on high-level design parameters """
+""" Manipulate geometry mesh based on high-level design parameters. """
 
 from __future__ import division
 import numpy
@@ -38,20 +38,23 @@ def get_inds(aero_ind, fem_ind):
     stored in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]
     with the indices    [ 0,  1, 2,      3,        4, 5,      6,        7]
 
-    nx : number of nodes in the chordwise direction
-    ny : number of nodes in the spanwise direction
-    n : total number of nodes
-    n_bpts : total number of b_pts nodes
-    n_panels : total number of panels
-    i : current index of nodes when considering all surfaces
-    i_bpts: current index of b_pts nodes when considering all surfaces
-    i_panels : current index of panels when considering all surfaces
+    Explanation of internals of aero_ind:
+
+    * nx : number of nodes in the chordwise direction
+    * ny : number of nodes in the spanwise direction
+    * n : total number of nodes
+    * n_bpts : total number of b_pts nodes
+    * n_panels : total number of panels
+    * i : current index of nodes when considering all surfaces
+    * i_bpts: current index of b_pts nodes when considering all surfaces
+    * i_panels : current index of panels when considering all surfaces
+
 
     Simpler than the aero case, the fem_ind array contains:
     [n_fem, i_fem]
 
-    n_fem : number of fem nodes per surface
-    i_fem : current index of fem nodes when considering all fem nodes
+    * n_fem : number of fem nodes per surface
+    * i_fem : current index of fem nodes when considering all fem nodes
 
     """
 
@@ -94,7 +97,7 @@ def rotate(mesh, thetas):
 
     te = mesh[-1]
     le = mesh[ 0]
-    quarter_chord = 0.25*te + 0.75*le
+    quarter_chord = 0.25 * te + 0.75 * le
 
     ny = mesh.shape[1]
     nx = mesh.shape[0]
@@ -132,7 +135,7 @@ def sweep(mesh, angle):
     """
 
     num_x, num_y, _ = mesh.shape
-    ny2 = (num_y-1)/2
+    ny2 = int((num_y - 1) / 2)
 
     le = mesh[0]
 
@@ -168,7 +171,7 @@ def dihedral(mesh, angle):
     """
 
     num_x, num_y, _ = mesh.shape
-    ny2 = (num_y-1) / 2
+    ny2 = int((num_y-1) / 2)
 
     le = mesh[0]
 
@@ -199,7 +202,7 @@ def stretch(mesh, length):
     Returns
     -------
     mesh : array_like
-        Nodal mesh defining the stretch aerodynamic surface.
+        Nodal mesh defining the stretched aerodynamic surface.
 
     """
 
@@ -217,12 +220,26 @@ def stretch(mesh, length):
 
 
 def taper(mesh, taper_ratio):
-    """ Alter the spanwise chord to produce a tapered wing. """
+    """ Alter the spanwise chord to produce a tapered wing.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    taper_ratio : float
+        Taper ratio for the wing; 1 is untapered, 0 goes to a point.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the tapered aerodynamic surface.
+
+    """
 
     le = mesh[0]
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
-    ny2 = int((num_y+1)/2)
+    ny2 = int((num_y + 1) / 2)
 
     center_chord = .5 * te + .5 * le
     taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
@@ -244,10 +261,20 @@ def mirror(mesh, right_side=True):
     """
     Take a half geometry and mirror it across the symmetry plane.
 
-    If right_side==True, it mirrors from right to left,
-    assuming that the first point is on the symmetry plane. Else
-    it mirrors from left to right, assuming the last point is on the
-    symmetry plane.
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining half the initial aerodynamic surface.
+    right_side : boolean
+        If right_side==True, it mirrors from right to left,
+        assuming that the first point is on the symmetry plane. Else
+        it mirrors from left to right, assuming the last point is on the
+        symmetry plane.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the mirrored aerodynamic surface.
 
     """
 
@@ -276,8 +303,11 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
                  num_x=2, mesh=crm_base_mesh):
     """
     Build the right hand side of the CRM wing with specified number
-    of inboard and outboard panels.
+    of inboard and outboard panels, mirror it, add a specified number
+    of chordwise nodes, and output a final full CRM mesh.
 
+    Parameters
+    ----------
     n_points_inboard : int
         Number of spanwise points between the wing root and yehudi break per
         wing side.
@@ -286,6 +316,14 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
         wing side.
     num_x : int
         Number of chordwise points.
+    mesh : array_like
+        Base mesh with the leading and trailing edges defined that we use
+        to populate the final mesh
+
+    Returns
+    -------
+    full_mesh : array_like
+        Final aerodynamic mesh representing the CRM wing.
 
     """
 
@@ -333,7 +371,23 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
 
 
 def add_chordwise_panels(mesh, num_x):
-    """ Divide the wing into multiple chordwise panels. """
+    """ Divide the wing into multiple chordwise panels.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface with only
+        the leading and trailing edges defined.
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+
+    Returns
+    -------
+    new_mesh : array_like
+        Nodal mesh defining the final aerodynamic surface with the
+        specified number of chordwise node points.
+
+    """
 
     le = mesh[ 0, :, :]
     te = mesh[-1, :, :]
@@ -350,7 +404,31 @@ def add_chordwise_panels(mesh, num_x):
 
 
 def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
-    """ Generate simple rectangular wing mesh. """
+    """ Generate simple rectangular wing mesh.
+
+    Parameters
+    ----------
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+    num_y : float
+        Desired number of chordwise node points for the final mesh.
+    span : float
+        Total wingspan.
+    chord : float
+        Root chord.
+    cosine_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the spanwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        spanwise node points near the wingtips.
+
+    Returns
+    -------
+    mesh : array_like
+        Rectangular nodal mesh defining the final aerodynamic surface with the
+        specified parameters.
+
+    """
 
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
@@ -371,8 +449,7 @@ def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
 
 class GeometryMesh(Component):
     """
-    Create a mesh with span, sweep, dihedral, taper, and
-    twist design variables.
+    OpenMDAO component that performs mesh manipulation functions.
 
     """
 

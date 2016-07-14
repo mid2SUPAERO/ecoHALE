@@ -62,6 +62,8 @@ class Display(object):
         self.options_frame = Tk.Frame(self.root)
         self.options_frame.pack()
 
+        toolbar = NavigationToolbar2TkAgg(self.canvas, self.root)
+        toolbar.update()
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
         self.ax = plt.subplot2grid((4, 8), (0, 0), rowspan=4,
                                    colspan=4, projection='3d')

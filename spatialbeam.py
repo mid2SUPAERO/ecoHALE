@@ -7,13 +7,14 @@ from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 import scipy.sparse
 import scipy.sparse.linalg
+from time import time
 
 try:
     import lib
     fortran_flag = True
 except:
     fortran_flag = False
-sparse_flag = False
+sparse_flag = True
 
 
 def norm(vec):
@@ -103,7 +104,7 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
                                       nodes, elem_IDs_+1, const2, const_y,
                                       const_z, S_a, S_t, S_y, S_z)
 
-            data2 = numpy.ones(6*num_cons)*1.e9
+            data2 = numpy.ones(6*num_cons) * 1.e9
             rows2 = numpy.arange(6*num_cons) + 6*n_fem
             cols2 = numpy.zeros(6*num_cons)
             for ind in xrange(6):
