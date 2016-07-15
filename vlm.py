@@ -560,6 +560,11 @@ class VLMLiftDrag(Component):
     """
     Calculate total lift and drag in force units based on section forces.
 
+    If the simulation is given a non-zero Reynolds number, it is used to
+    compute the skin friction drag. If Reynolds number == 0, then there is
+    no skin friction drag dependence. Currently, the Reynolds number
+    must be set by the user in the run script and used as in IndepVarComp.
+
     Parameters
     ----------
     sec_forces : array_like
@@ -568,6 +573,16 @@ class VLMLiftDrag(Component):
         panel).
     alpha : float
         Angle of attack in degrees.
+    Re : float
+        Reynolds number.
+    M : float
+        Mach number.
+    v : float
+        Freestream air velocity in m/s.
+    rho : float
+        Air density in kg/m^3.
+    S_ref : array_like
+        The reference areas of each lifting surface.
 
     Returns
     -------
@@ -587,6 +602,11 @@ class VLMLiftDrag(Component):
 
         self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3)))
         self.add_param('alpha', val=3.)
+        self.add_param('Re', val=5.e6)
+        self.add_param('M', val=.84)
+        self.add_param('v', val=10.)
+        self.add_param('rho', val=3.)
+        self.add_param('S_ref', val=numpy.zeros((num_surf)))
         self.add_output('L', val=numpy.zeros((num_surf)))
         self.add_output('D', val=numpy.zeros((num_surf)))
 
@@ -596,15 +616,30 @@ class VLMLiftDrag(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
+        Re = params['Re']
+        M = params['M']
+        v = params['v']
+        rho = params['rho']
+        S_ref = params['S_ref']
+
+        # Compute the skin friction coefficient
+        # Use eq. 12.27 of Raymer for turbulent Cf
+        Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
+
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
             unknowns['L'][i_surf] = \
                 numpy.sum(-forces[i_panels:i_panels+n_panels, 0] * sina +
                            forces[i_panels:i_panels+n_panels, 2] * cosa)
+
+            # Compute the drag contribution from skin friction
+            D_f = Cf * rho * v**2 / 2. * S_ref[i_surf]
+
             unknowns['D'][i_surf] = \
                 numpy.sum( forces[i_panels:i_panels+n_panels, 0] * cosa +
-                           forces[i_panels:i_panels+n_panels, 2] * sina)
+                           forces[i_panels:i_panels+n_panels, 2] * sina) + D_f
+
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift and drag."""

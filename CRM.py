@@ -7,6 +7,10 @@ M = 0.84 # at cruise
 alpha = 3. # [deg.]
 rho = 0.38 # [kg/m^3] at 35,000 ft
 a = 295.4 # [m/s] at 35,000 ft
+mu = 0.0000144446 # [N*s/m^2] at 35,000 ft
+nu = mu / rho
+Re = 5.e6 # 5 million, used for wind-tunnel and CFD comparisons
+# Re = 40.e6 # 40 million, used for actual flow conditions over CRM wing
 v = a * M
 
 CL0 = 0.2

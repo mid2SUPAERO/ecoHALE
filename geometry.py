@@ -15,22 +15,6 @@ def get_inds(aero_ind, fem_ind):
     Calculate and store indices to describe panels for aero and
     structural analysis.
 
-    Parameters
-    ----------
-    aero_ind : array_like
-        Small initial array with aero mesh index information.
-    fem_ind : array_like
-        Small initial array with FEM component index information.
-
-    Returns
-    -------
-    new_aero_ind : array_like
-        Completed array with all aero mesh index information.
-    new_fem_ind : array_like
-        Completed array with all FEM component index information.
-
-    Notes
-    -----
     Takes in aero_ind with each row containing [nx, ny] and fem_ind with
     each row containing [n_fem].
 
@@ -55,6 +39,20 @@ def get_inds(aero_ind, fem_ind):
 
     * n_fem : number of fem nodes per surface
     * i_fem : current index of fem nodes when considering all fem nodes
+
+    Parameters
+    ----------
+    aero_ind : array_like
+        Small initial array with aero mesh index information.
+    fem_ind : array_like
+        Small initial array with FEM component index information.
+
+    Returns
+    -------
+    new_aero_ind : array_like
+        Completed array with all aero mesh index information.
+    new_fem_ind : array_like
+        Completed array with all FEM component index information.
 
     """
 
