@@ -15,7 +15,7 @@ from transfer import TransferDisplacements
 from b_spline import get_bspline_mtx
 from spatialbeam import radii
 
-def setup(num_inboard=2, num_outboard=3):
+def setup(num_inboard=2, num_outboard=3, check=True, out_stream=sys.stdout):
 
     # Define the aircraft properties
     from CRM import span, v, alpha, rho
@@ -89,7 +89,7 @@ def setup(num_inboard=2, num_outboard=3):
 
     prob = Problem()
     prob.root = root
-    prob.setup()
+    prob.setup(check=check, out_stream=out_stream)
     prob.run()
 
     # Output the def_mesh for the aero modules
@@ -122,7 +122,8 @@ def setup(num_inboard=2, num_outboard=3):
         'tot_n_fem': tot_n_fem,
         'num_surf': num_surf,
         'jac_twist': jac_twist,
-        'jac_thickness': jac_thickness
+        'jac_thickness': jac_thickness,
+        'out_stream': out_stream
     }
 
     return def_mesh, kwargs
