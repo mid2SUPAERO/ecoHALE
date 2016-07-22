@@ -203,11 +203,6 @@ def mirror(mesh, right_side=True):
     return new_mesh
 
 
-<<<<<<< HEAD
-def mesh_gen(n_points_inboard=2, n_points_outboard=2, mesh=crm_base_mesh):
-    """ Builds the right hand side of the CRM wing with specified number
-    of inboard and outboard panels """
-=======
 def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
                  num_x=2, mesh=crm_base_mesh):
     """
@@ -224,7 +219,6 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
         Number of chordwise points.
 
     """
->>>>>>> gp_jasa
 
     # LE pre-yehudi
     s1 = (mesh[0, 1, 0] - mesh[0, 0, 0]) / (mesh[0, 1, 1] - mesh[0, 0, 1])
