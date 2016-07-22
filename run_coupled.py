@@ -1,49 +1,28 @@
-# Main python script to test OpenAeroStruct functions
-
+# Main python script to test OpenAeroStruct coupled system components
 
 from __future__ import print_function
 import coupled
 import warnings
-import array
-import numpy
+import sys
 
-# warnings.filterwarnings("ignore") # to disable openmdao warnings which will create an error in Matlab
+warnings.filterwarnings("ignore") # to disable openmdao warnings which will create an error in Matlab
 
-def main(filename=None):
+def main(num_inboard=2, num_outboard=3, check=False):
 
-    # out_stream -->  where to write results. Default is None. Set out_stream=sys.stdout to print to screen
-    # filename = 'gp_log.txt'
-    if filename:
-        out_stream = open(filename, 'w')
-    else:
-        out_stream = None
-
-    # print('testing testing',file=out_stream)
-    def_mesh, kwargs = coupled.setup(check=True, out_stream=out_stream)
-    print('def_mesh.shape ',def_mesh.shape)
+    print('\nRun setup()...')
+    def_mesh, params = coupled.setup(num_inboard, num_outboard, check)
+    print('def_mesh...  def_mesh.shape =',def_mesh.shape)
     print(def_mesh)
 
-    dm = array.array('d',numpy.nditer(def_mesh))
-    print('type(dm)=',type(dm))
-    print(dm)
+    print('\nRun aero()...')
+    loads = coupled.aero(def_mesh, params)
+    print('loads matrix... loads.shape =',loads.shape)
+    print(loads)
 
-
-    # print("1 --- from main... def_mesh")
-    # print(def_mesh)
-
-    #
-    # loads = coupled.aero(def_mesh,**kwargs)
-    #
-    # print "2 --- from main... loads"
-    # print loads
-    #
-    # def_mesh = coupled.struct(loads,**kwargs)
-    #
-    # print "3 --- from main... def_mesh"
-    # print def_mesh
-    if type(out_stream) is file:
-        if out_stream.mode:
-            out_stream.close()
+    print('\nRun struct()...')
+    def_mesh = coupled.struct(loads, params)
+    print('def_mesh...  def_mesh.shape =',def_mesh.shape)
+    print(def_mesh)
 
 if __name__ == '__main__':
     main()
