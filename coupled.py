@@ -32,7 +32,7 @@ def setup(num_inboard=2, num_outboard=3, check=False, out_stream=sys.stdout):
     # Create the mesh with 2 inboard points and 3 outboard points.
     # This will be mirrored to produce a mesh with 7 spanwise points,
     # or 6 spanwise panels
-    mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=2)
+    mesh = gen_crm_mesh(n_points_inboard, n_points_outboard, num_x=2)
     num_x, num_y = mesh.shape[:2]
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
     r = radii(mesh)
