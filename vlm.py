@@ -440,9 +440,6 @@ class VLMCirculations(Component):
         self.add_state('circulations', val=numpy.zeros((tot_panels),
                        dtype="complex"))
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
-
         self.deriv_options['linearize'] = True  # only for circulations
 
         self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3),
