@@ -63,7 +63,6 @@ def get_inds(aero_ind, fem_ind):
         new_aero_ind[i, 2] = nx * ny
         new_aero_ind[i, 3] = (nx-1) * ny
         new_aero_ind[i, 4] = (nx-1) * (ny-1)
-
         new_aero_ind[i, 5] = numpy.sum(numpy.product(aero_ind[:i], axis=1))
         new_aero_ind[i, 6] = numpy.sum((aero_ind[:i, 0]-1) * aero_ind[:i, 1])
         new_aero_ind[i, 7] = numpy.sum(numpy.product(aero_ind[:i]-1, axis=1))
@@ -185,6 +184,7 @@ def dihedral(mesh, angle):
         mesh[i, :, 2] += dx
 
     return mesh
+
 
 
 def stretch(mesh, length):
