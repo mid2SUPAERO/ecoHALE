@@ -2,17 +2,29 @@ from __future__ import division
 import numpy
 import scipy.sparse
 
+def get_bspline_mtx(num_cp, num_pt, order=4):
+    """ Create Jacobian to fit a bspline to a set of data.
 
-def get_bspline_mtx(num_cp, num_pt, mesh=None, order=4):
+    Parameters
+    ----------
+    num_cp : int
+        Number of control points.
+    num_pt : int
+        Number of points.
+    order : int, optional
+        Order of b-spline fit.
+
+    Returns
+    -------
+    out : CSR sparse matrix
+        Matrix that gives the points vector when multiplied by the control
+        points vector.
+
+    """
     knots = numpy.zeros(num_cp + order)
     knots[order-1:num_cp+1] = numpy.linspace(0, 1, num_cp - order + 2)
     knots[num_cp+1:] = 1.0
-
-    if numpy.any(mesh):
-        lins = mesh[1, :, 1]
-        t_vec = (lins - numpy.min(lins)) / (numpy.max(lins) - numpy.min(lins))
-    else:
-        t_vec = numpy.linspace(0, 1, num_pt)
+    t_vec = numpy.linspace(0, 1, num_pt)
 
     basis = numpy.zeros(order)
     arange = numpy.arange(order)

@@ -1,4 +1,4 @@
-subroutine assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mtx)
+subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mtx)
 
   implicit none
 
@@ -89,7 +89,7 @@ subroutine assembleaeromtx_hug_planform(ny, nx, ny_, nx_, alpha, points, bpts, m
      end do
   end do
 
-end subroutine assembleaeromtx_hug_planform
+end subroutine assembleaeromtx
 
 
 

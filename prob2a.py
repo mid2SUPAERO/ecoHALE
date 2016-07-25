@@ -6,7 +6,7 @@ import time
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
 from geometry import GeometryMesh, gen_crm_mesh
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from vlm import VLMStates, VLMFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
@@ -57,10 +57,10 @@ tube_comp = MaterialsTube(num_y)
 mesh_comp = GeometryMesh(mesh, aero_ind, num_twist)
 spatialbeamstates_comp = SpatialBeamStates(num_y, E, G)
 def_mesh_comp = TransferDisplacements(num_y)
-weissingerstates_comp = WeissingerStates(num_y)
+vlmstates_comp = VLMStates(num_y)
 loads_comp = TransferLoads(num_y)
 
-weissingerfuncs_comp = WeissingerFunctionals(num_y, CL0, CD0)
+vlmfuncs_comp = VLMFunctionals(num_y, CL0, CD0)
 spatialbeamfuncs_comp = SpatialBeamFunctionals(num_y, E, G, stress, mrho)
 fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M)
 eq_con_comp = FunctionalEquilibrium(W0)
@@ -91,7 +91,7 @@ coupled.nl_solver.options['rtol'] = 1e-12
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.vlmstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 # adds the MDA to root (do not remove!)
@@ -100,8 +100,8 @@ root.add('coupled',
          promotes=['*'])
 
 # Add functional components here
-root.add('weissingerfuncs',
-        weissingerfuncs_comp,
+root.add('vlmfuncs',
+        vlmfuncs_comp,
         promotes=['*'])
 <add more components here>
 

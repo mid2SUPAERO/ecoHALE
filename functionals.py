@@ -40,8 +40,7 @@ class FunctionalBreguetRange(Component):
         CD = params['CD']
         Ws = params['weight']
 
-        unknowns['fuelburn'] = (W0 + Ws) * (numpy.exp(R * CT / a / M * CD / CL) - 1)
-
+        unknowns['fuelburn'] = numpy.sum((W0 + Ws) * (numpy.exp(R * CT / a / M * CD / CL) - 1))
 
 
 class FunctionalEquilibrium(Component):
@@ -67,4 +66,4 @@ class FunctionalEquilibrium(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         W0 = self.W0
 
-        unknowns['eq_con'] = (params['weight'] + params['fuelburn'] + W0 - params['L'][0]) / W0
+        unknowns['eq_con'] = (params['weight'] + params['fuelburn'] + W0 - numpy.sum(params['L'])) / W0

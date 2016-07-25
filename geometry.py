@@ -1,4 +1,4 @@
-""" Manipulate geometry mesh based on high-level design parameters """
+""" Manipulate geometry mesh based on high-level design parameters. """
 
 from __future__ import division
 import numpy
@@ -9,19 +9,50 @@ from openmdao.api import Component
 from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
 
-def get_mesh_data(aero_ind):
-    """ Calculates and stores indices to describe panels for aero analysis.
-    Each row has information for each individually defined surface,
-    store in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]:
 
-    nx : number of nodes in the chordwise direction
-    ny : number of nodes in the spanwise direction
-    n : total number of nodes
-    n_bpts : total number of b_pts nodes
-    n_panels : total number of panels
-    i : current index of nodes when considering all surfaces
-    i_bpts: current index of b_pts nodes when considering all surfaces
-    i_panels : current index of panels when considering all surfaces
+def get_inds(aero_ind, fem_ind):
+    """
+    Calculate and store indices to describe panels for aero and
+    structural analysis.
+
+    Takes in aero_ind with each row containing [nx, ny] and fem_ind with
+    each row containing [n_fem].
+
+    Each outputted row has information for each individually defined surface,
+    stored in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]
+    with the indices    [ 0,  1, 2,      3,        4, 5,      6,        7]
+
+    Explanation of internals of aero_ind:
+
+    * nx : number of nodes in the chordwise direction
+    * ny : number of nodes in the spanwise direction
+    * n : total number of nodes
+    * n_bpts : total number of b_pts nodes
+    * n_panels : total number of panels
+    * i : current index of nodes when considering all surfaces
+    * i_bpts: current index of b_pts nodes when considering all surfaces
+    * i_panels : current index of panels when considering all surfaces
+
+
+    Simpler than the aero case, the fem_ind array contains:
+    [n_fem, i_fem]
+
+    * n_fem : number of fem nodes per surface
+    * i_fem : current index of fem nodes when considering all fem nodes
+
+    Parameters
+    ----------
+    aero_ind : array_like
+        Small initial array with aero mesh index information.
+    fem_ind : array_like
+        Small initial array with FEM component index information.
+
+    Returns
+    -------
+    new_aero_ind : array_like
+        Completed array with all aero mesh index information.
+    new_fem_ind : array_like
+        Completed array with all FEM component index information.
 
     """
 
@@ -37,14 +68,34 @@ def get_mesh_data(aero_ind):
         new_aero_ind[i, 6] = numpy.sum((aero_ind[:i, 0]-1) * aero_ind[:i, 1])
         new_aero_ind[i, 7] = numpy.sum(numpy.product(aero_ind[:i]-1, axis=1))
 
-    return new_aero_ind
+    new_fem_ind = numpy.zeros((len(fem_ind), 2), dtype=int)
+    new_fem_ind[:, 0] = fem_ind
+    for i, row in enumerate(fem_ind):
+        new_fem_ind[i, 1] = numpy.sum(fem_ind[:i])
+
+    return new_aero_ind, new_fem_ind
 
 
 def rotate(mesh, thetas):
-    """ Computes rotation matricies given mesh and rotation angles in degress """
+    """ Compute rotation matrices given mesh and rotation angles in degrees.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    thetas : array_like
+        1-D array of rotation angles for each wing slice in degrees.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the twisted aerodynamic surface.
+
+    """
+
     te = mesh[-1]
     le = mesh[ 0]
-    quarter_chord = 0.25*te + 0.75*le
+    quarter_chord = 0.25 * te + 0.75 * le
 
     ny = mesh.shape[1]
     nx = mesh.shape[0]
@@ -63,18 +114,33 @@ def rotate(mesh, thetas):
         row += quarter_chord
     return mesh
 
+
 def sweep(mesh, angle):
-    """ Shearing sweep angle. Positive sweeps back. """
+    """ Apply shearing sweep. Positive sweeps back.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    angle : float
+        Shearing sweep angle in degrees.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the swept aerodynamic surface.
+
+    """
 
     num_x, num_y, _ = mesh.shape
-    ny2 = (num_y-1)/2
+    ny2 = int((num_y - 1) / 2)
 
     le = mesh[0]
-    te = mesh[-1]
 
     y0 = le[ny2, 1]
+    p180 = numpy.pi / 180
 
-    tan_theta = tan(numpy.radians(angle))
+    tan_theta = tan(p180*angle)
     dx_right = (le[ny2:, 1] - y0) * tan_theta
     dx_left = -(le[:ny2, 1] - y0) * tan_theta
     dx = numpy.hstack((dx_left, dx_right))
@@ -84,18 +150,33 @@ def sweep(mesh, angle):
 
     return mesh
 
+
 def dihedral(mesh, angle):
-    """ Dihedral angle. Positive bends up. """
+    """ Apply dihedral angle. Positive bends up.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    angle : float
+        Dihedral angle in degrees.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the aerodynamic surface with dihedral angle.
+
+    """
 
     num_x, num_y, _ = mesh.shape
-    ny2 = (num_y-1)/2
+    ny2 = int((num_y-1) / 2)
 
     le = mesh[0]
-    te = mesh[-1]
 
     y0 = le[ny2, 1]
+    p180 = numpy.pi / 180
 
-    tan_theta = tan(numpy.radians(angle))
+    tan_theta = tan(p180*angle)
     dx_right = (le[ny2:, 1] - y0) * tan_theta
     dx_left = -(le[:ny2, 1] - y0) * tan_theta
     dx = numpy.hstack((dx_left, dx_right))
@@ -107,10 +188,23 @@ def dihedral(mesh, angle):
 
 
 def stretch(mesh, length):
-    """ Strech mesh in span-wise direction to reach specified length"""
+    """ Stretch mesh in spanwise direction to reach specified length.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    length : float
+        Relative stetch ratio in the spanwise direction.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the stretched aerodynamic surface.
+
+    """
 
     le = mesh[0]
-    te = mesh[-1]
 
     num_x, num_y, _ = mesh.shape
 
@@ -122,20 +216,33 @@ def stretch(mesh, length):
 
     return mesh
 
+
 def taper(mesh, taper_ratio):
-    """ Change the spanwise chord to produce a tapered wing"""
+    """ Alter the spanwise chord to produce a tapered wing.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface.
+    taper_ratio : float
+        Taper ratio for the wing; 1 is untapered, 0 goes to a point.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the tapered aerodynamic surface.
+
+    """
 
     le = mesh[0]
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
-    ny2 = int((num_y+1)/2)
+    ny2 = int((num_y + 1) / 2)
 
-    tele = te - le
     center_chord = .5 * te + .5 * le
-    span = le[-1, 1] - le[0, 1]
     taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
 
-    jac = get_bspline_mtx(ny2, ny2, mesh, order=2)
+    jac = get_bspline_mtx(ny2, ny2, order=2)
     taper = jac.dot(taper)
 
     dx = numpy.hstack((taper, taper[::-1][1:]))
@@ -149,11 +256,24 @@ def taper(mesh, taper_ratio):
 
 
 def mirror(mesh, right_side=True):
-    """ Takes a half geometry and mirrors it across the symmetry plane.
-    If right_side==True, it mirrors from right to left,
-    assuming that the first point is on the symmetry plane. Else
-    it mirrors from left to right, assuming the last point is on the
-    symmetry plane.
+    """
+    Take a half geometry and mirror it across the symmetry plane.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining half the initial aerodynamic surface.
+    right_side : boolean
+        If right_side==True, it mirrors from right to left,
+        assuming that the first point is on the symmetry plane. Else
+        it mirrors from left to right, assuming the last point is on the
+        symmetry plane.
+
+    Returns
+    -------
+    mesh : array_like
+        Nodal mesh defining the mirrored aerodynamic surface.
+
     """
 
     num_x, num_y, _ = mesh.shape
@@ -177,9 +297,32 @@ def mirror(mesh, right_side=True):
     return new_mesh
 
 
-def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base_mesh):
-    """ Builds the right hand side of the CRM wing with specified number
-    of inboard and outboard panels
+def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
+                 num_x=2, mesh=crm_base_mesh):
+    """
+    Build the right hand side of the CRM wing with specified number
+    of inboard and outboard panels, mirror it, add a specified number
+    of chordwise nodes, and output a final full CRM mesh.
+
+    Parameters
+    ----------
+    n_points_inboard : int
+        Number of spanwise points between the wing root and yehudi break per
+        wing side.
+    n_points_outboard : int
+        Number of spanwise points between the yehudi break and wingtip per
+        wing side.
+    num_x : int
+        Number of chordwise points.
+    mesh : array_like
+        Base mesh with the leading and trailing edges defined that we use
+        to populate the final mesh
+
+    Returns
+    -------
+    full_mesh : array_like
+        Final aerodynamic mesh representing the CRM wing.
+
     """
 
     # LE pre-yehudi
@@ -205,9 +348,9 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base
     dy = (mesh[0, 1, 1] - mesh[0, 0, 1]) / (n_points_inboard - 1)
     for i in xrange(n_points_inboard):
         y = half_mesh[0, i, 1] = i * dy
-        half_mesh[0, i, 0] = s1 * y + o1 # le point
+        half_mesh[0, i, 0] = s1 * y + o1  # le point
         half_mesh[1, i, 1] = y
-        half_mesh[1, i, 0] = s2 * y + o2 # te point
+        half_mesh[1, i, 0] = s2 * y + o2  # te point
 
     yehudi_break = mesh[0, 1, 1]
     # generate outboard points
@@ -215,16 +358,35 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2, num_x=2, mesh=crm_base
     for j in xrange(n_points_outboard):
         i = j + n_points_inboard - 1
         y = half_mesh[0, i, 1] = j * dy + yehudi_break
-        half_mesh[0, i, 0] = s3 * y + o3 # le point
+        half_mesh[0, i, 0] = s3 * y + o3  # le point
         half_mesh[1, i, 1] = y
-        half_mesh[1, i, 0] = s4 * y + o4 # te point
+        half_mesh[1, i, 0] = s4 * y + o4  # te point
 
     full_mesh = mirror(half_mesh)
     full_mesh = add_chordwise_panels(full_mesh, num_x)
+    full_mesh[:, :, 1] -= numpy.mean(full_mesh[:, :, 1])
     return full_mesh
 
+
 def add_chordwise_panels(mesh, num_x):
-    """ Divides the wing into multiple chordwise panels. """
+    """ Divide the wing into multiple chordwise panels.
+
+    Parameters
+    ----------
+    mesh : array_like
+        Nodal mesh defining the initial aerodynamic surface with only
+        the leading and trailing edges defined.
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+
+    Returns
+    -------
+    new_mesh : array_like
+        Nodal mesh defining the final aerodynamic surface with the
+        specified number of chordwise node points.
+
+    """
+
     le = mesh[ 0, :, :]
     te = mesh[-1, :, :]
 
@@ -238,66 +400,127 @@ def add_chordwise_panels(mesh, num_x):
 
     return new_mesh
 
+
 def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
+    """ Generate simple rectangular wing mesh.
+
+    Parameters
+    ----------
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+    num_y : float
+        Desired number of chordwise node points for the final mesh.
+    span : float
+        Total wingspan.
+    chord : float
+        Root chord.
+    cosine_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the spanwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        spanwise node points near the wingtips.
+
+    Returns
+    -------
+    mesh : array_like
+        Rectangular nodal mesh defining the final aerodynamic surface with the
+        specified parameters.
+
+    """
+
     mesh = numpy.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) / 2
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 
     # mixed spacing with w as a weighting factor
-    cosine = .5 * numpy.cos(beta) #  cosine spacing
-    uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
+    cosine = .5 * numpy.cos(beta)  # cosine spacing
+    uniform = numpy.linspace(0, .5, ny2)[::-1]  # uniform spacing
     half_wing = cosine * cosine_spacing + (1 - cosine_spacing) * uniform
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0]
+            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord,
+                                     full_wing[ind_y], 0]
     return mesh
 
+
 class GeometryMesh(Component):
-    """ Changes a given mesh with span, sweep, dihedral, taper,
-    and twist des-vars. Takes in a half mesh with symmetry plane
-    about the middle and outputs a full symmetric mesh.
+    """
+    OpenMDAO component that performs mesh manipulation functions.
+
     """
 
-    def __init__(self, mesh, aero_ind, num_twist):
+    def __init__(self, mesh, aero_ind):
         super(GeometryMesh, self).__init__()
-
-        self.num_twist = num_twist
 
         self.ny = aero_ind[0, 1]
         self.nx = aero_ind[0, 0]
         self.n = self.nx * self.ny
         self.mesh = mesh
-        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
+        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).\
+            astype('complex')
 
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=numpy.zeros(num_twist))
+        self.add_param('twist', val=numpy.zeros(self.ny))
         self.add_param('taper', val=1.)
         self.add_output('mesh', val=mesh)
 
-        self.deriv_options['type'] = 'fd'
-        self.deriv_options['form'] = 'central'
+        self.deriv_options['type'] = 'cs'
+        # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        self.wing_mesh = self.mesh[:self.n, :].reshape(self.nx, self.ny, 3).astype('complex')
-        jac = get_bspline_mtx(self.num_twist, self.ny, self.wing_mesh)
-        h_cp = params['twist']
-        h = jac.dot(h_cp)
+        self.wing_mesh = self.mesh[:self.n, :].reshape(self.nx, self.ny, 3).\
+            astype('complex')
 
         # stretch(self.wing_mesh, params['span'])
         sweep(self.wing_mesh, params['sweep'])
-        rotate(self.wing_mesh, h)
+        rotate(self.wing_mesh, params['twist'])
         dihedral(self.wing_mesh, params['dihedral'])
         taper(self.wing_mesh, params['taper'])
 
-        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3).astype('complex')
+        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3).\
+            astype('complex')
+
+    def linearize(self, params, unknowns, resids):
+
+        jac = self.alloc_jacobian()
+
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                            fd_params=['span', 'sweep',
+                                                       'dihedral', 'twist',
+                                                       'taper'],
+                                            fd_states=[])
+        jac.update(fd_jac)
+        return jac
+
+
+class Bspline(Component):
+    """
+    General function to translate from control points to actual points
+    using a b-spline representation.
+
+    """
+
+    def __init__(self, cpname, ptname, jac):
+        super(Bspline, self).__init__()
+        self.cpname = cpname
+        self.ptname = ptname
+        self.jac = jac
+        self.add_param(cpname, val=numpy.zeros(jac.shape[1]))
+        self.add_output(ptname, val=numpy.zeros(jac.shape[0]))
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        unknowns[self.ptname] = self.jac.dot(params[self.cpname])
+
+    def linearize(self, params, unknowns, resids):
+        return {(self.ptname, self.cpname): self.jac}
 
 
 class LinearInterp(Component):
-    """ Linear interpolation used to create linearly varying parameters """
+    """ Linear interpolation used to create linearly varying parameters. """
 
     def __init__(self, num_y, name):
         super(LinearInterp, self).__init__()
@@ -325,8 +548,9 @@ class LinearInterp(Component):
             unknowns[self.vname][ind] = a*(1-w) + b*w
             unknowns[self.vname][-1-ind] = a*(1-w) + b*w
 
+
 if __name__ == "__main__":
-    """ Test mesh generation and view results in .html file """
+    """ Test mesh generation and view results in .html file. """
 
     import plotly.offline as plt
     import plotly.graph_objs as go

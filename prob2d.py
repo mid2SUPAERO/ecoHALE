@@ -6,7 +6,7 @@ import time
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
 from geometry import GeometryMesh, gen_crm_mesh
 from transfer import TransferDisplacements, TransferLoads
-from weissinger import WeissingerStates, WeissingerFunctionals
+from vlm import VLMStates, VLMFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
@@ -68,8 +68,8 @@ coupled.add('mesh',
 coupled.add('def_mesh',
             TransferDisplacements(num_y),
             promotes=['*'])
-coupled.add('weissingerstates',
-            WeissingerStates(num_y),
+coupled.add('vlmstates',
+            VLMStates(num_y),
             promotes=['*'])
 coupled.add('loads',
             TransferLoads(num_y),
@@ -94,7 +94,7 @@ coupled.nl_solver.line_search.options['iprint'] = 1
 coupled.ln_solver = ScipyGMRES()
 coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
-coupled.weissingerstates.ln_solver = LinearGaussSeidel()
+coupled.vlmstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 # Direct Inversion Solver
@@ -104,8 +104,8 @@ coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 root.add('coupled',
          coupled,
          promotes=['*'])
-root.add('weissingerfuncs',
-         WeissingerFunctionals(num_y),
+root.add('vlmfuncs',
+         VLMFunctionals(num_y),
          promotes=['*'])
 root.add('spatialbeamfuncs',
          SpatialBeamFunctionals(num_y, E, G, stress, mrho),
