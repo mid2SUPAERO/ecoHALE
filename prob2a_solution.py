@@ -4,7 +4,7 @@ import sys
 import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
-from geometry import GeometryMesh, mesh_gen
+from geometry import GeometryMesh, gen_crm_mesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
@@ -15,7 +15,7 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 # Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
 num_y = mesh.shape[1]
 r = radii(mesh)
 t = r/10
@@ -50,7 +50,7 @@ indep_vars = [
 indep_vars_comp = IndepVarComp(indep_vars)
 tube_comp = MaterialsTube(num_y)
 
-mesh_comp = GeometryMesh(mesh)
+mesh_comp = GeometryMesh(mesh, aero_ind, num_twist)
 spatialbeamstates_comp = SpatialBeamStates(num_y, E, G)
 def_mesh_comp = TransferDisplacements(num_y)
 weissingerstates_comp = WeissingerStates(num_y)

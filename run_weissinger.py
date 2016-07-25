@@ -1,79 +1,97 @@
-""" Example script to run aero-only optimization """
+""" Example script to run aerodynamics-only optimization.
+Call as `python run_weissinger.py 0` to run a single analysis, or
+call as `python run_weissinger.py 1` to perform optimization. """
 
 from __future__ import division
 import numpy
 import sys
+from time import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver#, setup_profiling, activate_profiling
-from geometry import GeometryMesh, mesh_gen, LinearInterp
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
+from geometry import GeometryMesh, gen_crm_mesh, gen_mesh, get_mesh_data
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree
 
-# Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
-num_y = mesh.shape[1]
+try:
+    from openmdao.api import pyOptSparseDriver
+    SNOPT = True
+except:
+    SNOPT = False
 
 # Define the aircraft properties
 execfile('CRM.py')
 
-if 1:
-    num_x = 2
-    num_y = 21
-    num_twist = 5
+if sys.argv[1].endswith('m'):
+    num_x = 3
+    num_y = 3
     span = 10.
-    chord = 2.
-    mesh = numpy.zeros((num_x, num_y, 3))
-    ny2 = (num_y + 1) / 2
-    half_wing = numpy.zeros((ny2))
-    beta = numpy.linspace(0, numpy.pi/2, ny2)
-    half_wing = (.5 * numpy.cos(beta))**1 * span
-    # half_wing = numpy.linspace(0, span/2, ny2)[::-1] # uniform spacing
-    full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1]))
-    chords = numpy.sqrt(1 - half_wing**2/(span/2)**2) * chord/2
-    chords[0] += 1e-5
-    chords = numpy.hstack((chords[:-1], chords[::-1]))
+    chord = 1.
+    cosine_spacing = .5
+    mesh_wing = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
-    for ind_x in xrange(num_x):
-        for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord, full_wing[ind_y], 0] # straight elliptical spacing
-            mesh[ind_x, ind_y, :] = [(-1)**(ind_x+1) * chords[ind_y], full_wing[ind_y], 0] # elliptical chord
+    mesh_wing = mesh_wing.reshape(-1, mesh_wing.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
 
+    nx = 2
+    ny = 3
+    span = 3.
+    chord = 1.
+    cosine_spacing = .5
+    mesh_tail = gen_mesh(nx, ny, span, chord, cosine_spacing)
 
-disp = numpy.zeros((num_y, 6))
+    mesh_tail = mesh_tail.reshape(-1, mesh_tail.shape[-1])
+    mesh_tail[:, 0] += 1e1
+
+    aero_ind = numpy.vstack((aero_ind, numpy.atleast_2d(numpy.array([nx, ny]))))
+    mesh = numpy.vstack((mesh_wing, mesh_tail))
+    aero_ind = get_mesh_data(aero_ind)
+
+else:
+    num_x = 2
+    num_y = 3
+    span = 10.
+    chord = 1.
+    cosine_spacing = 1.
+    mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+    num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+    mesh = mesh.reshape(-1, mesh.shape[-1])
+    aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+    aero_ind = get_mesh_data(aero_ind)
 
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_twist)),
+    ('twist', numpy.ones(num_twist)*numpy.random.rand(num_twist)),
+    ('dihedral', 0.),
+    ('sweep', 0.),
     ('span', span),
+    ('taper', 1.),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
-    ('disp', numpy.zeros((num_y, 6)))
+    ('disp', numpy.zeros((num_y, 6))),
+    ('aero_ind', aero_ind)
 ]
+
 
 root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
-#root.add('linear_twist',
-#         LinearInterp(num_y, 'twist'),
-#         promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh, num_twist),
+         GeometryMesh(mesh, aero_ind, num_twist),
          promotes=['*'])
 root.add('def_mesh',
-         TransferDisplacements(num_y),
+         TransferDisplacements(aero_ind),
          promotes=['*'])
 root.add('weissingerstates',
-         WeissingerStates(num_y),
+         WeissingerStates(aero_ind),
          promotes=['*'])
 root.add('weissingerfuncs',
-         WeissingerFunctionals(num_y, CL0, CD0),
+         WeissingerFunctionals(aero_ind, CL0, CD0, num_twist),
          promotes=['*'])
-# root.add('loads',
-#          TransferLoads(num_y),
-#          promotes=['*'])
 
 prob = Problem()
 prob.root = root
@@ -83,35 +101,37 @@ prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 prob.driver.options['tol'] = 1.0e-8
 
-if 1:
+if SNOPT:
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = "SNOPT"
-    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
-                                'Major feasibility tolerance': 1.0e-7}
+    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                'Major feasibility tolerance': 1.0e-8}
 
-prob.driver.add_desvar('twist',lower=-5., upper=10., scaler=1e0) # test
-#prob.driver.add_desvar('alpha', lower=-10., upper=10.)
-prob.driver.add_objective('CD', scaler=1e4)
-prob.driver.add_constraint('CL', equals=0.5)
+prob.driver.add_desvar('twist', lower=-10., upper=15., scaler=1e0)
+# prob.driver.add_desvar('alpha', lower=-10., upper=10.)
+# prob.driver.add_desvar('sweep', lower=-10., upper=30.)
+# prob.driver.add_desvar('dihedral', lower=-10., upper=20.)
+# prob.driver.add_desvar('taper', lower=.5, upper=2.)
+prob.driver.add_objective('CD_wing', scaler=1e4)
+prob.driver.add_constraint('CL_wing', equals=0.5)
+
 # setup data recording
 prob.driver.add_recorder(SqliteRecorder('weissinger.db'))
 
-#setup_profiling(prob)
-#activate_profiling()
-
+# prob.root.deriv_options['type'] = 'fd'
 prob.setup()
-view_tree(prob, outfile="aerostruct.html", show_browser=False)
 
+view_tree(prob, outfile="aero.html", show_browser=False)
+
+st = time()
 prob.run_once()
-import time
-if sys.argv[1] == '0':
-    st = time.time()
+if sys.argv[1].startswith('0'):
+    # Uncomment this line to check derivatives.
     prob.check_partial_derivatives(compact_print=True)
-    # prob.check_total_derivatives()
-    print "run time", time.time() - st
-    print
-    print prob['CL'], prob['CD']
-elif sys.argv[1] == '1':
+    pass
+elif sys.argv[1].startswith('1'):
+    st = time()
     prob.run()
-    print 'alpha', prob['alpha'], "; CL ", prob['CL'], "; CD ", prob['CD']
-    print prob['twist']
+print "run time", time() - st
+print
+print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y

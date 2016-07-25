@@ -4,7 +4,7 @@ import sys
 import time
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, DirectSolver
-from geometry import GeometryMesh, mesh_gen
+from geometry import GeometryMesh, gen_crm_mesh
 from transfer import TransferDisplacements, TransferLoads
 from weissinger import WeissingerStates, WeissingerFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
@@ -15,7 +15,7 @@ from openmdao.devtools.partition_tree_n2 import view_tree
 from gs_newton import HybridGSNewton
 
 # control problem size here, by chaning number of mesh points
-mesh = mesh_gen(n_points_inboard=2, n_points_outboard=3)
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
 
 num_y = mesh.shape[1]
 
@@ -63,7 +63,7 @@ root.add('tube',
 
 coupled = Group() # add components for MDA to this group
 coupled.add('mesh',
-            GeometryMesh(mesh),
+            GeometryMesh(mesh, aero_ind, num_twist),
             promotes=['*'])
 coupled.add('def_mesh',
             TransferDisplacements(num_y),

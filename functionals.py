@@ -8,11 +8,13 @@ from openmdao.api import Component
 class FunctionalBreguetRange(Component):
     """ Computes the fuel burn using the Breguet range equation """
 
-    def __init__(self, W0, CT, a, R, M):
+    def __init__(self, W0, CT, a, R, M, aero_ind):
         super(FunctionalBreguetRange, self).__init__()
 
-        self.add_param('CL', val=1.)
-        self.add_param('CD', val=1.)
+        n_surf = aero_ind.shape[0]
+
+        self.add_param('CL', val=numpy.zeros((n_surf)))
+        self.add_param('CD', val=numpy.zeros((n_surf)))
         self.add_param('weight', val=0.)
 
         self.add_output('fuelburn', val=0.)
@@ -22,7 +24,7 @@ class FunctionalBreguetRange(Component):
         self.a = a
         self.R = R
         self.M = M
-        
+
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
@@ -45,10 +47,12 @@ class FunctionalBreguetRange(Component):
 class FunctionalEquilibrium(Component):
     """ L = W constraint """
 
-    def __init__(self, W0):
+    def __init__(self, W0, aero_ind):
         super(FunctionalEquilibrium, self).__init__()
 
-        self.add_param('L', val=1.)
+        n_surf = aero_ind.shape[0]
+
+        self.add_param('L', val=numpy.zeros((n_surf)))
         self.add_param('weight', val=1.)
         self.add_param('fuelburn', val=1.)
 
@@ -63,4 +67,4 @@ class FunctionalEquilibrium(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         W0 = self.W0
 
-        unknowns['eq_con'] = (params['weight'] + params['fuelburn'] + W0 - params['L']) / W0
+        unknowns['eq_con'] = (params['weight'] + params['fuelburn'] + W0 - params['L'][0]) / W0

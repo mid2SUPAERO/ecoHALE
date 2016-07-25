@@ -1,22 +1,35 @@
-""" Example script to run struct-only optimization """
+""" Example script to run structural-only optimization.
+Call as `python run_spatialbeam.py 0` to run a single analysis, or
+call as `python run_spatialbeam.py 1` to perform optimization. """
 
 from __future__ import division
 import numpy
 import sys
-import time
+from time import time
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, setup_profiling, activate_profiling
-from geometry import GeometryMesh, mesh_gen, LinearInterp
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
+from geometry import GeometryMesh, gen_crm_mesh, get_mesh_data
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from openmdao.devtools.partition_tree_n2 import view_tree
 
-# Create the mesh with 2 inboard points and 3 outboard points
-mesh = mesh_gen(n_points_inboard=4, n_points_outboard=6)
-# mesh = mesh_gen(n_points_inboard=2, n_points_outboard=2)
+try:
+    from openmdao.api import pyOptSparseDriver
+    SNOPT = True
+except:
+    SNOPT = False
 
-num_y = mesh.shape[1]
+# Create the mesh with 2 inboard points and 3 outboard points.
+# This will be mirrored to produce a mesh with 7 spanwise points,
+# or 6 spanwise panels
+mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3, num_x=3)
+aero_ind = numpy.atleast_2d(numpy.array([mesh.shape[0], mesh.shape[1]]))
+aero_ind = get_mesh_data(aero_ind)
 r = radii(mesh)
+mesh = mesh.reshape(-1, mesh.shape[-1])
+
+num_y = aero_ind[0, 1]
+num_twist = 5
 t = r/10
 
 # Define the material properties
@@ -32,27 +45,31 @@ span = 58.7630524 # [m] baseline CRM
 root = Group()
 
 des_vars = [
-    ('twist', numpy.zeros(num_y)),
+    ('twist', numpy.zeros(num_twist)),
+    ('dihedral', 0.),
+    ('sweep', 0.),
     ('span', span),
+    ('taper', 1.),
     ('r', r),
     ('t', t),
-    ('loads', loads)
+    ('loads', loads),
+    ('aero_ind', aero_ind)
 ]
 
 root.add('des_vars',
          IndepVarComp(des_vars),
          promotes=['*'])
 root.add('mesh',
-         GeometryMesh(mesh),
+         GeometryMesh(mesh, aero_ind, num_twist),
          promotes=['*'])
 root.add('tube',
-         MaterialsTube(num_y),
+         MaterialsTube(aero_ind),
          promotes=['*'])
 root.add('spatialbeamstates',
-         SpatialBeamStates(num_y, E, G),
+         SpatialBeamStates(aero_ind, E, G),
          promotes=['*'])
 root.add('spatialbeamfuncs',
-         SpatialBeamFunctionals(num_y, E, G, stress, mrho),
+         SpatialBeamFunctionals(aero_ind, E, G, stress, mrho),
          promotes=['*'])
 
 prob = Problem()
@@ -61,38 +78,32 @@ prob.root = root
 prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
-# prob.driver.options['tol'] = 1.0e-12
+
+if SNOPT:
+    prob.driver = pyOptSparseDriver()
+    prob.driver.options['optimizer'] = "SNOPT"
+    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                'Major feasibility tolerance': 1.0e-8}
 
 prob.driver.add_desvar('t',
-                       lower=numpy.ones((num_y)) * 0.003,
-                       upper=numpy.ones((num_y)) * 0.25)
+                       lower=numpy.ones((num_y-1)) * 0.003,
+                       upper=numpy.ones((num_y-1)) * 0.25)
 prob.driver.add_objective('energy')
 prob.driver.add_constraint('weight', upper=1e5)
 
-prob.root.deriv_options['type'] = 'cs'
-
 prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
 
-setup_profiling(prob)
-activate_profiling()
 
 prob.setup()
 view_tree(prob, outfile="spatialbeam.html", show_browser=False)
 
+st = time()
+prob.run_once()
 if sys.argv[1] == '0':
+    # Uncomment this line to check derivatives.
     prob.check_partial_derivatives(compact_print=True)
-    # prob.check_total_derivatives()
-    prob.run_once()
-    print
-    print prob['A']
-    print prob['Iy']
-    print prob['Iz']
-    print prob['J']
-    print
-    print prob['disp']
+    pass
 elif sys.argv[1] == '1':
-
-    st = time.time()
     prob.run()
-    print "weight", prob['weight']
-    print "run time", time.time()-st
+print "weight", prob['weight']
+print "run time", time()-st
