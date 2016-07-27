@@ -18,6 +18,11 @@ Lastly, from within the OpenAeroStruct folder, make the Fortran files:
 
 Note that the code will run without compiling the Fortran library, but it will run significantly faster when using Fortran.
 
+Note that the master branch is a development branch and may be unstable. Using a stable release is suggested. To do so, checkout a release using the git command:
+
+    git checkout v0.2.0
+    
+This will use v0.2.0 of OpenAeroStruct, the most recent version.
 
 ## Usage
 
