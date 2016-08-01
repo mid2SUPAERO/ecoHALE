@@ -26,11 +26,11 @@ execfile('CRM.py')
 
 # Single lifting surface
 if not sys.argv[1].endswith('m'):
-    num_x = 2  # number of chordwise node points
-    num_y = 21  # number of spanwise node points, can only be odd numbers
+    num_x = 3  # number of chordwise node points
+    num_y = 5  # number of spanwise node points, can only be odd numbers
     span = 10.  # full wingspan
     chord = 1.  # root chord
-    cosine_spacing = .5  # spacing distribution; 0 is uniform, 1 is cosine
+    cosine_spacing = 1.  # spacing distribution; 0 is uniform, 1 is cosine
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
@@ -96,7 +96,8 @@ des_vars = [
     ('rho', rho),
     ('disp', numpy.zeros((tot_n_fem, 6))),
     ('aero_ind', aero_ind),
-    ('fem_ind', fem_ind)
+    ('fem_ind', fem_ind),
+    ('Re', 0.)
 ]
 
 # Add VLM components to the top-level system

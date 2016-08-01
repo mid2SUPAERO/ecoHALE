@@ -578,10 +578,13 @@ class VLMForces(Component):
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            # Compute the velocities at the midpoints of the bound vortex
-            # filaments
+            # Compute the induced velocities at the midpoints of the
+            # bound vortex filaments
             for ind in xrange(3):
                 self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
+
+            # Add the fresstream velocity to the induced velocity so that
+            # self.v is the total velocity seen at the point
             self.v[:, 0] += cosa * params['v']
             self.v[:, 2] += sina * params['v']
 
@@ -862,7 +865,7 @@ class TotalLift(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['CL'] = params['CL1'] + self.CL0
-        unknowns['CL_wing'] = params['CL1'][0]
+        unknowns['CL_wing'] = params['CL1'][0] + self.CL0
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -900,7 +903,7 @@ class TotalDrag(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns['CD'] = params['CDi'] + self.CD0
-        unknowns['CD_wing'] = unknowns['CD'][0]
+        unknowns['CD_wing'] = unknowns['CD'][0] + self.CD0
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
