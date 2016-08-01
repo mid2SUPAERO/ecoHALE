@@ -82,7 +82,7 @@ def _calc_vorticity(A, B, P):
 
 
 def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
-                      b_pts, alpha, skip=False):
+                      b_pts, alpha, skip=False, symmetry=False):
     """
     Compute the aerodynamic influence coefficient matrix
     for either solving the linear system or solving for the drag.
@@ -122,10 +122,14 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
         If false, the bound vortex contributions on the collocation point
         corresponding to the same panel are not included. Used for the drag
         computation.
+    symmetry : boolean
+        If false, treats the given mesh as the full wing.
+        If true, treats the given mesh as a half wing and mirrors its effects
+        across the plane y=0.
 
     Returns
     -------
-    mtx[num_y-1, num_y-1, 3] : array_like
+    mtx[tot_panels, tot_panels, 3] : array_like
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
     """
@@ -161,7 +165,7 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
             if fortran_flag:
                 small_mat[:, :, :] = lib.assembleaeromtx(ny, nx, ny_, nx_,
                                                          alpha, pts, bpts,
-                                                         mesh, skip)
+                                                         mesh, skip, symmetry)
             # Python matrix assembly
             else:
                 # Spanwise loop through horseshoe elements
@@ -169,6 +173,13 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
                     el_loc_j = el_j * (nx_ - 1)
                     C_te = mesh[-1, el_j + 1, :]
                     D_te = mesh[-1, el_j + 0, :]
+
+                    # Mirror the horseshoe vortex points
+                    if symmetry:
+                        C_te_sym = D_te.copy()
+                        D_te_sym = C_te.copy()
+                        C_te_sym[1] = -C_te_sym[1]
+                        D_te_sym[1] = -D_te_sym[1]
 
                     # Spanwise loop through control points
                     for cp_j in xrange(ny - 1):
@@ -194,6 +205,22 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
                             # AIC contribution from trailing vortex filaments
                             # coming off the trailing edge
                             trailing = t1 - t3
+
+                            # Calculate the effects across the symmetry plane
+                            if symmetry:
+                                r1 = P - D_te_sym
+                                r2 = P - C_te_sym
+
+                                r1_mag = norm(r1)
+                                r2_mag = norm(r2)
+
+                                t1 = numpy.cross(u, r2) / \
+                                    (r2_mag * (r2_mag - u.dot(r2)))
+                                t3 = numpy.cross(u, r1) / \
+                                    (r1_mag * (r1_mag - u.dot(r1)))
+
+                                trailing += t1 - t3
+
                             edges = 0
 
                             # Chordwise loop through horseshoe elements in
@@ -225,6 +252,22 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
                                 edges += _calc_vorticity(B, C, P)
                                 edges += _calc_vorticity(D, A, P)
 
+                                # Mirror the horseshoe vortex points and
+                                # calculate the effects across
+                                # the symmetry plane
+                                if symmetry:
+                                    A_sym = B.copy()
+                                    B_sym = A.copy()
+                                    C_sym = D.copy()
+                                    D_sym = C.copy()
+                                    A_sym[1] = -A_sym[1]
+                                    B_sym[1] = -B_sym[1]
+                                    C_sym[1] = -C_sym[1]
+                                    D_sym[1] = -D_sym[1]
+
+                                    edges += _calc_vorticity(B_sym, C_sym, P)
+                                    edges += _calc_vorticity(D_sym, A_sym, P)
+
                                 # If skip, do not include the contributions
                                 # from the panel's bound vortex filament, as
                                 # this causes a singularity when we're taking
@@ -238,6 +281,12 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
                                         trailing + edges
                                 else:
                                     bound = _calc_vorticity(A, B, P)
+
+                                    # Account for symmetry by including the
+                                    # mirrored bound vortex
+                                    if symmetry:
+                                        bound += _calc_vorticity(A_sym, B_sym, P)
+                                        
                                     small_mat[cp_loc, el_loc, :] = \
                                         trailing + edges + bound
 
@@ -420,7 +469,7 @@ class VLMCirculations(Component):
 
     """
 
-    def __init__(self, aero_ind):
+    def __init__(self, aero_ind, symmetry):
         super(VLMCirculations, self).__init__()
 
         tot_n = numpy.sum(aero_ind[:, 2])
@@ -442,6 +491,8 @@ class VLMCirculations(Component):
 
         self.deriv_options['linearize'] = True  # only for circulations
 
+        self.symmetry = symmetry
+
         self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3),
                                    dtype="complex")
         self.mtx = numpy.zeros((tot_panels, tot_panels), dtype="complex")
@@ -449,7 +500,8 @@ class VLMCirculations(Component):
 
     def _assemble_system(self, params):
         _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'], self.aero_ind,
-                        params['c_pts'], params['b_pts'], params['alpha'])
+                        params['c_pts'], params['b_pts'], params['alpha'],
+                        symmetry=self.symmetry)
 
         # Construct a matrix that is the AIC_mtx dotted by the normals at each
         # collocation point. This is used to compute the circulations
@@ -541,7 +593,7 @@ class VLMForces(Component):
 
     """
 
-    def __init__(self, aero_ind):
+    def __init__(self, aero_ind, symmetry):
         super(VLMForces, self).__init__()
 
         tot_n = numpy.sum(aero_ind[:, 2])
@@ -558,8 +610,8 @@ class VLMForces(Component):
         self.add_param('rho', val=3.)
         self.add_output('sec_forces', val=numpy.zeros((tot_panels, 3)))
 
+        self.symmetry = symmetry
         self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
-
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -573,7 +625,7 @@ class VLMForces(Component):
         # bound vortex filament, not the collocation points from above
         _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.aero_ind,
                           params['mid_b'], params['b_pts'], params['alpha'],
-                          skip=True)
+                          skip=True, symmetry=self.symmetry)
 
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
@@ -692,7 +744,11 @@ class VLMLiftDrag(Component):
 
         # Compute the skin friction coefficient
         # Use eq. 12.27 of Raymer for turbulent Cf
-        Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
+        # Avoid divide by zero warning if Re == 0
+        if Re == 0:
+            Cf = 0.
+        else:
+            Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
 
         for i_surf, row in enumerate(self.aero_ind):
             nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
@@ -915,17 +971,17 @@ class TotalDrag(Component):
 class VLMStates(Group):
     """ Group that contains the aerodynamic states. """
 
-    def __init__(self, aero_ind):
+    def __init__(self, aero_ind, symmetry):
         super(VLMStates, self).__init__()
 
         self.add('wgeom',
                  VLMGeometry(aero_ind),
                  promotes=['*'])
         self.add('circ',
-                 VLMCirculations(aero_ind),
+                 VLMCirculations(aero_ind, symmetry),
                  promotes=['*'])
         self.add('forces',
-                 VLMForces(aero_ind),
+                 VLMForces(aero_ind, symmetry),
                  promotes=['*'])
 
 

@@ -24,6 +24,11 @@ from b_spline import get_bspline_mtx
 # Define the aircraft properties
 execfile('CRM.py')
 
+# Turn symmetry flag on or off
+# If True, model only half the wing and the effects will be mirrored across
+# the plane y=0.
+symmetry = True
+
 # Single lifting surface
 if not sys.argv[1].endswith('m'):
     num_x = 3  # number of chordwise node points
@@ -32,6 +37,11 @@ if not sys.argv[1].endswith('m'):
     chord = 1.  # root chord
     cosine_spacing = 1.  # spacing distribution; 0 is uniform, 1 is cosine
     mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+
+    if symmetry:
+        num_y = int((num_y+1)/2)
+        mesh = mesh[:, :num_y, :]
+
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
     mesh = mesh.reshape(-1, mesh.shape[-1])
@@ -114,7 +124,7 @@ root.add('def_mesh',
          TransferDisplacements(aero_ind, fem_ind),
          promotes=['*'])
 root.add('vlmstates',
-         VLMStates(aero_ind),
+         VLMStates(aero_ind, symmetry),
          promotes=['*'])
 root.add('vlmfuncs',
          VLMFunctionals(aero_ind, CL0, CD0),

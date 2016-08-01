@@ -1,4 +1,4 @@
-subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mtx)
+subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, symmetry, mtx)
 
   implicit none
 
@@ -14,7 +14,7 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mt
   integer, intent(in) :: ny, nx, ny_, nx_
   complex*16, intent(in) :: alpha, mesh(nx_, ny_, 3)
   complex*16, intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
-  logical, intent(in) :: skip
+  logical, intent(in) :: skip, symmetry
 
   ! Output
   complex*16, intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
@@ -22,9 +22,10 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mt
   ! Working
   integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, cp_loc
   complex*16 :: pi, P(3), A(3), B(3), u(3), C(3), D(3)
+  complex*16 :: A_sym(3), B_sym(3), C_sym(3), D_sym(3)
   complex*16 :: norm, ur2(3), r1(3), r2(3), r1_mag, r2_mag
   complex*16 :: ur1(3), dot, bound(3)
-  complex*16 :: edges(3), C_te(3), D_te(3)
+  complex*16 :: edges(3), C_te(3), D_te(3), C_te_sym(3), D_te_sym(3)
 
   pi = 4.d0*atan(1.d0)
 
@@ -38,6 +39,13 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mt
     el_loc_j = (el_j - 1) * (nx_ - 1)
     C_te = mesh(nx_, el_j + 1, :)
     D_te = mesh(nx_, el_j + 0, :)
+
+    if (symmetry) then
+      C_te_sym = D_te
+      D_te_sym = C_te
+      C_te_sym(2) = -C_te_sym(2)
+      D_te_sym(2) = -D_te_sym(2)
+    end if
 
     do cp_j = 1, ny-1 ! spanwise loop through control points
       cp_loc_j = (cp_j - 1) * (nx - 1)
@@ -58,6 +66,19 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mt
         edges = ur2 / (r2_mag * (r2_mag - dot(u, r2)))
         edges = edges - ur1 / (r1_mag * (r1_mag - dot(u, r1)))
 
+        if (symmetry) then
+          r1 = P - D_te_sym
+          r2 = P - C_te_sym
+          r1_mag = norm(r1)
+          r2_mag = norm(r2)
+
+          call cross(u, r2, ur2)
+          call cross(u, r1, ur1)
+
+          edges = edges + ur2 / (r2_mag * (r2_mag - dot(u, r2)))
+          edges = edges - ur1 / (r1_mag * (r1_mag - dot(u, r1)))
+        end if
+
         do el_i = nx_-1, 1, -1 ! chordwise loop through horseshoe elements
           el_loc = el_i + el_loc_j
 
@@ -75,11 +96,28 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, mt
           call calc_vorticity(B, C, P, edges)
           call calc_vorticity(D, A, P, edges)
 
+          if (symmetry) then
+            A_sym = B
+            B_sym = A
+            C_sym = D
+            D_sym = C
+            A_sym(2) = -A_sym(2)
+            B_sym(2) = -B_sym(2)
+            C_sym(2) = -C_sym(2)
+            D_sym(2) = -D_sym(2)
+
+            call calc_vorticity(B_sym, C_sym, P, edges)
+            call calc_vorticity(D_sym, A_sym, P, edges)
+          end if
+
           if ((skip)  .and. (cp_loc .EQ. el_loc)) then
             mtx(cp_loc, el_loc, :) = edges
           else
             bound(:) = 0.
             call calc_vorticity(A, B, P, bound)
+            if (symmetry) then
+              call calc_vorticity(A_sym, B_sym, P, bound)
+            end if
             mtx(cp_loc, el_loc, :) = edges + bound
           end if
 

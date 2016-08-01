@@ -35,6 +35,7 @@ class TestVLM(unittest.TestCase):
                     'a' : 295.4, # [m/s] at 35,000 ft
                     'CL0' : 0.2,
                     'CD0' : 0.015,
+                    'symmetry' : False
                     }
         return defaults
 
@@ -49,6 +50,10 @@ class TestVLM(unittest.TestCase):
         v = a * M
 
         mesh = gen_mesh(num_x, num_y, span, chord, cosine_spacing)
+
+        if symmetry:
+            num_y = int((num_y+1)/2)
+            mesh = mesh[:, :num_y, :]
 
         num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
@@ -96,9 +101,8 @@ class TestVLM(unittest.TestCase):
                  TransferDisplacements(aero_ind, fem_ind),
                  promotes=['*'])
         root.add('vlmstates',
-                 VLMStates(aero_ind),
+                 VLMStates(aero_ind, symmetry),
                  promotes=['*'])
-        print 'CLLLLL', CL0
         root.add('vlmfuncs',
                  VLMFunctionals(aero_ind, CL0, CD0),
                  promotes=['*'])
@@ -141,7 +145,7 @@ class TestVLM(unittest.TestCase):
         # Generally faster than using component derivatives
         prob.root.deriv_options['type'] = 'fd'
 
-        # Setup the problem and produce an N^2 diagram
+        # Setup the problem
         prob.setup()
 
         prob.run_once()
@@ -153,16 +157,16 @@ class TestVLM(unittest.TestCase):
             self.assertAlmostEqual(prob['CD_wing'], target_value)
 
 
-    def test_aero_analysis_flat(self):
+    def test_aero_analysis_flat_small(self):
         self.run_aero_case(.65655138)  # Match the CL
+
+    def test_aero_analysis_flat_symmetry(self):
+        v_dict = {'symmetry' : True}
+        self.run_aero_case(.65655138, v_dict)  # Match the CL
 
     def test_aero_optimization_flat(self):
         v_dict = {'optimize' : True}
         self.run_aero_case(.0314570988, v_dict)  # Match the objective value
-
-
-
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,12 +21,22 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
+# Turn symmetry flag on or off
+# If True, model only half the wing and the effects will be mirrored across
+# the plane y=0.
+symmetry = False
+
 # Single surface aerostructural optimization
 if not sys.argv[1].endswith('m'):
     # Create the mesh with 2 inboard points and 3 outboard points.
     # This will be mirrored to produce a mesh with 7 spanwise points,
     # or 6 spanwise panels
     mesh = gen_crm_mesh(n_points_inboard=3, n_points_outboard=5, num_x=3)
+
+    if symmetry:
+        num_y = int((num_y+1)/2)
+        mesh = mesh[:, :num_y, :]
+
     num_x, num_y = mesh.shape[:2]
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
@@ -130,7 +140,7 @@ coupled.add('def_mesh',
             TransferDisplacements(aero_ind, fem_ind),
             promotes=['*'])
 coupled.add('vlmstates',
-            VLMStates(aero_ind),
+            VLMStates(aero_ind, symmetry),
             promotes=['*'])
 coupled.add('loads',
             TransferLoads(aero_ind, fem_ind),
