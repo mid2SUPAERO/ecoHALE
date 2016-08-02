@@ -340,7 +340,7 @@ class SpatialBeamFEM(Component):
         for i_surf, row in enumerate(self.fem_ind):
             n_fem, i_fem = row
             nodes = params['nodes'][i_fem:i_fem+n_fem]
-            dist = nodes-numpy.array([self.cg_x, 0, 0])
+            dist = nodes - numpy.array([self.cg_x, 0, 0])
             idx = (numpy.linalg.norm(dist, axis=1)).argmin()
             self.cons[i_surf] = idx
 

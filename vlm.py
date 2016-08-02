@@ -176,8 +176,8 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
 
                     # Mirror the horseshoe vortex points
                     if symmetry:
-                        C_te_sym = D_te.copy()
-                        D_te_sym = C_te.copy()
+                        C_te_sym = C_te.copy()
+                        D_te_sym = D_te.copy()
                         C_te_sym[1] = -C_te_sym[1]
                         D_te_sym[1] = -D_te_sym[1]
 
@@ -219,7 +219,7 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
                                 t3 = numpy.cross(u, r1) / \
                                     (r1_mag * (r1_mag - u.dot(r1)))
 
-                                trailing += t1 - t3
+                                trailing += t3 - t1
 
                             edges = 0
 
@@ -256,17 +256,17 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
                                 # calculate the effects across
                                 # the symmetry plane
                                 if symmetry:
-                                    A_sym = B.copy()
-                                    B_sym = A.copy()
-                                    C_sym = D.copy()
-                                    D_sym = C.copy()
+                                    A_sym = A.copy()
+                                    B_sym = B.copy()
+                                    C_sym = C.copy()
+                                    D_sym = D.copy()
                                     A_sym[1] = -A_sym[1]
                                     B_sym[1] = -B_sym[1]
                                     C_sym[1] = -C_sym[1]
                                     D_sym[1] = -D_sym[1]
 
-                                    edges += _calc_vorticity(B_sym, C_sym, P)
-                                    edges += _calc_vorticity(D_sym, A_sym, P)
+                                    edges += _calc_vorticity(C_sym, B_sym, P)
+                                    edges += _calc_vorticity(A_sym, D_sym, P)
 
                                 # If skip, do not include the contributions
                                 # from the panel's bound vortex filament, as
@@ -277,16 +277,20 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
                                 # computation, due to the different collocation
                                 # points.
                                 if skip and el_loc == cp_loc:
+                                    if symmetry:
+                                        bound = _calc_vorticity(B_sym, A_sym, P)
+                                    else:
+                                        bound = numpy.zeros((3))
                                     small_mat[cp_loc, el_loc, :] = \
-                                        trailing + edges
+                                        trailing + edges + bound
                                 else:
                                     bound = _calc_vorticity(A, B, P)
 
                                     # Account for symmetry by including the
                                     # mirrored bound vortex
                                     if symmetry:
-                                        bound += _calc_vorticity(A_sym, B_sym, P)
-                                        
+                                        bound += _calc_vorticity(B_sym, A_sym, P)
+
                                     small_mat[cp_loc, el_loc, :] = \
                                         trailing + edges + bound
 

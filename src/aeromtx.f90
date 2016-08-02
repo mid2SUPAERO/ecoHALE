@@ -41,8 +41,8 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, sy
     D_te = mesh(nx_, el_j + 0, :)
 
     if (symmetry) then
-      C_te_sym = D_te
-      D_te_sym = C_te
+      C_te_sym = C_te
+      D_te_sym = D_te
       C_te_sym(2) = -C_te_sym(2)
       D_te_sym(2) = -D_te_sym(2)
     end if
@@ -75,8 +75,8 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, sy
           call cross(u, r2, ur2)
           call cross(u, r1, ur1)
 
-          edges = edges + ur2 / (r2_mag * (r2_mag - dot(u, r2)))
-          edges = edges - ur1 / (r1_mag * (r1_mag - dot(u, r1)))
+          edges = edges - ur2 / (r2_mag * (r2_mag - dot(u, r2)))
+          edges = edges + ur1 / (r1_mag * (r1_mag - dot(u, r1)))
         end if
 
         do el_i = nx_-1, 1, -1 ! chordwise loop through horseshoe elements
@@ -97,26 +97,30 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, sy
           call calc_vorticity(D, A, P, edges)
 
           if (symmetry) then
-            A_sym = B
-            B_sym = A
-            C_sym = D
-            D_sym = C
+            A_sym = A
+            B_sym = B
+            C_sym = C
+            D_sym = D
             A_sym(2) = -A_sym(2)
             B_sym(2) = -B_sym(2)
             C_sym(2) = -C_sym(2)
             D_sym(2) = -D_sym(2)
 
-            call calc_vorticity(B_sym, C_sym, P, edges)
-            call calc_vorticity(D_sym, A_sym, P, edges)
+            call calc_vorticity(C_sym, B_sym, P, edges)
+            call calc_vorticity(A_sym, D_sym, P, edges)
           end if
 
           if ((skip)  .and. (cp_loc .EQ. el_loc)) then
-            mtx(cp_loc, el_loc, :) = edges
+            bound(:) = 0.
+            if (symmetry) then
+              call calc_vorticity(B_sym, A_sym, P, bound)
+            end if
+            mtx(cp_loc, el_loc, :) = edges + bound
           else
             bound(:) = 0.
             call calc_vorticity(A, B, P, bound)
             if (symmetry) then
-              call calc_vorticity(A_sym, B_sym, P, bound)
+              call calc_vorticity(B_sym, A_sym, P, bound)
             end if
             mtx(cp_loc, el_loc, :) = edges + bound
           end if

@@ -27,12 +27,12 @@ execfile('CRM.py')
 # Turn symmetry flag on or off
 # If True, model only half the wing and the effects will be mirrored across
 # the plane y=0.
-symmetry = True
+symmetry = False
 
 # Single lifting surface
 if not sys.argv[1].endswith('m'):
     num_x = 3  # number of chordwise node points
-    num_y = 5  # number of spanwise node points, can only be odd numbers
+    num_y = 41  # number of spanwise node points, can only be odd numbers
     span = 10.  # full wingspan
     chord = 1.  # root chord
     cosine_spacing = 1.  # spacing distribution; 0 is uniform, 1 is cosine
@@ -102,7 +102,7 @@ des_vars = [
     ('span', span),
     ('taper', taper),
     ('v', v),
-    ('alpha', alpha),
+    ('alpha', 5.),
     ('rho', rho),
     ('disp', numpy.zeros((tot_n_fem, 6))),
     ('aero_ind', aero_ind),

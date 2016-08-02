@@ -27,7 +27,6 @@ class FunctionalBreguetRange(Component):
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
         W0 = self.W0

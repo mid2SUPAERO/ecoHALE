@@ -24,7 +24,7 @@ from b_spline import get_bspline_mtx
 # Turn symmetry flag on or off
 # If True, model only half the wing and the effects will be mirrored across
 # the plane y=0.
-symmetry = False
+symmetry = True
 
 # Single surface aerostructural optimization
 if not sys.argv[1].endswith('m'):
@@ -32,12 +32,12 @@ if not sys.argv[1].endswith('m'):
     # This will be mirrored to produce a mesh with 7 spanwise points,
     # or 6 spanwise panels
     mesh = gen_crm_mesh(n_points_inboard=3, n_points_outboard=5, num_x=3)
+    num_x, num_y = mesh.shape[:2]
 
     if symmetry:
         num_y = int((num_y+1)/2)
         mesh = mesh[:, :num_y, :]
 
-    num_x, num_y = mesh.shape[:2]
     num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
     r = radii(mesh)
@@ -90,6 +90,9 @@ t = r / 10
 # Define the aircraft properties
 execfile('CRM.py')
 
+if symmetry:
+    W0 /= 2.
+
 # Define the material properties
 execfile('aluminum.py')
 
@@ -111,7 +114,7 @@ indep_vars = [
     ('alpha', alpha),
     ('rho', rho),
     ('r', r),
-    ('Re', 0.),  # set Re=0 if you don't want skin frcition drag added
+    ('Re', 0.),  # set Re=0 if you don't want skin friction drag added
     ('M', M),
     ('aero_ind', aero_ind),
     ('fem_ind', fem_ind)
@@ -247,3 +250,4 @@ elif sys.argv[1].startswith('0'):  # check derivatives
 elif sys.argv[1].startswith('1'):  # perform optimization
     prob.run()
 print "runtime: ", time() - st
+print prob['fuelburn']
