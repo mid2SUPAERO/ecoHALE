@@ -44,7 +44,7 @@ class TestVLM(unittest.TestCase):
                     }
         return defaults
 
-    def run_aero_case(self, target_value, input_dict={}):
+    def run_aero_case(self, input_dict={}):
 
         v_dict = self.get_default_dict()
         v_dict.update(input_dict)
@@ -155,13 +155,12 @@ class TestVLM(unittest.TestCase):
 
         prob.run_once()
         if not optimize:  # run analysis once
-            self.assertAlmostEqual(prob['CL'], target_value)
             pass
         else:  # perform optimization
             prob.run()
-            self.assertAlmostEqual(prob['CD_wing'], target_value)
+        return prob
 
-    def run_aerostruct_case(self, target_value, input_dict={}):
+    def run_aerostruct_case(self, input_dict={}):
 
         v_dict = self.get_default_dict()
         v_dict.update(input_dict)
@@ -191,9 +190,6 @@ class TestVLM(unittest.TestCase):
         # Set the number of thickness control points and the initial thicknesses
         num_thickness = num_twist
         t = r / 10
-
-        # Define the aircraft properties
-        execfile('CRM.py')
 
         if symmetry:
             W0 /= 2.
@@ -331,48 +327,56 @@ class TestVLM(unittest.TestCase):
         prob.run_once()
 
         if not optimize:  # run analysis once
-            self.assertAlmostEqual(prob['CL'], target_value[0])
-            self.assertAlmostEqual(prob['failure'], target_value[1])
             pass
         else:  # perform optimization
             prob.run()
-            self.assertAlmostEqual(prob['fuelburn'], target_value[0])
-            self.assertAlmostEqual(prob['failure'], target_value[1])
+        return prob
 
     def test_aero_analysis_flat(self):
-        self.run_aero_case(.65655138)  # Match the CL
+        prob = self.run_aero_case()  # Match the CL
+        self.assertAlmostEqual(prob['CL'], .65655138)
 
     def test_aero_analysis_flat_symmetry(self):
         v_dict = {'symmetry' : True}
-        self.run_aero_case(.65655138, v_dict)  # Match the CL
+        prob = self.run_aero_case(v_dict)  # Match the CL
+        self.assertAlmostEqual(prob['CL'], .65655138)
 
     def test_aero_optimization_flat(self):
         v_dict = {'optimize' : True}
-        self.run_aero_case(.0314570988, v_dict)  # Match the objective value
+        prob = self.run_aero_case(v_dict)  # Match the objective value
+        self.assertAlmostEqual(prob['CD_wing'], .0314570988)
 
     def test_aerostruct_analysis(self):
         v_dict = {'num_y' : 13,
                   'num_x' : 2}
-        self.run_aerostruct_case([.58245256, -.431801158], v_dict)  # Match the CL and failure values
+        prob = self.run_aerostruct_case(v_dict)  # Match the CL and failure values
+        self.assertAlmostEqual(prob['CL'], .58245256)
+        self.assertAlmostEqual(prob['failure'], -.431801158)
 
     def test_aerostruct_analysis_symmetry(self):
         v_dict = {'symmetry' : True,
                   'num_y' : 13,
                   'num_x' : 2}
-        self.run_aerostruct_case([.58245256, -.5011158763], v_dict)  # Match the CL and failure values
+        prob = self.run_aerostruct_case(v_dict)  # Match the CL and failure values
+        self.assertAlmostEqual(prob['CL'], .58245256)
+        self.assertAlmostEqual(prob['failure'], -.5011158763)
 
     def test_aerostruct_optimization(self):
         v_dict = {'optimize' : True,
                   'num_y' : 13,
                   'num_x' : 2}
-        self.run_aerostruct_case([922881.031535157, 1e-9], v_dict)  # Match the objective and failure values
+        prob = self.run_aerostruct_case(v_dict)  # Match the objective and failure values
+        self.assertAlmostEqual(prob['fuelburn'], 922881.031535157)
+        self.assertAlmostEqual(prob['failure'], 1e-9)
 
     def test_aerostruct_optimization_symmetry(self):
         v_dict = {'optimize' : True,
                   'symmetry' : True,
                   'num_y' : 13,
                   'num_x' : 2}
-        self.run_aerostruct_case([427046.16000037867, 1e-9], v_dict)  # Match the objective and failure values
+        prob = self.run_aerostruct_case(v_dict)  # Match the objective and failure values
+        self.assertAlmostEqual(prob['fuelburn'], 427046.16000037867)
+        self.assertAlmostEqual(prob['failure'], 1e-9)
 
 if __name__ == "__main__":
     print
