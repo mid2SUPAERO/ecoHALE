@@ -1,6 +1,7 @@
-""" Class modules containing aero, strucutral, and
+""" Class modules to contain aero, strucutral, and
 aerostructural problem formulations.
 """
+
 
 from __future__ import division
 import sys
@@ -59,8 +60,13 @@ class BaseClass():
     def create_mesh(self):
         if 'mesh' in self.options_dict.keys():
             mesh = self.options_dict['mesh']
-            num_x, num_y = mesh.shape[:2]
-        else:
+            fem_ind = self.options_dict['fem_ind']
+            aero_ind = self.options_dict['aero_ind']
+
+            num_x, num_y = aero_ind[0]
+            r = radii(mesh[:num_x*num_y, 3].reshape(num_x, num_y, 3))
+            num_twist = numpy.max([int((num_y - 1) / 5), 5])
+        elif 'num_x' in self.options_dict.keys():
             num_x = self.options_dict['num_x']
             num_y = self.options_dict['num_y']
             span = self.options_dict['span']
@@ -79,13 +85,22 @@ class BaseClass():
                     num_y = int((num_y+1)/2)
                     mesh = mesh[:, :num_y, :]
             else:
-                print 'Error, wing_type option not understood. Must be either "CRM" or "rectangular".'
+                print 'Error: wing_type option not understood. Must be either "CRM" or "rectangular".'
 
             if self.options_dict['symmetry']:
                 num_y = int((num_y+1)/2)
                 mesh = mesh[:, :num_y, :]
 
-        return mesh
+            num_twist = numpy.max([int((num_y - 1) / 5), 5])
+
+            r = radii(mesh)
+            mesh = mesh.reshape(-1, mesh.shape[-1])
+            aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
+            fem_ind = [num_y]
+        else:
+            print "Error: Please either provide a flattened mesh or a valid set of parameters."
+
+        return mesh, aero_ind, fem_ind, num_twist, r
 
     def setup_prob(self, root):
         # Set the optimization problem settings
@@ -111,14 +126,8 @@ class Aero(BaseClass):
 
     def run(self):
 
-        mesh = self.create_mesh()
-        num_x, num_y = mesh.shape[:2]
-
-        num_twist = numpy.max([int((num_y - 1) / 5), 5])
-
-        mesh = mesh.reshape(-1, mesh.shape[-1])
-        aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-        fem_ind = [num_y]
+        mesh, aero_ind, fem_ind, num_twist, _ = self.create_mesh()
+        num_x, num_y = aero_ind[0]
 
         # Compute the aero and fem indices
         aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
@@ -207,15 +216,9 @@ class AeroStruct(BaseClass):
 
     def run(self):
 
-        mesh = self.create_mesh()
-        num_x, num_y = mesh.shape[:2]
+        mesh, aero_ind, fem_ind, num_twist, r = self.create_mesh()
+        num_x, num_y = aero_ind[0]
 
-        num_twist = numpy.max([int((num_y - 1) / 5), 5])
-
-        r = radii(mesh)
-        mesh = mesh.reshape(-1, mesh.shape[-1])
-        aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-        fem_ind = [num_y]
         aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
         # Set the number of thickness control points and the initial thicknesses
@@ -354,15 +357,9 @@ class Struct(BaseClass):
 
     def run(self):
 
-        mesh = self.create_mesh()
-        num_x, num_y = mesh.shape[:2]
+        mesh, aero_ind, fem_ind, num_twist, r = self.create_mesh()
+        num_x, num_y = aero_ind[0]
 
-        num_twist = numpy.max([int((num_y - 1) / 5), 5])
-
-        r = radii(mesh)
-        mesh = mesh.reshape(-1, mesh.shape[-1])
-        aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-        fem_ind = [num_y]
         aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
 
         # Set the number of thickness control points and the initial thicknesses
@@ -480,4 +477,4 @@ if __name__ == "__main__":
 
     struct = Struct()
     prob = struct.run()
-    print prob['weight']
+    print prob['weight'], 4160.56823078
