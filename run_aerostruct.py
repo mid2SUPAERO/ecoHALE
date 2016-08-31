@@ -31,7 +31,7 @@ if not sys.argv[1].endswith('m'):
     # Create the mesh with 2 inboard points and 3 outboard points.
     # This will be mirrored to produce a mesh with 7 spanwise points,
     # or 6 spanwise panels
-    mesh = gen_crm_mesh(n_points_inboard=4, n_points_outboard=6, num_x=4)
+    mesh = gen_crm_mesh(n_points_inboard=4, n_points_outboard=6, num_x=3)
     num_x, num_y = mesh.shape[:2]
 
     if symmetry:
@@ -242,12 +242,12 @@ st = time()
 prob.run_once()
 
 # Run the problem as selected in the command line argument
-if len(sys.argv) == 1:  # run analysis once
-    pass
-elif sys.argv[1].startswith('0'):  # check derivatives
+if sys.argv[1].startswith('0'):  # check derivatives
     prob.check_partial_derivatives(compact_print=True)
     pass
 elif sys.argv[1].startswith('1'):  # perform optimization
     prob.run()
+else:
+    pass
 print "runtime: ", time() - st
 print prob['fuelburn']

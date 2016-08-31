@@ -44,7 +44,7 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
     Assemble the structural stiffness matrix based on 6 degrees of freedom
     per element.
 
-    Can be run in dense Fortran, Sparse Fortran, or dense
+    Can be run in dense Fortran, sparse Fortran, or dense
     Python code depending on the flags used. Currently, dense Fortran
     seems to be the fastest version across many matrix sizes.
 
