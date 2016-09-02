@@ -451,47 +451,46 @@ class GeometryMesh(Component):
 
     """
 
-    def __init__(self, mesh, aero_ind):
+    def __init__(self, surface):
         super(GeometryMesh, self).__init__()
 
-        self.ny = aero_ind[0, 1]
-        self.nx = aero_ind[0, 0]
-        self.n = self.nx * self.ny
-        self.mesh = mesh
-        self.wing_mesh = mesh[:self.n, :].reshape(self.nx, self.ny, 3).\
-            astype('complex')
+        self.surface = surface
 
-        self.add_param('span', val=58.7630524)
-        self.add_param('sweep', val=0.)
-        self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=numpy.zeros(self.ny))
-        self.add_param('taper', val=1.)
-        self.add_output('mesh', val=mesh)
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
+
+        self.add_param(name+'span', val=58.7630524)
+        self.add_param(name+'sweep', val=0.)
+        self.add_param(name+'dihedral', val=0.)
+        self.add_param(name+'twist', val=numpy.zeros(self.ny))
+        self.add_param(name+'taper', val=1.)
+        self.add_output(name+'mesh', val=self.mesh)
 
         self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        self.wing_mesh = self.mesh[:self.n, :].reshape(self.nx, self.ny, 3).\
-            astype('complex')
-
+        name = self.surface['name']
         # stretch(self.wing_mesh, params['span'])
-        sweep(self.wing_mesh, params['sweep'])
-        rotate(self.wing_mesh, params['twist'])
-        dihedral(self.wing_mesh, params['dihedral'])
-        taper(self.wing_mesh, params['taper'])
+        sweep(self.mesh, params[name+'sweep'])
+        rotate(self.mesh, params[name+'twist'])
+        dihedral(self.mesh, params[name+'dihedral'])
+        taper(self.mesh, params[name+'taper'])
 
-        unknowns['mesh'][:self.n, :] = self.wing_mesh.reshape(self.n, 3).\
-            astype('complex')
+        unknowns[name+'mesh'] = self.mesh
 
     def linearize(self, params, unknowns, resids):
+        name = self.surface['name']
 
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['span', 'sweep',
-                                                       'dihedral', 'twist',
-                                                       'taper'],
+                                            fd_params=[name+'span', name+'sweep',
+                                                       name+'dihedral', name+'twist',
+                                                       name+'taper'],
                                             fd_states=[])
         jac.update(fd_jac)
         return jac

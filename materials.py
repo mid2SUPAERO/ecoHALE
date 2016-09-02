@@ -28,48 +28,49 @@ class MaterialsTube(Component):
 
     """
 
-    def __init__(self, fem_ind):
+    def __init__(self, surface):
         super(MaterialsTube, self).__init__()
 
-        n_fem, i_fem = fem_ind[0, :]
-        num_surf = fem_ind.shape[0]
-        self.fem_ind = fem_ind
+        self.surface = surface
 
-        num_surf = fem_ind.shape[0]
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        size = 6 * tot_n_fem + 6 * num_surf
-        self.tot_n_fem = tot_n_fem
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        self.add_param('r', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_param('thickness', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_output('A', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_output('Iy', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_output('Iz', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_output('J', val=numpy.zeros((tot_n_fem - num_surf)))
+        self.add_param(name+'r', val=surface['r'])
+        self.add_param(name+'thickness', val=surface['t'])
+        self.add_output(name+'A', val=numpy.zeros((self.ny - 1)))
+        self.add_output(name+'Iy', val=numpy.zeros((self.ny - 1)))
+        self.add_output(name+'Iz', val=numpy.zeros((self.ny - 1)))
+        self.add_output(name+'J', val=numpy.zeros((self.ny - 1)))
 
         # self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
 
-        self.arange = numpy.arange(tot_n_fem - num_surf)
+        self.arange = numpy.arange((self.ny - 1))
 
     def solve_nonlinear(self, params, unknowns, resids):
+        name = self.surface['name']
         pi = numpy.pi
-        r1 = params['r'] - 0.5 * params['thickness']
-        r2 = params['r'] + 0.5 * params['thickness']
+        r1 = params[name+'r'] - 0.5 * params[name+'thickness']
+        r2 = params[name+'r'] + 0.5 * params[name+'thickness']
 
-        unknowns['A'] = pi * (r2**2 - r1**2)
-        unknowns['Iy'] = pi * (r2**4 - r1**4) / 4.
-        unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
-        unknowns['J'] = pi * (r2**4 - r1**4) / 2.
+        unknowns[name+'A'] = pi * (r2**2 - r1**2)
+        unknowns[name+'Iy'] = pi * (r2**4 - r1**4) / 4.
+        unknowns[name+'Iz'] = pi * (r2**4 - r1**4) / 4.
+        unknowns[name+'J'] = pi * (r2**4 - r1**4) / 2.
 
 
     def linearize(self, params, unknowns, resids):
+        name = self.surface['name']
         jac = self.alloc_jacobian()
 
         pi = numpy.pi
-        r = params['r'].real
-        t = params['thickness'].real
+        r = params[name+'r'].real
+        t = params[name+'thickness'].real
         r1 = r - 0.5 * t
         r2 = r + 0.5 * t
 
@@ -82,13 +83,13 @@ class MaterialsTube(Component):
         r2_3 = r2**3
 
         a = self.arange
-        jac['A', 'r'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
-        jac['A', 'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
-        jac['Iy', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['Iy', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        jac['Iz', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['Iz', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        jac['J', 'r'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['J', 'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac[name+'A', name+'r'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
+        jac[name+'A', name+'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
+        jac[name+'Iy', name+'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac[name+'Iy', name+'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac[name+'Iz', name+'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac[name+'Iz', name+'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac[name+'J', name+'r'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac[name+'J', name+'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
 
         return jac

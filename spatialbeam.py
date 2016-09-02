@@ -239,54 +239,41 @@ class SpatialBeamFEM(Component):
 
     """
 
-    def __init__(self, aero_ind, fem_ind, E, G, cg_x=5):
+    def __init__(self, surface, cg_x=5):
         super(SpatialBeamFEM, self).__init__()
 
-        n_fem, i_fem = fem_ind[0, :]
-        num_surf = fem_ind.shape[0]
-        self.fem_ind = fem_ind
-        self.aero_ind = aero_ind
+        self.surface = surface
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        num_surf = fem_ind.shape[0]
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        size = 6 * tot_n_fem + 6 * num_surf
-        self.tot_n_fem = tot_n_fem
-
-        self.size = size = 6 * tot_n_fem + 6 * num_surf
+        self.size = size = 6 * self.ny + 6
         self.n = n_fem
 
-        self.add_param('A', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_param('Iy', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_param('Iz', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_param('J', val=numpy.zeros((tot_n_fem - num_surf)))
-        self.add_param('nodes', val=numpy.zeros((tot_n_fem, 3)))
-        self.add_param('loads', val=numpy.zeros((tot_n_fem, 6)))
-        self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
+        self.add_param(name+'A', val=numpy.zeros((self.ny - 1)))
+        self.add_param(name+'Iy', val=numpy.zeros((self.ny - 1)))
+        self.add_param(name+'Iz', val=numpy.zeros((self.ny - 1)))
+        self.add_param(name+'J', val=numpy.zeros((self.ny - 1)))
+        self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3)))
+        self.add_param(name+'loads', val=numpy.zeros((self.ny, 6)))
+        self.add_state(name+'disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
         self.deriv_options['linearize'] = True  # only for circulations
 
-        self.E = E
-        self.G = G
+        self.E = surface['E']
+        self.G = surface['G']
         self.cg_x = cg_x
 
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        self.num_surf = fem_ind.shape[0]
-        elem_IDs = numpy.zeros((tot_n_fem-self.num_surf, 2), int)
-
-        # Store the node IDs for each element
-        for i_surf, row in enumerate(fem_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = \
-                aero_ind[i_surf, :]
-            n_fem, i_fem = row
-
-            arange = numpy.arange(n_fem-1) + i_fem
-            elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, 0] = arange
-            elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, 1] = arange + 1
-
-            self.elem_IDs = elem_IDs
+        elem_IDs = numpy.zeros((self.ny - 1, 2), int)
+        arange = numpy.arange(self.ny-1)
+        elem_IDs[:, 0] = arange
+        elem_IDs[:, 1] = arange + 1
+        self.elem_IDs = elem_IDs
 
         self.const2 = numpy.array([
             [1, -1],
@@ -310,8 +297,8 @@ class SpatialBeamFEM(Component):
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
 
-        num_nodes = tot_n_fem
-        num_cons = self.num_surf
+        num_nodes = self.ny - 1
+        num_cons = 1
         size = 6*num_nodes + 6*num_cons
         self.mtx = numpy.zeros((size, size), dtype='complex')
         self.rhs = numpy.zeros(size, dtype='complex')
@@ -334,20 +321,18 @@ class SpatialBeamFEM(Component):
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
     def solve_nonlinear(self, params, unknowns, resids):
-        self.cons = numpy.zeros((self.num_surf))
+        name = self.surface['name']
 
         # Find constrained nodes based on closeness to specified cg point
-        for i_surf, row in enumerate(self.fem_ind):
-            n_fem, i_fem = row
-            nodes = params['nodes'][i_fem:i_fem+n_fem]
-            dist = nodes - numpy.array([self.cg_x, 0, 0])
-            idx = (numpy.linalg.norm(dist, axis=1)).argmin()
-            self.cons[i_surf] = idx
+        nodes = params[name+'nodes']
+        dist = nodes - numpy.array([self.cg_x, 0, 0])
+        idx = (numpy.linalg.norm(dist, axis=1)).argmin()
+        self.cons = idx
 
         self.mtx, self.rhs = \
-            _assemble_system(self.aero_ind, self.fem_ind, params['nodes'],
-                             params['A'], params['J'], params['Iy'],
-                             params['Iz'], params['loads'], self.K_a, self.K_t,
+            _assemble_system(self.aero_ind, self.fem_ind, params[name+'nodes'],
+                             params[name+'A'], params[name+'J'], params[name+'Iy'],
+                             params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
@@ -357,16 +342,17 @@ class SpatialBeamFEM(Component):
 
         # Check to solve as a dense or sparse system
         if type(self.mtx) == numpy.ndarray:
-            unknowns['disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
+            unknowns[name+'disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
         else:
             self.splu = scipy.sparse.linalg.splu(self.mtx)
-            unknowns['disp_aug'] = self.splu.solve(self.rhs)
+            unknowns[name+'disp_aug'] = self.splu.solve(self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
+        name = self.surface['name']
         self.mtx, self.rhs = \
-            _assemble_system(self.aero_ind, self.fem_ind, params['nodes'],
-                             params['A'], params['J'], params['Iy'],
-                             params['Iz'], params['loads'], self.K_a, self.K_t,
+            _assemble_system(self.aero_ind, self.fem_ind, params[name+'nodes'],
+                             params[name+'A'], params[name+'J'], params[name+'Iy'],
+                             params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
@@ -374,19 +360,20 @@ class SpatialBeamFEM(Component):
                              self.const_z, self.n, self.size,
                              self.mtx, self.rhs)
 
-        disp_aug = unknowns['disp_aug']
-        resids['disp_aug'] = self.mtx.dot(disp_aug) - self.rhs
+        disp_aug = unknowns[name+'disp_aug']
+        resids[name+'disp_aug'] = self.mtx.dot(disp_aug) - self.rhs
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
 
+        name = self.surface['name']
         jac = self.alloc_jacobian()
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['A', 'Iy', 'Iz', 'J',
-                                                       'nodes', 'loads'],
+                                            fd_params=[name+'A', name+'Iy', name+'Iz', name+'J',
+                                                       name+'nodes', name+'loads'],
                                             fd_states=[])
         jac.update(fd_jac)
-        jac['disp_aug', 'disp_aug'] = self.mtx.real
+        jac[name+'disp_aug', name+'disp_aug'] = self.mtx.real
 
         if type(self.mtx) == numpy.ndarray:
             self.lup = lu_factor(self.mtx.real)
@@ -441,29 +428,29 @@ class SpatialBeamDisp(Component):
     def __init__(self, fem_ind):
         super(SpatialBeamDisp, self).__init__()
 
-        num_surf = fem_ind.shape[0]
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        size = 6 * tot_n_fem + 6 * num_surf
-        self.tot_n_fem = tot_n_fem
-        self.fem_ind = fem_ind
+        self.surface = surface
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        self.add_param('disp_aug', val=numpy.zeros((size)))
-        self.add_output('disp', val=numpy.zeros((tot_n_fem, 6)))
+        self.add_param(name+'disp_aug', val=numpy.zeros((size)))
+        self.add_output(name+'disp', val=numpy.zeros((tot_n_fem, 6)))
         self.arange = numpy.arange(6*tot_n_fem)
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Obtain the relevant portions of disp_aug and store the displacements
         # in disp
-        for i_surf, row in enumerate(self.fem_ind):
-            n_fem, i_fem = row
-            unknowns['disp'][i_fem:i_fem+n_fem] = \
-                params['disp_aug'][(i_fem+i_surf)*6:
-                                   (i_fem+n_fem+i_surf)*6].reshape((n_fem, 6))
+        name = self.surface['name']
+
+        unknowns[name+'disp'] = params[name+'disp_aug'][(i_fem+i_surf)*6:
+                               (i_fem+n_fem+i_surf)*6].reshape((n_fem, 6))
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['disp_aug'],
+                                            fd_params=[name+'disp_aug'],
                                             fd_states=[])
         jac.update(fd_jac)
         return jac
@@ -487,34 +474,32 @@ class ComputeNodes(Component):
 
     """
 
-    def __init__(self, fem_ind, aero_ind, fem_origin=0.35):
+    def __init__(self, surface):
         super(ComputeNodes, self).__init__()
 
-        self.num_surf = fem_ind.shape[0]
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        tot_n = numpy.sum(aero_ind[:, 2])
-        self.tot_n_fem = tot_n_fem
-        self.fem_ind = fem_ind
-        self.aero_ind = aero_ind
-        self.fem_origin = fem_origin
+        self.surface = surface
 
-        self.add_param('mesh', val=numpy.zeros((tot_n, 3)))
-        self.add_output('nodes', val=numpy.zeros((tot_n_fem, 3)))
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
+        self.fem_origin = surface['fem_origin']
+
+        self.add_param(name+'mesh', val=numpy.zeros((self.nx, self.ny, 3)))
+        self.add_output(name+'nodes', val=numpy.zeros((self.ny, 3)))
 
     def solve_nonlinear(self, params, unknowns, resids):
         w = self.fem_origin
-        for i_surf, row in enumerate(self.fem_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = \
-                self.aero_ind[i_surf, :]
-            n_fem, i_fem = row
-            mesh = params['mesh'][i:i+n, :].reshape(nx, ny, 3)
-            unknowns['nodes'][i_fem:i_fem+n_fem] = \
-                (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+        name = self.surface['name']
+
+        unknowns[name+'nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
+        name = self.surface['name']
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['mesh'],
+                                            fd_params=[name+'mesh'],
                                             fd_states=[])
         jac.update(fd_jac)
         return jac
@@ -538,23 +523,30 @@ class SpatialBeamEnergy(Component):
 
     """
 
-    def __init__(self, aero_ind, fem_ind):
+    def __init__(self, surface):
         super(SpatialBeamEnergy, self).__init__()
 
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        self.n = tot_n_fem
+        self.surface = surface
 
-        self.add_param('disp', val=numpy.zeros((tot_n_fem, 6)))
-        self.add_param('loads', val=numpy.zeros((tot_n_fem, 6)))
-        self.add_output('energy', val=0.)
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
+
+        self.add_param(name+'disp', val=numpy.zeros((self.ny, 6)))
+        self.add_param(name+'loads', val=numpy.zeros((self.ny, 6)))
+        self.add_output(name+'energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['energy'] = numpy.sum(params['disp'] * params['loads'])
+        name = self.surface['name']
+        unknowns[name+'energy'] = numpy.sum(params[name+'disp'] * params[name+'loads'])
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['energy', 'disp'][0, :] = params['loads'].real.flatten()
-        jac['energy', 'loads'][0, :] = params['disp'].real.flatten()
+        name = self.surface['name']
+        jac[name+'energy', name+'disp'][0, :] = params[name+'loads'].real.flatten()
+        jac[name+'energy', name+'loads'][0, :] = params[name+'disp'].real.flatten()
         return jac
 
 
@@ -573,42 +565,34 @@ class SpatialBeamWeight(Component):
     weight : float
         Total weight of the structural component."""
 
-    def __init__(self, aero_ind, fem_ind, mrho):
+    def __init__(self, surface):
         super(SpatialBeamWeight, self).__init__()
 
-        num_surf = fem_ind.shape[0]
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        self.n = tot_n_fem
+        self.surface = surface
 
-        self.fem_ind = fem_ind
-        self.aero_ind = aero_ind
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        self.add_param('A', val=numpy.zeros((tot_n_fem-num_surf)))
-        self.add_param('nodes', val=numpy.zeros((tot_n_fem, 3)))
-        self.add_output('weight', val=0.)
+        self.add_param(name+'A', val=numpy.zeros((tot_n_fem-num_surf)))
+        self.add_param(name+'nodes', val=numpy.zeros((tot_n_fem, 3)))
+        self.add_output(name+'weight', val=0.)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
 
-        elem_IDs = numpy.zeros((tot_n_fem-num_surf, 2), int)
-
-        for i_surf, row in enumerate(fem_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = \
-                aero_ind[i_surf, :]
-            n_fem, i_fem = row
-
-            arange = numpy.arange(n_fem-1) + i_fem
-            elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, 0] = arange
-            elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, 1] = arange + 1
-
-            self.elem_IDs = elem_IDs
-
-        self.mrho = mrho
+        elem_IDs = numpy.zeros((self.ny - 1, 2), int)
+        arange = numpy.arange(self.ny-1)
+        elem_IDs[:, 0] = arange
+        elem_IDs[:, 1] = arange + 1
+        self.elem_IDs = elem_IDs
 
     def solve_nonlinear(self, params, unknowns, resids):
         nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0, :]
-        A = params['A']
-        nodes = params['nodes']
+        A = params[name+'A']
+        nodes = params[name+'nodes']
         num_elems = self.elem_IDs.shape[0]
 
         # Calculate the volume and weight of the total structure
@@ -620,11 +604,11 @@ class SpatialBeamWeight(Component):
             L = norm(P1 - P0)
             volume += L * A[ielem]
 
-        unknowns['weight'] = volume * self.mrho * 9.81
+        unknowns[name+'weight'] = volume * self.surface['mrho'] * 9.81
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        jac['weight', 't'][0, :] = 1.0
+        jac[name+'weight', name+'t'][0, :] = 1.0
         return jac
 
 
@@ -647,55 +631,48 @@ class SpatialBeamVonMisesTube(Component):
 
     """
 
-    def __init__(self, aero_ind, fem_ind, E, G):
+    def __init__(self, surface):
         super(SpatialBeamVonMisesTube, self).__init__()
 
-        num_surf = fem_ind.shape[0]
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        self.tot_n_fem = tot_n_fem
+        self.surface = surface
 
-        self.aero_ind = aero_ind
-        self.fem_ind = fem_ind
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        self.add_param('nodes', val=numpy.zeros((tot_n_fem, 3),
+        self.add_param(name+'nodes', val=numpy.zeros((tot_n_fem, 3),
                        dtype="complex"))
-        self.add_param('r', val=numpy.zeros((tot_n_fem-num_surf),
+        self.add_param(name+'r', val=numpy.zeros((tot_n_fem-num_surf),
                        dtype="complex"))
-        self.add_param('disp', val=numpy.zeros((tot_n_fem, 6),
+        self.add_param(name+'disp', val=numpy.zeros((tot_n_fem, 6),
                        dtype="complex"))
 
-        self.add_output('vonmises', val=numpy.zeros((tot_n_fem-num_surf, 2),
+        self.add_output(name+'vonmises', val=numpy.zeros((tot_n_fem-num_surf, 2),
                         dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
 
-        elem_IDs = numpy.zeros((tot_n_fem-num_surf, 2), int)
+        elem_IDs = numpy.zeros((self.ny - 1, 2), int)
+        arange = numpy.arange(self.ny-1)
+        elem_IDs[:, 0] = arange
+        elem_IDs[:, 1] = arange + 1
 
-        for i_surf, row in enumerate(fem_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = \
-                aero_ind[i_surf, :]
-            n_fem, i_fem = row
-
-            arange = numpy.arange(n_fem-1) + i_fem
-            elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, 0] = arange
-            elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, 1] = arange + 1
-
-            self.elem_IDs = elem_IDs
+        self.elem_IDs = elem_IDs
 
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
         self.x_gl = numpy.array([1, 0, 0], dtype='complex')
 
-        self.E = E
-        self.G = G
-
     def solve_nonlinear(self, params, unknowns, resids):
         elem_IDs = self.elem_IDs
-        r = params['r']
-        disp = params['disp']
-        nodes = params['nodes']
-        vonmises = unknowns['vonmises']
+        name = surface['name']
+        r = params[name+'r']
+        disp = params[name+'disp']
+        nodes = params[name+'nodes']
+        vonmises = unknowns[name+'vonmises']
 
         num_elems = elem_IDs.shape[0]
         for ielem in xrange(num_elems):
@@ -749,15 +726,19 @@ class SpatialBeamFailureKS(Component):
 
     """
 
-    def __init__(self, fem_ind, sigma, rho=10):
+    def __init__(self, surface, rho=10):
         super(SpatialBeamFailureKS, self).__init__()
 
-        num_surf = fem_ind.shape[0]
-        tot_n_fem = numpy.sum(fem_ind[:, 0])
-        self.tot_n_fem = tot_n_fem
+        self.surface = surface
 
-        self.add_param('vonmises', val=numpy.zeros((tot_n_fem - num_surf, 2)))
-        self.add_output('failure', val=0.)
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
+
+        self.add_param(name+'vonmises', val=numpy.zeros((self.ny, 2)))
+        self.add_output(name+'failure', val=0.)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -766,31 +747,32 @@ class SpatialBeamFailureKS(Component):
         self.rho = rho
 
     def solve_nonlinear(self, params, unknowns, resids):
+        name = self.surface['name']
         sigma = self.sigma
         rho = self.rho
-        vonmises = params['vonmises']
+        vonmises = params[name+'vonmises']
 
         fmax = numpy.max(vonmises/sigma - 1)
 
         nlog, nsum, nexp = numpy.log, numpy.sum, numpy.exp
         ks = 1 / rho * nlog(nsum(nexp(rho * (vonmises/sigma - 1 - fmax))))
-        unknowns['failure'] = fmax + ks
+        unknowns[name+'failure'] = fmax + ks
 
 
 class SpatialBeamStates(Group):
     """ Group that contains the spatial beam states. """
 
-    def __init__(self, aero_ind, fem_ind, E, G):
+    def __init__(self, surface):
         super(SpatialBeamStates, self).__init__()
 
         self.add('nodes',
-                 ComputeNodes(fem_ind, aero_ind),
+                 ComputeNodes(surface),
                  promotes=['*'])
         self.add('fem',
-                 SpatialBeamFEM(aero_ind, fem_ind, E, G),
+                 SpatialBeamFEM(surface),
                  promotes=['*'])
         self.add('disp',
-                 SpatialBeamDisp(fem_ind),
+                 SpatialBeamDisp(surface),
                  promotes=['*'])
 
 
@@ -798,18 +780,18 @@ class SpatialBeamFunctionals(Group):
     """ Group that contains the spatial beam functionals used to evaluate
     performance. """
 
-    def __init__(self, aero_ind, fem_ind, E, G, stress, mrho):
+    def __init__(self, surface):
         super(SpatialBeamFunctionals, self).__init__()
 
         self.add('energy',
-                 SpatialBeamEnergy(aero_ind, fem_ind),
+                 SpatialBeamEnergy(surface),
                  promotes=['*'])
         self.add('weight',
-                 SpatialBeamWeight(aero_ind, fem_ind, mrho),
+                 SpatialBeamWeight(surface),
                  promotes=['*'])
         self.add('vonmises',
-                 SpatialBeamVonMisesTube(aero_ind, fem_ind, E, G),
+                 SpatialBeamVonMisesTube(surface),
                  promotes=['*'])
         self.add('failure',
-                 SpatialBeamFailureKS(fem_ind, stress),
+                 SpatialBeamFailureKS(surface),
                  promotes=['*'])
