@@ -278,9 +278,9 @@ def mirror(mesh, right_side=True):
 
     num_x, num_y, _ = mesh.shape
 
-    new_mesh = numpy.empty((num_x, 2 * num_y - 1, 3))
+    new_mesh = numpy.empty((num_x, 2 * num_y - 1, 3), dtype='complex')
 
-    mirror_y = numpy.ones(mesh.shape)
+    mirror_y = numpy.ones(mesh.shape, dtype='complex')
     mirror_y[:, :, 1] *= -1.0
 
     if right_side:
@@ -342,7 +342,7 @@ def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
     o4 = mesh[1, 2, 0] - s4 * mesh[1, 2, 1]
 
     n_points_total = n_points_inboard + n_points_outboard - 1
-    half_mesh = numpy.zeros((2, n_points_total, 3))
+    half_mesh = numpy.zeros((2, n_points_total, 3), dtype='complex')
 
     # generate inboard points
     dy = (mesh[0, 1, 1] - mesh[0, 0, 1]) / (n_points_inboard - 1)
@@ -390,7 +390,7 @@ def add_chordwise_panels(mesh, num_x):
     le = mesh[ 0, :, :]
     te = mesh[-1, :, :]
 
-    new_mesh = numpy.zeros((num_x, mesh.shape[1], 3))
+    new_mesh = numpy.zeros((num_x, mesh.shape[1], 3), dtype='complex')
     new_mesh[ 0, :, :] = le
     new_mesh[-1, :, :] = te
 
@@ -428,7 +428,7 @@ def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
 
     """
 
-    mesh = numpy.zeros((num_x, num_y, 3))
+    mesh = numpy.zeros((num_x, num_y, 3), dtype='complex')
     ny2 = (num_y + 1) / 2
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 
@@ -465,22 +465,25 @@ class GeometryMesh(Component):
         self.add_param(name+'span', val=58.7630524)
         self.add_param(name+'sweep', val=0.)
         self.add_param(name+'dihedral', val=0.)
-        self.add_param(name+'twist', val=numpy.zeros(self.ny))
+        self.add_param(name+'twist', val=numpy.zeros(self.ny), dtype='complex')
         self.add_param(name+'taper', val=1.)
         self.add_output(name+'mesh', val=self.mesh)
 
-        self.deriv_options['type'] = 'cs'
+        self.deriv_options['type'] = 'fd'
         # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        # stretch(self.wing_mesh, params['span'])
-        sweep(self.mesh, params[name+'sweep'])
-        rotate(self.mesh, params[name+'twist'])
-        dihedral(self.mesh, params[name+'dihedral'])
-        taper(self.mesh, params[name+'taper'])
+        mesh = self.mesh.copy()
+        # stretch(mesh, params[name+'span'])
+        sweep(mesh, params[name+'sweep'])
+        rotate(mesh, params[name+'twist'])
+        dihedral(mesh, params[name+'dihedral'])
+        taper(mesh, params[name+'taper'])
+        # TODO: Fix geometry for symmetry
+        # TODO: Fix cs for geometry
 
-        unknowns[name+'mesh'] = self.mesh
+        unknowns[name+'mesh'] = mesh
 
     def linearize(self, params, unknowns, resids):
         name = self.surface['name']

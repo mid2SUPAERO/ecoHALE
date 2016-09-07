@@ -40,7 +40,6 @@ def view_mat(mat):
     import matplotlib.pyplot as plt
     if len(mat.shape) > 2:
         mat = numpy.sum(mat, axis=2)
-    print "Cond #:", numpy.linalg.cond(mat)
     im = plt.imshow(mat.real, interpolation='none')
     plt.colorbar(im, orientation='horizontal')
     plt.show()
@@ -81,8 +80,7 @@ def _calc_vorticity(A, B, P):
            (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
 
 
-def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
-                      b_pts, alpha, skip=False, symmetry=False):
+def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     """
     Compute the aerodynamic influence coefficient matrix
     for either solving the linear system or solving for the drag.
@@ -134,32 +132,56 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
         derivative of v w.r.t. circulations.
     """
 
+    alpha = params['alpha']
     mtx[:, :, :] = 0.0
     cosa = numpy.cos(alpha * numpy.pi / 180.)
     sina = numpy.sin(alpha * numpy.pi / 180.)
     u = numpy.array([cosa, 0, sina])
 
+    i_ = 0
+    i_bpts_ = 0
+    i_panels_ = 0
+
+    # TODO: make sure symmetry works here
+    symmetry = False
+
     # Loop over the lifting surfaces to compute their influence on the flow
     # velocity at the collocation points
-    for i_surf, row in enumerate(aero_ind):
+    for surface_ in surfaces:
         # Variable names with a trailing underscore correspond to the lifting
         # surface being examined, not the collocation point
-        nx_, ny_, n_, n_bpts_, n_panels_, i_, i_bpts_, i_panels_ = row.copy()
-        n = nx_ * ny_
+        name_ = surface_['name']
+        nx_ = surface_['num_x']
+        ny_ = surface_['num_y']
+        n_ = nx_ * ny_
+        n_bpts_ = (nx_ - 1) * ny_
+        n_panels_ = (nx_ - 1) * (ny_ - 1)
 
         # Obtain the lifting surface mesh in the form expected by the solver,
         # with shape [nx_, ny_, 3]
-        mesh = flat_mesh[i_:i_+n_, :].reshape(nx_, ny_, 3)
-        bpts = b_pts[i_bpts_:i_bpts_+n_bpts_].reshape(nx_-1, ny_, 3)
+        mesh = params[name_+'def_mesh']
+        bpts = params[name_+'b_pts']
 
-        for i_points, row in enumerate(aero_ind):
+        i = 0
+        i_bpts = 0
+        i_panels = 0
+
+        for surface in surfaces:
             # These variables correspond to the collocation points
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+            name = surface['name']
+            nx = surface['num_x']
+            ny = surface['num_y']
+            n = nx * ny
+            n_bpts = (nx - 1) * ny
+            n_panels = (nx - 1) * (ny - 1)
 
             # Obtain the collocation points used to compute the AIC
-            pts = points[i_panels:i_panels+n_panels].reshape(nx-1, ny-1, 3)
+            if skip:
+                pts = params[name+'mid_b']
+            else:
+                pts = params[name+'c_pts']
 
-            small_mat = numpy.zeros((n_panels, n_panels_, 3)).astype("complex")
+            small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype='complex')
 
             # Dense fortran assembly for the AIC matrix
             if fortran_flag:
@@ -298,6 +320,16 @@ def _assemble_AIC_mtx(mtx, flat_mesh, aero_ind, points,
             mtx[i_panels:i_panels+n_panels,
                 i_panels_:i_panels_+n_panels_, :] = small_mat
 
+
+            i += n
+            i_bpts += n_bpts
+            i_panels += n_panels
+
+        i_ += n_
+        i_bpts_ += n_bpts_
+        i_panels_ += n_panels_
+
+
     mtx /= 4 * numpy.pi
 
 
@@ -329,115 +361,113 @@ class VLMGeometry(Component):
 
     """
 
-    def __init__(self, aero_ind):
+    def __init__(self, surface):
         super(VLMGeometry, self).__init__()
 
-        num_surf = aero_ind.shape[0]
-        tot_n = numpy.sum(aero_ind[:, 2])
-        tot_bpts = numpy.sum(aero_ind[:, 3])
-        tot_panels = numpy.sum(aero_ind[:, 4])
-        self.aero_ind = aero_ind
+        self.surface = surface
 
-        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3),
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
+        self.fem_origin = surface['fem_origin']
+
+        self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3),
                        dtype="complex"))
-        self.add_output('b_pts', val=numpy.zeros((tot_bpts, 3),
+        self.add_output(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
                         dtype="complex"))
-        self.add_output('mid_b', val=numpy.zeros((tot_panels, 3),
+        self.add_output(name+'mid_b', val=numpy.zeros((self.nx-1, self.ny-1, 3),
                         dtype="complex"))
-        self.add_output('c_pts', val=numpy.zeros((tot_panels, 3)))
-        self.add_output('widths', val=numpy.zeros((tot_panels)))
-        self.add_output('normals', val=numpy.zeros((tot_panels, 3)))
-        self.add_output('S_ref', val=numpy.zeros((num_surf)))
+        self.add_output(name+'c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output(name+'widths', val=numpy.zeros((self.nx-1, self.ny-1)))
+        self.add_output(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output(name+'S_ref', val=0.)
+
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        # Loop through each lifting surface
-        for i_surf, row in enumerate(self.aero_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+        name = self.surface['name']
+        mesh = params[name+'def_mesh']
 
-            # Reshape the mesh into the expected shape for each surface
-            mesh = params['def_mesh'][i:i+n, :].reshape(nx, ny, 3)
+        # Compute the bound points at 1/4 chord
+        b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
 
-            # Compute the bound points at 1/4 chord
-            b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
+        # Find the midpoints of the bound points, used in drag computations
+        mid_b = (b_pts[:, 1:, :] + b_pts[:, :-1, :]) / 2
 
-            # Find the midpoints of the bound points, used in drag computations
-            mid_b = (b_pts[:, 1:, :] + b_pts[:, :-1, :]) / 2
+        # Compute the collocation points at the midpoints of each
+        # panel's 3/4 chord line
+        c_pts = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
+                0.5 * 0.75 * mesh[1:, :-1, :] + \
+                0.5 * 0.25 * mesh[:-1,  1:, :] + \
+                0.5 * 0.75 * mesh[1:,  1:, :]
 
-            # Compute the collocation points at the midpoints of each
-            # panel's 3/4 chord line
-            c_pts = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
-                    0.5 * 0.75 * mesh[1:, :-1, :] + \
-                    0.5 * 0.25 * mesh[:-1,  1:, :] + \
-                    0.5 * 0.75 * mesh[1:,  1:, :]
+        # Compute the widths of each panel
+        widths = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
 
-            # Compute the widths of each panel
-            widths = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
+        # Compute the normal of each panel by taking the cross-product of
+        # its diagonals. Note that this could be a nonplanar surface
+        normals = numpy.cross(
+            mesh[:-1,  1:, :] - mesh[1:, :-1, :],
+            mesh[:-1, :-1, :] - mesh[1:,  1:, :],
+            axis=2)
 
-            # Compute the normal of each panel by taking the cross-product of
-            # its diagonals. Note that this could be a nonplanar surface
-            normals = numpy.cross(
-                mesh[:-1,  1:, :] - mesh[1:, :-1, :],
-                mesh[:-1, :-1, :] - mesh[1:,  1:, :],
-                axis=2)
+        norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
 
-            norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
+        for j in xrange(3):
+            normals[:, :, j] /= norms
 
-            for j in xrange(3):
-                normals[:, :, j] /= norms
-
-            # Flatten and store each array
-            unknowns['b_pts'][i_bpts:i_bpts+n_bpts, :] = \
-                b_pts.reshape(-1, b_pts.shape[-1])
-            unknowns['mid_b'][i_panels:i_panels+n_panels, :] = \
-                mid_b.reshape(-1, mid_b.shape[-1])
-            unknowns['c_pts'][i_panels:i_panels+n_panels, :] = \
-                c_pts.reshape(-1, c_pts.shape[-1])
-            unknowns['widths'][i_panels:i_panels+n_panels] = \
-                widths.flatten()
-            unknowns['normals'][i_panels:i_panels+n_panels, :] = \
-                normals.reshape(-1, normals.shape[-1], order='F')
-            unknowns['S_ref'][i_surf] = 0.5 * numpy.sum(norms)
+        # Store each array
+        unknowns[name+'b_pts'] = b_pts
+        unknowns[name+'mid_b'] = mid_b
+        unknowns[name+'c_pts'] = c_pts
+        unknowns[name+'widths'] = widths
+        unknowns[name+'normals'] = normals
+        unknowns[name+'S_ref'] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
 
-        jac = self.alloc_jacobian()
-
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['def_mesh'],
-                                            fd_unknowns=['widths', 'normals',
-                                                         'S_ref'],
-                                            fd_states=[])
-        jac.update(fd_jac)
+        # jac = self.alloc_jacobian()
+        #
+        # fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+        #                                     fd_params=['def_mesh'],
+        #                                     fd_unknowns=['widths', 'normals',
+        #                                                  'S_ref'],
+        #                                     fd_states=[])
+        # jac.update(fd_jac)
 
         # Analytic derivatives for some of the parameters
-        i_ny = 0.
-        for i_surf, row in enumerate(self.aero_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
-
-            for iz, v in zip(((i_bpts+i_ny)*3, (i_bpts+i_ny+ny)*3),
-                             (.75, .25)):
-                numpy.fill_diagonal(jac['b_pts', 'def_mesh']
-                    [i_bpts*3:(n_bpts+i_bpts)*3, iz:], v)
-
-            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
-                             (.125, .125, .375, .375)):
-                for ix in range(nx-1):
-                    numpy.fill_diagonal(jac['c_pts', 'def_mesh']
-                        [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
-                     iz+ix*ny*3:], v)
-
-            for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
-                             (.375, .375, .125, .125)):
-                for ix in range(nx-1):
-                    numpy.fill_diagonal(jac['mid_b', 'def_mesh']
-                        [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
-                     iz+ix*ny*3:], v)
-
-            i_ny += ny
+        # TODO: maybe fix these
+        # i_ny = 0.
+        # for i_surf, row in enumerate(self.aero_ind):
+        #     nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+        #
+        #     for iz, v in zip(((i_bpts+i_ny)*3, (i_bpts+i_ny+ny)*3),
+        #                      (.75, .25)):
+        #         numpy.fill_diagonal(jac['b_pts', 'def_mesh']
+        #             [i_bpts*3:(n_bpts+i_bpts)*3, iz:], v)
+        #
+        #     for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
+        #                      (.125, .125, .375, .375)):
+        #         for ix in range(nx-1):
+        #             numpy.fill_diagonal(jac['c_pts', 'def_mesh']
+        #                 [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
+        #              iz+ix*ny*3:], v)
+        #
+        #     for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
+        #                      (.375, .375, .125, .125)):
+        #         for ix in range(nx-1):
+        #             numpy.fill_diagonal(jac['mid_b', 'def_mesh']
+        #                 [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
+        #              iz+ix*ny*3:], v)
+        #
+        #     i_ny += ny
 
         return jac
 
@@ -473,46 +503,66 @@ class VLMCirculations(Component):
 
     """
 
-    def __init__(self, aero_ind, symmetry):
+    def __init__(self, surfaces, prob_dict):
         super(VLMCirculations, self).__init__()
 
-        tot_n = numpy.sum(aero_ind[:, 2])
-        tot_bpts = numpy.sum(aero_ind[:, 3])
-        tot_panels = numpy.sum(aero_ind[:, 4])
-        self.aero_ind = aero_ind
+        self.surfaces = surfaces
 
-        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3),
-                       dtype="complex"))
-        self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3),
-                       dtype="complex"))
-        self.add_param('c_pts', val=numpy.zeros((tot_panels, 3),
-                       dtype="complex"))
-        self.add_param('normals', val=numpy.zeros((tot_panels, 3)))
-        self.add_param('v', val=10.)
-        self.add_param('alpha', val=3.)
-        self.add_state('circulations', val=numpy.zeros((tot_panels),
-                       dtype="complex"))
+        for surface in surfaces:
+
+            self.surface = surface
+            self.ny = surface['num_y']
+            self.nx = surface['num_x']
+            self.n = self.nx * self.ny
+            self.mesh = surface['mesh']
+            name = surface['name']
+
+            self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3),
+                           dtype="complex"))
+            self.add_param(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
+                           dtype="complex"))
+            self.add_param(name+'c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3),
+                           dtype="complex"))
+            self.add_param(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_param('v', val=prob_dict['v'])
+        self.add_param('alpha', val=prob_dict['alpha'])
 
         self.deriv_options['linearize'] = True  # only for circulations
 
-        self.symmetry = symmetry
+        tot_panels = 0
+        for surface in surfaces:
+            tot_panels += (surface['num_x'] - 1) * (surface['num_y'] - 1)
+        self.tot_panels = tot_panels
+
+
+        self.add_state('circulations', val=numpy.zeros((tot_panels),
+                       dtype="complex"))
 
         self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3),
                                    dtype="complex")
         self.mtx = numpy.zeros((tot_panels, tot_panels), dtype="complex")
         self.rhs = numpy.zeros((tot_panels), dtype="complex")
 
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
+
     def _assemble_system(self, params):
-        _assemble_AIC_mtx(self.AIC_mtx, params['def_mesh'], self.aero_ind,
-                        params['c_pts'], params['b_pts'], params['alpha'],
-                        symmetry=self.symmetry)
+        _assemble_AIC_mtx(self.AIC_mtx, params, self.surfaces)
+
+        flattened_normals = numpy.zeros((self.tot_panels, 3), dtype='complex')
+        i = 0
+        for surface in self.surfaces:
+            name = surface['name']
+            num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
+            flattened_normals[i:i+num_panels, :] = params[name+'normals'].reshape(-1, 3, order='F')
+            i += num_panels
 
         # Construct a matrix that is the AIC_mtx dotted by the normals at each
         # collocation point. This is used to compute the circulations
         self.mtx[:, :] = 0.
         for ind in xrange(3):
             self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
-                params['normals'][:, ind]).T
+                flattened_normals[:, ind]).T
 
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
@@ -521,14 +571,16 @@ class VLMCirculations(Component):
 
         # Populate the right-hand side of the linear system with the
         # expected velocities at each collocation point
-        self.rhs[:] = -params['normals'].\
-            reshape(-1, params['normals'].shape[-1], order='F').dot(v_inf)
+        self.rhs[:] = -flattened_normals.\
+            reshape(-1, flattened_normals.shape[-1], order='F').dot(v_inf)
 
     def solve_nonlinear(self, params, unknowns, resids):
+        name = self.surface['name']
         self._assemble_system(params)
         unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
+        name = self.surface['name']
         self._assemble_system(params)
 
         circ = unknowns['circulations']
@@ -536,15 +588,19 @@ class VLMCirculations(Component):
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for circulations."""
+        name = self.surface['name']
         self.lup = lu_factor(self.mtx.real)
         jac = self.alloc_jacobian()
 
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['normals', 'alpha',
-                                                    'def_mesh', 'b_pts',
-                                                    'c_pts'],
-                                         fd_states=[])
-        jac.update(fd_jac)
+        for surface in self.surfaces:
+            name = surface['name']
+
+            fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                             fd_params=[name+'normals', 'alpha',
+                                                        name+'def_mesh', name+'b_pts',
+                                                        name+'c_pts'],
+                                             fd_states=[])
+            jac.update(fd_jac)
 
         jac['circulations', 'circulations'] = self.mtx.real
 
@@ -597,26 +653,37 @@ class VLMForces(Component):
 
     """
 
-    def __init__(self, aero_ind, symmetry):
+    def __init__(self, surfaces, prob_dict):
         super(VLMForces, self).__init__()
 
-        tot_n = numpy.sum(aero_ind[:, 2])
-        tot_bpts = numpy.sum(aero_ind[:, 3])
-        tot_panels = numpy.sum(aero_ind[:, 4])
-        self.aero_ind = aero_ind
 
-        self.add_param('def_mesh', val=numpy.zeros((tot_n, 3)))
-        self.add_param('b_pts', val=numpy.zeros((tot_bpts, 3)))
-        self.add_param('mid_b', val=numpy.zeros((tot_panels, 3)))
+        tot_panels = 0
+        for surface in surfaces:
+            name = surface['name']
+            tot_panels += (surface['num_x'] - 1) * (surface['num_y'] - 1)
+            self.ny = surface['num_y']
+            self.nx = surface['num_x']
+
+            self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3)))
+            self.add_param(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3)))
+            self.add_param(name+'mid_b', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+            self.add_output(name+'sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+
+        self.tot_panels = tot_panels
         self.add_param('circulations', val=numpy.zeros((tot_panels)))
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_output('sec_forces', val=numpy.zeros((tot_panels, 3)))
+        self.surfaces = surfaces
 
-        self.symmetry = symmetry
+
+        # TODO: fix for symmetry
+        self.symmetry = False
         self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
+
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
@@ -627,38 +694,40 @@ class VLMForces(Component):
         # Assemble a different matrix here than the AIC_mtx from above; Notes
         # that the collocation points used here are the midpoints of each
         # bound vortex filament, not the collocation points from above
-        _assemble_AIC_mtx(self.mtx, params['def_mesh'], self.aero_ind,
-                          params['mid_b'], params['b_pts'], params['alpha'],
-                          skip=True, symmetry=self.symmetry)
+        _assemble_AIC_mtx(self.mtx, params, self.surfaces, skip=True)
 
-        for i_surf, row in enumerate(self.aero_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+        # Compute the induced velocities at the midpoints of the
+        # bound vortex filaments
+        for ind in xrange(3):
+            self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
 
-            # Compute the induced velocities at the midpoints of the
-            # bound vortex filaments
-            for ind in xrange(3):
-                self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
+        # Add the fresstream velocity to the induced velocity so that
+        # self.v is the total velocity seen at the point
+        self.v[:, 0] += cosa * params['v']
+        self.v[:, 2] += sina * params['v']
 
-            # Add the fresstream velocity to the induced velocity so that
-            # self.v is the total velocity seen at the point
-            self.v[:, 0] += cosa * params['v']
-            self.v[:, 2] += sina * params['v']
+        i = 0
+        for surface in self.surfaces:
+            name = surface['name']
+            num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
 
-            b_pts = params['b_pts'][i_bpts:i_bpts+n_bpts, :].\
-                reshape(nx-1, ny, 3)
+            b_pts = params[name+'b_pts']
 
             bound = b_pts[:, 1:, :] - b_pts[:, :-1, :]
 
             # Cross the obtained velocities with the bound vortex filament
             # vectors
-            cross = numpy.cross(self.v[i_panels:i_panels+n_panels],
+            cross = numpy.cross(self.v[i:i+num_panels],
                                 bound.reshape(-1, bound.shape[-1], order='F'))
 
+            sec_forces = numpy.zeros(((surface['num_x']-1)*(surface['num_y']-1), 3))
             # Compute the sectional forces acting on each panel
             for ind in xrange(3):
-                unknowns['sec_forces'][i_panels:i_panels+n_panels, ind] = \
-                    (params['rho'] * circ[i_panels:i_panels+n_panels] *
-                    cross[:, ind])
+                sec_forces[:, ind] = \
+                    (params['rho'] * circ[i:i+num_panels] * cross[:, ind])
+            unknowns[name+'sec_forces'] = sec_forces.reshape((surface['num_x']-1, surface['num_y']-1, 3), order='F')
+
+            i += num_panels
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
@@ -717,26 +786,33 @@ class VLMLiftDrag(Component):
 
     """
 
-    def __init__(self, aero_ind):
+    def __init__(self, surface):
         super(VLMLiftDrag, self).__init__()
 
-        num_surf = aero_ind.shape[0]
-        tot_panels = numpy.sum(aero_ind[:, 4])
-        self.aero_ind = aero_ind
+        self.surface = surface
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        self.add_param('sec_forces', val=numpy.zeros((tot_panels, 3)))
+        self.add_param(name+'sec_forces', val=numpy.zeros((self.nx - 1, self.ny - 1, 3)))
         self.add_param('alpha', val=3.)
         self.add_param('Re', val=5.e6)
         self.add_param('M', val=.84)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_param('S_ref', val=numpy.zeros((num_surf)))
-        self.add_output('L', val=numpy.zeros((num_surf)))
-        self.add_output('D', val=numpy.zeros((num_surf)))
+        self.add_param(name+'S_ref', val=0.)
+        self.add_output(name+'L', val=0.)
+        self.add_output(name+'D', val=0.)
+
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
+        name = self.surface['name']
         alpha = params['alpha'] * numpy.pi / 180.
-        forces = params['sec_forces']
+        forces = params[name+'sec_forces'].reshape(-1, 3)
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
@@ -744,7 +820,7 @@ class VLMLiftDrag(Component):
         M = params['M']
         v = params['v']
         rho = params['rho']
-        S_ref = params['S_ref']
+        S_ref = params[name+'S_ref']
 
         # Compute the skin friction coefficient
         # Use eq. 12.27 of Raymer for turbulent Cf
@@ -754,55 +830,49 @@ class VLMLiftDrag(Component):
         else:
             Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
 
-        for i_surf, row in enumerate(self.aero_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
 
-            # Compute the induced lift force on each lifting surface
-            unknowns['L'][i_surf] = \
-                numpy.sum(-forces[i_panels:i_panels+n_panels, 0] * sina +
-                           forces[i_panels:i_panels+n_panels, 2] * cosa)
+        # Compute the induced lift force on each lifting surface
+        unknowns[name+'L'] = \
+            numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
 
 
-            # Compute the induced drag force on each lifting surface
-            unknowns['D'][i_surf] = \
-                numpy.sum( forces[i_panels:i_panels+n_panels, 0] * cosa +
-                           forces[i_panels:i_panels+n_panels, 2] * sina)
+        # Compute the induced drag force on each lifting surface
+        unknowns[name+'D'] = \
+            numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
 
-            # Compute the drag contribution from skin friction
-            D_f = Cf * rho * v**2 / 2. * S_ref[i_surf]
-            unknowns['D'][i_surf] += D_f
+        # Compute the drag contribution from skin friction
+        D_f = Cf * rho * v**2 / 2. * S_ref
+        unknowns[name+'D'] += D_f
 
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift and drag."""
 
         jac = self.alloc_jacobian()
+        name = self.surface['name']
 
         # Analytic derivatives for sec_forces
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        for i_surf, row in enumerate(self.aero_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+        # TODO: fix these derivatives maybe
+        forces = params[name+'sec_forces']
 
-            forces = params['sec_forces'][i_panels:n_panels+i_panels].\
-                reshape(nx-1, ny-1, 3)
+        tmp = numpy.array([-sina, 0, cosa])
+        panel_start = i_panels*3
+        panel_end = i_panels*3+n_panels*3
+        jac[name+'L', name+'sec_forces'][i_surf, panel_start:panel_end] = \
+            numpy.atleast_2d(numpy.tile(tmp, n_panels))
+        tmp = numpy.array([cosa, 0, sina])
+        jac[name+'D', name+'sec_forces'][i_surf, panel_start:panel_end] = \
+            numpy.atleast_2d(numpy.tile(tmp, n_panels))
 
-            tmp = numpy.array([-sina, 0, cosa])
-            panel_start = i_panels*3
-            panel_end = i_panels*3+n_panels*3
-            jac['L', 'sec_forces'][i_surf, panel_start:panel_end] = \
-                numpy.atleast_2d(numpy.tile(tmp, n_panels))
-            tmp = numpy.array([cosa, 0, sina])
-            jac['D', 'sec_forces'][i_surf, panel_start:panel_end] = \
-                numpy.atleast_2d(numpy.tile(tmp, n_panels))
-
-            p180 = numpy.pi / 180.
-            jac['L', 'alpha'][i_surf] = p180 * \
-                numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
-            jac['D', 'alpha'][i_surf] = p180 * \
-                numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
+        p180 = numpy.pi / 180.
+        jac[name+'L', name+'alpha'][i_surf] = p180 * \
+            numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
+        jac[name+'D', name+'alpha'][i_surf] = p180 * \
+            numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
 
         return jac
 
@@ -833,65 +903,71 @@ class VLMCoeffs(Component):
     """
 
 
-    def __init__(self, aero_ind):
+    def __init__(self, surface):
         super(VLMCoeffs, self).__init__()
 
-        num_surf = aero_ind.shape[0]
-        self.aero_ind = aero_ind
-        self.add_param('S_ref', val=numpy.zeros((num_surf)))
-        self.add_param('L', val=numpy.zeros((num_surf)))
-        self.add_param('D', val=numpy.zeros((num_surf)))
+        self.surface = surface
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
+
+        self.add_param(name+'S_ref', val=0.)
+        self.add_param(name+'L', val=0.)
+        self.add_param(name+'D', val=0.)
         self.add_param('v', val=0.)
         self.add_param('rho', val=0.)
-        self.add_output('CL1', val=numpy.zeros((num_surf)))
-        self.add_output('CDi', val=numpy.zeros((num_surf)))
+        self.add_output(name+'CL1', val=0.)
+        self.add_output(name+'CDi', val=0.)
+
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        S_ref = params['S_ref']
+        name = self.surface['name']
+        S_ref = params[name+'S_ref']
         rho = params['rho']
         v = params['v']
-        L = params['L']
-        D = params['D']
-        for i_surf, row in enumerate(self.aero_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+        L = params[name+'L']
+        D = params[name+'D']
 
-            unknowns['CL1'][i_surf] = L[i_surf] / \
-                (0.5 * rho * v**2 * S_ref[i_surf])
-            unknowns['CDi'][i_surf] = D[i_surf] / \
-                (0.5 * rho * v**2 * S_ref[i_surf])
+        unknowns[name+'CL1'] = L / (0.5 * rho * v**2 * S_ref)
+        unknowns[name+'CDi'] = D / (0.5 * rho * v**2 * S_ref)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for forces."""
 
-        S_ref = params['S_ref']
+        # TODO: fix these maybe
+        S_ref = params[name+'S_ref']
         rho = params['rho']
         v = params['v']
-        L = params['L']
-        D = params['D']
+        L = params[name+'L']
+        D = params[name+'D']
 
         jac = self.alloc_jacobian()
-
-        for i_surf, row in enumerate(self.aero_ind):
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
-
-            jac['CL1', 'D'][i_surf] = 0.
-            jac['CDi', 'L'][i_surf] = 0.
-
-            tmp = 0.5*rho*v**2*S_ref
-            jac['CL1', 'L'][i_surf, i_surf] = 1. / tmp[i_surf]
-            jac['CDi', 'D'][i_surf, i_surf] = 1. / tmp[i_surf]
-
-            tmp = -0.5*rho**2*v**2*S_ref
-            jac['CL1', 'rho'][i_surf] = L[i_surf] / tmp[i_surf]
-            jac['CDi', 'rho'][i_surf] = D[i_surf] / tmp[i_surf]
-
-            tmp = -0.5*rho*v**2*S_ref**2
-            jac['CL1', 'S_ref'][i_surf, i_surf] = L[i_surf] / tmp[i_surf]
-            jac['CDi', 'S_ref'][i_surf, i_surf] = D[i_surf] / tmp[i_surf]
-
-            tmp = -0.25*rho*v**3*S_ref
-            jac['CL1', 'v'][i_surf] = L[i_surf] / tmp[i_surf]
-            jac['CDi', 'v'][i_surf] = D[i_surf] / tmp[i_surf]
+        #
+        # for i_surf, row in enumerate(self.aero_ind):
+        #     nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+        #
+        #     jac['CL1', 'D'][i_surf] = 0.
+        #     jac['CDi', 'L'][i_surf] = 0.
+        #
+        #     tmp = 0.5*rho*v**2*S_ref
+        #     jac['CL1', 'L'][i_surf, i_surf] = 1. / tmp[i_surf]
+        #     jac['CDi', 'D'][i_surf, i_surf] = 1. / tmp[i_surf]
+        #
+        #     tmp = -0.5*rho**2*v**2*S_ref
+        #     jac['CL1', 'rho'][i_surf] = L[i_surf] / tmp[i_surf]
+        #     jac['CDi', 'rho'][i_surf] = D[i_surf] / tmp[i_surf]
+        #
+        #     tmp = -0.5*rho*v**2*S_ref**2
+        #     jac['CL1', 'S_ref'][i_surf, i_surf] = L[i_surf] / tmp[i_surf]
+        #     jac['CDi', 'S_ref'][i_surf, i_surf] = D[i_surf] / tmp[i_surf]
+        #
+        #     tmp = -0.25*rho*v**3*S_ref
+        #     jac['CL1', 'v'][i_surf] = L[i_surf] / tmp[i_surf]
+        #     jac['CDi', 'v'][i_surf] = D[i_surf] / tmp[i_surf]
 
         return jac
 
@@ -913,24 +989,30 @@ class TotalLift(Component):
 
     """
 
-    def __init__(self, CL0, aero_ind):
+    def __init__(self, surface):
         super(TotalLift, self).__init__()
 
-        self.num_surf = aero_ind.shape[0]
-        self.add_param('CL1', val=numpy.zeros((self.num_surf)))
-        self.add_output('CL', val=numpy.zeros((self.num_surf)))
-        self.add_output('CL_wing', val=0.)
+        self.surface = surface
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        self.CL0 = CL0
+        self.add_param(name+'CL1', val=0.)
+        self.add_output(name+'CL', val=0.)
+        self.CL0 = surface['CL0']
+
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['CL'] = params['CL1'] + self.CL0
-        unknowns['CL_wing'] = params['CL1'][0] + self.CL0
+        name = self.surface['name']
+        unknowns[name+'CL'] = params[name+'CL1'] + self.CL0
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         jac['CL', 'CL1'][:] = numpy.eye(self.num_surf)
-        jac['CL_wing', 'CL1'][0][0] = 1
         return jac
 
 
@@ -951,41 +1033,45 @@ class TotalDrag(Component):
 
     """
 
-    def __init__(self, CD0, aero_ind):
+    def __init__(self, surface):
         super(TotalDrag, self).__init__()
 
-        self.num_surf = aero_ind.shape[0]
-        self.add_param('CDi', val=numpy.zeros((self.num_surf)))
-        self.add_output('CD', val=numpy.zeros((self.num_surf)))
-        self.add_output('CD_wing', val=0.)
+        self.surface = surface
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+        name = surface['name']
 
-        self.CD0 = CD0
+        self.add_param(name+'CDi', val=0.)
+        self.add_output(name+'CD', val=0.)
+
+        self.CD0 = surface['CD0']
+
+        self.deriv_options['type'] = 'cs'
+        self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['CD'] = params['CDi'] + self.CD0
-        unknowns['CD_wing'] = unknowns['CD'][0] + self.CD0
+        name = self.surface['name']
+        unknowns[name+'CD'] = params[name+'CDi'] + self.CD0
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         jac['CD', 'CDi'][:] = numpy.eye(self.num_surf)
-        jac['CD_wing', 'CDi'][0][0] = 1
         return jac
 
 
 class VLMStates(Group):
     """ Group that contains the aerodynamic states. """
 
-    def __init__(self, aero_ind, symmetry):
+    def __init__(self, surfaces, prob_dict):
         super(VLMStates, self).__init__()
 
-        self.add('wgeom',
-                 VLMGeometry(aero_ind),
-                 promotes=['*'])
-        self.add('circ',
-                 VLMCirculations(aero_ind, symmetry),
-                 promotes=['*'])
         self.add('forces',
-                 VLMForces(aero_ind, symmetry),
+                 VLMForces(surfaces, prob_dict),
+                 promotes=['*'])
+        self.add('circulations',
+                 VLMCirculations(surfaces, prob_dict),
                  promotes=['*'])
 
 
@@ -993,18 +1079,18 @@ class VLMFunctionals(Group):
     """ Group that contains the aerodynamic functionals used to evaluate
     performance. """
 
-    def __init__(self, aero_ind, CL0, CD0):
+    def __init__(self, surface):
         super(VLMFunctionals, self).__init__()
 
         self.add('liftdrag',
-                 VLMLiftDrag(aero_ind),
+                 VLMLiftDrag(surface),
                  promotes=['*'])
         self.add('coeffs',
-                 VLMCoeffs(aero_ind),
+                 VLMCoeffs(surface),
                  promotes=['*'])
         self.add('CL',
-                 TotalLift(CL0, aero_ind),
+                 TotalLift(surface),
                  promotes=['*'])
         self.add('CD',
-                 TotalDrag(CD0, aero_ind),
+                 TotalDrag(surface),
                  promotes=['*'])

@@ -33,7 +33,7 @@ def radii(mesh, t_c=0.15):
     return t_c * chords
 
 
-def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
+def _assemble_system(nodes, A, J, Iy, Iz, loads,
                      K_a, K_t, K_y, K_z,
                      elem_IDs, cons,
                      E, G, x_gl, T,
@@ -54,149 +54,119 @@ def _assemble_system(aero_ind, fem_ind, nodes, A, J, Iy, Iz, loads,
     rows_list = []
     cols_list = []
 
-    num_surf = fem_ind.shape[0]
-    tot_n_fem = numpy.sum(fem_ind[:, 0])
-    size = 6 * tot_n_fem + 6 * num_surf
+    size = 6 * n + 6
+    num_cons = 1
 
-    for i_surf, row in enumerate(fem_ind):
-        n_fem, i_fem = row
+    num_elems = elem_IDs.shape[0]
+    E_vec = E*numpy.ones(num_elems)
+    G_vec = G*numpy.ones(num_elems)
 
-        # Create truncated versions of the input arrays to assemble
-        # smaller matrices that we later assemble into a full matrix
-        num_cons = 1  # just one constraint per structural component
-        size_ = 6 * (n_fem + num_cons)
-        mtx_ = numpy.zeros((size_, size_), dtype="complex")
-        rhs_ = numpy.zeros((size_), dtype="complex")
-        A_ = A[i_fem-i_surf:i_fem-i_surf+n_fem-1]
-        J_ = J[i_fem-i_surf:i_fem-i_surf+n_fem-1]
-        Iy_ = Iy[i_fem-i_surf:i_fem-i_surf+n_fem-1]
-        Iz_ = Iz[i_fem-i_surf:i_fem-i_surf+n_fem-1]
-        elem_IDs_ = elem_IDs[i_fem-i_surf:i_fem-i_surf+n_fem-1, :] - i_fem
-        loads_ = loads[i_fem:i_fem+n_fem]
+    # Dense Fortran
+    if fortran_flag and not sparse_flag:
+        mtx = lib.assemblestructmtx(nodes, A, J, Iy, Iz,
+                                     K_a, K_t, K_y, K_z,
+                                     elem_IDs+1, cons,
+                                     E_vec, G_vec, x_gl, T,
+                                     K_elem, S_a, S_t, S_y, S_z, T_elem,
+                                     const2, const_y, const_z, n, n, size)
 
-        num_elems = elem_IDs_.shape[0]
-        E_vec = E*numpy.ones(num_elems)
-        G_vec = G*numpy.ones(num_elems)
 
-        # Dense Fortran
-        if fortran_flag and not sparse_flag:
-            mtx_ = lib.assemblestructmtx(nodes, A_, J_, Iy_, Iz_,
-                                         K_a, K_t, K_y, K_z,
-                                         elem_IDs_+1, cons[i_surf],
-                                         E_vec, G_vec, x_gl, T,
-                                         K_elem, S_a, S_t, S_y, S_z, T_elem,
-                                         const2, const_y, const_z, n_fem,
-                                         tot_n_fem, size_)
-            mtx[(i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6,
-                (i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6] = mtx_
+    # Sparse Fortran
+    elif fortran_flag and sparse_flag:
+        nnz = 144 * num_elems
 
-            rhs_[:] = 0.0
-            rhs_[:6*n_fem] = loads_.reshape((6*n_fem))
-            rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
+        data1, rows1, cols1 = \
+            lib.assemblesparsemtx(num_elems, n, nnz, x_gl, E_vec,
+                                  G_vec, A, J, Iy, Iz,
+                                  nodes, elem_IDs+1, const2, const_y,
+                                  const_z, S_a, S_t, S_y, S_z)
 
-        # Sparse Fortran
-        elif fortran_flag and sparse_flag:
-            nnz = 144 * num_elems
+        data2 = numpy.ones(6*num_cons) * 1.e9
+        rows2 = numpy.arange(6*num_cons) + 6*n
+        cols2 = numpy.zeros(6*num_cons)
+        for ind in xrange(6):
+            cols2[ind::6] = 6*cons + ind
 
-            data1, rows1, cols1 = \
-                lib.assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, E_vec,
-                                      G_vec, A_, J_, Iy_, Iz_,
-                                      nodes, elem_IDs_+1, const2, const_y,
-                                      const_z, S_a, S_t, S_y, S_z)
+        data = numpy.concatenate([data1, data2, data2])
+        rows = numpy.concatenate([rows1, rows2, cols2])
+        cols = numpy.concatenate([cols1, cols2, rows2])
+        data_list.append(data)
+        rows_list.append(rows)
+        cols_list.append(cols)
 
-            data2 = numpy.ones(6*num_cons) * 1.e9
-            rows2 = numpy.arange(6*num_cons) + 6*n_fem
-            cols2 = numpy.zeros(6*num_cons)
-            for ind in xrange(6):
-                cols2[ind::6] = 6*cons[i_surf] + ind
 
-            data = numpy.concatenate([data1, data2, data2])
-            rows = numpy.concatenate([rows1, rows2, cols2]) + (i_fem+i_surf)*6
-            cols = numpy.concatenate([cols1, cols2, rows2]) + (i_fem+i_surf)*6
-            data_list.append(data)
-            rows_list.append(rows)
-            cols_list.append(cols)
+    # Dense Python
+    else:
+        num_nodes = num_elems + 1
 
-            rhs_[:] = 0.0
-            rhs_[:6*n_fem] = loads_.reshape((6*n_fem))
-            rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
+        mtx[:] = 0.
 
-        # Dense Python
-        else:
-            num_nodes = num_elems + 1
+        # Loop over each element
+        for ielem in xrange(num_elems):
+            # Obtain the element nodes
+            P0 = nodes[elem_IDs[ielem, 0], :]
+            P1 = nodes[elem_IDs[ielem, 1], :]
 
-            mtx_[:] = 0.
+            x_loc = unit(P1 - P0)
+            y_loc = unit(numpy.cross(x_loc, x_gl))
+            z_loc = unit(numpy.cross(x_loc, y_loc))
 
-            # Loop over each element
-            for ielem in xrange(num_elems):
-                # Obtain the element nodes
-                P0 = nodes[elem_IDs_[ielem, 0], :]
-                P1 = nodes[elem_IDs_[ielem, 1], :]
+            T[0, :] = x_loc
+            T[1, :] = y_loc
+            T[2, :] = z_loc
 
-                x_loc = unit(P1 - P0)
-                y_loc = unit(numpy.cross(x_loc, x_gl))
-                z_loc = unit(numpy.cross(x_loc, y_loc))
+            for ind in xrange(4):
+                T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
 
-                T[0, :] = x_loc
-                T[1, :] = y_loc
-                T[2, :] = z_loc
+            L = norm(P1 - P0)
+            EA_L = E_vec[ielem] * A[ielem] / L
+            GJ_L = G_vec[ielem] * J[ielem] / L
+            EIy_L3 = E_vec[ielem] * Iy[ielem] / L**3
+            EIz_L3 = E_vec[ielem] * Iz[ielem] / L**3
 
-                for ind in xrange(4):
-                    T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
+            K_a[:, :] = EA_L * const2
+            K_t[:, :] = GJ_L * const2
 
-                L = norm(P1 - P0)
-                EA_L = E_vec[ielem] * A[ielem] / L
-                GJ_L = G_vec[ielem] * J[ielem] / L
-                EIy_L3 = E_vec[ielem] * Iy[ielem] / L**3
-                EIz_L3 = E_vec[ielem] * Iz[ielem] / L**3
+            K_y[:, :] = EIy_L3 * const_y
+            K_y[1, :] *= L
+            K_y[3, :] *= L
+            K_y[:, 1] *= L
+            K_y[:, 3] *= L
 
-                K_a[:, :] = EA_L * const2
-                K_t[:, :] = GJ_L * const2
+            K_z[:, :] = EIz_L3 * const_z
+            K_z[1, :] *= L
+            K_z[3, :] *= L
+            K_z[:, 1] *= L
+            K_z[:, 3] *= L
 
-                K_y[:, :] = EIy_L3 * const_y
-                K_y[1, :] *= L
-                K_y[3, :] *= L
-                K_y[:, 1] *= L
-                K_y[:, 3] *= L
+            K_elem[:] = 0
+            K_elem += S_a.T.dot(K_a).dot(S_a)
+            K_elem += S_t.T.dot(K_t).dot(S_t)
+            K_elem += S_y.T.dot(K_y).dot(S_y)
+            K_elem += S_z.T.dot(K_z).dot(S_z)
 
-                K_z[:, :] = EIz_L3 * const_z
-                K_z[1, :] *= L
-                K_z[3, :] *= L
-                K_z[:, 1] *= L
-                K_z[:, 3] *= L
+            res = T_elem.T.dot(K_elem).dot(T_elem)
 
-                K_elem[:] = 0
-                K_elem += S_a.T.dot(K_a).dot(S_a)
-                K_elem += S_t.T.dot(K_t).dot(S_t)
-                K_elem += S_y.T.dot(K_y).dot(S_y)
-                K_elem += S_z.T.dot(K_z).dot(S_z)
+            in0, in1 = elem_IDs[ielem, :]
 
-                res = T_elem.T.dot(K_elem).dot(T_elem)
+            # Populate the full matrix with stiffness
+            # contributions from each node
+            mtx[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
+            mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
+            mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
+            mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
 
-                in0, in1 = elem_IDs[ielem, :]
+        # Include a scaled identity matrix in the rows and columns
+        # corresponding to the structural constraints
+        for ind in xrange(num_cons):
+            for k in xrange(6):
+                mtx[-6+k, 6*cons+k] = 1.e9
+                mtx[6*cons+k, -6+k] = 1.e9
 
-                # Populate the full matrix with stiffness
-                # contributions from each node
-                mtx_[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
-                mtx_[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
-                mtx_[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
-                mtx_[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
-
-            # Include a scaled identity matrix in the rows and columns
-            # corresponding to the structural constraints
-            for ind in xrange(num_cons):
-                for k in xrange(6):
-                    mtx_[6*num_nodes + 6*ind + k, 6*cons[i_surf]+k] = 1.e9
-                    mtx_[6*cons[i_surf]+k, 6*num_nodes + 6*ind + k] = 1.e9
-
-            # Populate the right-hand side of the linear system using the
-            # prescribed or computed loads
-            rhs_[:] = 0.0
-            rhs_[:6*n_fem] = loads_.reshape((6*n_fem))
-            rhs[6*(i_fem+i_surf):6*(i_fem+n_fem+i_surf+num_cons)] = rhs_
-
-            mtx[(i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6,
-                (i_fem+i_surf)*6:(i_fem+n_fem+num_cons+i_surf)*6] = mtx_
+    # Populate the right-hand side of the linear system using the
+    # prescribed or computed loads
+    rhs[:] = 0.0
+    rhs[:6*n] = loads.reshape((6*n))
 
     # Create the sparse matrix if sparse_flag == True
     if fortran_flag and sparse_flag:
@@ -250,7 +220,6 @@ class SpatialBeamFEM(Component):
         name = surface['name']
 
         self.size = size = 6 * self.ny + 6
-        self.n = n_fem
 
         self.add_param(name+'A', val=numpy.zeros((self.ny - 1)))
         self.add_param(name+'Iy', val=numpy.zeros((self.ny - 1)))
@@ -299,7 +268,7 @@ class SpatialBeamFEM(Component):
 
         num_nodes = self.ny - 1
         num_cons = 1
-        size = 6*num_nodes + 6*num_cons
+
         self.mtx = numpy.zeros((size, size), dtype='complex')
         self.rhs = numpy.zeros(size, dtype='complex')
 
@@ -330,19 +299,21 @@ class SpatialBeamFEM(Component):
         self.cons = idx
 
         self.mtx, self.rhs = \
-            _assemble_system(self.aero_ind, self.fem_ind, params[name+'nodes'],
+            _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
                              self.T_elem, self.const2, self.const_y,
-                             self.const_z, self.n, self.size,
+                             self.const_z, self.ny, self.size,
                              self.mtx, self.rhs)
+
 
         # Check to solve as a dense or sparse system
         if type(self.mtx) == numpy.ndarray:
             unknowns[name+'disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
+
         else:
             self.splu = scipy.sparse.linalg.splu(self.mtx)
             unknowns[name+'disp_aug'] = self.splu.solve(self.rhs)
@@ -350,14 +321,14 @@ class SpatialBeamFEM(Component):
     def apply_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
         self.mtx, self.rhs = \
-            _assemble_system(self.aero_ind, self.fem_ind, params[name+'nodes'],
+            _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
                              self.T_elem, self.const2, self.const_y,
-                             self.const_z, self.n, self.size,
+                             self.const_z, self.ny, self.size,
                              self.mtx, self.rhs)
 
         disp_aug = unknowns[name+'disp_aug']
@@ -368,7 +339,8 @@ class SpatialBeamFEM(Component):
 
         name = self.surface['name']
         jac = self.alloc_jacobian()
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+        # TODO: fix this for cs
+        fd_jac = self.fd_jacobian(params, unknowns, resids,
                                             fd_params=[name+'A', name+'Iy', name+'Iz', name+'J',
                                                        name+'nodes', name+'loads'],
                                             fd_states=[])
@@ -425,7 +397,7 @@ class SpatialBeamDisp(Component):
 
     """
 
-    def __init__(self, fem_ind):
+    def __init__(self, surface):
         super(SpatialBeamDisp, self).__init__()
 
         self.surface = surface
@@ -435,24 +407,25 @@ class SpatialBeamDisp(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'disp_aug', val=numpy.zeros((size)))
-        self.add_output(name+'disp', val=numpy.zeros((tot_n_fem, 6)))
-        self.arange = numpy.arange(6*tot_n_fem)
+        self.add_param(name+'disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype='complex'))
+        self.add_output(name+'disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
+        self.arange = numpy.arange(6*self.ny)
+
+        # self.deriv_options['type'] = 'cs'
+        # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Obtain the relevant portions of disp_aug and store the displacements
         # in disp
         name = self.surface['name']
 
-        unknowns[name+'disp'] = params[name+'disp_aug'][(i_fem+i_surf)*6:
-                               (i_fem+n_fem+i_surf)*6].reshape((n_fem, 6))
+        unknowns[name+'disp'] = params[name+'disp_aug'][:-6].reshape((self.ny, 6))
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=[name+'disp_aug'],
-                                            fd_states=[])
-        jac.update(fd_jac)
+        name = self.surface['name']
+        n = self.ny * 6
+        jac[name+'disp', name+'disp_aug'] = numpy.hstack((numpy.eye((n)), numpy.zeros((n, 6))))
         return jac
 
 
@@ -492,6 +465,7 @@ class ComputeNodes(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         w = self.fem_origin
         name = self.surface['name']
+        mesh = params[name+'mesh']
 
         unknowns[name+'nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
@@ -576,8 +550,8 @@ class SpatialBeamWeight(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'A', val=numpy.zeros((tot_n_fem-num_surf)))
-        self.add_param(name+'nodes', val=numpy.zeros((tot_n_fem, 3)))
+        self.add_param(name+'A', val=numpy.zeros((self.ny - 1)))
+        self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3)))
         self.add_output(name+'weight', val=0.)
 
         self.deriv_options['type'] = 'cs'
@@ -590,7 +564,7 @@ class SpatialBeamWeight(Component):
         self.elem_IDs = elem_IDs
 
     def solve_nonlinear(self, params, unknowns, resids):
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0, :]
+        name = self.surface['name']
         A = params[name+'A']
         nodes = params[name+'nodes']
         num_elems = self.elem_IDs.shape[0]
@@ -607,6 +581,7 @@ class SpatialBeamWeight(Component):
         unknowns[name+'weight'] = volume * self.surface['mrho'] * 9.81
 
     def linearize(self, params, unknowns, resids):
+        name = self.surface['name']
         jac = self.alloc_jacobian()
         jac[name+'weight', name+'t'][0, :] = 1.0
         return jac
@@ -642,14 +617,14 @@ class SpatialBeamVonMisesTube(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'nodes', val=numpy.zeros((tot_n_fem, 3),
+        self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3),
                        dtype="complex"))
-        self.add_param(name+'r', val=numpy.zeros((tot_n_fem-num_surf),
+        self.add_param(name+'r', val=numpy.zeros((self.ny - 1),
                        dtype="complex"))
-        self.add_param(name+'disp', val=numpy.zeros((tot_n_fem, 6),
+        self.add_param(name+'disp', val=numpy.zeros((self.ny, 6),
                        dtype="complex"))
 
-        self.add_output(name+'vonmises', val=numpy.zeros((tot_n_fem-num_surf, 2),
+        self.add_output(name+'vonmises', val=numpy.zeros((self.ny-1, 2),
                         dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
@@ -661,6 +636,9 @@ class SpatialBeamVonMisesTube(Component):
         elem_IDs[:, 1] = arange + 1
 
         self.elem_IDs = elem_IDs
+        self.E = surface['E']
+        self.G = surface['G']
+
 
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
@@ -668,7 +646,7 @@ class SpatialBeamVonMisesTube(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         elem_IDs = self.elem_IDs
-        name = surface['name']
+        name = self.surface['name']
         r = params[name+'r']
         disp = params[name+'disp']
         nodes = params[name+'nodes']
@@ -737,13 +715,13 @@ class SpatialBeamFailureKS(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'vonmises', val=numpy.zeros((self.ny, 2)))
+        self.add_param(name+'vonmises', val=numpy.zeros((self.ny-1, 2)))
         self.add_output(name+'failure', val=0.)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
 
-        self.sigma = sigma
+        self.sigma = surface['stress']
         self.rho = rho
 
     def solve_nonlinear(self, params, unknowns, resids):
