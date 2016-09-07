@@ -384,8 +384,8 @@ class VLMGeometry(Component):
         self.add_output(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
         self.add_output(name+'S_ref', val=0.)
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['type'] = 'cs'
+        # self.deriv_options['form'] = 'central'
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
@@ -433,41 +433,34 @@ class VLMGeometry(Component):
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
 
-        # jac = self.alloc_jacobian()
-        #
-        # fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-        #                                     fd_params=['def_mesh'],
-        #                                     fd_unknowns=['widths', 'normals',
-        #                                                  'S_ref'],
-        #                                     fd_states=[])
-        # jac.update(fd_jac)
+        jac = self.alloc_jacobian()
+        name = self.surface['name']
 
-        # Analytic derivatives for some of the parameters
-        # TODO: maybe fix these
-        # i_ny = 0.
-        # for i_surf, row in enumerate(self.aero_ind):
-        #     nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
-        #
-        #     for iz, v in zip(((i_bpts+i_ny)*3, (i_bpts+i_ny+ny)*3),
-        #                      (.75, .25)):
-        #         numpy.fill_diagonal(jac['b_pts', 'def_mesh']
-        #             [i_bpts*3:(n_bpts+i_bpts)*3, iz:], v)
-        #
-        #     for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
-        #                      (.125, .125, .375, .375)):
-        #         for ix in range(nx-1):
-        #             numpy.fill_diagonal(jac['c_pts', 'def_mesh']
-        #                 [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
-        #              iz+ix*ny*3:], v)
-        #
-        #     for iz, v in zip((i*3, (i+1)*3, (i+ny)*3, (ny+i+1)*3),
-        #                      (.375, .375, .125, .125)):
-        #         for ix in range(nx-1):
-        #             numpy.fill_diagonal(jac['mid_b', 'def_mesh']
-        #                 [(i_panels+ix*(ny-1))*3:(i_panels+(ix+1)*(ny-1))*3,
-        #              iz+ix*ny*3:], v)
-        #
-        #     i_ny += ny
+        fd_jac = self.fd_jacobian(params, unknowns, resids,
+                                            fd_params=[name+'def_mesh'],
+                                            fd_unknowns=[name+'widths', name+'normals',
+                                                         name+'S_ref'],
+                                            fd_states=[])
+        jac.update(fd_jac)
+
+        nx = self.surface['num_x']
+        ny = self.surface['num_y']
+
+        for iz, v in zip((0, ny*3), (.75, .25)):
+            numpy.fill_diagonal(jac[name+'b_pts', name+'def_mesh'][:, iz:], v)
+
+
+        for iz, v in zip((0, 3, ny*3, (ny+1)*3),
+                         (.125, .125, .375, .375)):
+            for ix in range(nx-1):
+                numpy.fill_diagonal(jac[name+'c_pts', name+'def_mesh']
+                    [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
+
+        for iz, v in zip((0, 3, ny*3, (ny+1)*3),
+                         (.375, .375, .125, .125)):
+            for ix in range(nx-1):
+                numpy.fill_diagonal(jac[name+'mid_b', name+'def_mesh']
+                    [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
         return jac
 
@@ -543,8 +536,8 @@ class VLMCirculations(Component):
         self.mtx = numpy.zeros((tot_panels, tot_panels), dtype="complex")
         self.rhs = numpy.zeros((tot_panels), dtype="complex")
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['type'] = 'cs'
+        # self.deriv_options['form'] = 'central'
 
     def _assemble_system(self, params):
         _assemble_AIC_mtx(self.AIC_mtx, params, self.surfaces)
@@ -664,10 +657,10 @@ class VLMForces(Component):
             self.ny = surface['num_y']
             self.nx = surface['num_x']
 
-            self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3)))
-            self.add_param(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3)))
-            self.add_param(name+'mid_b', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
-            self.add_output(name+'sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+            self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
+            self.add_param(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3), dtype='complex'))
+            self.add_param(name+'mid_b', val=numpy.zeros((self.nx-1, self.ny-1, 3), dtype='complex'))
+            self.add_output(name+'sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3), dtype='complex'))
 
         self.tot_panels = tot_panels
         self.add_param('circulations', val=numpy.zeros((tot_panels)))
@@ -682,8 +675,8 @@ class VLMForces(Component):
         self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['type'] = 'fd'
+        # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
@@ -734,17 +727,25 @@ class VLMForces(Component):
 
         jac = self.alloc_jacobian()
 
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                         fd_params=['b_pts', 'alpha',
-                                                    'circulations', 'v',
-                                                    'mid_b', 'def_mesh'],
+        # TODO: figure out when cs isn't working here
+        fd_jac = self.fd_jacobian(params, unknowns, resids,
+                                         fd_params=['alpha', 'circulations', 'v'],
                                          fd_states=[])
         jac.update(fd_jac)
 
         rho = params['rho'].real
-        sec_forces = unknowns['sec_forces'].real
 
-        jac['sec_forces', 'rho'] = sec_forces.flatten() / rho
+        for surface in self.surfaces:
+            name = surface['name']
+
+            fd_jac = self.fd_jacobian(params, unknowns, resids,
+                                             fd_params=[name+'b_pts', name+'mid_b',
+                                                name+'def_mesh'],
+                                             fd_states=[])
+            jac.update(fd_jac)
+
+            sec_forces = unknowns[name+'sec_forces'].real
+            jac[name+'sec_forces', 'rho'] = sec_forces.flatten() / rho
 
         return jac
 

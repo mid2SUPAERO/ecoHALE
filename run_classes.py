@@ -129,8 +129,8 @@ class OASProblem():
             from openmdao.api import pyOptSparseDriver
             prob.driver = pyOptSparseDriver()
             prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-5,
-                                        'Major feasibility tolerance': 1.0e-5}
+            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                        'Major feasibility tolerance': 1.0e-8}
         except:  # Use SLSQP optimizer if SNOPT not installed
             prob.driver = ScipyOptimizer()
             prob.driver.options['optimizer'] = 'SLSQP'
@@ -199,6 +199,7 @@ class OASProblem():
             tmp_group.add('spatialbeamstates',
                      SpatialBeamStates(surface),
                      promotes=['*'])
+            tmp_group.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
 
             name = name_orig + '_coupled'
@@ -229,10 +230,9 @@ class OASProblem():
         coupled.nl_solver = Newton()
         coupled.nl_solver.options['iprint'] = 1
         coupled.ln_solver = ScipyGMRES()
-        # coupled.ln_solver.options['iprint'] = 1
+        coupled.ln_solver.options['iprint'] = 1
         coupled.ln_solver.preconditioner = LinearGaussSeidel()
-        # coupled.vlmstates.ln_solver = LinearGaussSeidel()
-        # coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
+        coupled.vlmstates.ln_solver = LinearGaussSeidel()
 
         # coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
         # coupled.nl_solver.options['iprint'] = 1
@@ -240,14 +240,14 @@ class OASProblem():
         coupled.nl_solver.options['rtol'] = 1e-12
 
         coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
-        # coupled.nl_solver.nlgs.options['iprint'] = 1
+        coupled.nl_solver.nlgs.options['iprint'] = 1
         coupled.nl_solver.nlgs.options['maxiter'] = 10
         coupled.nl_solver.nlgs.options['atol'] = 1e-8
         coupled.nl_solver.nlgs.options['rtol'] = 1e-12
         coupled.nl_solver.newton.options['atol'] = 1e-7
         coupled.nl_solver.newton.options['rtol'] = 1e-7
         coupled.nl_solver.newton.options['maxiter'] = 5
-        # coupled.nl_solver.newton.options['iprint'] = 1
+        coupled.nl_solver.newton.options['iprint'] = 1
 
         order_list = []
         for surface in self.surfaces:
@@ -288,23 +288,23 @@ class OASProblem():
         prob.driver.add_desvar('wing_thickness_cp',
                                lower= 0.01,
                                upper= 0.25, scaler=1e3)
+        prob.driver.add_constraint('wing_failure', upper=0.0)
 
-        # prob.driver.add_desvar('tail_twist_cp',lower= -15.,
-        #                        upper=15., scaler=1e0)
-        # prob.driver.add_desvar('tail_thickness_cp',
-        #                        lower= 0.01,
-        #                        upper= 0.25, scaler=1e3)
-        # prob.driver.add_constraint('tail_failure', upper=0.0)
+        prob.driver.add_desvar('tail_twist_cp',lower= -15.,
+                               upper=15., scaler=1e0)
+        prob.driver.add_desvar('tail_thickness_cp',
+                               lower= 0.01,
+                               upper= 0.25, scaler=1e3)
+        prob.driver.add_constraint('tail_failure', upper=0.0)
 
         # Set the objective (minimize fuelburn)
         prob.driver.add_objective('fuelburn', scaler=1e-3)
 
         # Set the constraints (no structural failure and lift = weight)
-        prob.driver.add_constraint('wing_failure', upper=0.0)
         prob.driver.add_constraint('eq_con', equals=0.0)
 
         # TODO: Need to figure out derivatives
-        prob.root.deriv_options['type'] = 'fd'
+        # prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -525,15 +525,15 @@ class OASProblem():
 if __name__ == '__main__':
     OAS_prob = OASProblem({'optimize' : True})
     OAS_prob.add_surface({'name' : 'wing',
-                          'wing_type' : 'rectangular',
-                          'num_x' : 3,
-                          'num_y' : 5,
+                          'wing_type' : 'CRM',
+                          'num_x' : 2,
+                          'num_y' : 9,
                           })
-    # OAS_prob.add_surface({'name' : 'tail',
-    #                       'wing_type' : 'rectangular',
-    #                       'num_x' : 3,
-    #                       'num_y' : 5,
-    #                       'offset' : numpy.array([0., 0., 1000000.])})
+    OAS_prob.add_surface({'name' : 'tail',
+                          'wing_type' : 'CRM',
+                          'num_x' : 2,
+                          'num_y' : 9,
+                          'offset' : numpy.array([0., 0., 1000000.])})
 
     # OAS_prob.run_aero()
     OAS_prob.run_as()
@@ -544,7 +544,7 @@ if __name__ == '__main__':
     print
     print
     print prob['wing_CL'], prob['wing_CD']
-    print prob['tail_CL'], prob['tail_CD']
+    # print prob['tail_CL'], prob['tail_CD']
 
     # print
     # print prob['wing_mesh']

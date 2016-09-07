@@ -76,5 +76,5 @@ class FunctionalEquilibrium(Component):
             weight += params[name+'weight']
             L += params[name+'L']
             W0 += surface['W0']
-            
+
         unknowns['eq_con'] = (weight + params['fuelburn'] + W0 - numpy.sum(L)) / W0
