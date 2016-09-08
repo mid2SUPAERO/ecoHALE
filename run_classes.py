@@ -44,7 +44,7 @@ def get_default_surf_dict():
 def get_default_prob_dict():
     defaults = {'Re' : 0.,
                 'alpha' : 5.,
-                'optimize' : True,
+                'optimize' : False,
                 'CT' : 9.81 * 17.e-6, # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
                 'R' : 14.3e6, # [m] maximum range
                 'M' : 0.84, # at cruise
@@ -84,9 +84,6 @@ class OASProblem():
                 npo = int(npi * 5 / 3)
                 mesh = gen_crm_mesh(n_points_inboard=npi, n_points_outboard=npo, num_x=num_x)
                 num_x, num_y = mesh.shape[:2]
-                surf_dict['num_x'] = num_x
-                surf_dict['num_y'] = num_y
-
 
             else:
                 print 'Error: wing_type option not understood. Must be either "CRM" or "rectangular".'
@@ -94,6 +91,8 @@ class OASProblem():
             if surf_dict['symmetry']:
                 num_y = int((num_y+1)/2)
                 mesh = mesh[:, :num_y, :]
+
+                surf_dict['W0'] /= 2.
 
         else:
             print "Error: Please either provide a mesh or a valid set of parameters."
@@ -103,6 +102,8 @@ class OASProblem():
         r = radii(mesh)
         num_twist = numpy.max([int((num_y - 1) / 5), 5])
 
+        surf_dict['num_x'] = num_x
+        surf_dict['num_y'] = num_y
         surf_dict['mesh'] = mesh
         surf_dict['num_twist'] = num_twist
         surf_dict['r'] = r
@@ -129,13 +130,13 @@ class OASProblem():
             from openmdao.api import pyOptSparseDriver
             prob.driver = pyOptSparseDriver()
             prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
+            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
+                                        'Major feasibility tolerance': 1.0e-7}
         except:  # Use SLSQP optimizer if SNOPT not installed
             prob.driver = ScipyOptimizer()
             prob.driver.options['optimizer'] = 'SLSQP'
             prob.driver.options['disp'] = True
-            prob.driver.options['tol'] = 1.0e-8
+            prob.driver.options['tol'] = 1.0e-7
 
         return prob
 
@@ -249,14 +250,6 @@ class OASProblem():
         coupled.nl_solver.newton.options['maxiter'] = 5
         coupled.nl_solver.newton.options['iprint'] = 1
 
-        order_list = []
-        for surface in self.surfaces:
-            order_list.append(surface['name']+'coupled')
-        order_list.append('vlmstates')
-        for surface in self.surfaces:
-            order_list.append(surface['name']+'loads')
-        coupled.set_order(order_list)
-
         root.add('coupled', coupled, promotes=['*'])
 
         prob_vars = [('v', self.prob_dict['v']),
@@ -283,22 +276,22 @@ class OASProblem():
         # Note that the scaling is very important to get correct convergence
         prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1)
 
-        prob.driver.add_desvar('wing_twist_cp',lower= -15.,
+        prob.driver.add_desvar('_twist_cp',lower= -15.,
                                upper=15., scaler=1e0)
-        prob.driver.add_desvar('wing_thickness_cp',
+        prob.driver.add_desvar('_thickness_cp',
                                lower= 0.01,
-                               upper= 0.25, scaler=1e3)
-        prob.driver.add_constraint('wing_failure', upper=0.0)
+                               upper= 0.25, scaler=1e2)
+        prob.driver.add_constraint('_failure', upper=0.0)
 
-        prob.driver.add_desvar('tail_twist_cp',lower= -15.,
-                               upper=15., scaler=1e0)
-        prob.driver.add_desvar('tail_thickness_cp',
-                               lower= 0.01,
-                               upper= 0.25, scaler=1e3)
-        prob.driver.add_constraint('tail_failure', upper=0.0)
+        # prob.driver.add_desvar('tail_twist_cp',lower= -15.,
+        #                        upper=15., scaler=1e0)
+        # prob.driver.add_desvar('tail_thickness_cp',
+        #                        lower= 0.01,
+        #                        upper= 0.25, scaler=1e3)
+        # prob.driver.add_constraint('tail_failure', upper=0.0)
 
         # Set the objective (minimize fuelburn)
-        prob.driver.add_objective('fuelburn', scaler=1e-3)
+        prob.driver.add_objective('fuelburn', scaler=1e-5)
 
         # Set the constraints (no structural failure and lift = weight)
         prob.driver.add_constraint('eq_con', equals=0.0)
@@ -488,17 +481,17 @@ class OASProblem():
 
         # Add design variables for the optimizer to control
         # Note that the scaling is very important to get correct convergence
-        prob.driver.add_desvar('wing_twist_cp', lower=-10., upper=15., scaler=1e0)
+        prob.driver.add_desvar('_twist_cp', lower=-10., upper=15., scaler=1e0)
         # prob.driver.add_desvar('alpha', lower=-10., upper=10.)
-        # prob.driver.add_desvar('wing_sweep', lower=-10., upper=30.)
-        # prob.driver.add_desvar('wing_dihedral', lower=-10., upper=20.)
-        # prob.driver.add_desvar('wing_taper', lower=.5, upper=2.)
+        prob.driver.add_desvar('_sweep', lower=-10., upper=30.)
+        prob.driver.add_desvar('_dihedral', lower=-10., upper=20.)
+        prob.driver.add_desvar('_taper', lower=.5, upper=2.)
 
         # Set the objective (minimize CD on the main wing)
-        prob.driver.add_objective('wing_CD', scaler=1e4)
+        prob.driver.add_objective('_CD', scaler=1e4)
 
         # Set the constraint (CL = 0.5 for the main wing)
-        prob.driver.add_constraint('wing_CL', equals=0.5)
+        prob.driver.add_constraint('_CL', equals=0.5)
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -506,7 +499,7 @@ class OASProblem():
 
         # Can finite difference over the entire model
         # Generally faster than using component derivatives
-        prob.root.deriv_options['type'] = 'fd'
+        # prob.root.deriv_options['type'] = 'fd'
 
         # Setup the problem
         prob.setup()
@@ -523,17 +516,18 @@ class OASProblem():
 
 
 if __name__ == '__main__':
-    OAS_prob = OASProblem({'optimize' : True})
-    OAS_prob.add_surface({'name' : 'wing',
-                          'wing_type' : 'CRM',
-                          'num_x' : 2,
-                          'num_y' : 9,
+    OAS_prob = OASProblem({'optimize' : False})
+    OAS_prob.add_surface({'name' : '',
+                        #   'wing_type' : 'CRM',
+                        #   'num_x' : 2,
+                        #   'num_y' : 9,
                           })
     OAS_prob.add_surface({'name' : 'tail',
                           'wing_type' : 'CRM',
                           'num_x' : 2,
                           'num_y' : 9,
-                          'offset' : numpy.array([0., 0., 1000000.])})
+                          'offset' : numpy.array([0., 0., 1000000.])
+                            })
 
     # OAS_prob.run_aero()
     OAS_prob.run_as()
@@ -543,7 +537,7 @@ if __name__ == '__main__':
     # OAS_prob.prob.check_partial_derivatives(compact_print=True)
     print
     print
-    print prob['wing_CL'], prob['wing_CD']
+    print prob['_CL'], prob['_CD']
     # print prob['tail_CL'], prob['tail_CD']
 
     # print

@@ -142,9 +142,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     i_bpts_ = 0
     i_panels_ = 0
 
-    # TODO: make sure symmetry works here
-    symmetry = False
-
     # Loop over the lifting surfaces to compute their influence on the flow
     # velocity at the collocation points
     for surface_ in surfaces:
@@ -174,6 +171,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             n = nx * ny
             n_bpts = (nx - 1) * ny
             n_panels = (nx - 1) * (ny - 1)
+            symmetry = surface['symmetry']
 
             # Obtain the collocation points used to compute the AIC
             if skip:
