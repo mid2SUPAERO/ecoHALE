@@ -434,7 +434,7 @@ class VLMGeometry(Component):
         jac = self.alloc_jacobian()
         name = self.surface['name']
 
-        fd_jac = self.fd_jacobian(params, unknowns, resids,
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                             fd_params=[name+'def_mesh'],
                                             fd_unknowns=[name+'widths', name+'normals',
                                                          name+'S_ref'],
@@ -711,7 +711,7 @@ class VLMForces(Component):
             cross = numpy.cross(self.v[i:i+num_panels],
                                 bound.reshape(-1, bound.shape[-1], order='F'))
 
-            sec_forces = numpy.zeros(((surface['num_x']-1)*(surface['num_y']-1), 3))
+            sec_forces = numpy.zeros(((surface['num_x']-1)*(surface['num_y']-1), 3), dtype='complex')
             # Compute the sectional forces acting on each panel
             for ind in xrange(3):
                 sec_forces[:, ind] = \
@@ -726,7 +726,7 @@ class VLMForces(Component):
         jac = self.alloc_jacobian()
 
         # TODO: figure out when cs isn't working here
-        fd_jac = self.fd_jacobian(params, unknowns, resids,
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['alpha', 'circulations', 'v'],
                                          fd_states=[])
         jac.update(fd_jac)
@@ -736,7 +736,7 @@ class VLMForces(Component):
         for surface in self.surfaces:
             name = surface['name']
 
-            fd_jac = self.fd_jacobian(params, unknowns, resids,
+            fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                              fd_params=[name+'b_pts', name+'mid_b',
                                                 name+'def_mesh'],
                                              fd_states=[])
@@ -829,11 +829,9 @@ class VLMLiftDrag(Component):
         else:
             Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
 
-
         # Compute the induced lift force on each lifting surface
         unknowns[name+'L'] = \
             numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
-
 
         # Compute the induced drag force on each lifting surface
         unknowns[name+'D'] = \
@@ -843,6 +841,9 @@ class VLMLiftDrag(Component):
         D_f = Cf * rho * v**2 / 2. * S_ref
         unknowns[name+'D'] += D_f
 
+        if self.surface['symmetry']:
+            unknowns[name+'D'] *= 2
+            unknowns[name+'L'] *= 2
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift and drag."""
@@ -930,6 +931,9 @@ class VLMCoeffs(Component):
         v = params['v']
         L = params[name+'L']
         D = params[name+'D']
+
+        if self.surface['symmetry']:
+            S_ref *= 2
 
         unknowns[name+'CL1'] = L / (0.5 * rho * v**2 * S_ref)
         unknowns[name+'CDi'] = D / (0.5 * rho * v**2 * S_ref)

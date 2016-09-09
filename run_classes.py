@@ -4,7 +4,7 @@ from time import time
 import numpy
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
-from openmdao.devtools.partition_tree_n2 import view_tree
+from openmdao.devtools.partition_tree_n2 import view_model
 from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals, VLMGeometry
@@ -92,20 +92,20 @@ class OASProblem():
                 num_y = int((num_y+1)/2)
                 mesh = mesh[:, :num_y, :]
 
-                surf_dict['W0'] /= 2.
-
         else:
             print "Error: Please either provide a mesh or a valid set of parameters."
 
         mesh = mesh + surf_dict['offset']
 
         r = radii(mesh)
-        num_twist = numpy.max([int((num_y - 1) / 5), 5])
+        if 'num_twist' not in input_dict.keys():
+            surf_dict['num_twist'] = numpy.max([int((num_y - 1) / 5), 5])
+        if 'num_thickness' not in input_dict.keys():
+            surf_dict['num_thickness'] = numpy.max([int((num_y - 1) / 5), 5])
 
         surf_dict['num_x'] = num_x
         surf_dict['num_y'] = num_y
         surf_dict['mesh'] = mesh
-        surf_dict['num_twist'] = num_twist
         surf_dict['r'] = r
         surf_dict['t'] = r / 10
 
@@ -117,11 +117,13 @@ class OASProblem():
 
         name = surf_dict['name']
         for surface in self.surfaces:
-            if name in surface['name']:
-                print "Warning: Two surfaces have the same name. Appending '_' to the repeat names."
-                name = name + '_'
+            if name == surface['name']:
+                print "Warning: Two surfaces have the same name."
 
-        surf_dict['name'] = name + '_'
+        if not name:
+            surf_dict['name'] = name
+        else:
+            surf_dict['name'] = name + '_'
         self.surfaces.append(surf_dict)
 
     def setup_prob(self, prob):
@@ -140,174 +142,79 @@ class OASProblem():
 
         return prob
 
-    def run_as(self):
+    def add_optimizer_settings(self, prob):
 
-        root = Group()
-        coupled = Group()
+        # Loop over the surfaces and problem and all desvars, constraints,
+        # and objectives
+        for surface in self.surfaces + [self.prob_dict]:
 
-        # Set the optimization problem settings
-        prob = Problem()
-        prob.root = root
+            try:
+                name = surface['name']
+            except:
+                name = ''
 
-        for surface in self.surfaces:
+            if 'dv' in surface.keys():
+                for dv in surface['dv']:
+                    dv_name = dv['name']
+                    if 'lower' in dv.keys():
+                        lower = dv['lower']
+                    else:
+                        lower = None
+                    if 'upper' in dv.keys():
+                        upper = dv['upper']
+                    else:
+                        upper = None
+                    if 'scaler' in dv.keys():
+                        scaler = dv['scaler']
+                    else:
+                        scaler = 1.
 
-            name = surface['name']
-            tmp_group = Group()
+                    # Add design variables for the optimizer to control
+                    # Note that the scaling is very important to get correct convergence
+                    prob.driver.add_desvar(name+dv_name, lower=lower, upper=upper, scaler=scaler)
 
-            indep_vars = [
-                (name+'twist_cp', numpy.zeros(surface['num_twist'])),
-                (name+'thickness_cp', numpy.ones(surface['num_twist'])*numpy.max(surface['t'])),
-                (name+'r', surface['r']),
-                (name+'dihedral', surface['dihedral']),
-                (name+'sweep', surface['sweep']),
-                (name+'span', surface['span']),
-                (name+'taper', surface['taper'])]
+            if 'con' in surface.keys():
+                for con in surface['con']:
+                    con_name = con['name']
+                    if 'scaler' in con.keys():
+                        scaler = con['scaler']
+                    else:
+                        scaler = 1.
+                    if 'equals' in con.keys():
+                        equals = con['equals']
+                        prob.driver.add_constraint(name+con_name, equals=equals, scaler=scaler)
+                    if 'upper' in con.keys():
+                        upper = con['upper']
+                        prob.driver.add_constraint(name+con_name, upper=upper, scaler=scaler)
 
+                    # Set the constraint (CL = 0.5 for the main wing)
 
-            # right now use the same number; TODO fix this
-            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
-            jac_thickness = get_bspline_mtx(surface['num_twist'], surface['num_y']-1)
+            if 'obj' in surface.keys():
+                for obj in surface['obj']:
+                    obj_name = obj['name']
+                    if 'scaler' in obj.keys():
+                        scaler = obj['scaler']
+                    else:
+                        scaler = 1.
 
-            # Add material components to the top-level system
-            tmp_group.add('indep_vars',
-                     IndepVarComp(indep_vars),
-                     promotes=['*'])
-            tmp_group.add('twist_bsp',
-                     Bspline(name+'twist_cp', name+'twist', jac_twist),
-                     promotes=['*'])
-            tmp_group.add('thickness_bsp',
-                     Bspline(name+'thickness_cp', name+'thickness', jac_thickness),
-                     promotes=['*'])
-            tmp_group.add('tube',
-                     MaterialsTube(surface),
-                     promotes=['*'])
+                    # Set the objective (minimize CD on the main wing)
+                    prob.driver.add_objective(name+obj_name, scaler=scaler)
 
-            name_orig = name.strip('_')
-            name = name_orig + '_pre_solve'
-            exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
+        return prob
 
-            tmp_group = Group()
-            tmp_group.add('mesh',
-                     GeometryMesh(surface),
-                     promotes=['*'])
-            tmp_group.add('def_mesh',
-                     TransferDisplacements(surface),
-                     promotes=['*'])
-            tmp_group.add('vlmgeom',
-                     VLMGeometry(surface),
-                     promotes=['*'])
-            tmp_group.add('spatialbeamstates',
-                     SpatialBeamStates(surface),
-                     promotes=['*'])
-            tmp_group.spatialbeamstates.ln_solver = LinearGaussSeidel()
-
-
-            name = name_orig + '_coupled'
-            exec(name + ' = tmp_group')
-            exec('coupled.add("' + name + '", ' + name + ', promotes=["*"])')
-
-            name = name_orig
-            exec('coupled.add("' + name + '_loads' + '", ' + 'TransferLoads(surface)' + ', promotes=["*"])')
-
-            tmp_group = Group()
-            tmp_group.add('spatialbeamfuncs',
-                     SpatialBeamFunctionals(surface),
-                     promotes=['*'])
-            tmp_group.add('vlmfuncs',
-                     VLMFunctionals(surface),
-                     promotes=['*'])
-
-            name = name_orig + '_post_solve'
-            exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
-
-
-        coupled.add('vlmstates',
-                 VLMStates(self.surfaces, self.prob_dict),
-                 promotes=['*'])
-
-        # Set solver properties
-        coupled.nl_solver = Newton()
-        coupled.nl_solver.options['iprint'] = 1
-        coupled.ln_solver = ScipyGMRES()
-        coupled.ln_solver.options['iprint'] = 1
-        coupled.ln_solver.preconditioner = LinearGaussSeidel()
-        coupled.vlmstates.ln_solver = LinearGaussSeidel()
-
-        # coupled.nl_solver = NLGaussSeidel()   ### Uncomment this out to use NLGS
-        # coupled.nl_solver.options['iprint'] = 1
-        coupled.nl_solver.options['atol'] = 1e-5
-        coupled.nl_solver.options['rtol'] = 1e-12
-
-        coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
-        coupled.nl_solver.nlgs.options['iprint'] = 1
-        coupled.nl_solver.nlgs.options['maxiter'] = 10
-        coupled.nl_solver.nlgs.options['atol'] = 1e-8
-        coupled.nl_solver.nlgs.options['rtol'] = 1e-12
-        coupled.nl_solver.newton.options['atol'] = 1e-7
-        coupled.nl_solver.newton.options['rtol'] = 1e-7
-        coupled.nl_solver.newton.options['maxiter'] = 5
-        coupled.nl_solver.newton.options['iprint'] = 1
-
-        root.add('coupled', coupled, promotes=['*'])
-
-        prob_vars = [('v', self.prob_dict['v']),
-            ('alpha', self.prob_dict['alpha']),
-            ('M', self.prob_dict['M']),
-            ('Re', self.prob_dict['Re']),
-            ('rho', self.prob_dict['rho'])]
-
-        root.add('prob_vars',
-                 IndepVarComp(prob_vars),
-                 promotes=['*'])
-
-        root.add('fuelburn',
-                 FunctionalBreguetRange(self.surfaces, self.prob_dict),
-                 promotes=['*'])
-        root.add('eq_con',
-                 FunctionalEquilibrium(self.surfaces, self.prob_dict),
-                 promotes=['*'])
-
-        prob = self.setup_prob(prob)
-
-
-        # Add design variables for the optimizer to control
-        # Note that the scaling is very important to get correct convergence
-        prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1)
-
-        prob.driver.add_desvar('_twist_cp',lower= -15.,
-                               upper=15., scaler=1e0)
-        prob.driver.add_desvar('_thickness_cp',
-                               lower= 0.01,
-                               upper= 0.25, scaler=1e2)
-        prob.driver.add_constraint('_failure', upper=0.0)
-
-        # prob.driver.add_desvar('tail_twist_cp',lower= -15.,
-        #                        upper=15., scaler=1e0)
-        # prob.driver.add_desvar('tail_thickness_cp',
-        #                        lower= 0.01,
-        #                        upper= 0.25, scaler=1e3)
-        # prob.driver.add_constraint('tail_failure', upper=0.0)
-
-        # Set the objective (minimize fuelburn)
-        prob.driver.add_objective('fuelburn', scaler=1e-5)
-
-        # Set the constraints (no structural failure and lift = weight)
-        prob.driver.add_constraint('eq_con', equals=0.0)
-
+    def run_prob(self, prob):
         # TODO: Need to figure out derivatives
         # prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
-        prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
+        prob.driver.add_recorder(SqliteRecorder(self.prob_dict['prob_name']+".db"))
 
         # Set up the problem
         prob.setup()
 
         # prob.print_all_convergence()
-        view_tree(prob, outfile="aerostruct.html", show_browser=False)
+        view_model(prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         prob.run_once()
 
@@ -315,9 +222,15 @@ class OASProblem():
             pass
         else:  # perform optimization
             prob.run()
-        self.prob = prob
+
+        # prob.check_partial_derivatives(compact_print=True)
+
+        return prob
 
     def run_struct(self):
+
+        if 'prob_name' not in self.prob_dict.keys():
+            self.prob_dict['prob_name'] = 'struct'
 
         root = Group()
 
@@ -335,7 +248,7 @@ class OASProblem():
 
             indep_vars = [
                 (name+'twist_cp', numpy.zeros(surface['num_twist'])),
-                (name+'thickness_cp', numpy.ones(surface['num_twist'])*numpy.max(surface['t'])),
+                (name+'thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
                 (name+'dihedral', surface['dihedral']),
                 (name+'sweep', surface['sweep']),
                 (name+'span', surface['span']),
@@ -343,9 +256,8 @@ class OASProblem():
                 (name+'r', surface['r']),
                 (name+'loads', surface['loads'])]
 
-            # right now use the same number; TODO fix this
             jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
-            jac_thickness = get_bspline_mtx(surface['num_twist'], surface['num_y']-1)
+            jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1)
 
             # Add material components to the top-level system
             tmp_group.add('indep_vars',
@@ -370,50 +282,18 @@ class OASProblem():
                      SpatialBeamFunctionals(surface),
                      promotes=['*'])
 
-            name = name.strip('_')
+            name = name + 'struct'
             exec(name + ' = tmp_group')
             exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
 
         prob = self.setup_prob(prob)
-
-
-        # Add design variables for the optimizer to control
-        # Note that the scaling is very important to get correct convergence
-        prob.driver.add_desvar('wing_thickness_cp',
-                               lower=numpy.ones((self.surfaces[0]['num_twist'])) * 0.0003,
-                               upper=numpy.ones((self.surfaces[0]['num_twist'])) * 0.25,
-                               scaler=1e5)
-
-        # Set objective (minimize weight)
-        prob.driver.add_objective('wing_weight')
-
-        # Set constraint (no structural failure)
-        prob.driver.add_constraint('wing_failure', upper=0.0)
-
-        # Record optimization history to a database
-        # Data saved here can be examined using `plot_all.py`
-        prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
-
-        # Can finite difference over the entire model
-        # Generally faster than using component derivatives
-        # Note that for this case, you may need to loosen the optimizer tolerances
-        # prob.root.deriv_options['type'] = 'fd'
-
-        # Setup the problem and produce an N^2 diagram
-        prob.setup()
-
-        # prob.print_all_convergence()
-        view_tree(prob, outfile="spatialbeam.html", show_browser=False)
-
-        prob.run_once()
-
-        if not self.prob_dict['optimize']:  # run analysis once
-            pass
-        else:  # perform optimization
-            prob.run()
-        self.prob = prob
+        prob = self.add_optimizer_settings(prob)
+        self.prob = self.run_prob(prob)
 
     def run_aero(self):
+
+        if 'prob_name' not in self.prob_dict.keys():
+            self.prob_dict['prob_name'] = 'aero'
 
         root = Group()
 
@@ -434,8 +314,6 @@ class OASProblem():
                 (name+'taper', surface['taper']),
                 (name+'disp', numpy.zeros((surface['num_y'], 6)))]
 
-
-            # right now use the same number; TODO fix this
             jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
 
             # Add material components to the top-level system
@@ -478,49 +356,150 @@ class OASProblem():
 
 
         prob = self.setup_prob(prob)
+        prob = self.add_optimizer_settings(prob)
+        self.prob = self.run_prob(prob)
 
-        # Add design variables for the optimizer to control
-        # Note that the scaling is very important to get correct convergence
-        prob.driver.add_desvar('_twist_cp', lower=-10., upper=15., scaler=1e0)
-        # prob.driver.add_desvar('alpha', lower=-10., upper=10.)
-        prob.driver.add_desvar('_sweep', lower=-10., upper=30.)
-        prob.driver.add_desvar('_dihedral', lower=-10., upper=20.)
-        prob.driver.add_desvar('_taper', lower=.5, upper=2.)
+    def run_aerostruct(self):
 
-        # Set the objective (minimize CD on the main wing)
-        prob.driver.add_objective('_CD', scaler=1e4)
+        if 'prob_name' not in self.prob_dict.keys():
+            self.prob_dict['prob_name'] = 'aerostruct'
 
-        # Set the constraint (CL = 0.5 for the main wing)
-        prob.driver.add_constraint('_CL', equals=0.5)
+        root = Group()
+        coupled = Group()
 
-        # Record optimization history to a database
-        # Data saved here can be examined using `plot_all.py`
-        prob.driver.add_recorder(SqliteRecorder('vlm.db'))
+        # Set the optimization problem settings
+        prob = Problem()
+        prob.root = root
 
-        # Can finite difference over the entire model
-        # Generally faster than using component derivatives
-        # prob.root.deriv_options['type'] = 'fd'
+        for surface in self.surfaces:
 
-        # Setup the problem
-        prob.setup()
+            name = surface['name']
+            tmp_group = Group()
 
-        # prob.print_all_convergence()
-        view_tree(prob, outfile="vlm.html", show_browser=False)
+            indep_vars = [
+                (name+'twist_cp', numpy.zeros(surface['num_twist'])),
+                (name+'thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
+                (name+'r', surface['r']),
+                (name+'dihedral', surface['dihedral']),
+                (name+'sweep', surface['sweep']),
+                (name+'span', surface['span']),
+                (name+'taper', surface['taper'])]
 
-        prob.run_once()
-        if not self.prob_dict['optimize']:  # run analysis once
-            pass
-        else:  # perform optimization
-            prob.run()
-        self.prob = prob
+            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
+            jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1)
+
+            # Add material components to the top-level system
+            tmp_group.add('indep_vars',
+                     IndepVarComp(indep_vars),
+                     promotes=['*'])
+            tmp_group.add('twist_bsp',
+                     Bspline(name+'twist_cp', name+'twist', jac_twist),
+                     promotes=['*'])
+            tmp_group.add('thickness_bsp',
+                     Bspline(name+'thickness_cp', name+'thickness', jac_thickness),
+                     promotes=['*'])
+            tmp_group.add('tube',
+                     MaterialsTube(surface),
+                     promotes=['*'])
+
+            name_orig = name.strip('_')
+            name = name + 'pre_solve'
+            exec(name + ' = tmp_group')
+            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
+
+            tmp_group = Group()
+            tmp_group.add('mesh',
+                     GeometryMesh(surface),
+                     promotes=['*'])
+            tmp_group.add('def_mesh',
+                     TransferDisplacements(surface),
+                     promotes=['*'])
+            tmp_group.add('vlmgeom',
+                     VLMGeometry(surface),
+                     promotes=['*'])
+            tmp_group.add('spatialbeamstates',
+                     SpatialBeamStates(surface),
+                     promotes=['*'])
+            tmp_group.spatialbeamstates.ln_solver = LinearGaussSeidel()
+
+
+            name = name_orig + 'group'
+            exec(name + ' = tmp_group')
+            exec('coupled.add("' + name + '", ' + name + ', promotes=["*"])')
+
+            exec('coupled.add("' + name_orig + 'loads' + '", ' + 'TransferLoads(surface)' + ', promotes=["*"])')
+
+            tmp_group = Group()
+            tmp_group.add('spatialbeamfuncs',
+                     SpatialBeamFunctionals(surface),
+                     promotes=['*'])
+            tmp_group.add('vlmfuncs',
+                     VLMFunctionals(surface),
+                     promotes=['*'])
+
+            name = name_orig + 'post_solve'
+            exec(name + ' = tmp_group')
+            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
+
+
+        coupled.add('vlmstates',
+                 VLMStates(self.surfaces, self.prob_dict),
+                 promotes=['*'])
+
+        # Set solver properties
+        coupled.ln_solver = ScipyGMRES()
+        coupled.ln_solver.options['iprint'] = 1
+        coupled.ln_solver.preconditioner = LinearGaussSeidel()
+        coupled.vlmstates.ln_solver = LinearGaussSeidel()
+
+        coupled.nl_solver = HybridGSNewton()   ### Uncomment this out to use Hybrid GS Newton
+        coupled.nl_solver.nlgs.options['iprint'] = 1
+        coupled.nl_solver.nlgs.options['maxiter'] = 10
+        coupled.nl_solver.nlgs.options['atol'] = 1e-8
+        coupled.nl_solver.nlgs.options['rtol'] = 1e-12
+        coupled.nl_solver.newton.options['atol'] = 1e-7
+        coupled.nl_solver.newton.options['rtol'] = 1e-7
+        coupled.nl_solver.newton.options['maxiter'] = 5
+        coupled.nl_solver.newton.options['iprint'] = 1
+
+        order_list = []
+        for surface in self.surfaces:
+            order_list.append(surface['name']+'group')
+        order_list.append('vlmstates')
+        for surface in self.surfaces:
+            order_list.append(surface['name']+'loads')
+        coupled.set_order(order_list)
+
+        root.add('coupled', coupled, promotes=['*'])
+
+        prob_vars = [('v', self.prob_dict['v']),
+            ('alpha', self.prob_dict['alpha']),
+            ('M', self.prob_dict['M']),
+            ('Re', self.prob_dict['Re']),
+            ('rho', self.prob_dict['rho'])]
+
+        root.add('prob_vars',
+                 IndepVarComp(prob_vars),
+                 promotes=['*'])
+
+        root.add('fuelburn',
+                 FunctionalBreguetRange(self.surfaces, self.prob_dict),
+                 promotes=['*'])
+        root.add('eq_con',
+                 FunctionalEquilibrium(self.surfaces, self.prob_dict),
+                 promotes=['*'])
+
+        prob = self.setup_prob(prob)
+        prob = self.add_optimizer_settings(prob)
+        self.prob = self.run_prob(prob)
 
 
 if __name__ == '__main__':
-    OAS_prob = OASProblem({'optimize' : False})
+    OAS_prob = OASProblem({'optimize' : True})
     OAS_prob.add_surface({'name' : '',
-                        #   'wing_type' : 'CRM',
-                        #   'num_x' : 2,
-                        #   'num_y' : 9,
+                          'wing_type' : 'CRM',
+                          'num_x' : 2,
+                          'num_y' : 9,
                           })
     OAS_prob.add_surface({'name' : 'tail',
                           'wing_type' : 'CRM',
@@ -537,7 +516,7 @@ if __name__ == '__main__':
     # OAS_prob.prob.check_partial_derivatives(compact_print=True)
     print
     print
-    print prob['_CL'], prob['_CD']
+    print prob['CL'], prob['CD']
     # print prob['tail_CL'], prob['tail_CD']
 
     # print

@@ -578,7 +578,12 @@ class SpatialBeamWeight(Component):
             L = norm(P1 - P0)
             volume += L * A[ielem]
 
-        unknowns[name+'weight'] = volume * self.surface['mrho'] * 9.81
+        weight = volume * self.surface['mrho'] * 9.81
+
+        if self.surface['symmetry']:
+            weight *= 2.
+
+        unknowns[name+'weight'] = weight
 
     def linearize(self, params, unknowns, resids):
         name = self.surface['name']
@@ -689,6 +694,10 @@ class SpatialBeamFailureKS(Component):
     To simplify the optimization problem, we aggregate the individual
     elemental failure constraints using a Kreisselmeier-Steinhauser (KS)
     function.
+
+    The KS function produces a smoother constraint than using a max() function
+    to find the maximum point of failure, which produces a better-posed
+    optimization problem.
 
     Parameters
     ----------

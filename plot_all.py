@@ -40,9 +40,9 @@ import aluminum
 if sys.argv[1] == 'as':
     filename = 'aerostruct'
 elif sys.argv[1] == 'a':
-    filename = 'vlm'
+    filename = 'aero'
 elif sys.argv[1] == 's':
-    filename = 'spatialbeam'
+    filename = 'struct'
 else:
     filename = sys.argv[1]
 
