@@ -68,7 +68,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                                      elem_IDs+1, cons,
                                      E_vec, G_vec, x_gl, T,
                                      K_elem, S_a, S_t, S_y, S_z, T_elem,
-                                     const2, const_y, const_z, n, n, size)
+                                     const2, const_y, const_z)
 
 
     # Sparse Fortran
@@ -76,7 +76,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
         nnz = 144 * num_elems
 
         data1, rows1, cols1 = \
-            lib.assemblesparsemtx(num_elems, n, nnz, x_gl, E_vec,
+            lib.assemblesparsemtx(nnz, x_gl, E_vec,
                                   G_vec, A, J, Iy, Iz,
                                   nodes, elem_IDs+1, const2, const_y,
                                   const_z, S_a, S_t, S_y, S_z)

@@ -9,6 +9,12 @@ Usage is
 The script automatically appends '.db' to the provided name.
 Ex: `python plot_all.py example` opens 'example.db'.
 
+You can select a certain zoom factor for the 3d view by adding a number as a
+last keyword.
+The larger the number, the closer the view. Floats or ints are accepted.
+
+Ex: `python plot_all.py a 1` a wider view than `python plot_all.py a 5`.
+
 """
 
 
@@ -45,6 +51,11 @@ elif sys.argv[1] == 's':
     filename = 'struct'
 else:
     filename = sys.argv[1]
+
+try:
+    zoom_scale = sys.argv[2]
+except:
+    zoom_scale = 2.8
 
 db_name = filename + '.db'
 
@@ -404,7 +415,7 @@ class Display(object):
                         self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                             facecolors=cm.coolwarm(col), linewidth=0)
 
-        lim = numpy.max(self.mesh[self.curr_pos*n_names:self.curr_pos*n_names+n_names], axis=(0,1,2)) / 2.8
+        lim = numpy.max(self.mesh[self.curr_pos*n_names:self.curr_pos*n_names+n_names], axis=(0,1,2)) / float(zoom_scale)
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
 

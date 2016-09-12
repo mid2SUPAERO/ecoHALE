@@ -177,8 +177,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
             # Dense fortran assembly for the AIC matrix
             if fortran_flag:
-                small_mat[:, :, :] = lib.assembleaeromtx(ny, nx, ny_, nx_,
-                                                         alpha, pts, bpts,
+                small_mat[:, :, :] = lib.assembleaeromtx(alpha, pts, bpts,
                                                          mesh, skip, symmetry)
             # Python matrix assembly
             else:
@@ -376,9 +375,6 @@ class VLMGeometry(Component):
         self.add_output(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
         self.add_output(name+'S_ref', val=0.)
 
-        # self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
-
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
@@ -527,9 +523,6 @@ class VLMCirculations(Component):
                                    dtype="complex")
         self.mtx = numpy.zeros((tot_panels, tot_panels), dtype="complex")
         self.rhs = numpy.zeros((tot_panels), dtype="complex")
-
-        # self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
 
     def _assemble_system(self, params):
         _assemble_AIC_mtx(self.AIC_mtx, params, self.surfaces)
@@ -719,7 +712,6 @@ class VLMForces(Component):
 
         jac = self.alloc_jacobian()
 
-        # TODO: figure out when cs isn't working here
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['alpha', 'circulations', 'v'],
                                          fd_states=[])

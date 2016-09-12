@@ -7,9 +7,9 @@ subroutine assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, &
     implicit none
     !f2py intent(in) tot_n_fem, num_elems, nnz, x_gl, E, G, A, J, Iy, Iz, nodes, elems, coeff_at, coeff_y, coeff_z, Pelem_a, Pelem_t, Pelem_y, Pelem_z
     !f2py intent(out) data, rows, cols
-    !f2py depend(tot_n_fem) nodes
-    !f2py depend(num_elems) E, G, A, J, Iy, Iz, elems
-    !f2py depend(nnz) data, rows, cols
+    !f2py depends(tot_n_fem) nodes
+    !f2py depends(num_elems) E, G, A, J, Iy, Iz, elems
+    !f2py depends(nnz) data, rows, cols
 
     ! Input
     integer, intent(in) :: tot_n_fem, num_elems, nnz
@@ -152,9 +152,9 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
 
   !f2py intent(in)   n, tot_n_fem, size, elem_IDs, cons, nodes, A, J, Iy, Iz, E, G, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
   !f2py intent(out) mtx
-  !f2py depend(tot_n_fem) nodes
-  !f2py depend(n) elem_IDs, nodes, A, J, Iy, Iz, E, G
-  !f2py depend(size) mtx
+  !f2py depends(tot_n_fem) nodes
+  !f2py depends(n) elem_IDs, nodes, A, J, Iy, Iz, E, G
+  !f2py depends(size) mtx
 
   ! Input
   integer, intent(in) :: n, size, cons, tot_n_fem

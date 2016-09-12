@@ -4,10 +4,10 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, sy
 
   !f2py intent(in) ny, nx, ny_, nx_, alpha, points, bpts, mesh
   !f2py intent(out) mtx
-  !f2py depend(ny) points, mtx
-  !f2py depend(nx) points, mtx
-  !f2py depend(ny_) bpts, mtx, mesh
-  !f2py depend(nx_) bpts, mtx, mesh
+  !f2py depends(ny) points, mtx
+  !f2py depends(nx) points, mtx
+  !f2py depends(ny_) bpts, mtx, mesh
+  !f2py depends(nx_) bpts, mtx, mesh
 
 
   ! Input

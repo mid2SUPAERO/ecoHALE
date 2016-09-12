@@ -262,7 +262,7 @@ class OASProblem():
         """
 
         # Uncomment this to use finite differences over the entire model
-        # prob.root.deriv_options['type'] = 'fd'
+        # self.prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -543,6 +543,7 @@ class OASProblem():
             # Add a '_post_solve' group which evaluates the data after solving
             # the coupled system
             tmp_group = Group()
+
             tmp_group.add('spatialbeamfuncs',
                      SpatialBeamFunctionals(surface),
                      promotes=['*'])

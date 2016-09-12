@@ -71,7 +71,9 @@ OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
 OAS_prob.add_constraint('eq_con', equals=0.)
 OAS_prob.add_objective('fuelburn', scaler=1e-5)
 
+st = time()
 # Actually run the problem
 OAS_prob.run()
+print "\nTime:", time()-st, 'secs'
 
 print "\nFuelburn:", OAS_prob.prob['fuelburn']
