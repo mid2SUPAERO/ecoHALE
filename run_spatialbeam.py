@@ -43,7 +43,7 @@ else:
     # Add additional lifting surface
     OAS_prob.add_surface({'name' : 'tail',
                           'span' : 3.,
-                          'offset' : numpy.array([0., 10., 0.])})
+                          'offset' : numpy.array([10., 0., 0.])})
 
     # Setup problem and add design variables, constraints, and objective
     OAS_prob.setup()

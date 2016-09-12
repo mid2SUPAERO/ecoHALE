@@ -121,85 +121,120 @@ class Display(object):
             except:
                 pass
         for case_name, case_data in self.db.iteritems():
+            names = []
+            for key in case_data['Unknowns'].keys():
+                if 'mesh' in key and 'def_mesh' not in key:
+                    names.append(key.split('_')[:-1][0] + '_')
+            self.names = names
+            n_names = len(names)
             if "metadata" in case_name or "derivs" in case_name:
                 continue  # don't plot these cases
-            self.mesh.append(case_data['Unknowns']['mesh'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
-            try:
-                self.r.append(case_data['Unknowns']['r'])
-                self.t.append(case_data['Unknowns']['thickness'])
-                self.fem_ind.append(case_data['Unknowns']['fem_ind'])
-                self.vonmises.append(
-                    numpy.max(case_data['Unknowns']['vonmises'], axis=1))
-                self.show_tube = True
-            except:
-                self.show_tube = False
-                pass
-            try:
-                self.def_mesh.append(case_data['Unknowns']['def_mesh'])
-                self.twist.append(case_data['Unknowns']['twist'])
-                normals.append(case_data['Unknowns']['normals'])
-                widths.append(case_data['Unknowns']['widths'])
-                sec_forces.append(case_data['Unknowns']['sec_forces'])
+            for name in names:
+                self.mesh.append(case_data['Unknowns'][name+'mesh'])
+
+                try:
+                    self.r.append(case_data['Unknowns'][name+'r'])
+                    self.t.append(case_data['Unknowns'][name+'thickness'])
+                    self.vonmises.append(
+                        numpy.max(case_data['Unknowns'][name+'vonmises'], axis=1))
+                    self.show_tube = True
+                except:
+                    self.show_tube = False
+                try:
+                    self.def_mesh.append(case_data['Unknowns'][name+'def_mesh'])
+                    self.twist.append(case_data['Unknowns'][name+'twist'])
+                    normals.append(case_data['Unknowns'][name+'normals'])
+                    widths.append(case_data['Unknowns'][name+'widths'])
+                    sec_forces.append(case_data['Unknowns'][name+'sec_forces'])
+                    self.CL.append(case_data['Unknowns'][name+'CL1'])
+                    self.S_ref.append(case_data['Unknowns'][name+'S_ref'])
+                    self.show_wing = True
+                except:
+                    self.show_wing = False
+
+            if self.show_wing:
                 alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
-                self.CL.append(case_data['Unknowns']['CL1'])
-                self.S_ref.append(case_data['Unknowns']['S_ref'])
-                self.show_wing = True
-            except:
-                self.show_wing = False
-                pass
 
-        self.num_iters = numpy.max([len(self.mesh) - 1, 1])
+        self.num_iters = numpy.max([int(len(self.mesh) / n_names) - 1, 1])
+
+        symm_count = 0
+        for mesh in self.mesh:
+            if numpy.all(mesh[:, :, 1] >= 0.) or numpy.all(mesh[:, :, 1] <= 0.):
+                symm_count += 1
+        if symm_count == len(self.mesh):
+            self.symmetry = True
+        else:
+            self.symmetry = False
 
         if self.show_wing:
 
             for i in range(self.num_iters + 1):
-                m_vals = self.mesh[i].copy()
-                cvec = m_vals[0, :, :] - m_vals[-1, :, :]
-                chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
-                chords = 0.5 * (chords[1:] + chords[:-1])
-                a = alpha[i]
-                cosa = numpy.cos(a)
-                sina = numpy.sin(a)
-                forces = numpy.sum(sec_forces[i], axis=0)
-                widths_ = numpy.mean(widths[i], axis=0)
+                for j, name in enumerate(names):
+                    m_vals = self.mesh[i+j].copy()
+                    cvec = m_vals[0, :, :] - m_vals[-1, :, :]
+                    chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
+                    chords = 0.5 * (chords[1:] + chords[:-1])
+                    a = alpha[i]
+                    cosa = numpy.cos(a)
+                    sina = numpy.sin(a)
+                    forces = numpy.sum(sec_forces[i+j], axis=0)
+                    widths_ = numpy.mean(widths[i+j], axis=0)
 
-                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                    widths_/0.5/rho[i]/v[i]**2
-                # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
-                # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
+                    lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
+                        widths_/0.5/rho[i]/v[i]**2
+                    # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
+                    # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 
-                span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
-                span = span - (span[0] + .5)
+                    span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
+                    span = span - (span[0] + .5)
 
-                lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
+                    lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
 
-                lift_ell = 4 * lift_area / numpy.pi * \
-                    numpy.sqrt(1 - (2*span)**2)
+                    lift_ell = 4 * lift_area / numpy.pi * \
+                        numpy.sqrt(1 - (2*span)**2)
 
+                    if self.symmetry:
+                        span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
+                        span = numpy.hstack((span[:-1], -span[::-1]))
 
-                self.lift.append(lift)
-                self.lift_ell.append(lift_ell)
+                        lift = numpy.hstack((lift, lift[::-1]))
 
-                wingspan = numpy.abs(m_vals[0, -1, 1] - m_vals[0, 0, 1])
-                self.AR.append(wingspan**2 / self.S_ref[i])
+                        lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
+
+                        lift_ell = 4 * lift_area / numpy.pi * \
+                            numpy.sqrt(1 - span**2)
+
+                    else:
+                        span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
+                        span = span - (span[0] + .5)
+
+                        lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
+
+                        lift_ell = 4 * lift_area / numpy.pi * \
+                            numpy.sqrt(1 - (2*span)**2)
+
+                    self.lift.append(lift)
+                    self.lift_ell.append(lift_ell)
+
+                    wingspan = numpy.abs(m_vals[0, -1, 1] - m_vals[0, 0, 1])
+                    self.AR.append(wingspan**2 / self.S_ref[i+j])
 
             # recenter def_mesh points for better viewing
             for i in range(self.num_iters + 1):
-                center = numpy.mean(self.mesh[i], axis=0)
-                self.def_mesh[i] = self.def_mesh[i] - center
+                center = numpy.mean(self.mesh[i*n_names:i*n_names+n_names], axis=(0,1,2))
+                self.def_mesh[i*n_names:i*n_names+n_names] = self.def_mesh[i*n_names:i*n_names+n_names] - center
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
             # center defined as the average of all nodal points
-            center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+            center = numpy.mean(self.mesh[i*n_names:i*n_names+n_names], axis=(0,1,2))
             # center defined as the mean of the min and max in each direction
             # center = (numpy.max(self.mesh[i], axis=0) + numpy.min(self.mesh[i], axis=0)) / 2
-            self.mesh[i] = self.mesh[i] - center
-
+            self.mesh[i*n_names:i*n_names+n_names] = self.mesh[i*n_names:i*n_names+n_names] - center
 
         if self.show_wing:
             self.min_twist, self.max_twist = numpy.min(self.twist), numpy.max(self.twist)
@@ -223,27 +258,17 @@ class Display(object):
             self.max_vm += diff
 
     def plot_sides(self):
-        m_vals = self.mesh[self.curr_pos].copy()
-        span = m_vals[0, -1, 1] - m_vals[0, 0, 1]
-        rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) * 2 / span - 1
-        span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
 
         if self.show_wing:
-            self.ax2.cla()
-            self.ax3.cla()
-            t_vals = self.twist[self.curr_pos]
-            l_vals = self.lift[self.curr_pos]
-            le_vals = self.lift_ell[self.curr_pos]
 
-            self.ax2.plot(rel_span, t_vals, lw=2, c='b')
+            self.ax2.cla()
             self.ax2.locator_params(axis='y',nbins=5)
             self.ax2.locator_params(axis='x',nbins=3)
             self.ax2.set_ylim([self.min_twist, self.max_twist])
             self.ax2.set_xlim([-1, 1])
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
-            self.ax3.plot(span_diff, l_vals, lw=2, c='b')
-            self.ax3.plot(rel_span, le_vals, '--', lw=2, c='g')
+            self.ax3.cla()
             self.ax3.text(0.05, 0.8, 'elliptical',
                 transform=self.ax3.transAxes, color='g')
             self.ax3.locator_params(axis='y',nbins=4)
@@ -253,20 +278,15 @@ class Display(object):
             self.ax3.set_ylabel('lift', rotation="horizontal", ha="right")
 
         if self.show_tube:
-            n_fem, i_fem = self.fem_ind[0][0, :]
-            self.ax4.cla()
-            self.ax5.cla()
-            thick_vals = self.t[self.curr_pos][i_fem:i_fem+n_fem-1]
-            vm_vals = self.vonmises[self.curr_pos][i_fem:i_fem+n_fem-1]
 
-            self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
+            self.ax4.cla()
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             self.ax4.set_ylim([self.min_t, self.max_t])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
-            self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
+            self.ax5.cla()
             self.ax5.locator_params(axis='y',nbins=4)
             self.ax5.locator_params(axis='x',nbins=3)
             self.ax5.set_ylim([self.min_vm, self.max_vm])
@@ -277,85 +297,126 @@ class Display(object):
             self.ax5.text(0.05, 0.85, 'failure limit',
                 transform=self.ax5.transAxes, color='r')
 
+        for j, name in enumerate(self.names):
+            m_vals = self.mesh[self.curr_pos+j].copy()
+            span = m_vals[0, -1, 1] - m_vals[0, 0, 1]
+            if self.symmetry:
+                rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) / span - 1
+                rel_span = numpy.hstack((rel_span[:-1], -rel_span[::-1]))
+                span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) / span - 1
+                span_diff = numpy.hstack((span_diff, -span_diff[::-1]))
+            else:
+                rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) * 2 / span - 1
+                span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
+
+            if self.show_wing:
+                t_vals = self.twist[self.curr_pos+j]
+                l_vals = self.lift[self.curr_pos+j]
+                le_vals = self.lift_ell[self.curr_pos+j]
+
+                if self.symmetry:
+                    t_vals = numpy.hstack((t_vals[:-1], t_vals[::-1]))
+
+                self.ax2.plot(rel_span, t_vals, lw=2, c='b')
+                self.ax3.plot(rel_span, le_vals, '--', lw=2, c='g')
+                self.ax3.plot(span_diff, l_vals, lw=2, c='b')
+
+            if self.show_tube:
+                thick_vals = self.t[self.curr_pos+j]
+                vm_vals = self.vonmises[self.curr_pos+j]
+
+                if self.symmetry:
+                    thick_vals = numpy.hstack((thick_vals, thick_vals[::-1]))
+                    vm_vals = numpy.hstack((vm_vals, vm_vals[::-1]))
+
+                self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
+                self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
+
     def plot_wing(self):
+
+        n_names = len(self.names)
         self.ax.cla()
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
-        mesh0 = self.mesh[self.curr_pos].copy()
 
-        self.ax.set_axis_off()
+        for j, name in enumerate(self.names):
+            mesh0 = self.mesh[self.curr_pos+j].copy()
 
-        if self.show_wing:
-            def_mesh0 = self.def_mesh[self.curr_pos]
-            x = mesh0[:, :, 0]
-            y = mesh0[:, :, 1]
-            z = mesh0[:, :, 2]
+            self.ax.set_axis_off()
 
-            try:  # show deformed mesh option may not be available
-                if self.show_def_mesh.get():
-                    x_def = def_mesh0[:, :, 0]
-                    y_def = def_mesh0[:, :, 1]
-                    z_def = def_mesh0[:, :, 2]
-
-                    self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
-                    if self.ex_def.get():
-                        z_def = (z_def - z) * 10 + z_def
-                        def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
-                    else:
-                        def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
-                    self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
-                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
-                else:
-                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-                    self.c2.grid_forget()
-            except:
-                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-
-        if self.show_tube:
-            r0 = self.r[self.curr_pos]
-            t0 = self.t[self.curr_pos]
-            colors = t0
-            colors = colors / numpy.max(colors)
-            num_circ = 12
-            fem_origin = 0.35
-            n = mesh0.shape[1]
-            p = numpy.linspace(0, 2*numpy.pi, num_circ)
             if self.show_wing:
-                if self.show_def_mesh.get():
-                    mesh0[:, :, 2] = def_mesh0[:, :, 2]
-            for i, thick in enumerate(t0):
-                r = numpy.array((r0[i], r0[i]))
-                R, P = numpy.meshgrid(r, p)
-                X, Z = R*numpy.cos(P), R*numpy.sin(P)
-                chords = mesh0[-1, :, 0] - mesh0[0, :, 0]
-                comp = fem_origin * chords + mesh0[0, :, 0]
-                X[:, 0] += comp[i]
-                X[:, 1] += comp[i+1]
-                Z[:, 0] += fem_origin * mesh0[-1, i, 2]
-                Z[:, 1] += fem_origin * mesh0[-1, i+1, 2]
-                Y = numpy.empty(X.shape)
-                Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
-                col = numpy.zeros(X.shape)
-                col[:] = colors[i]
-                try:
-                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                        facecolors=cm.viridis(col), linewidth=0)
-                except:
-                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                        facecolors=cm.coolwarm(col), linewidth=0)
+                def_mesh0 = self.def_mesh[self.curr_pos+j]
+                x = mesh0[:, :, 0]
+                y = mesh0[:, :, 1]
+                z = mesh0[:, :, 2]
 
-        lim = numpy.max(numpy.max(mesh0)) / 2.8
+                try:  # show deformed mesh option may not be available
+                    if self.show_def_mesh.get():
+                        x_def = def_mesh0[:, :, 0]
+                        y_def = def_mesh0[:, :, 1]
+                        z_def = def_mesh0[:, :, 2]
+
+                        self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+                        if self.ex_def.get():
+                            z_def = (z_def - z) * 10 + z_def
+                            def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
+                        else:
+                            def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
+                        self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
+                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
+                    else:
+                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
+                        self.c2.grid_forget()
+                except:
+                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
+
+            if self.show_tube:
+                r0 = self.r[self.curr_pos+j]
+                t0 = self.t[self.curr_pos+j]
+                colors = t0
+                colors = colors / numpy.max(colors)
+                num_circ = 12
+                fem_origin = 0.35
+                n = mesh0.shape[1]
+                p = numpy.linspace(0, 2*numpy.pi, num_circ)
+                if self.show_wing:
+                    if self.show_def_mesh.get():
+                        mesh0[:, :, 2] = def_mesh0[:, :, 2]
+                for i, thick in enumerate(t0):
+                    r = numpy.array((r0[i], r0[i]))
+                    R, P = numpy.meshgrid(r, p)
+                    X, Z = R*numpy.cos(P), R*numpy.sin(P)
+                    chords = mesh0[-1, :, 0] - mesh0[0, :, 0]
+                    comp = fem_origin * chords + mesh0[0, :, 0]
+                    X[:, 0] += comp[i]
+                    X[:, 1] += comp[i+1]
+                    Z[:, 0] += fem_origin * (mesh0[-1, i, 2] - mesh0[0, i, 2]) + mesh0[0, i, 2]
+                    Z[:, 1] += fem_origin * (mesh0[-1, i+1, 2] - mesh0[0, i+1, 2]) + mesh0[0, i+1, 2]
+                    Y = numpy.empty(X.shape)
+                    Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
+                    col = numpy.zeros(X.shape)
+                    col[:] = colors[i]
+                    try:
+                        self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                            facecolors=cm.viridis(col), linewidth=0)
+                    except:
+                        self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                            facecolors=cm.coolwarm(col), linewidth=0)
+
+        lim = numpy.max(self.mesh[self.curr_pos*n_names:self.curr_pos*n_names+n_names], axis=(0,1,2)) / 2.8
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
+
         round_to_n = lambda x, n: round(x, -int(numpy.floor(numpy.log10(abs(x)))) + (n - 1))
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
-        if self.show_wing and not self.show_tube:
-            span_eff = self.CL[self.curr_pos]**2 / numpy.pi / self.AR[self.curr_pos] / obj_val
-            self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff, 7)),
-                transform=self.ax.transAxes, color='k')
+
+        # if self.show_wing and not self.show_tube:
+        #     span_eff = self.CL[self.curr_pos+j]**2 / numpy.pi / self.AR[self.curr_pos+j] / obj_val
+        #     self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff, 7)),
+        #         transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist
@@ -397,15 +458,9 @@ class Display(object):
         self.canvas.show()
 
     def check_length(self):
-        db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+        db = sqlitedict.SqliteDict(self.db_name, 'iterations')
         n = 0
         for case_name, case_data in db.iteritems():
-            if "metadata" in case_name or "derivs" in case_name:
-                continue  # don't plot these cases
-            try:
-                db[case_name + '/derivs']
-            except:
-                continue
             n += 1
         self.num_iters = n
 

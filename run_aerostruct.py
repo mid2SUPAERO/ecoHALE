@@ -30,10 +30,10 @@ OAS_prob = OASProblem(prob_dict)
 
 # Create a dictionary to store options about the surface
 surf_dict = {'name' : 'wing',
-          'symmetry' : True,
-          'num_y' : 13,
-          'num_x' : 2,
-          'wing_type' : 'CRM'}
+             'symmetry' : False,
+             'num_y' : 13,
+             'num_x' : 2,
+             'wing_type' : 'CRM'}
 
 # Add the specified wing surface to the problem
 OAS_prob.add_surface(surf_dict)
@@ -52,7 +52,7 @@ else:
 
     # Add additional lifting surface
     surf_dict.update({'name' : 'tail',
-                      'offset':numpy.array([0., 0., 100.])})
+                      'offset':numpy.array([10., 0., 10.])})
     OAS_prob.add_surface(surf_dict)
 
     # Setup problem and add design variables, constraints, and objective
