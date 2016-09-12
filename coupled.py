@@ -6,7 +6,7 @@ import numpy
 import sys
 import os
 from openmdao.api import IndepVarComp, Problem, Group
-from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from materials import MaterialsTube
 from b_spline import get_bspline_mtx

@@ -102,12 +102,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         derivative of v w.r.t. circulations.
     flat_mesh[num_x*num_y, 3] : array_like
         Flat array containing nodal coordinates.
-    aero_ind[num_surf, 7] : array_like
-        Array containing index information for the lifting surfaces.
-        See geometry.py/get_inds for more details.
-    fem_ind[num_surf, 3] : array_like
-        Array containing index information for the lifting surfaces.
-        See geometry.py/get_inds for more details.
     points[num_y-1, 3] : array_like
         Collocation points used to find influence coefficient strength.
         Found at 3/4 chord for the linear system and at the midpoint of
@@ -937,43 +931,6 @@ class VLMCoeffs(Component):
 
         unknowns[name+'CL1'] = L / (0.5 * rho * v**2 * S_ref)
         unknowns[name+'CDi'] = D / (0.5 * rho * v**2 * S_ref)
-
-    def linearize(self, params, unknowns, resids):
-        """ Jacobian for forces."""
-
-        # TODO: fix these maybe
-        S_ref = params[name+'S_ref']
-        rho = params['rho']
-        v = params['v']
-        L = params[name+'L']
-        D = params[name+'D']
-
-        jac = self.alloc_jacobian()
-        #
-        # for i_surf, row in enumerate(self.aero_ind):
-        #     nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
-        #
-        #     jac['CL1', 'D'][i_surf] = 0.
-        #     jac['CDi', 'L'][i_surf] = 0.
-        #
-        #     tmp = 0.5*rho*v**2*S_ref
-        #     jac['CL1', 'L'][i_surf, i_surf] = 1. / tmp[i_surf]
-        #     jac['CDi', 'D'][i_surf, i_surf] = 1. / tmp[i_surf]
-        #
-        #     tmp = -0.5*rho**2*v**2*S_ref
-        #     jac['CL1', 'rho'][i_surf] = L[i_surf] / tmp[i_surf]
-        #     jac['CDi', 'rho'][i_surf] = D[i_surf] / tmp[i_surf]
-        #
-        #     tmp = -0.5*rho*v**2*S_ref**2
-        #     jac['CL1', 'S_ref'][i_surf, i_surf] = L[i_surf] / tmp[i_surf]
-        #     jac['CDi', 'S_ref'][i_surf, i_surf] = D[i_surf] / tmp[i_surf]
-        #
-        #     tmp = -0.25*rho*v**3*S_ref
-        #     jac['CL1', 'v'][i_surf] = L[i_surf] / tmp[i_surf]
-        #     jac['CDi', 'v'][i_surf] = D[i_surf] / tmp[i_surf]
-
-        return jac
-
 
 class TotalLift(Component):
     """ Calculate total lift in force units.

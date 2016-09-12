@@ -90,7 +90,9 @@ class Display(object):
             self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
-        self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+        self.db_metadata = sqlitedict.SqliteDict(self.db_name, 'metadata')
+        self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
+
         self.twist = []
         self.mesh = []
         self.def_mesh = []
@@ -105,28 +107,23 @@ class Display(object):
         alpha = []
         rho = []
         v = []
-        self.aero_ind = []
-        self.fem_ind = []
         self.CL = []
         self.AR = []
         self.S_ref = []
         self.obj = []
 
-        for tag in self.db['metadata']:
-            for item in self.db['metadata'][tag]:
-                for flag in self.db['metadata'][tag][item]:
-                    if 'is_objective' in flag:
-                        self.obj_key = item
+        for tag in self.db_metadata:
+            try:
+                for item in self.db_metadata[tag]:
+                    for flag in self.db_metadata[tag][item]:
+                        if 'is_objective' in flag:
+                            self.obj_key = item
+            except:
+                pass
         for case_name, case_data in self.db.iteritems():
             if "metadata" in case_name or "derivs" in case_name:
                 continue  # don't plot these cases
-            try:
-                self.db[case_name + '/derivs']
-            except:
-                continue
-
             self.mesh.append(case_data['Unknowns']['mesh'])
-            self.aero_ind.append(case_data['Unknowns']['aero_ind'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
@@ -140,13 +137,8 @@ class Display(object):
                 self.show_tube = False
                 pass
             try:
-                def_mesh = case_data['Unknowns']['def_mesh']
-                self.def_mesh.append(def_mesh)
-                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
-                def_mesh = def_mesh[:n, :].reshape(nx, ny, 3)
-
+                self.def_mesh.append(case_data['Unknowns']['def_mesh'])
                 self.twist.append(case_data['Unknowns']['twist'])
-
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
                 sec_forces.append(case_data['Unknowns']['sec_forces'])
@@ -164,18 +156,16 @@ class Display(object):
 
         if self.show_wing:
 
-            nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
-
             for i in range(self.num_iters + 1):
-                m_vals = self.mesh[i][:n, :].reshape(nx, ny, 3)
+                m_vals = self.mesh[i].copy()
                 cvec = m_vals[0, :, :] - m_vals[-1, :, :]
                 chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                 chords = 0.5 * (chords[1:] + chords[:-1])
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
-                forces = numpy.sum(sec_forces[i][:n_panels, :].reshape(nx-1, ny-1, 3, order='F'), axis=0)
-                widths_ = widths[i][:ny-1]
+                forces = numpy.sum(sec_forces[i], axis=0)
+                widths_ = numpy.mean(widths[i], axis=0)
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                     widths_/0.5/rho[i]/v[i]**2
@@ -189,6 +179,7 @@ class Display(object):
 
                 lift_ell = 4 * lift_area / numpy.pi * \
                     numpy.sqrt(1 - (2*span)**2)
+
 
                 self.lift.append(lift)
                 self.lift_ell.append(lift_ell)
@@ -204,7 +195,7 @@ class Display(object):
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
             # center defined as the average of all nodal points
-            center = numpy.mean(self.mesh[i], axis=0)
+            center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
             # center defined as the mean of the min and max in each direction
             # center = (numpy.max(self.mesh[i], axis=0) + numpy.min(self.mesh[i], axis=0)) / 2
             self.mesh[i] = self.mesh[i] - center
@@ -232,8 +223,7 @@ class Display(object):
             self.max_vm += diff
 
     def plot_sides(self):
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
-        m_vals = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
+        m_vals = self.mesh[self.curr_pos].copy()
         span = m_vals[0, -1, 1] - m_vals[0, 0, 1]
         rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) * 2 / span - 1
         span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
@@ -292,79 +282,68 @@ class Display(object):
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
-        nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][0, :]
-        mesh0 = self.mesh[self.curr_pos][:n, :].reshape(nx, ny, 3).copy()
+        mesh0 = self.mesh[self.curr_pos].copy()
 
         self.ax.set_axis_off()
 
         if self.show_wing:
-            for i_surf, row in enumerate(self.aero_ind[0]):
-                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = row
+            def_mesh0 = self.def_mesh[self.curr_pos]
+            x = mesh0[:, :, 0]
+            y = mesh0[:, :, 1]
+            z = mesh0[:, :, 2]
 
-                mesh0 = self.mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3).copy()
-                def_mesh0 = self.def_mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3)
-                x = mesh0[:, :, 0]
-                y = mesh0[:, :, 1]
-                z = mesh0[:, :, 2]
+            try:  # show deformed mesh option may not be available
+                if self.show_def_mesh.get():
+                    x_def = def_mesh0[:, :, 0]
+                    y_def = def_mesh0[:, :, 1]
+                    z_def = def_mesh0[:, :, 2]
 
-                try:  # show deformed mesh option may not be available
-                    if self.show_def_mesh.get():
-                        x_def = def_mesh0[:, :, 0]
-                        y_def = def_mesh0[:, :, 1]
-                        z_def = def_mesh0[:, :, 2]
-
-                        self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
-                        if self.ex_def.get():
-                            z_def = (z_def - z) * 10 + z_def
-                            def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
-                        else:
-                            def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
-                        self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
-                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
+                    self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
+                    if self.ex_def.get():
+                        z_def = (z_def - z) * 10 + z_def
+                        def_mesh0 = (def_mesh0 - mesh0) * 30 + def_mesh0
                     else:
-                        self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
-                        self.c2.grid_forget()
-                except:
+                        def_mesh0 = (def_mesh0 - mesh0) * 2 + def_mesh0
+                    self.ax.plot_wireframe(x_def, y_def, z_def, rstride=1, cstride=1, color='k')
+                    self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k', alpha=.3)
+                else:
                     self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
+                    self.c2.grid_forget()
+            except:
+                self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
         if self.show_tube:
-            num_surf = self.fem_ind[0].shape[0]
-            for i_surf, row in enumerate(self.fem_ind[0]):
-                n_fem, i_fem = row
-                nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels = self.aero_ind[0][i_surf, :]
-                mesh0 = self.mesh[self.curr_pos][i:i+n, :].reshape(nx, ny, 3).copy()
-
-                r0 = self.r[self.curr_pos][i_fem-i_surf:i_fem-i_surf+n_fem-1]
-                t0 = self.t[self.curr_pos][i_fem-i_surf:i_fem-i_surf+n_fem-1]
-                colors = t0
-                colors = colors / numpy.max(colors)
-                num_circ = 12
-                fem_origin = 0.35
-                n = mesh0.shape[1]
-                p = numpy.linspace(0, 2*numpy.pi, num_circ)
-                if self.show_wing:
-                    if self.show_def_mesh.get():
-                        mesh0[:, :, 2] = def_mesh0[:, :, 2]
-                for i, thick in enumerate(t0):
-                    r = numpy.array((r0[i], r0[i]))
-                    R, P = numpy.meshgrid(r, p)
-                    X, Z = R*numpy.cos(P), R*numpy.sin(P)
-                    chords = mesh0[-1, :, 0] - mesh0[0, :, 0]
-                    comp = fem_origin * chords + mesh0[0, :, 0]
-                    X[:, 0] += comp[i]
-                    X[:, 1] += comp[i+1]
-                    Z[:, 0] += fem_origin * mesh0[-1, i, 2]
-                    Z[:, 1] += fem_origin * mesh0[-1, i+1, 2]
-                    Y = numpy.empty(X.shape)
-                    Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
-                    col = numpy.zeros(X.shape)
-                    col[:] = colors[i]
-                    try:
-                        self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                            facecolors=cm.viridis(col), linewidth=0)
-                    except:
-                        self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                            facecolors=cm.coolwarm(col), linewidth=0)
+            r0 = self.r[self.curr_pos]
+            t0 = self.t[self.curr_pos]
+            colors = t0
+            colors = colors / numpy.max(colors)
+            num_circ = 12
+            fem_origin = 0.35
+            n = mesh0.shape[1]
+            p = numpy.linspace(0, 2*numpy.pi, num_circ)
+            if self.show_wing:
+                if self.show_def_mesh.get():
+                    mesh0[:, :, 2] = def_mesh0[:, :, 2]
+            for i, thick in enumerate(t0):
+                r = numpy.array((r0[i], r0[i]))
+                R, P = numpy.meshgrid(r, p)
+                X, Z = R*numpy.cos(P), R*numpy.sin(P)
+                chords = mesh0[-1, :, 0] - mesh0[0, :, 0]
+                comp = fem_origin * chords + mesh0[0, :, 0]
+                X[:, 0] += comp[i]
+                X[:, 1] += comp[i+1]
+                Z[:, 0] += fem_origin * mesh0[-1, i, 2]
+                Z[:, 1] += fem_origin * mesh0[-1, i+1, 2]
+                Y = numpy.empty(X.shape)
+                Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
+                col = numpy.zeros(X.shape)
+                col[:] = colors[i]
+                try:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.viridis(col), linewidth=0)
+                except:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.coolwarm(col), linewidth=0)
 
         lim = numpy.max(numpy.max(mesh0)) / 2.8
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
@@ -375,7 +354,7 @@ class Display(object):
             transform=self.ax.transAxes, color='k')
         if self.show_wing and not self.show_tube:
             span_eff = self.CL[self.curr_pos]**2 / numpy.pi / self.AR[self.curr_pos] / obj_val
-            self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff[0], 7)),
+            self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff, 7)),
                 transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view

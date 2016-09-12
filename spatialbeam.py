@@ -339,8 +339,7 @@ class SpatialBeamFEM(Component):
 
         name = self.surface['name']
         jac = self.alloc_jacobian()
-        # TODO: fix this for cs
-        fd_jac = self.fd_jacobian(params, unknowns, resids,
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                             fd_params=[name+'A', name+'Iy', name+'Iz', name+'J',
                                                        name+'nodes', name+'loads'],
                                             fd_states=[])

@@ -58,8 +58,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'OpenAeroStruct'
-copyright = u'2016, John Jasa, Dr. John Hwang, Justin Gray'
-author = u'John Jasa, Dr. John Hwang, Justin Gray'
+copyright = u'2016, John Jasa, Dr. John Hwang'
+author = u'John Jasa, Dr. John Hwang'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -243,7 +243,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'OpenAeroStruct.tex', u'OpenAeroStruct Documentation',
-   u'John Jasa, Dr. John Hwang, Justin Gray', 'manual'),
+   u'John Jasa, Dr. John Hwang', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

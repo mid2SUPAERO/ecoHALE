@@ -7,7 +7,7 @@ import sys
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
 
 from openmdao.devtools.partition_tree_n2 import view_tree
-from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_mesh, get_inds
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, get_inds
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii

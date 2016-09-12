@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder, pyOptSparseDriver, profile
-from geometry import GeometryMesh, gen_mesh, LinearInterp
+from geometry import GeometryMesh, gen_rect_mesh, LinearInterp
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals
 from openmdao.devtools.partition_tree_n2 import view_tree

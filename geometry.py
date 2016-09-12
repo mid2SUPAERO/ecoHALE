@@ -9,72 +9,6 @@ from openmdao.api import Component
 from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
 
-
-def get_inds(aero_ind, fem_ind):
-    """
-    Calculate and store indices to describe panels for aero and
-    structural analysis.
-
-    Takes in aero_ind with each row containing [nx, ny] and fem_ind with
-    each row containing [n_fem].
-
-    Each outputted row has information for each individually defined surface,
-    stored in the order [nx, ny, n, n_bpts, n_panels, i, i_bpts, i_panels]
-    with the indices    [ 0,  1, 2,      3,        4, 5,      6,        7]
-
-    Explanation of internals of aero_ind:
-
-    * nx : number of nodes in the chordwise direction
-    * ny : number of nodes in the spanwise direction
-    * n : total number of nodes
-    * n_bpts : total number of b_pts nodes
-    * n_panels : total number of panels
-    * i : current index of nodes when considering all surfaces
-    * i_bpts: current index of b_pts nodes when considering all surfaces
-    * i_panels : current index of panels when considering all surfaces
-
-
-    Simpler than the aero case, the fem_ind array contains:
-    [n_fem, i_fem]
-
-    * n_fem : number of fem nodes per surface
-    * i_fem : current index of fem nodes when considering all fem nodes
-
-    Parameters
-    ----------
-    aero_ind : array_like
-        Small initial array with aero mesh index information.
-    fem_ind : array_like
-        Small initial array with FEM component index information.
-
-    Returns
-    -------
-    new_aero_ind : array_like
-        Completed array with all aero mesh index information.
-    new_fem_ind : array_like
-        Completed array with all FEM component index information.
-
-    """
-
-    new_aero_ind = numpy.zeros((aero_ind.shape[0], 8), dtype=int)
-    new_aero_ind[:, 0:2] = aero_ind
-    for i, row in enumerate(aero_ind):
-        nx, ny = aero_ind[i, :]
-        new_aero_ind[i, 2] = nx * ny
-        new_aero_ind[i, 3] = (nx-1) * ny
-        new_aero_ind[i, 4] = (nx-1) * (ny-1)
-        new_aero_ind[i, 5] = numpy.sum(numpy.product(aero_ind[:i], axis=1))
-        new_aero_ind[i, 6] = numpy.sum((aero_ind[:i, 0]-1) * aero_ind[:i, 1])
-        new_aero_ind[i, 7] = numpy.sum(numpy.product(aero_ind[:i]-1, axis=1))
-
-    new_fem_ind = numpy.zeros((len(fem_ind), 2), dtype=int)
-    new_fem_ind[:, 0] = fem_ind
-    for i, row in enumerate(fem_ind):
-        new_fem_ind[i, 1] = numpy.sum(fem_ind[:i])
-
-    return new_aero_ind, new_fem_ind
-
-
 def rotate(mesh, thetas):
     """ Compute rotation matrices given mesh and rotation angles in degrees.
 
@@ -151,7 +85,7 @@ def sweep(mesh, angle):
 
 
 def dihedral(mesh, angle):
-    """ Apply dihedral angle. Positive bends up.
+    """ Apply dihedral angle. Positive angles up.
 
     Parameters
     ----------
@@ -401,7 +335,7 @@ def add_chordwise_panels(mesh, num_x):
     return new_mesh
 
 
-def gen_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
+def gen_rect_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
     """ Generate simple rectangular wing mesh.
 
     Parameters
