@@ -174,7 +174,7 @@ class Display(object):
 
         symm_count = 0
         for mesh in self.mesh:
-            if numpy.all(mesh[:, :, 1] >= 0.) or numpy.all(mesh[:, :, 1] <= 0.):
+            if numpy.all(mesh[:, :, 1] >= -1e-8) or numpy.all(mesh[:, :, 1] <= 1e-8):
                 symm_count += 1
         if symm_count == len(self.mesh):
             self.symmetry = True
@@ -200,14 +200,6 @@ class Display(object):
                     # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
                     # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 
-                    span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
-                    span = span - (span[0] + .5)
-
-                    lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
-
-                    lift_ell = 4 * lift_area / numpy.pi * \
-                        numpy.sqrt(1 - (2*span)**2)
-
                     if self.symmetry:
                         span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                         span = numpy.hstack((span[:-1], -span[::-1]))
@@ -216,7 +208,7 @@ class Display(object):
 
                         lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
 
-                        lift_ell = 4 * lift_area / numpy.pi * \
+                        lift_ell = 2 * lift_area / numpy.pi * \
                             numpy.sqrt(1 - span**2)
 
                     else:

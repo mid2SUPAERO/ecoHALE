@@ -5,6 +5,11 @@ We input a nodal mesh and properties of the airflow to calculate the
 circulations of the horseshoe vortices. We then compute the forces, lift,
 and drag acting on the lifting surfaces.
 
+Note that some of the parameters and unknowns has the surface name
+prepended on it. E.g., 'def_mesh' on a surface called 'wing' would be
+'wing_def_mesh', etc. Please see an N2 diagram (the .html file produced by
+this code) for more information about which parameters are renamed.
+
 .. todo:: fix depiction of wing
 Depiction of wing:
 
@@ -100,24 +105,14 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     mtx[num_y-1, num_y-1, 3] : array_like
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
-    flat_mesh[num_x*num_y, 3] : array_like
-        Flat array containing nodal coordinates.
-    points[num_y-1, 3] : array_like
-        Collocation points used to find influence coefficient strength.
-        Found at 3/4 chord for the linear system and at the midpoint of
-        the bound vortices (1/4 chord) for the drag computation.
-    b_pts[num_x-1, num_y, 3] : array_like
-        Bound vortex coordinates from the 1/4 chord line.
-    alpha : float
-        Angle of attack.
+    params : dictionary
+        OpenMDAO params dictionary for a given aero problem
+    surfaces : dictionary
+        Dictionary containing all surfaces in an aero problem.
     skip : boolean
         If false, the bound vortex contributions on the collocation point
         corresponding to the same panel are not included. Used for the drag
         computation.
-    symmetry : boolean
-        If false, treats the given mesh as the full wing.
-        If true, treats the given mesh as a half wing and mirrors its effects
-        across the plane y=0.
 
     Returns
     -------
@@ -139,6 +134,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     # Loop over the lifting surfaces to compute their influence on the flow
     # velocity at the collocation points
     for surface_ in surfaces:
+
         # Variable names with a trailing underscore correspond to the lifting
         # surface being examined, not the collocation point
         name_ = surface_['name']
@@ -153,6 +149,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         mesh = params[name_+'def_mesh']
         bpts = params[name_+'b_pts']
 
+        # Set counters to know where to index the sub-matrix within the full mtx
         i = 0
         i_bpts = 0
         i_panels = 0
@@ -167,12 +164,16 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             n_panels = (nx - 1) * (ny - 1)
             symmetry = surface['symmetry']
 
-            # Obtain the collocation points used to compute the AIC
+            # Obtain the collocation points used to compute the AIC mtx.
+            # If setting up the AIC mtx, we use the collocation points (c_pts),
+            # but if setting up the matrix to solve for drag, we use the
+            # midpoints of the bound vortices (mid_b).
             if skip:
                 pts = params[name+'mid_b']
             else:
                 pts = params[name+'c_pts']
 
+            # Initialize sub-matrix to populate within full mtx
             small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype='complex')
 
             # Dense fortran assembly for the AIC matrix
@@ -311,7 +312,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             mtx[i_panels:i_panels+n_panels,
                 i_panels_:i_panels_+n_panels_, :] = small_mat
 
-
             i += n
             i_bpts += n_bpts
             i_panels += n_panels
@@ -319,7 +319,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         i_ += n_
         i_bpts_ += n_bpts_
         i_panels_ += n_panels_
-
 
     mtx /= 4 * numpy.pi
 
@@ -329,26 +328,26 @@ class VLMGeometry(Component):
 
     Parameters
     ----------
-    def_mesh : array_like
-        Flattened array defining the lifting surfaces.
+    def_mesh[nx, ny, 3] : array_like
+        Array defining the nodal coordinates of the lifting surface.
 
     Returns
     -------
-    b_pts : array_like
+    b_pts[nx-1, ny, 3] : array_like
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    mid_b : array_like
+    mid_b[nx-1, ny-1, 3] : array_like
         Midpoints of the bound vortex segments, used as the collocation
         points to compute drag.
-    c_pts : array_like
+    c_pts[nx-1, ny-1, 3] : array_like
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    widths : array_like
+    widths[nx-1, ny-1] : array_like
         The spanwise widths of each individual panel.
-    normals : array_like
+    normals[nx-1, ny-1, 3] : array_like
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
-    S_ref : array_like
-        The reference areas of each lifting surface.
+    S_ref : float
+        The reference area of the lifting surface.
 
     """
 
@@ -460,14 +459,14 @@ class VLMCirculations(Component):
 
     Parameters
     ----------
-    def_mesh : array_like
-        Flattened array defining the lifting surfaces.
-    b_pts : array_like
+    def_mesh[nx, ny, 3] : array_like
+        Array defining the nodal coordinates of the lifting surface.
+    b_pts[nx-1, ny, 3] : array_like
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts : array_like
+    c_pts[nx-1, ny-1, 3] : array_like
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    normals : array_like
+    normals[nx-1, ny-1, 3] : array_like
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
     v : float
@@ -490,7 +489,6 @@ class VLMCirculations(Component):
         self.surfaces = surfaces
 
         for surface in surfaces:
-
             self.surface = surface
             self.ny = surface['num_y']
             self.nx = surface['num_x']
@@ -505,6 +503,7 @@ class VLMCirculations(Component):
             self.add_param(name+'c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3),
                            dtype="complex"))
             self.add_param(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+
         self.add_param('v', val=prob_dict['v'])
         self.add_param('alpha', val=prob_dict['alpha'])
 
@@ -515,7 +514,6 @@ class VLMCirculations(Component):
             tot_panels += (surface['num_x'] - 1) * (surface['num_y'] - 1)
         self.tot_panels = tot_panels
 
-
         self.add_state('circulations', val=numpy.zeros((tot_panels),
                        dtype="complex"))
 
@@ -525,8 +523,13 @@ class VLMCirculations(Component):
         self.rhs = numpy.zeros((tot_panels), dtype="complex")
 
     def _assemble_system(self, params):
+
+        # Actually assemble the AIC matrix
         _assemble_AIC_mtx(self.AIC_mtx, params, self.surfaces)
 
+        # Construct an flattend array with the normals of each surface in order
+        # so we can do the normals with velocities to set up the right-hand-side
+        # of the system.
         flattened_normals = numpy.zeros((self.tot_panels, 3), dtype='complex')
         i = 0
         for surface in self.surfaces:
@@ -542,6 +545,8 @@ class VLMCirculations(Component):
             self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
                 flattened_normals[:, ind]).T
 
+        # Obtain the freestream velocity direction and magnitude by taking
+        # alpha into account
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
@@ -553,11 +558,13 @@ class VLMCirculations(Component):
             reshape(-1, flattened_normals.shape[-1], order='F').dot(v_inf)
 
     def solve_nonlinear(self, params, unknowns, resids):
+        """ Solve the linear system to obtain circulations. """
         name = self.surface['name']
         self._assemble_system(params)
         unknowns['circulations'] = numpy.linalg.solve(self.mtx, self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
+        """ Compute the residuals of the linear system. """
         name = self.surface['name']
         self._assemble_system(params)
 
@@ -602,13 +609,17 @@ class VLMCirculations(Component):
 class VLMForces(Component):
     """ Compute aerodynamic forces acting on each section.
 
+    Note that some of the parameters and unknowns has the surface name
+    prepended on it. E.g., 'def_mesh' on a surface called 'wing' would be
+    'wing_def_mesh', etc.
+
     Parameters
     ----------
-    def_mesh : array_like
-        Flattened array defining the lifting surfaces.
-    b_pts : array_like
+    def_mesh[nx, ny, 3] : array_like
+        Array defining the nodal coordinates of the lifting surface.
+    b_pts[nx-1, ny, 3] : array_like
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    mid_b : array_like
+    mid_b[nx-1, ny-1, 3] : array_like
         Midpoints of the bound vortex segments, used as the collocation
         points to compute drag.
     circulations : array_like
@@ -624,7 +635,7 @@ class VLMForces(Component):
 
     Returns
     -------
-    sec_forces : array_like
+    sec_forces[nx-1, ny-1, 3] : array_like
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant when more than one chordwise
         panel).
@@ -633,7 +644,6 @@ class VLMForces(Component):
 
     def __init__(self, surfaces, prob_dict):
         super(VLMForces, self).__init__()
-
 
         tot_panels = 0
         for surface in surfaces:
@@ -654,9 +664,6 @@ class VLMForces(Component):
         self.add_param('rho', val=3.)
         self.surfaces = surfaces
 
-
-        # TODO: fix for symmetry
-        self.symmetry = False
         self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
 
@@ -745,7 +752,7 @@ class VLMLiftDrag(Component):
 
     Parameters
     ----------
-    sec_forces : array_like
+    sec_forces[nx-1, ny-1, 3] : array_like
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant when more than one chordwise
         panel).
@@ -759,15 +766,15 @@ class VLMLiftDrag(Component):
         Freestream air velocity in m/s.
     rho : float
         Air density in kg/m^3.
-    S_ref : array_like
-        The reference areas of each lifting surface.
+    S_ref : float
+        The reference area of the lifting surface.
 
     Returns
     -------
-    L : array_like
-        Total lift force for each lifting surface.
-    D : array_like
-        Total drag force for each lifting surface.
+    L : float
+        Total lift force for the lifting surface.
+    D : float
+        Total drag force for the lifting surface.
 
     """
 
@@ -868,12 +875,12 @@ class VLMCoeffs(Component):
 
     Parameters
     ----------
-    S_ref : array_like
-        The reference areas of each lifting surface.
-    L : array_like
-        Total lift for each lifting surface.
-    D : array_like
-        Total drag for each lifting surface.
+    S_ref : float
+        The reference areas of the lifting surface.
+    L : float
+        Total lift for the lifting surface.
+    D : float
+        Total drag for the lifting surface.
     v : float
         Freestream air velocity in m/s.
     rho : float
@@ -881,10 +888,10 @@ class VLMCoeffs(Component):
 
     Returns
     -------
-    CL1 : array_like
-        Induced coefficient of lift (CL) for each lifting surface.
-    CDi : array_like
-        Induced coefficient of drag (CD) for each lifting surface.
+    CL1 : float
+        Induced coefficient of lift (CL) for the lifting surface.
+    CDi : float
+        Induced coefficient of drag (CD) for the lifting surface.
 
     """
 
@@ -973,13 +980,13 @@ class TotalDrag(Component):
 
     Parameters
     ----------
-    CDi : array_like
-        Induced coefficient of drag (CD) for each lifting surface.
+    CDi : float
+        Induced coefficient of drag (CD) the each lifting surface.
 
     Returns
     -------
-    CD : array_like
-        Total coefficient of drag (CD) for each lifting surface.
+    CD : float
+        Total coefficient of drag (CD) the each lifting surface.
     CD_wing : float
         CD of the main wing, used for CD minimization.
 

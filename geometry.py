@@ -48,7 +48,7 @@ def rotate(mesh, thetas):
     return mesh
 
 
-def sweep(mesh, angle):
+def sweep(mesh, angle, symmetry):
     """ Apply shearing sweep. Positive sweeps back.
 
     Parameters
@@ -57,6 +57,8 @@ def sweep(mesh, angle):
         Nodal mesh defining the initial aerodynamic surface.
     angle : float
         Shearing sweep angle in degrees.
+    symmetry : boolean
+        Flag set to true if surface is reflected about y=0 plane.
 
     Returns
     -------
@@ -66,17 +68,21 @@ def sweep(mesh, angle):
     """
 
     num_x, num_y, _ = mesh.shape
-    ny2 = int((num_y - 1) / 2)
-
     le = mesh[0]
-
-    y0 = le[ny2, 1]
     p180 = numpy.pi / 180
-
     tan_theta = tan(p180*angle)
-    dx_right = (le[ny2:, 1] - y0) * tan_theta
-    dx_left = -(le[:ny2, 1] - y0) * tan_theta
-    dx = numpy.hstack((dx_left, dx_right))
+
+    if symmetry:
+        y0 = le[-1, 1]
+        dx = -(le[:, 1] - y0) * tan_theta
+
+    else:
+        ny2 = int((num_y - 1) / 2)
+        y0 = le[ny2, 1]
+
+        dx_right = (le[ny2:, 1] - y0) * tan_theta
+        dx_left = -(le[:ny2, 1] - y0) * tan_theta
+        dx = numpy.hstack((dx_left, dx_right))
 
     for i in xrange(num_x):
         mesh[i, :, 0] += dx
@@ -84,7 +90,7 @@ def sweep(mesh, angle):
     return mesh
 
 
-def dihedral(mesh, angle):
+def dihedral(mesh, angle, symmetry):
     """ Apply dihedral angle. Positive angles up.
 
     Parameters
@@ -93,6 +99,8 @@ def dihedral(mesh, angle):
         Nodal mesh defining the initial aerodynamic surface.
     angle : float
         Dihedral angle in degrees.
+    symmetry : boolean
+        Flag set to true if surface is reflected about y=0 plane.
 
     Returns
     -------
@@ -102,17 +110,20 @@ def dihedral(mesh, angle):
     """
 
     num_x, num_y, _ = mesh.shape
-    ny2 = int((num_y-1) / 2)
-
     le = mesh[0]
-
-    y0 = le[ny2, 1]
     p180 = numpy.pi / 180
-
     tan_theta = tan(p180*angle)
-    dx_right = (le[ny2:, 1] - y0) * tan_theta
-    dx_left = -(le[:ny2, 1] - y0) * tan_theta
-    dx = numpy.hstack((dx_left, dx_right))
+
+    if symmetry:
+        y0 = le[-1, 1]
+        dx = -(le[:, 1] - y0) * tan_theta
+
+    else:
+        ny2 = int((num_y-1) / 2)
+        y0 = le[ny2, 1]
+        dx_right = (le[ny2:, 1] - y0) * tan_theta
+        dx_left = -(le[:ny2, 1] - y0) * tan_theta
+        dx = numpy.hstack((dx_left, dx_right))
 
     for i in xrange(num_x):
         mesh[i, :, 2] += dx
@@ -151,7 +162,7 @@ def stretch(mesh, length):
     return mesh
 
 
-def taper(mesh, taper_ratio):
+def taper(mesh, taper_ratio, symmetry):
     """ Alter the spanwise chord to produce a tapered wing.
 
     Parameters
@@ -160,6 +171,8 @@ def taper(mesh, taper_ratio):
         Nodal mesh defining the initial aerodynamic surface.
     taper_ratio : float
         Taper ratio for the wing; 1 is untapered, 0 goes to a point.
+    symmetry : boolean
+        Flag set to true if surface is reflected about y=0 plane.
 
     Returns
     -------
@@ -171,20 +184,32 @@ def taper(mesh, taper_ratio):
     le = mesh[0]
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
-    ny2 = int((num_y + 1) / 2)
-
     center_chord = .5 * te + .5 * le
-    taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
 
-    jac = get_bspline_mtx(ny2, ny2, order=2)
-    taper = jac.dot(taper)
+    if symmetry:
+        taper = numpy.linspace(1, taper_ratio, num_y)[::-1]
 
-    dx = numpy.hstack((taper, taper[::-1][1:]))
+        jac = get_bspline_mtx(num_y, num_y, order=2)
+        taper = jac.dot(taper)
 
-    for i in xrange(num_x):
-        for ind in xrange(3):
-            mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
-                dx + center_chord[:, ind]
+        for i in xrange(num_x):
+            for ind in xrange(3):
+                mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
+                    taper + center_chord[:, ind]
+
+    else:
+        ny2 = int((num_y + 1) / 2)
+        taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
+
+        jac = get_bspline_mtx(ny2, ny2, order=2)
+        taper = jac.dot(taper)
+
+        dx = numpy.hstack((taper, taper[::-1][1:]))
+
+        for i in xrange(num_x):
+            for ind in xrange(3):
+                mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
+                    dx + center_chord[:, ind]
 
     return mesh
 
@@ -403,6 +428,8 @@ class GeometryMesh(Component):
         self.add_param(name+'taper', val=1.)
         self.add_output(name+'mesh', val=self.mesh)
 
+        self.symmetry = surface['symmetry']
+
         self.deriv_options['type'] = 'fd'
         # self.deriv_options['form'] = 'central'
 
@@ -410,10 +437,10 @@ class GeometryMesh(Component):
         name = self.surface['name']
         mesh = self.mesh.copy()
         # stretch(mesh, params[name+'span'])
-        sweep(mesh, params[name+'sweep'])
+        sweep(mesh, params[name+'sweep'], self.symmetry)
         rotate(mesh, params[name+'twist'])
-        dihedral(mesh, params[name+'dihedral'])
-        taper(mesh, params[name+'taper'])
+        dihedral(mesh, params[name+'dihedral'], self.symmetry)
+        taper(mesh, params[name+'taper'], self.symmetry)
         # TODO: Fix geometry for symmetry
         # TODO: Fix cs for geometry
 

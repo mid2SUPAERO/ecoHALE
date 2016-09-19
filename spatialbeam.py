@@ -1,4 +1,9 @@
-""" Define the structural analysis component using spatial beam theory. """
+""" Define the structural analysis component using spatial beam theory.
+
+Each FEM element has 6-DOF; translation in the x, y, and z direction and
+rotation about the x, y, and z-axes.
+
+"""
 
 from __future__ import division
 import numpy
@@ -187,23 +192,23 @@ class SpatialBeamFEM(Component):
 
     Parameters
     ----------
-    A : array_like
+    A[ny-1] : array_like
         Areas for each FEM element.
-    Iy : array_like
+    Iy[ny-1] : array_like
         Mass moment of inertia around the y-axis for each FEM element.
-    Iz : array_like
+    Iz[ny-1] : array_like
         Mass moment of inertia around the z-axis for each FEM element.
-    J : array_like
+    J[ny-1] : array_like
         Polar moment of inertia for each FEM element.
-    nodes : array_like
+    nodes[ny, 3] : array_like
         Flattened array with coordinates for each FEM node.
-    loads : array_like
+    loads[ny, 6] : array_like
         Flattened array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
     Returns
     -------
-    disp_aug : array_like
+    disp_aug[6*(ny+1)] : array_like
         Augmented displacement array. Obtained by solving the system
         mtx * disp_aug = rhs, where rhs is a flattened version of loads.
 
@@ -385,13 +390,13 @@ class SpatialBeamDisp(Component):
 
     Parameters
     ----------
-    disp_aug : array_like
+    disp_aug[6*(ny+1)] : array_like
         Augmented displacement array. Obtained by solving the system
         mtx * disp_aug = rhs, where rhs is a flattened version of loads.
 
     Returns
     -------
-    disp : array_like
+    disp[6*ny] : array_like
         Actual displacement array formed by truncating disp_aug.
 
     """
@@ -436,12 +441,12 @@ class ComputeNodes(Component):
 
     Parameters
     ----------
-    mesh : array_like
-        Flattened array defining the lifting surfaces.
+    mesh[nx, ny, 3] : array_like
+        Array defining the nodal points of the lifting surface.
 
     Returns
     -------
-    nodes : array_like
+    nodes[ny, 3] : array_like
         Flattened array with coordinates for each FEM node.
 
     """
@@ -483,10 +488,10 @@ class SpatialBeamEnergy(Component):
 
     Parameters
     ----------
-    disp : array_like
+    disp[ny, 6] : array_like
         Actual displacement array formed by truncating disp_aug.
-    loads : array_like
-        Flattened array containing the loads applied on the FEM component,
+    loads[ny, 6] : array_like
+        Array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
     Returns
@@ -528,9 +533,9 @@ class SpatialBeamWeight(Component):
 
     Parameters
     ----------
-    A : array_like
+    A[ny-1] : array_like
         Areas for each FEM element.
-    nodes : array_like
+    nodes[ny, 3] : array_like
         Flattened array with coordinates for each FEM node.
 
     Returns
@@ -596,16 +601,16 @@ class SpatialBeamVonMisesTube(Component):
 
     Parameters
     ----------
-    r : array_like
+    r[ny-1] : array_like
         Radii for each FEM element.
-    nodes : array_like
+    nodes[ny, 3] : array_like
         Flattened array with coordinates for each FEM node.
-    disp : array_like
+    disp[ny, 6] : array_like
         Displacements of each FEM node.
 
     Returns
     -------
-    vonmises : array_like
+    vonmises[ny-1, 2] : array_like
         von Mises stress magnitudes for each FEM element.
 
     """
@@ -700,7 +705,7 @@ class SpatialBeamFailureKS(Component):
 
     Parameters
     ----------
-    vonmises : array_like
+    vonmises[ny-1, 2] : array_like
         von Mises stress magnitudes for each FEM element.
 
     Returns

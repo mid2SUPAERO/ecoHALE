@@ -26,7 +26,9 @@ else:  # perform optimization
 
 # Instantiate problem and add default surface
 OAS_prob = OASProblem(prob_dict)
-OAS_prob.add_surface({'name' : 'wing'})
+OAS_prob.add_surface({'name' : 'wing',
+                      'symmetry' : True,
+                      'num_y' : 11})
 
 # Single lifting surface
 if not sys.argv[1].endswith('m'):
