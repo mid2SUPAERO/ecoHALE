@@ -101,8 +101,11 @@ class Display(object):
             self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
-        self.db_metadata = sqlitedict.SqliteDict(self.db_name, 'metadata')
-        self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
+        # Change for future versions of OpenMDAO, still in progress
+        # self.db_metadata = sqlitedict.SqliteDict(self.db_name, 'metadata')
+        # self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
+
+        self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
 
         self.twist = []
         self.mesh = []
@@ -123,23 +126,32 @@ class Display(object):
         self.S_ref = []
         self.obj = []
 
-        for tag in self.db_metadata:
-            try:
-                for item in self.db_metadata[tag]:
-                    for flag in self.db_metadata[tag][item]:
-                        if 'is_objective' in flag:
-                            self.obj_key = item
-            except:
-                pass
+        # Change for future versions of OpenMDAO
+        # for tag in self.db_metadata:
+        #     try:
+        #         for item in self.db_metadata[tag]:
+        #             for flag in self.db_metadata[tag][item]:
+        #                 if 'is_objective' in flag:
+        #                     self.obj_key = item
+                #
+                # except:
+                #     pass
+
+        for tag in self.db['metadata']:
+            for item in self.db['metadata'][tag]:
+                for flag in self.db['metadata'][tag][item]:
+                    if 'is_objective' in flag:
+                        self.obj_key = item
+
         for case_name, case_data in self.db.iteritems():
+            if "metadata" in case_name or "derivs" in case_name or "Driver" in case_name:
+                continue  # don't plot these cases
             names = []
             for key in case_data['Unknowns'].keys():
                 if 'mesh' in key and 'def_mesh' not in key:
                     names.append(key.split('_')[:-1][0] + '_')
             self.names = names
             n_names = len(names)
-            if "metadata" in case_name or "derivs" in case_name:
-                continue  # don't plot these cases
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             for name in names:
@@ -182,7 +194,6 @@ class Display(object):
             self.symmetry = False
 
         if self.show_wing:
-
             for i in range(self.num_iters + 1):
                 for j, name in enumerate(names):
                     m_vals = self.mesh[i+j].copy()
