@@ -265,7 +265,6 @@ class TestAeroStruct(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # TODO: update syntax for all of these tests
     print
     print '===================================================='
     print '|                                                  |'

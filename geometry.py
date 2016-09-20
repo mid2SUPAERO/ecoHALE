@@ -430,7 +430,7 @@ class GeometryMesh(Component):
 
         self.symmetry = surface['symmetry']
 
-        self.deriv_options['type'] = 'fd'
+        self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -441,8 +441,6 @@ class GeometryMesh(Component):
         rotate(mesh, params[name+'twist'])
         dihedral(mesh, params[name+'dihedral'], self.symmetry)
         taper(mesh, params[name+'taper'], self.symmetry)
-        # TODO: Fix geometry for symmetry
-        # TODO: Fix cs for geometry
 
         unknowns[name+'mesh'] = mesh
 

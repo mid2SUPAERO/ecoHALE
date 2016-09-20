@@ -16,59 +16,62 @@ import numpy
 
 from run_classes import OASProblem
 
-# Set problem type
-prob_dict = {'type' : 'aero'}
+if __name__ == "__main__":
 
-if sys.argv[1].startswith('0'):  # run analysis once
-    prob_dict.update({'optimize' : False})
-else:  # perform optimization
-    prob_dict.update({'optimize' : True})
 
-# Instantiate problem and add default surface
-OAS_prob = OASProblem(prob_dict)
-OAS_prob.add_surface({'name' : 'wing',
-                      'symmetry' : True,
-                      'num_y' : 11})
+    # Set problem type
+    prob_dict = {'type' : 'aero'}
 
-# Single lifting surface
-if not sys.argv[1].endswith('m'):
+    if sys.argv[1].startswith('0'):  # run analysis once
+        prob_dict.update({'optimize' : False})
+    else:  # perform optimization
+        prob_dict.update({'optimize' : True})
 
-    # Setup problem and add design variables, constraint, and objective
-    OAS_prob.setup()
-    OAS_prob.add_desvar('wing_twist_cp', lower=-10., upper=15.)
-    OAS_prob.add_desvar('wing_sweep', lower=10., upper=30.)
-    OAS_prob.add_desvar('wing_dihedral', lower=-10., upper=20.)
-    OAS_prob.add_desvar('wing_taper', lower=.5, upper=2.)
-    OAS_prob.add_constraint('wing_CL', equals=0.5)
-    OAS_prob.add_objective('wing_CD', scaler=1e4)
+    # Instantiate problem and add default surface
+    OAS_prob = OASProblem(prob_dict)
+    OAS_prob.add_surface({'name' : 'wing',
+                          'symmetry' : True,
+                          'num_y' : 11})
 
-# Multiple lifting surfaces
-else:
+    # Single lifting surface
+    if not sys.argv[1].endswith('m'):
 
-    # Add additional lifting surface
-    OAS_prob.add_surface({'name' : 'tail',
-                          'span' : 3.,
-                          'offset' : numpy.array([0., 10., 0.])})
+        # Setup problem and add design variables, constraint, and objective
+        OAS_prob.setup()
+        OAS_prob.add_desvar('wing_twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('wing_sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('wing_dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('wing_taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('wing_CL', equals=0.5)
+        OAS_prob.add_objective('wing_CD', scaler=1e4)
 
-    # Setup problem and add design variables, constraints, and objective
-    OAS_prob.setup()
+    # Multiple lifting surfaces
+    else:
 
-    OAS_prob.add_desvar('wing_twist_cp', lower=-10., upper=15.)
-    OAS_prob.add_desvar('wing_sweep', lower=10., upper=30.)
-    OAS_prob.add_desvar('wing_dihedral', lower=-10., upper=20.)
-    OAS_prob.add_desvar('wing_taper', lower=.5, upper=2.)
-    OAS_prob.add_constraint('wing_CL', equals=0.5)
+        # Add additional lifting surface
+        OAS_prob.add_surface({'name' : 'tail',
+                              'span' : 3.,
+                              'offset' : numpy.array([0., 10., 0.])})
 
-    # Note that these tail variables have no effect on the wing and thus
-    # have no need to be changed except to satisfy the failure constraint
-    OAS_prob.add_desvar('tail_twist_cp', lower=-10., upper=15.)
-    OAS_prob.add_desvar('tail_sweep', lower=10., upper=30.)
-    OAS_prob.add_desvar('tail_dihedral', lower=-10., upper=20.)
-    OAS_prob.add_desvar('tail_taper', lower=.5, upper=2.)
-    OAS_prob.add_constraint('tail_CL', equals=0.5)
-    OAS_prob.add_objective('tail_CD', scaler=1e4)
+        # Setup problem and add design variables, constraints, and objective
+        OAS_prob.setup()
 
-# Actually run the problem
-OAS_prob.run()
+        OAS_prob.add_desvar('wing_twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('wing_sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('wing_dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('wing_taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('wing_CL', equals=0.5)
 
-print "\nWing CL:", OAS_prob.prob['wing_CL']
+        # Note that these tail variables have no effect on the wing and thus
+        # have no need to be changed except to satisfy the failure constraint
+        OAS_prob.add_desvar('tail_twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('tail_sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('tail_dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('tail_taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('tail_CL', equals=0.5)
+        OAS_prob.add_objective('tail_CD', scaler=1e4)
+
+    # Actually run the problem
+    OAS_prob.run()
+
+    print "\nWing CL:", OAS_prob.prob['wing_CL']

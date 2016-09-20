@@ -21,7 +21,7 @@ Note that the code will run without compiling the Fortran library, but it will r
 Note that the master branch is a development branch and may be unstable. Using a stable release is suggested. To do so, checkout a release using the git command:
 
     git checkout v0.2.0
-    
+
 This will use v0.2.0 of OpenAeroStruct, the most recent version.
 
 ## Usage
@@ -42,11 +42,8 @@ An example workflow would be:
 
 The keywords used for each file are explained in their respective docstrings at the top of the file.
 
+If you wish to examine the code in more depth, see `run_classes.py` and the methods it calls. These methods interface directly with OpenMDAO.
+
 ## Known Issues
 
-* Aerostructural optimization sometimes fails to converge for certain geometries. The example provided in `run_aerostruct.py` should converge.
-* Aerostructural optimization using multiple lifting surfaces does not converge.
-* The residual of the structural system solution for very large problems is sometimes too large and prevents convergence of the optimization problem.
-* Internal documentation is lacking.
-* `plot_all.py` does not correctly display multiple structural components, but does work for multiple surfaces if using only aerodynamic optimization.
-* Multiple surface optimization for structures is not optimally coded.
+* Aerostructural optimization sometimes fails to converge for certain geometries. The example provided in `run_aerostruct.py` should converge. The structural and aerodynamic values must make sense together, e.g. the beam thickness and radius must be able to support the aerodynamic loads.

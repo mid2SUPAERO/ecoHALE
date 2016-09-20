@@ -16,48 +16,50 @@ import numpy
 
 from run_classes import OASProblem
 
-# Set problem type
-prob_dict = {'type' : 'struct'}
+if __name__ == "__main__":
 
-if sys.argv[1].startswith('0'):  # run analysis once
-    prob_dict.update({'optimize' : False})
-else:  # perform optimization
-    prob_dict.update({'optimize' : True})
+    # Set problem type
+    prob_dict = {'type' : 'struct'}
 
-# Instantiate problem and add default surface
-OAS_prob = OASProblem(prob_dict)
-OAS_prob.add_surface({'name' : 'wing'})
+    if sys.argv[1].startswith('0'):  # run analysis once
+        prob_dict.update({'optimize' : False})
+    else:  # perform optimization
+        prob_dict.update({'optimize' : True})
 
-# Single lifting surface
-if not sys.argv[1].endswith('m'):
+    # Instantiate problem and add default surface
+    OAS_prob = OASProblem(prob_dict)
+    OAS_prob.add_surface({'name' : 'wing'})
 
-    # Setup problem and add design variables, constraint, and objective
-    OAS_prob.setup()
-    OAS_prob.add_desvar('wing_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-    OAS_prob.add_constraint('wing_failure', upper=0.)
-    OAS_prob.add_objective('wing_weight', scaler=1e-3)
+    # Single lifting surface
+    if not sys.argv[1].endswith('m'):
 
-# Multiple lifting surfaces
-else:
+        # Setup problem and add design variables, constraint, and objective
+        OAS_prob.setup()
+        OAS_prob.add_desvar('wing_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_constraint('wing_failure', upper=0.)
+        OAS_prob.add_objective('wing_weight', scaler=1e-3)
 
-    # Add additional lifting surface
-    OAS_prob.add_surface({'name' : 'tail',
-                          'span' : 3.,
-                          'offset' : numpy.array([10., 0., 0.])})
+    # Multiple lifting surfaces
+    else:
 
-    # Setup problem and add design variables, constraints, and objective
-    OAS_prob.setup()
+        # Add additional lifting surface
+        OAS_prob.add_surface({'name' : 'tail',
+                              'span' : 3.,
+                              'offset' : numpy.array([10., 0., 0.])})
 
-    OAS_prob.add_desvar('wing_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-    OAS_prob.add_constraint('wing_failure', upper=0.)
-    OAS_prob.add_objective('wing_weight', scaler=1e-3)
+        # Setup problem and add design variables, constraints, and objective
+        OAS_prob.setup()
 
-    # Note that these tail variables have no effect on the wing and thus
-    # have no need to be changed except to satisfy the failure constraint
-    OAS_prob.add_desvar('tail_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-    OAS_prob.add_constraint('tail_failure', upper=0.)
+        OAS_prob.add_desvar('wing_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_constraint('wing_failure', upper=0.)
+        OAS_prob.add_objective('wing_weight', scaler=1e-3)
 
-# Actually run the problem
-OAS_prob.run()
+        # Note that these tail variables have no effect on the wing and thus
+        # have no need to be changed except to satisfy the failure constraint
+        OAS_prob.add_desvar('tail_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_constraint('tail_failure', upper=0.)
 
-print "\nWing weight:", OAS_prob.prob['wing_weight']
+    # Actually run the problem
+    OAS_prob.run()
+
+    print "\nWing weight:", OAS_prob.prob['wing_weight']

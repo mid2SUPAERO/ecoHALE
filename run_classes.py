@@ -168,7 +168,6 @@ class OASProblem():
 
             # Chop the mesh in half if using symmetry during analysis.
             # Note that this means that the provided mesh should be the full mesh
-            # TODO: note this more explicitly in the docs somewhere
             if surf_dict['symmetry']:
                 num_y = int((num_y+1)/2)
                 mesh = mesh[:, :num_y, :]
@@ -316,7 +315,6 @@ class OASProblem():
             name = surface['name']
             tmp_group = Group()
 
-            # TODO: check these values
             surface['r'] = surface['r'] / 5
             surface['t'] = surface['r'] / 20
 
@@ -607,6 +605,3 @@ class OASProblem():
                  promotes=['*'])
 
         self.setup_prob()
-
-
-    # TODO: change all kw checks to lower()

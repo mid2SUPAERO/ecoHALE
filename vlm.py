@@ -849,7 +849,6 @@ class VLMLiftDrag(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        # TODO: fix these derivatives maybe
         forces = params[name+'sec_forces']
 
         tmp = numpy.array([-sina, 0, cosa])
