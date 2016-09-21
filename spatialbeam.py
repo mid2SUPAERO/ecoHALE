@@ -19,7 +19,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-sparse_flag = False
+sparse_flag = True
 
 
 def norm(vec):
@@ -185,7 +185,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     return mtx, rhs
 
 
-class SpatialBeamAssembly(Component):
+class SpatialBeamFEM(Component):
     """
     Compute the displacements and rotations by solving the linear system
     using the structural stiffness matrix.
@@ -215,7 +215,7 @@ class SpatialBeamAssembly(Component):
     """
 
     def __init__(self, surface, cg_x=5):
-        super(SpatialBeamAssembly, self).__init__()
+        super(SpatialBeamFEM, self).__init__()
 
         self.surface = surface
         self.ny = surface['num_y']
@@ -232,13 +232,12 @@ class SpatialBeamAssembly(Component):
         self.add_param(name+'J', val=numpy.zeros((self.ny - 1)))
         self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3)))
         self.add_param(name+'loads', val=numpy.zeros((self.ny, 6)))
-        self.add_output('mtx', val=numpy.zeros((size, size)))
-        self.add_output('rhs', val=numpy.zeros((size)))
-
+        self.add_state(name+'disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
+        self.deriv_options['linearize'] = True  # only for circulations
 
         self.E = surface['E']
         self.G = surface['G']
@@ -315,8 +314,30 @@ class SpatialBeamAssembly(Component):
                              self.const_z, self.ny, self.size,
                              self.mtx, self.rhs)
 
-        unknowns['mtx'] = self.mtx
-        unknowns['rhs'] = self.rhs
+
+        # Check to solve as a dense or sparse system
+        if type(self.mtx) == numpy.ndarray:
+            unknowns[name+'disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
+
+        else:
+            self.splu = scipy.sparse.linalg.splu(self.mtx)
+            unknowns[name+'disp_aug'] = self.splu.solve(self.rhs)
+
+    def apply_nonlinear(self, params, unknowns, resids):
+        name = self.surface['name']
+        self.mtx, self.rhs = \
+            _assemble_system(params[name+'nodes'],
+                             params[name+'A'], params[name+'J'], params[name+'Iy'],
+                             params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
+                             self.K_y, self.K_z, self.elem_IDs, self.cons,
+                             self.E, self.G, self.x_gl, self.T, self.K_elem,
+                             self.S_a, self.S_t, self.S_y, self.S_z,
+                             self.T_elem, self.const2, self.const_y,
+                             self.const_z, self.ny, self.size,
+                             self.mtx, self.rhs)
+
+        disp_aug = unknowns[name+'disp_aug']
+        resids[name+'disp_aug'] = self.mtx.dot(disp_aug) - self.rhs
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
@@ -328,83 +349,34 @@ class SpatialBeamAssembly(Component):
                                                        name+'nodes', name+'loads'],
                                             fd_states=[])
         jac.update(fd_jac)
+        jac[name+'disp_aug', name+'disp_aug'] = self.mtx.real
+
+        if type(self.mtx) == numpy.ndarray:
+            self.lup = lu_factor(self.mtx.real)
+        else:
+            self.splu = scipy.sparse.linalg.splu(self.mtx)
+            self.spluT = scipy.sparse.linalg.splu(self.mtx.transpose())
 
         return jac
 
-
-class SpatialBeamSolve(Component):
-
-    def __init__(self, size):
-        super(SpatialBeamSolve, self).__init__()
-
-        self.size = size
-
-        self.add_param("mtx", val=numpy.eye(size))
-        self.add_param("rhs", val=numpy.ones(size))
-
-        self.add_state("disp_aug", val=numpy.zeros(size))
-
-        # cache
-        self.lup = None
-        self.rhs_cache = None
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        """ Use numpy to solve Ax=b for x.
-        """
-
-        # lu factorization for use with solve_linear
-        self.lup = scipy.linalg.lu_factor(params['mtx'])
-
-        unknowns['disp_aug'] = scipy.linalg.lu_solve(self.lup, params['rhs'])
-        resids['disp_aug'] = params['mtx'].dot(unknowns['disp_aug']) - params['rhs']
-
-    def apply_nonlinear(self, params, unknowns, resids):
-        """Evaluating residual for given state."""
-
-        resids['disp_aug'] = params['mtx'].dot(unknowns['disp_aug']) - params['rhs']
-
-    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-        """ Apply the derivative of state variable with respect to
-        everything."""
-
-        if mode == 'fwd':
-
-            if 'disp_aug' in dunknowns:
-                dresids['disp_aug'] += params['mtx'].dot(dunknowns['disp_aug'])
-            if 'mtx' in dparams:
-                dresids['disp_aug'] += dparams['mtx'].dot(unknowns['disp_aug'])
-            if 'rhs' in dparams:
-                dresids['disp_aug'] -= dparams['rhs']
-
-        elif mode == 'rev':
-
-            if 'disp_aug' in dunknowns:
-                dunknowns['disp_aug'] += params['mtx'].T.dot(dresids['disp_aug'])
-            if 'mtx' in dparams:
-                dparams['mtx'] += numpy.outer(unknowns['disp_aug'], dresids['disp_aug']).T
-            if 'rhs' in dparams:
-                dparams['rhs'] -= dresids['disp_aug']
-
     def solve_linear(self, dumat, drmat, vois, mode=None):
-        """ LU backsubstitution to solve the derivatives of the linear system."""
 
         if mode == 'fwd':
             sol_vec, rhs_vec = self.dumat, self.drmat
-            t=0
+            t = 0
         else:
             sol_vec, rhs_vec = self.drmat, self.dumat
-            t=1
-
-        if self.rhs_cache is None:
-            self.rhs_cache = numpy.zeros((self.size, ))
-        rhs = self.rhs_cache
+            t = 1
 
         for voi in vois:
-            rhs[:] = rhs_vec[voi]['disp_aug']
-
-            sol = scipy.linalg.lu_solve(self.lup, rhs, trans=t)
-
-            sol_vec[voi]['disp_aug'] = sol[:]
+            if type(self.mtx) == numpy.ndarray:
+                sol_vec[voi].vec[:] = \
+                    lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
+            else:
+                if t == 0:
+                    sol_vec[voi].vec[:] = self.splu.solve(rhs_vec[voi].vec)
+                elif t == 1:
+                    sol_vec[voi].vec[:] = self.spluT.solve(rhs_vec[voi].vec)
 
 
 class SpatialBeamDisp(Component):
@@ -784,19 +756,12 @@ class SpatialBeamStates(Group):
     def __init__(self, surface):
         super(SpatialBeamStates, self).__init__()
 
-        name = surface['name']
-        size = 6 * surface['num_y'] + 6
-
         self.add('nodes',
                  ComputeNodes(surface),
                  promotes=['*'])
-        self.add('fem_assembly',
-                 SpatialBeamAssembly(surface),
-                 promotes=['mtx', 'rhs', name+'A', name+'Iy', name+'Iz',
-                    name+'J', name+'nodes', name+'loads'])
-        self.add('fem_solve',
-                 SpatialBeamSolve(size),
-                 promotes=['mtx', 'rhs', 'disp_aug'])
+        self.add('fem',
+                 SpatialBeamFEM(surface),
+                 promotes=['*'])
         self.add('disp',
                  SpatialBeamDisp(surface),
                  promotes=['*'])
