@@ -19,7 +19,6 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-fortran_flag = False
 sparse_flag = False
 
 
