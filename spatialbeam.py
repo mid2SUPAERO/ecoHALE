@@ -19,7 +19,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-sparse_flag = True
+sparse_flag = False
 
 
 def norm(vec):
@@ -68,7 +68,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
 
     # Dense Fortran
     if fortran_flag and not sparse_flag:
-        mtx = lib.assemblestructmtx(nodes, A, J, Iy, Iz,
+        mtx = lib.assemblestructmtx(size, nodes, A, J, Iy, Iz,
                                      K_a, K_t, K_y, K_z,
                                      elem_IDs+1, cons,
                                      E_vec, G_vec, x_gl, T,

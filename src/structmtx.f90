@@ -141,16 +141,16 @@ subroutine assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, &
 end subroutine assemblesparsemtx
 
 
-subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
-  M_a, M_t, M_y, M_z, & ! 4
+subroutine assemblestructmtx(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
+  K_a, K_t, K_y, K_z, & ! 4
   elem_IDs, cons, & ! 3
   E, G, x_gl, T, & ! 3
   K_elem, S_a, S_t, S_y, S_z, T_elem, & ! 6
-  const2, const_y, const_z, n, tot_n_fem, size, mtx) ! 7
+  const2, const_y, const_z, mtx) ! 7
 
   implicit none
 
-  !f2py intent(in)   n, tot_n_fem, size, elem_IDs, cons, nodes, A, J, Iy, Iz, E, G, x_gl, M_a, M_t, M_y, M_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
+  !f2py intent(in)   n, tot_n_fem, size, elem_IDs, cons, nodes, A, J, Iy, Iz, E, G, x_gl, K_a, K_t, K_y, K_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
   !f2py intent(out) mtx
   !f2py depends(tot_n_fem) nodes
   !f2py depends(n) elem_IDs, nodes, A, J, Iy, Iz, E, G
@@ -161,7 +161,7 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
   integer, intent(inout) :: elem_IDs(n-1, 2)
   complex*16, intent(in) :: nodes(tot_n_fem, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
   complex*16, intent(in) :: E(n-1), G(n-1), x_gl(3)
-  complex*16, intent(inout) :: M_a(2, 2), M_t(2, 2), M_y(4, 4), M_z(4, 4)
+  complex*16, intent(inout) :: K_a(2, 2), K_t(2, 2), K_y(4, 4), K_z(4, 4)
   complex*16, intent(inout) :: T(3, 3), K_elem(12, 12), T_elem(12, 12)
   complex*16, intent(in) :: S_a(2, 12), S_t(2, 12), S_y(4, 12), S_z(4, 12)
   complex*16, intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, 4)
@@ -204,26 +204,26 @@ subroutine assemblestructmtx(nodes, A, J, Iy, Iz, & ! 6
     EIy_L3 = E(ielem) * Iy(ielem) / L**3
     EIz_L3 = E(ielem) * Iz(ielem) / L**3
 
-    M_a(:, :) = EA_L * const2
-    M_t(:, :) = GJ_L * const2
+    K_a(:, :) = EA_L * const2
+    K_t(:, :) = GJ_L * const2
 
-    M_y(:, :) = EIy_L3 * const_y
-    M_y(2, :) = M_y(2, :) * L
-    M_y(4, :) = M_y(4, :) * L
-    M_y(:, 2) = M_y(:, 2) * L
-    M_y(:, 4) = M_y(:, 4) * L
+    K_y(:, :) = EIy_L3 * const_y
+    K_y(2, :) = K_y(2, :) * L
+    K_y(4, :) = K_y(4, :) * L
+    K_y(:, 2) = K_y(:, 2) * L
+    K_y(:, 4) = K_y(:, 4) * L
 
-    M_z(:, :) = EIz_L3 * const_z
-    M_z(2, :) = M_z(2, :) * L
-    M_z(4, :) = M_z(4, :) * L
-    M_z(:, 2) = M_z(:, 2) * L
-    M_z(:, 4) = M_z(:, 4) * L
+    K_z(:, :) = EIz_L3 * const_z
+    K_z(2, :) = K_z(2, :) * L
+    K_z(4, :) = K_z(4, :) * L
+    K_z(:, 2) = K_z(:, 2) * L
+    K_z(:, 4) = K_z(:, 4) * L
 
     K_elem(:, :) = 0.
-    K_elem = K_elem + matmul(matmul(transpose(S_a), M_a), S_a)
-    K_elem = K_elem + matmul(matmul(transpose(S_t), M_t), S_t)
-    K_elem = K_elem + matmul(matmul(transpose(S_y), M_y), S_y)
-    K_elem = K_elem + matmul(matmul(transpose(S_z), M_z), S_z)
+    K_elem = K_elem + matmul(matmul(transpose(S_a), K_a), S_a)
+    K_elem = K_elem + matmul(matmul(transpose(S_t), K_t), S_t)
+    K_elem = K_elem + matmul(matmul(transpose(S_y), K_y), S_y)
+    K_elem = K_elem + matmul(matmul(transpose(S_z), K_z), S_z)
 
     res = matmul(matmul(transpose(T_elem), K_elem), T_elem)
 
