@@ -43,7 +43,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                      elem_IDs, cons,
                      E, G, x_gl, T,
                      K_elem, S_a, S_t, S_y, S_z, T_elem,
-                     const2, const_y, const_z, n, size, mtx, rhs):
+                     const2, const_y, const_z, n, size, K, rhs):
 
     """
     Assemble the structural stiffness matrix based on 6 degrees of freedom
@@ -68,7 +68,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
 
     # Dense Fortran
     if fortran_flag and not sparse_flag:
-        mtx = lib.assemblestructmtx(size, nodes, A, J, Iy, Iz,
+        K = lib.assemblestructmtx(size, nodes, A, J, Iy, Iz,
                                      K_a, K_t, K_y, K_z,
                                      elem_IDs+1, cons,
                                      E_vec, G_vec, x_gl, T,
@@ -104,7 +104,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     else:
         num_nodes = num_elems + 1
 
-        mtx[:] = 0.
+        K[:] = 0.
 
         # Loop over each element
         for ielem in xrange(num_elems):
@@ -156,17 +156,17 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
 
             # Populate the full matrix with stiffness
             # contributions from each node
-            mtx[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
-            mtx[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
-            mtx[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
-            mtx[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
+            K[6*in0:6*in0+6, 6*in0:6*in0+6] += res[:6, :6]
+            K[6*in1:6*in1+6, 6*in0:6*in0+6] += res[6:, :6]
+            K[6*in0:6*in0+6, 6*in1:6*in1+6] += res[:6, 6:]
+            K[6*in1:6*in1+6, 6*in1:6*in1+6] += res[6:, 6:]
 
         # Include a scaled identity matrix in the rows and columns
         # corresponding to the structural constraints
         for ind in xrange(num_cons):
             for k in xrange(6):
-                mtx[-6+k, 6*cons+k] = 1.e9
-                mtx[6*cons+k, -6+k] = 1.e9
+                K[-6+k, 6*cons+k] = 1.e9
+                K[6*cons+k, -6+k] = 1.e9
 
     # Populate the right-hand side of the linear system using the
     # prescribed or computed loads
@@ -178,11 +178,11 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
         data = numpy.concatenate(data_list)
         rows = numpy.concatenate(rows_list)
         cols = numpy.concatenate(cols_list)
-        mtx = scipy.sparse.csc_matrix((data, (rows, cols)),
+        K = scipy.sparse.csc_matrix((data, (rows, cols)),
                                       shape=(size, size))
 
     rhs[numpy.abs(rhs) < 1e-6] = 0.
-    return mtx, rhs
+    return K, rhs
 
 
 class SpatialBeamFEM(Component):
@@ -210,7 +210,7 @@ class SpatialBeamFEM(Component):
     -------
     disp_aug[6*(ny+1)] : array_like
         Augmented displacement array. Obtained by solving the system
-        mtx * disp_aug = rhs, where rhs is a flattened version of loads.
+        K * disp_aug = rhs, where rhs is a flattened version of loads.
 
     """
 
@@ -274,7 +274,7 @@ class SpatialBeamFEM(Component):
         num_nodes = self.ny - 1
         num_cons = 1
 
-        self.mtx = numpy.zeros((size, size), dtype='complex')
+        self.K = numpy.zeros((size, size), dtype='complex')
         self.rhs = numpy.zeros(size, dtype='complex')
 
         self.K_a = numpy.zeros((2, 2), dtype='complex')
@@ -303,7 +303,7 @@ class SpatialBeamFEM(Component):
         idx = (numpy.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
 
-        self.mtx, self.rhs = \
+        self.K, self.rhs = \
             _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
@@ -312,20 +312,20 @@ class SpatialBeamFEM(Component):
                              self.S_a, self.S_t, self.S_y, self.S_z,
                              self.T_elem, self.const2, self.const_y,
                              self.const_z, self.ny, self.size,
-                             self.mtx, self.rhs)
+                             self.K, self.rhs)
 
 
         # Check to solve as a dense or sparse system
-        if type(self.mtx) == numpy.ndarray:
-            unknowns[name+'disp_aug'] = numpy.linalg.solve(self.mtx, self.rhs)
+        if type(self.K) == numpy.ndarray:
+            unknowns[name+'disp_aug'] = numpy.linalg.solve(self.K, self.rhs)
 
         else:
-            self.splu = scipy.sparse.linalg.splu(self.mtx)
+            self.splu = scipy.sparse.linalg.splu(self.K)
             unknowns[name+'disp_aug'] = self.splu.solve(self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        self.mtx, self.rhs = \
+        self.K, self.rhs = \
             _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
@@ -334,10 +334,10 @@ class SpatialBeamFEM(Component):
                              self.S_a, self.S_t, self.S_y, self.S_z,
                              self.T_elem, self.const2, self.const_y,
                              self.const_z, self.ny, self.size,
-                             self.mtx, self.rhs)
+                             self.K, self.rhs)
 
         disp_aug = unknowns[name+'disp_aug']
-        resids[name+'disp_aug'] = self.mtx.dot(disp_aug) - self.rhs
+        resids[name+'disp_aug'] = self.K.dot(disp_aug) - self.rhs
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
@@ -349,13 +349,13 @@ class SpatialBeamFEM(Component):
                                                        name+'nodes', name+'loads'],
                                             fd_states=[])
         jac.update(fd_jac)
-        jac[name+'disp_aug', name+'disp_aug'] = self.mtx.real
+        jac[name+'disp_aug', name+'disp_aug'] = self.K.real
 
-        if type(self.mtx) == numpy.ndarray:
-            self.lup = lu_factor(self.mtx.real)
+        if type(self.K) == numpy.ndarray:
+            self.lup = lu_factor(self.K.real)
         else:
-            self.splu = scipy.sparse.linalg.splu(self.mtx)
-            self.spluT = scipy.sparse.linalg.splu(self.mtx.transpose())
+            self.splu = scipy.sparse.linalg.splu(self.K)
+            self.spluT = scipy.sparse.linalg.splu(self.K.transpose())
 
         return jac
 
@@ -369,7 +369,7 @@ class SpatialBeamFEM(Component):
             t = 1
 
         for voi in vois:
-            if type(self.mtx) == numpy.ndarray:
+            if type(self.K) == numpy.ndarray:
                 sol_vec[voi].vec[:] = \
                     lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
             else:
@@ -392,7 +392,7 @@ class SpatialBeamDisp(Component):
     ----------
     disp_aug[6*(ny+1)] : array_like
         Augmented displacement array. Obtained by solving the system
-        mtx * disp_aug = rhs, where rhs is a flattened version of loads.
+        K * disp_aug = rhs, where rhs is a flattened version of loads.
 
     Returns
     -------

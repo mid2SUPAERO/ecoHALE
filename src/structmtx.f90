@@ -44,7 +44,7 @@ subroutine assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, &
     ! Miscellaneous
     complex*16 :: L, xyz1(3), xyz2(3)
     complex*16 :: x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-    integer :: k, k1, k2, ind, ind1, ind2, ielem
+    integer :: i, k1, k2, ind, ind1, ind2, ielem
     complex*16 :: norm
 
     do k1 = 1, 12
@@ -86,8 +86,8 @@ subroutine assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, &
         T(2, :) = y_loc
         T(3, :) = z_loc
 
-        do k = 1, 4
-            Telem(3*(k-1)+1:3*(k-1)+3, 3*(k-1)+1:3*(k-1)+3) = T
+        do i = 1, 4
+            Telem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = T
         end do
 
         Kelem_a = coeff_at * E(ielem) * A(ielem) / L
@@ -146,15 +146,15 @@ subroutine assemblestructmtx(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
   elem_IDs, cons, & ! 3
   E, G, x_gl, T, & ! 3
   K_elem, S_a, S_t, S_y, S_z, T_elem, & ! 6
-  const2, const_y, const_z, mtx) ! 7
+  const2, const_y, const_z, K) ! 7
 
   implicit none
 
   !f2py intent(in)   n, tot_n_fem, size, elem_IDs, cons, nodes, A, J, Iy, Iz, E, G, x_gl, K_a, K_t, K_y, K_z, T, K_elem, S_a, S_t, S_y, S_z, T_elem, const2, const_y, const_z
-  !f2py intent(out) mtx
+  !f2py intent(out) K
   !f2py depends(tot_n_fem) nodes
   !f2py depends(n) elem_IDs, nodes, A, J, Iy, Iz, E, G
-  !f2py depends(size) mtx
+  !f2py depends(size) K
 
   ! Input
   integer, intent(in) :: n, size, cons, tot_n_fem
@@ -167,19 +167,19 @@ subroutine assemblestructmtx(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
   complex*16, intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, 4)
 
   ! Output
-  complex*16, intent(out) :: mtx(size, size)
+  complex*16, intent(out) :: K(size, size)
 
   ! Working
   complex*16 :: P0(3), P1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
   complex*16 :: L, EA_L, GJ_L, EIy_L3, EIz_L3, norm, res(12, 12)
-  integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, k
+  integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, i
 
 
   num_elems = n - 1
   num_nodes = n
   num_cons = 1 ! only 1 con in current spatialbeam code
 
-  mtx(:, :) = 0.
+  K(:, :) = 0.
   do ielem = 1, num_elems ! loop over num elements
     P0 = nodes(elem_IDs(ielem, 1), :)
     P1 = nodes(elem_IDs(ielem, 2), :)
@@ -230,23 +230,23 @@ subroutine assemblestructmtx(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
     in0 = elem_IDs(ielem, 1)
     in1 = elem_IDs(ielem, 2)
 
-    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = &
-    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(:6, :6)
+    K(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = &
+    K(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(:6, :6)
 
-    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = &
-    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(7:, :6)
+    K(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = &
+    K(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(7:, :6)
 
-    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = &
-    mtx(6*(in0-1)+1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(:6, 7:)
+    K(6*(in0-1)+1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = &
+    K(6*(in0-1)+1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(:6, 7:)
 
-    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = &
-    mtx(6*(in1-1)+1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(7:, 7:)
+    K(6*(in1-1)+1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = &
+    K(6*(in1-1)+1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(7:, 7:)
 
   end do
 
-  do k = 1, 6
-    mtx(6*num_nodes+k, 6*cons+k) = 10**9.
-    mtx(6*cons+k, 6*num_nodes+k) = 10**9.
+  do i = 1, 6
+    K(6*num_nodes+i, 6*cons+i) = 10**9.
+    K(6*cons+i, 6*num_nodes+i) = 10**9.
   end do
 
 end subroutine assemblestructmtx
