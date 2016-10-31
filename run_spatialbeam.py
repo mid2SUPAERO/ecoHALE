@@ -28,7 +28,8 @@ if __name__ == "__main__":
 
     # Instantiate problem and add default surface
     OAS_prob = OASProblem(prob_dict)
-    OAS_prob.add_surface({'name' : 'wing'})
+    OAS_prob.add_surface({'name' : 'wing',
+                          'num_y' : 21})
 
     # Single lifting surface
     if not sys.argv[1].endswith('m'):

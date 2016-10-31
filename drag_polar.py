@@ -29,8 +29,8 @@ beta = numpy.linspace(0, numpy.pi/2, ny2)
 # mixed spacing with w as a weighting factor
 cosine = .5 * numpy.cos(beta)**1 #  cosine spacing
 uniform = numpy.linspace(0, .5, ny2)[::-1] #  uniform spacing
-cosine_spacing = 0.5
-half_wing = cosine * cosine_spacing + (1 - cosine_spacing) * uniform
+span_cos_spacing = 0.5
+half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
 full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
 for ind_x in xrange(num_x):

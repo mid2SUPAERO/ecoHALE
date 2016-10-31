@@ -15,10 +15,14 @@ import scipy.sparse.linalg
 from time import time
 
 try:
-    import lib
+    import OAS_API
     fortran_flag = True
+    print 'FORTRAN'
 except:
+    import traceback
+    traceback.print_exc()
     fortran_flag = False
+    print 'NO FORTRAN'
 sparse_flag = False
 
 
@@ -66,14 +70,19 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     E_vec = E*numpy.ones(num_elems)
     G_vec = G*numpy.ones(num_elems)
 
+    # Populate the right-hand side of the linear system using the
+    # prescribed or computed loads
+    rhs[:] = 0.0
+    rhs[:6*n] = loads.reshape((6*n))
+
     # Dense Fortran
     if fortran_flag and not sparse_flag:
-        K = lib.assemblestructmtx(size, nodes, A, J, Iy, Iz,
+        K, x = OAS_API.oas_api.assemblestructmtx(nodes, A, J, Iy, Iz,
                                      K_a, K_t, K_y, K_z,
                                      elem_IDs+1, cons,
                                      E_vec, G_vec, x_gl, T,
                                      K_elem, S_a, S_t, S_y, S_z, T_elem,
-                                     const2, const_y, const_z)
+                                     const2, const_y, const_z, rhs)
 
 
     # Sparse Fortran
@@ -81,7 +90,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
         nnz = 144 * num_elems
 
         data1, rows1, cols1 = \
-            lib.assemblesparsemtx(nnz, x_gl, E_vec,
+            OAS_API.oas_api.assemblesparsemtx(nnz, x_gl, E_vec,
                                   G_vec, A, J, Iy, Iz,
                                   nodes, elem_IDs+1, const2, const_y,
                                   const_z, S_a, S_t, S_y, S_z)
@@ -168,11 +177,6 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                 K[-6+k, 6*cons+k] = 1.e9
                 K[6*cons+k, -6+k] = 1.e9
 
-    # Populate the right-hand side of the linear system using the
-    # prescribed or computed loads
-    rhs[:] = 0.0
-    rhs[:6*n] = loads.reshape((6*n))
-
     # Create the sparse matrix if sparse_flag == True
     if fortran_flag and sparse_flag:
         data = numpy.concatenate(data_list)
@@ -182,7 +186,45 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                                       shape=(size, size))
 
     rhs[numpy.abs(rhs) < 1e-6] = 0.
-    return K, rhs
+
+    # Check to solve as a dense or sparse system
+    if not fortran_flag and type(K) == numpy.ndarray:
+        x = numpy.linalg.solve(K, rhs)
+
+    return K, x, rhs
+
+
+def _assemble_system_b(nodes, A, J, Iy, Iz, loads,
+                     K_a, K_t, K_y, K_z,
+                     elem_IDs, cons,
+                     E, G, x_gl, T,
+                     K_elem, S_a, S_t, S_y, S_z, T_elem,
+                     const2, const_y, const_z, n, size, K, Kb, x, xb, rhs):
+
+
+    size = 6 * n + 6
+    num_cons = 1
+
+    num_elems = elem_IDs.shape[0]
+    E_vec = E*numpy.ones(num_elems)
+    G_vec = G*numpy.ones(num_elems)
+
+    # Populate the right-hand side of the linear system using the
+    # prescribed or computed loads
+    rhs[:] = 0.0
+    rhs[:6*n] = loads.reshape((6*n))
+
+    # Dense Fortran
+    if fortran_flag and not sparse_flag:
+        nodesb, Ab, Jb, Iyb, Izb, rhsb = OAS_API.oas_api.assemblestructmtx_b(nodes, A, J, Iy, Iz,
+                                     K_a, K_t, K_y, K_z,
+                                     elem_IDs+1, cons,
+                                     E_vec, G_vec, x_gl, T,
+                                     K_elem, S_a, S_t, S_y, S_z, T_elem,
+                                     const2, const_y, const_z, rhs, K, Kb, x, xb)
+
+
+    return nodesb, Ab, Jb, Iyb, Izb, rhsb
 
 
 class SpatialBeamFEM(Component):
@@ -303,7 +345,7 @@ class SpatialBeamFEM(Component):
         idx = (numpy.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
 
-        self.K, self.rhs = \
+        self.K, self.x, self.rhs = \
             _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
@@ -314,18 +356,12 @@ class SpatialBeamFEM(Component):
                              self.const_z, self.ny, self.size,
                              self.K, self.rhs)
 
+        unknowns[name+'disp_aug'] = self.x
 
-        # Check to solve as a dense or sparse system
-        if type(self.K) == numpy.ndarray:
-            unknowns[name+'disp_aug'] = numpy.linalg.solve(self.K, self.rhs)
-
-        else:
-            self.splu = scipy.sparse.linalg.splu(self.K)
-            unknowns[name+'disp_aug'] = self.splu.solve(self.rhs)
 
     def apply_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        self.K, self.rhs = \
+        self.K, _, self.rhs = \
             _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
@@ -339,12 +375,41 @@ class SpatialBeamFEM(Component):
         disp_aug = unknowns[name+'disp_aug']
         resids[name+'disp_aug'] = self.K.dot(disp_aug) - self.rhs
 
+    # def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
+    #     name = self.surface['name']
+    #     if mode == 'fwd':
+    #         print 'forward'
+    #
+    #
+    #     else:
+    #         print 'reverse'
+    #         nodesb, Ab, Jb, Iyb, Izb, rhsb = \
+    #             _assemble_system_b(params[name+'nodes'],
+    #                              params[name+'A'], params[name+'J'], params[name+'Iy'],
+    #                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
+    #                              self.K_y, self.K_z, self.elem_IDs, self.cons,
+    #                              self.E, self.G, self.x_gl, self.T, self.K_elem,
+    #                              self.S_a, self.S_t, self.S_y, self.S_z,
+    #                              self.T_elem, self.const2, self.const_y,
+    #                              self.const_z, self.ny, self.size,
+    #                              self.K, numpy.zeros(self.K.shape),
+    #                              unknowns[name+'disp_aug'], dresids[name+'disp_aug'], self.rhs)
+    #
+    #         print nodesb, Ab, Jb, Iyb, Izb, rhsb
+    #
+    #         dparams[name+'nodes'] += nodesb
+    #         dparams[name+'A'] += Ab
+    #         dparams[name+'J'] += Jb
+    #         dparams[name+'Iy'] += Iyb
+    #         dparams[name+'Iz'] += Izb
+    #         dparams[name+'loads'] += rhsb[:-6].reshape(-1, 6)
+
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
 
         name = self.surface['name']
         jac = self.alloc_jacobian()
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+        fd_jac = self.fd_jacobian(params, unknowns, resids,
                                             fd_params=[name+'A', name+'Iy', name+'Iz', name+'J',
                                                        name+'nodes', name+'loads'],
                                             fd_states=[])
@@ -558,7 +623,7 @@ class SpatialBeamWeight(Component):
         self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3)))
         self.add_output(name+'weight', val=0.)
 
-        self.deriv_options['type'] = 'cs'
+        self.deriv_options['type'] = 'fd'
         self.deriv_options['form'] = 'central'
 
         elem_IDs = numpy.zeros((self.ny - 1, 2), int)
@@ -636,7 +701,7 @@ class SpatialBeamVonMisesTube(Component):
         self.add_output(name+'vonmises', val=numpy.zeros((self.ny-1, 2),
                         dtype="complex"))
 
-        self.deriv_options['type'] = 'cs'
+        self.deriv_options['type'] = 'fd'
         self.deriv_options['form'] = 'central'
 
         elem_IDs = numpy.zeros((self.ny - 1, 2), int)

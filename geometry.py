@@ -360,7 +360,7 @@ def add_chordwise_panels(mesh, num_x):
     return new_mesh
 
 
-def gen_rect_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
+def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
     """ Generate simple rectangular wing mesh.
 
     Parameters
@@ -373,11 +373,16 @@ def gen_rect_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
         Total wingspan.
     chord : float
         Root chord.
-    cosine_spacing : float (optional)
+    span_cos_spacing : float (optional)
         Blending ratio of uniform and cosine spacing in the spanwise direction.
         A value of 0. corresponds to uniform spacing and a value of 1.
         corresponds to regular cosine spacing. This increases the number of
         spanwise node points near the wingtips.
+    chord_cos_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the chordwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        chordwise node points near the wingtips.
 
     Returns
     -------
@@ -391,16 +396,31 @@ def gen_rect_mesh(num_x, num_y, span, chord, cosine_spacing=0.):
     ny2 = (num_y + 1) / 2
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 
-    # mixed spacing with w as a weighting factor
+    # mixed spacing with span_cos_spacing as a weighting factor
+    # this is for the spanwise spacing
     cosine = .5 * numpy.cos(beta)  # cosine spacing
     uniform = numpy.linspace(0, .5, ny2)[::-1]  # uniform spacing
-    half_wing = cosine * cosine_spacing + (1 - cosine_spacing) * uniform
+    half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
     full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
+
+    nx2 = (num_x + 1) / 2
+    beta = numpy.linspace(0, numpy.pi/2, nx2)
+
+    # mixed spacing with span_cos_spacing as a weighting factor
+    # this is for the chordwise spacing
+    cosine = .5 * numpy.cos(beta)  # cosine spacing
+    uniform = numpy.linspace(0, .5, nx2)[::-1]  # uniform spacing
+    half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
+    full_wing_x = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * chord
+
+    # Special case if there are only 2 chordwise nodes
+    if num_x <= 2:
+        full_wing_x = numpy.array([0., chord])
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
-            mesh[ind_x, ind_y, :] = [ind_x / (num_x-1) * chord,
-                                     full_wing[ind_y], 0]
+            mesh[ind_x, ind_y, :] = [full_wing_x[ind_x], full_wing[ind_y], 0]
+
     return mesh
 
 

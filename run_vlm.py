@@ -18,7 +18,6 @@ from run_classes import OASProblem
 
 if __name__ == "__main__":
 
-
     # Set problem type
     prob_dict = {'type' : 'aero'}
 
@@ -31,7 +30,8 @@ if __name__ == "__main__":
     OAS_prob = OASProblem(prob_dict)
     OAS_prob.add_surface({'name' : 'wing',
                           'symmetry' : True,
-                          'num_y' : 11})
+                          'num_y' : 5,
+                          'num_x' : 2})
 
     # Single lifting surface
     if not sys.argv[1].endswith('m'):
@@ -64,6 +64,7 @@ if __name__ == "__main__":
 
         # Note that these tail variables have no effect on the wing and thus
         # have no need to be changed except to satisfy the failure constraint
+        # The tail has no effect because it's adequately far away from the wing
         OAS_prob.add_desvar('tail_twist_cp', lower=-10., upper=15.)
         OAS_prob.add_desvar('tail_sweep', lower=10., upper=30.)
         OAS_prob.add_desvar('tail_dihedral', lower=-10., upper=20.)
@@ -75,3 +76,4 @@ if __name__ == "__main__":
     OAS_prob.run()
 
     print "\nWing CL:", OAS_prob.prob['wing_CL']
+    print "Wing CD:", OAS_prob.prob['wing_CD']

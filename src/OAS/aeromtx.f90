@@ -29,6 +29,7 @@ subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, sy
 
   pi = 4.d0*atan(1.d0)
 
+  ! Trailing vortices in AVL follow the x-axis; no cos or sin
   u(1) = cos(alpha * pi / 180.)
   u(2) = 0.
   u(3) = sin(alpha * pi / 180.)

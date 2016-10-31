@@ -34,11 +34,16 @@ import numpy
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 try:
-    import lib
+    import OAS_API
     fortran_flag = True
+    print 'FORTRAN'
 except:
+    import traceback
+    traceback.print_exc()
     fortran_flag = False
+    print 'NO FORTRAN'
 
+from time import time
 
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
@@ -167,9 +172,11 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             # Obtain the collocation points used to compute the AIC mtx.
             # If setting up the AIC mtx, we use the collocation points (c_pts),
             # but if setting up the matrix to solve for drag, we use the
-            # midpoints of the bound vortices (mid_b).
+            # midpoints of the bound vortices.
             if skip:
-                pts = params[name+'mid_b']
+                # Find the midpoints of the bound points, used in drag computations
+                pts = (params[name+'b_pts'][:, 1:, :] + \
+                    params[name+'b_pts'][:, :-1, :]) / 2
             else:
                 pts = params[name+'c_pts']
 
@@ -178,7 +185,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
             # Dense fortran assembly for the AIC matrix
             if fortran_flag:
-                small_mat[:, :, :] = lib.assembleaeromtx(alpha, pts, bpts,
+                small_mat[:, :, :] = OAS_API.oas_api.assembleaeromtx(alpha, pts, bpts,
                                                          mesh, skip, symmetry)
             # Python matrix assembly
             else:
@@ -322,6 +329,118 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     mtx /= 4 * numpy.pi
 
+def _assemble_AIC_mtx_d(mtx, params, surfaces, skip=False):
+    """
+    Compute the aerodynamic influence coefficient matrix
+    for either solving the linear system or solving for the drag.
+
+    We use a nested for loop structure to loop through the lifting surfaces to
+    obtain the corresponding mesh, then for each mesh we again loop through
+    the lifting surfaces to obtain the collocation points used to compute
+    the horseshoe vortex influence coefficients.
+
+    This creates mtx with blocks corresponding to each lifting surface's
+    effects on other lifting surfaces. The block diagonal portions
+    correspond to each lifting surface's influencen on itself. For a single
+    lifting surface, this is the entire mtx.
+
+    Parameters
+    ----------
+    mtx[num_y-1, num_y-1, 3] : array_like
+        Aerodynamic influence coefficient (AIC) matrix, or the
+        derivative of v w.r.t. circulations.
+    params : dictionary
+        OpenMDAO params dictionary for a given aero problem
+    surfaces : dictionary
+        Dictionary containing all surfaces in an aero problem.
+    skip : boolean
+        If false, the bound vortex contributions on the collocation point
+        corresponding to the same panel are not included. Used for the drag
+        computation.
+
+    Returns
+    -------
+    mtx[tot_panels, tot_panels, 3] : array_like
+        Aerodynamic influence coefficient (AIC) matrix, or the
+        derivative of v w.r.t. circulations.
+    """
+
+    alpha = params['alpha']
+    mtx[:, :, :] = 0.0
+    cosa = numpy.cos(alpha * numpy.pi / 180.)
+    sina = numpy.sin(alpha * numpy.pi / 180.)
+    u = numpy.array([cosa, 0, sina])
+
+    i_ = 0
+    i_bpts_ = 0
+    i_panels_ = 0
+
+    # Loop over the lifting surfaces to compute their influence on the flow
+    # velocity at the collocation points
+    for surface_ in surfaces:
+
+        # Variable names with a trailing underscore correspond to the lifting
+        # surface being examined, not the collocation point
+        name_ = surface_['name']
+        nx_ = surface_['num_x']
+        ny_ = surface_['num_y']
+        n_ = nx_ * ny_
+        n_bpts_ = (nx_ - 1) * ny_
+        n_panels_ = (nx_ - 1) * (ny_ - 1)
+
+        # Obtain the lifting surface mesh in the form expected by the solver,
+        # with shape [nx_, ny_, 3]
+        mesh = params[name_+'def_mesh']
+        bpts = params[name_+'b_pts']
+
+        # Set counters to know where to index the sub-matrix within the full mtx
+        i = 0
+        i_bpts = 0
+        i_panels = 0
+
+        for surface in surfaces:
+            # These variables correspond to the collocation points
+            name = surface['name']
+            nx = surface['num_x']
+            ny = surface['num_y']
+            n = nx * ny
+            n_bpts = (nx - 1) * ny
+            n_panels = (nx - 1) * (ny - 1)
+            symmetry = surface['symmetry']
+
+            # Obtain the collocation points used to compute the AIC mtx.
+            # If setting up the AIC mtx, we use the collocation points (c_pts),
+            # but if setting up the matrix to solve for drag, we use the
+            # midpoints of the bound vortices.
+            if skip:
+                # Find the midpoints of the bound points, used in drag computations
+                pts = (params[name+'b_pts'][:, 1:, :] + \
+                    params[name+'b_pts'][:, :-1, :]) / 2
+            else:
+                pts = params[name+'c_pts']
+
+            # Initialize sub-matrix to populate within full mtx
+            small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype='complex')
+
+            # Dense fortran assembly for the AIC matrix
+            if fortran_flag:
+                small_mat[:, :, :] = OAS_API.oas_api.assembleaeromtx(alpha, pts, bpts,
+                                                         mesh, skip, symmetry)
+
+            # Populate the full-size matrix with these surface-surface AICs
+            mtx[i_panels:i_panels+n_panels,
+                i_panels_:i_panels_+n_panels_, :] = small_mat
+
+            i += n
+            i_bpts += n_bpts
+            i_panels += n_panels
+
+        i_ += n_
+        i_bpts_ += n_bpts_
+        i_panels_ += n_panels_
+
+    mtx /= 4 * numpy.pi
+
 
 class VLMGeometry(Component):
     """ Compute various geometric properties for VLM analysis.
@@ -335,9 +454,6 @@ class VLMGeometry(Component):
     -------
     b_pts[nx-1, ny, 3] : array_like
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    mid_b[nx-1, ny-1, 3] : array_like
-        Midpoints of the bound vortex segments, used as the collocation
-        points to compute drag.
     c_pts[nx-1, ny-1, 3] : array_like
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
@@ -367,8 +483,6 @@ class VLMGeometry(Component):
                        dtype="complex"))
         self.add_output(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
                         dtype="complex"))
-        self.add_output(name+'mid_b', val=numpy.zeros((self.nx-1, self.ny-1, 3),
-                        dtype="complex"))
         self.add_output(name+'c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
         self.add_output(name+'widths', val=numpy.zeros((self.nx-1, self.ny-1)))
         self.add_output(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
@@ -383,9 +497,6 @@ class VLMGeometry(Component):
 
         # Compute the bound points at 1/4 chord
         b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
-
-        # Find the midpoints of the bound points, used in drag computations
-        mid_b = (b_pts[:, 1:, :] + b_pts[:, :-1, :]) / 2
 
         # Compute the collocation points at the midpoints of each
         # panel's 3/4 chord line
@@ -411,7 +522,6 @@ class VLMGeometry(Component):
 
         # Store each array
         unknowns[name+'b_pts'] = b_pts
-        unknowns[name+'mid_b'] = mid_b
         unknowns[name+'c_pts'] = c_pts
         unknowns[name+'widths'] = widths
         unknowns[name+'normals'] = normals
@@ -441,12 +551,6 @@ class VLMGeometry(Component):
                          (.125, .125, .375, .375)):
             for ix in range(nx-1):
                 numpy.fill_diagonal(jac[name+'c_pts', name+'def_mesh']
-                    [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
-
-        for iz, v in zip((0, 3, ny*3, (ny+1)*3),
-                         (.375, .375, .125, .125)):
-            for ix in range(nx-1):
-                numpy.fill_diagonal(jac[name+'mid_b', name+'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
         return jac
@@ -619,9 +723,6 @@ class VLMForces(Component):
         Array defining the nodal coordinates of the lifting surface.
     b_pts[nx-1, ny, 3] : array_like
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    mid_b[nx-1, ny-1, 3] : array_like
-        Midpoints of the bound vortex segments, used as the collocation
-        points to compute drag.
     circulations : array_like
         Flattened vector of horseshoe vortex strengths calculated by solving
         the linear system of AIC_mtx * circulations = rhs, where rhs is
@@ -654,7 +755,6 @@ class VLMForces(Component):
 
             self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
             self.add_param(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3), dtype='complex'))
-            self.add_param(name+'mid_b', val=numpy.zeros((self.nx-1, self.ny-1, 3), dtype='complex'))
             self.add_output(name+'sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3), dtype='complex'))
 
         self.tot_panels = tot_panels
@@ -676,7 +776,7 @@ class VLMForces(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        # Assemble a different matrix here than the AIC_mtx from above; Notes
+        # Assemble a different matrix here than the AIC_mtx from above; Note
         # that the collocation points used here are the midpoints of each
         # bound vortex filament, not the collocation points from above
         _assemble_AIC_mtx(self.mtx, params, self.surfaces, skip=True)
@@ -686,7 +786,7 @@ class VLMForces(Component):
         for ind in xrange(3):
             self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
 
-        # Add the fresstream velocity to the induced velocity so that
+        # Add the freestream velocity to the induced velocity so that
         # self.v is the total velocity seen at the point
         self.v[:, 0] += cosa * params['v']
         self.v[:, 2] += sina * params['v']
@@ -730,7 +830,7 @@ class VLMForces(Component):
             name = surface['name']
 
             fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                             fd_params=[name+'b_pts', name+'mid_b',
+                                             fd_params=[name+'b_pts',
                                                 name+'def_mesh'],
                                              fd_states=[])
             jac.update(fd_jac)
@@ -739,6 +839,9 @@ class VLMForces(Component):
             jac[name+'sec_forces', 'rho'] = sec_forces.flatten() / rho
 
         return jac
+
+    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
+        print mode, dresids['sec_forces']
 
 
 class VLMLiftDrag(Component):

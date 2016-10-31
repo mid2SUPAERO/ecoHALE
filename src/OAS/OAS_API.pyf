@@ -1,0 +1,164 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module OAS_API ! in 
+    interface  ! in :OAS_API
+        module oas_api ! in :OAS_API:OAS_API.F90
+            use oas_main
+            subroutine assemblesparsemtx(num_elems,tot_n_fem,nnz,x_gl,e,g,a,j,iy,iz,nodes,elems,coeff_at,coeff_y,coeff_z,pelem_a,pelem_t,pelem_y,pelem_z,data,rows,cols) ! in :OAS_API:OAS_API.F90:oas_api
+                integer, optional,intent(in),check(len(e)>=num_elems),depend(e) :: num_elems=len(e)
+                integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)
+                integer intent(in) :: nnz
+                real(kind=8) dimension(3),intent(in) :: x_gl
+                real(kind=8) dimension(num_elems),intent(in) :: e
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: g
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: a
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: j
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: iy
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: iz
+                real(kind=8) dimension(tot_n_fem,3),intent(in) :: nodes
+                integer dimension(num_elems,2),intent(in),depend(num_elems) :: elems
+                real(kind=8) dimension(2,2),intent(in) :: coeff_at
+                real(kind=8) dimension(4,4),intent(in) :: coeff_y
+                real(kind=8) dimension(4,4),intent(in) :: coeff_z
+                real(kind=8) dimension(2,12),intent(in) :: pelem_a
+                real(kind=8) dimension(2,12),intent(in) :: pelem_t
+                real(kind=8) dimension(4,12),intent(in) :: pelem_y
+                real(kind=8) dimension(4,12),intent(in) :: pelem_z
+                real(kind=8) dimension(nnz),intent(out),depend(nnz) :: data
+                integer dimension(nnz),intent(out),depend(nnz) :: rows
+                integer dimension(nnz),intent(out),depend(nnz) :: cols
+            end subroutine assemblesparsemtx
+            subroutine assemblestructmtx(n,tot_n_fem,size_bn,nodes,a,j,iy,iz,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,rhs,k,x) ! in :OAS_API:OAS_API.F90:oas_api
+                integer, optional,intent(in),check((len(a)+1)>=n),depend(a) :: n=(len(a)+1)
+                integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)
+                integer, optional,intent(in),check(len(rhs)>=size_bn),depend(rhs) :: size_bn=len(rhs)
+                real(kind=8) dimension(tot_n_fem,3),intent(in) :: nodes
+                real(kind=8) dimension(n - 1),intent(in) :: a
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: j
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: iy
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: iz
+                real(kind=8) dimension(2,2),intent(in) :: k_a
+                real(kind=8) dimension(2,2),intent(in) :: k_t
+                real(kind=8) dimension(4,4),intent(in) :: k_y
+                real(kind=8) dimension(4,4),intent(in) :: k_z
+                integer dimension(n - 1,2),intent(in),depend(n) :: elem_ids
+                integer intent(in) :: cons
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: e
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: g
+                real(kind=8) dimension(3),intent(in) :: x_gl
+                real(kind=8) dimension(3,3),intent(in) :: t
+                real(kind=8) dimension(12,12),intent(in) :: k_elem
+                real(kind=8) dimension(2,12),intent(in) :: pelem_a
+                real(kind=8) dimension(2,12),intent(in) :: pelem_t
+                real(kind=8) dimension(4,12),intent(in) :: pelem_y
+                real(kind=8) dimension(4,12),intent(in) :: pelem_z
+                real(kind=8) dimension(12,12),intent(in) :: t_elem
+                real(kind=8) dimension(2,2),intent(in) :: const2
+                real(kind=8) dimension(4,4),intent(in) :: const_y
+                real(kind=8) dimension(4,4),intent(in) :: const_z
+                real(kind=8) dimension(size_bn),intent(in) :: rhs
+                real(kind=8) dimension(size_bn,size_bn),intent(out),depend(size_bn,size_bn) :: k
+                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: x
+            end subroutine assemblestructmtx
+            subroutine assemblestructmtx_d(n,tot_n_fem,size_bn,nodes,nodesd,a,ad,j,jd,iy,iyd,iz,izd,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,rhs,rhsd,k,kd,x,xd) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_d, only: assemblestructmtx_main_d
+                integer, optional,intent(in),check((len(a)+1)>=n),depend(a) :: n=(len(a)+1)
+                integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)
+                integer, optional,intent(in),check(len(rhs)>=size_bn),depend(rhs) :: size_bn=len(rhs)
+                real(kind=8) dimension(tot_n_fem,3),intent(in) :: nodes
+                real(kind=8) dimension(tot_n_fem,3),intent(in),depend(tot_n_fem) :: nodesd
+                real(kind=8) dimension(n - 1),intent(in) :: a
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: ad
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: j
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: jd
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: iy
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: iyd
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: iz
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: izd
+                real(kind=8) dimension(2,2),intent(in) :: k_a
+                real(kind=8) dimension(2,2),intent(in) :: k_t
+                real(kind=8) dimension(4,4),intent(in) :: k_y
+                real(kind=8) dimension(4,4),intent(in) :: k_z
+                integer dimension(n - 1,2),intent(in),depend(n) :: elem_ids
+                integer intent(in) :: cons
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: e
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: g
+                real(kind=8) dimension(3),intent(in) :: x_gl
+                real(kind=8) dimension(3,3),intent(in) :: t
+                real(kind=8) dimension(12,12),intent(in) :: k_elem
+                real(kind=8) dimension(2,12),intent(in) :: pelem_a
+                real(kind=8) dimension(2,12),intent(in) :: pelem_t
+                real(kind=8) dimension(4,12),intent(in) :: pelem_y
+                real(kind=8) dimension(4,12),intent(in) :: pelem_z
+                real(kind=8) dimension(12,12),intent(in) :: t_elem
+                real(kind=8) dimension(2,2),intent(in) :: const2
+                real(kind=8) dimension(4,4),intent(in) :: const_y
+                real(kind=8) dimension(4,4),intent(in) :: const_z
+                real(kind=8) dimension(size_bn),intent(in) :: rhs
+                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: rhsd
+                real(kind=8) dimension(size_bn,size_bn),intent(out),depend(size_bn,size_bn) :: k
+                real(kind=8) dimension(size_bn,size_bn),intent(out),depend(size_bn,size_bn) :: kd
+                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: x
+                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: xd
+            end subroutine assemblestructmtx_d
+            subroutine assemblestructmtx_b(n,tot_n_fem,size_bn,nodes,nodesb,a,ab,j,jb,iy,iyb,iz,izb,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,rhs,rhsb,k,kb,x,xb) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_b, only: assemblestructmtx_main_b
+                integer, optional,intent(in),check((len(a)+1)>=n),depend(a) :: n=(len(a)+1)
+                integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)
+                integer, optional,intent(in),check(len(rhs)>=size_bn),depend(rhs) :: size_bn=len(rhs)
+                real(kind=8) dimension(tot_n_fem,3),intent(in) :: nodes
+                real(kind=8) dimension(tot_n_fem,3),intent(out),depend(tot_n_fem) :: nodesb
+                real(kind=8) dimension(n - 1),intent(in) :: a
+                real(kind=8) dimension(n - 1),intent(out),depend(n) :: ab
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: j
+                real(kind=8) dimension(n - 1),intent(out),depend(n) :: jb
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: iy
+                real(kind=8) dimension(n - 1),intent(out),depend(n) :: iyb
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: iz
+                real(kind=8) dimension(n - 1),intent(out),depend(n) :: izb
+                real(kind=8) dimension(2,2),intent(in) :: k_a
+                real(kind=8) dimension(2,2),intent(in) :: k_t
+                real(kind=8) dimension(4,4),intent(in) :: k_y
+                real(kind=8) dimension(4,4),intent(in) :: k_z
+                integer dimension(n - 1,2),intent(in),depend(n) :: elem_ids
+                integer intent(in) :: cons
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: e
+                real(kind=8) dimension(n - 1),intent(in),depend(n) :: g
+                real(kind=8) dimension(3),intent(in) :: x_gl
+                real(kind=8) dimension(3,3),intent(in) :: t
+                real(kind=8) dimension(12,12),intent(in) :: k_elem
+                real(kind=8) dimension(2,12),intent(in) :: pelem_a
+                real(kind=8) dimension(2,12),intent(in) :: pelem_t
+                real(kind=8) dimension(4,12),intent(in) :: pelem_y
+                real(kind=8) dimension(4,12),intent(in) :: pelem_z
+                real(kind=8) dimension(12,12),intent(in) :: t_elem
+                real(kind=8) dimension(2,2),intent(in) :: const2
+                real(kind=8) dimension(4,4),intent(in) :: const_y
+                real(kind=8) dimension(4,4),intent(in) :: const_z
+                real(kind=8) dimension(size_bn),intent(in) :: rhs
+                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: rhsb
+                real(kind=8) dimension(size_bn,size_bn),intent(in),depend(size_bn,size_bn) :: k
+                real(kind=8) dimension(size_bn,size_bn),intent(in),depend(size_bn,size_bn) :: kb
+                real(kind=8) dimension(size_bn),intent(in),depend(size_bn) :: x
+                real(kind=8) dimension(size_bn),intent(in),depend(size_bn) :: xb
+            end subroutine assemblestructmtx_b
+            subroutine assembleaeromtx(ny,nx,ny_,nx_,alpha,points,bpts,mesh,skip,symmetry,mtx) ! in :OAS_API:OAS_API.F90:oas_api
+                integer, optional,intent(in),check((shape(points,1)+1)==ny),depend(points) :: ny=(shape(points,1)+1)
+                integer, optional,intent(in),check((shape(points,0)+1)==nx),depend(points) :: nx=(shape(points,0)+1)
+                integer, optional,intent(in),check(shape(bpts,1)==ny_),depend(bpts) :: ny_=shape(bpts,1)
+                integer, optional,intent(in),check((shape(bpts,0)+1)==nx_),depend(bpts) :: nx_=(shape(bpts,0)+1)
+                real(kind=8) intent(in) :: alpha
+                real(kind=8) dimension(nx - 1,ny - 1,3),intent(in) :: points
+                real(kind=8) dimension(nx_ - 1,ny_,3),intent(in) :: bpts
+                real(kind=8) dimension(nx_,ny_,3),intent(in),depend(nx_,ny_) :: mesh
+                logical intent(in) :: skip
+                logical intent(in) :: symmetry
+                real(kind=8) dimension((nx-1)*(ny-1),(nx_-1)*(ny_-1),3),intent(out),depend(ny,nx,ny_,nx_) :: mtx
+            end subroutine assembleaeromtx
+        end module oas_api
+    end interface 
+end python module OAS_API
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

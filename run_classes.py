@@ -1,5 +1,6 @@
 """
-The OASProblem class contains all of the methods necessary to setup and run aerostructural optimization using OpenAeroStruct.
+The OASProblem class contains all of the methods necessary to setup and run
+aerostructural optimization using OpenAeroStruct.
 """
 
 # =============================================================================
@@ -72,7 +73,11 @@ class OASProblem():
                     'num_y' : 5,            # number of spanwise points
                     'span' : 10.,           # full wingspan
                     'chord' : 1.,           # root chord
-                    'cosine_spacing' : 1,   # 0 for uniform spanwise panels
+                    'span_cos_spacing' : 1,   # 0 for uniform spanwise panels
+                                            # 1 for cosine-spaced panels
+                                            # any value between 0 and 1 for
+                                            # a mixed spacing
+                    'chord_cos_spacing' : 0,   # 0 for uniform chordwise panels
                                             # 1 for cosine-spaced panels
                                             # any value between 0 and 1 for
                                             # a mixed spacing
@@ -82,8 +87,8 @@ class OASProblem():
                                             # positive sweeps back
                     'taper' : 1.,           # taper ratio; 1. is uniform chord
 
-                    'CL0' : 0.2,            # CL value at AoA (alpha) = 0
-                    'CD0' : 0.015,          # CD value at AoA (alpha) = 0
+                    'CL0' : 0.0,            # CL value at AoA (alpha) = 0
+                    'CD0' : 0.0,            # CD value at AoA (alpha) = 0
 
                     # Structural values are based on aluminum
                     'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -150,11 +155,13 @@ class OASProblem():
             num_y = surf_dict['num_y']
             span = surf_dict['span']
             chord = surf_dict['chord']
-            cosine_spacing = surf_dict['cosine_spacing']
+            span_cos_spacing = surf_dict['span_cos_spacing']
+            chord_cos_spacing = surf_dict['chord_cos_spacing']
 
             # Generate rectangular mesh
             if surf_dict['wing_type'] == 'rect':
-                mesh = gen_rect_mesh(num_x, num_y, span, chord, cosine_spacing)
+                mesh = gen_rect_mesh(num_x, num_y, span, chord,
+                    span_cos_spacing, chord_cos_spacing)
 
             # Generate CRM mesh
             elif surf_dict['wing_type'] == 'CRM':
@@ -266,6 +273,10 @@ class OASProblem():
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
         self.prob.driver.add_recorder(SqliteRecorder(self.prob_dict['prob_name']+".db"))
+
+        # Profile (time) the problem
+        # profile.setup(self.prob)
+        # profile.start()
 
         # Set up the problem
         self.prob.setup()
