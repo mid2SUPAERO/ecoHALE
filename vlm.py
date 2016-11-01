@@ -36,14 +36,8 @@ from scipy.linalg import lu_factor, lu_solve
 try:
     import OAS_API
     fortran_flag = True
-    print 'FORTRAN'
 except:
-    import traceback
-    traceback.print_exc()
     fortran_flag = False
-    print 'NO FORTRAN'
-
-from time import time
 
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """

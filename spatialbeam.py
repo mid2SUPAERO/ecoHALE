@@ -10,20 +10,12 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
-import scipy.sparse
-import scipy.sparse.linalg
-from time import time
 
 try:
     import OAS_API
     fortran_flag = True
-    print 'FORTRAN'
 except:
-    import traceback
-    traceback.print_exc()
     fortran_flag = False
-    print 'NO FORTRAN'
-sparse_flag = False
 
 
 def norm(vec):
@@ -53,15 +45,11 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     Assemble the structural stiffness matrix based on 6 degrees of freedom
     per element.
 
-    Can be run in dense Fortran, sparse Fortran, or dense
+    Can be run in dense Fortran or dense
     Python code depending on the flags used. Currently, dense Fortran
     seems to be the fastest version across many matrix sizes.
 
     """
-
-    data_list = []
-    rows_list = []
-    cols_list = []
 
     size = 6 * n + 6
     num_cons = 1
@@ -76,37 +64,13 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     rhs[:6*n] = loads.reshape((6*n))
 
     # Dense Fortran
-    if fortran_flag and not sparse_flag:
+    if fortran_flag:
         K, x = OAS_API.oas_api.assemblestructmtx(nodes, A, J, Iy, Iz,
                                      K_a, K_t, K_y, K_z,
                                      elem_IDs+1, cons,
                                      E_vec, G_vec, x_gl, T,
                                      K_elem, S_a, S_t, S_y, S_z, T_elem,
                                      const2, const_y, const_z, rhs)
-
-
-    # Sparse Fortran
-    elif fortran_flag and sparse_flag:
-        nnz = 144 * num_elems
-
-        data1, rows1, cols1 = \
-            OAS_API.oas_api.assemblesparsemtx(nnz, x_gl, E_vec,
-                                  G_vec, A, J, Iy, Iz,
-                                  nodes, elem_IDs+1, const2, const_y,
-                                  const_z, S_a, S_t, S_y, S_z)
-
-        data2 = numpy.ones(6*num_cons) * 1.e9
-        rows2 = numpy.arange(6*num_cons) + 6*n
-        cols2 = numpy.zeros(6*num_cons)
-        for ind in xrange(6):
-            cols2[ind::6] = 6*cons + ind
-
-        data = numpy.concatenate([data1, data2, data2])
-        rows = numpy.concatenate([rows1, rows2, cols2])
-        cols = numpy.concatenate([cols1, cols2, rows2])
-        data_list.append(data)
-        rows_list.append(rows)
-        cols_list.append(cols)
 
 
     # Dense Python
@@ -177,18 +141,11 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                 K[-6+k, 6*cons+k] = 1.e9
                 K[6*cons+k, -6+k] = 1.e9
 
-    # Create the sparse matrix if sparse_flag == True
-    if fortran_flag and sparse_flag:
-        data = numpy.concatenate(data_list)
-        rows = numpy.concatenate(rows_list)
-        cols = numpy.concatenate(cols_list)
-        K = scipy.sparse.csc_matrix((data, (rows, cols)),
-                                      shape=(size, size))
 
     rhs[numpy.abs(rhs) < 1e-6] = 0.
 
-    # Check to solve as a dense or sparse system
-    if not fortran_flag and type(K) == numpy.ndarray:
+    # Check to solve on the Python level if not done on the Fortran level
+    if not fortran_flag:
         x = numpy.linalg.solve(K, rhs)
 
     return K, x, rhs
@@ -214,8 +171,8 @@ def _assemble_system_b(nodes, A, J, Iy, Iz, loads,
     rhs[:] = 0.0
     rhs[:6*n] = loads.reshape((6*n))
 
-    # Dense Fortran
-    if fortran_flag and not sparse_flag:
+    # Fortran
+    if fortran_flag:
         nodesb, Ab, Jb, Iyb, Izb, rhsb = OAS_API.oas_api.assemblestructmtx_b(nodes, A, J, Iy, Iz,
                                      K_a, K_t, K_y, K_z,
                                      elem_IDs+1, cons,
@@ -416,11 +373,7 @@ class SpatialBeamFEM(Component):
         jac.update(fd_jac)
         jac[name+'disp_aug', name+'disp_aug'] = self.K.real
 
-        if type(self.K) == numpy.ndarray:
-            self.lup = lu_factor(self.K.real)
-        else:
-            self.splu = scipy.sparse.linalg.splu(self.K)
-            self.spluT = scipy.sparse.linalg.splu(self.K.transpose())
+        self.lup = lu_factor(self.K.real)
 
         return jac
 
@@ -713,14 +666,11 @@ class SpatialBeamVonMisesTube(Component):
         self.E = surface['E']
         self.G = surface['G']
 
-
-        self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
         self.x_gl = numpy.array([1, 0, 0], dtype='complex')
         self.t = 0
 
     def solve_nonlinear(self, params, unknowns, resids):
-        st = time()
         elem_IDs = self.elem_IDs
         name = self.surface['name']
         r = params[name+'r']
@@ -767,11 +717,6 @@ class SpatialBeamVonMisesTube(Component):
                 vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
                 vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
 
-
-        # unknowns[name+'vonmises'] = vonmises
-
-        self.t += time() - st
-        # print self.t
 
 class SpatialBeamFailureKS(Component):
     """
