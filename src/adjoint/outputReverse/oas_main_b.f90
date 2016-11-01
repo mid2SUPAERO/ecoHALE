@@ -18,417 +18,6 @@ contains
       end do
     end do
   end subroutine mult
-!  differentiation of assemblesparsemtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: data
-!   with respect to varying inputs: data nodes
-!   rw status of diff variables: data:in-zero nodes:out
-  subroutine assemblesparsemtx_main_b(num_elems, tot_n_fem, nnz, x_gl, e&
-&   , g, a, j, iy, iz, nodes, nodesb, elems, coeff_at, coeff_y, coeff_z&
-&   , pelem_a, pelem_t, pelem_y, pelem_z, data, datab, rows, cols)
-    implicit none
-! input
-    integer, intent(in) :: tot_n_fem, num_elems, nnz
-    real(kind=8), intent(in) :: x_gl(3)
-    real(kind=8) :: x_glb(3)
-    real(kind=8), intent(in) :: e(num_elems), g(num_elems)
-    real(kind=8), intent(in) :: a(num_elems), j(num_elems)
-    real(kind=8), intent(in) :: iy(num_elems), iz(num_elems)
-    real(kind=8), intent(in) :: nodes(tot_n_fem, 3)
-    real(kind=8) :: nodesb(tot_n_fem, 3)
-    integer, intent(in) :: elems(num_elems, 2)
-! local stiffness matrix coefficients
-    real(kind=8), intent(in) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4&
-&   , 4)
-! local permutation matrices to map to list of dofs for local element
-    real(kind=8), intent(in) :: pelem_a(2, 12), pelem_t(2, 12)
-    real(kind=8) :: pelem_ab(2, 12), pelem_tb(2, 12)
-    real(kind=8), intent(in) :: pelem_y(4, 12), pelem_z(4, 12)
-    real(kind=8) :: pelem_yb(4, 12), pelem_zb(4, 12)
-! output
-    real(kind=8) :: data(nnz)
-    real(kind=8) :: datab(nnz)
-    integer, intent(out) :: rows(nnz), cols(nnz)
-! local stiffness matrices for axial, torsion, bending (y,z)
-    real(kind=8) :: kelem_a(2, 2), kelem_t(2, 2)
-    real(kind=8) :: kelem_ab(2, 2), kelem_tb(2, 2)
-    real(kind=8) :: kelem_y(4, 4), kelem_z(4, 4)
-    real(kind=8) :: kelem_yb(4, 4), kelem_zb(4, 4)
-! local transformation matrix (12,12) to map from local to global frame
-    real(kind=8) :: t_elem(12, 12), t(3, 3)
-    real(kind=8) :: t_elemb(12, 12), tb(3, 3)
-! arrays that help in mapping from local element ordering to global ordering
-    integer :: rows_elem(12, 12), cols_elem(12, 12)
-    integer :: ones11(12, 12), ones12(12, 12)
-    integer :: ones21(12, 12), ones22(12, 12)
-! local stiffness matrix in global frame
-    real(kind=8) :: k_elem(12, 12)
-    real(kind=8) :: k_elemb(12, 12)
-! miscellaneous
-    real(kind=8) :: l, xyz1(3), xyz2(3)
-    real(kind=8) :: lb, xyz1b(3), xyz2b(3)
-    real(kind=8) :: x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-    real(kind=8) :: x_locb(3), y_locb(3), z_locb(3), x_crossb(3), &
-&   y_crossb(3)
-    real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2), &
-&   res(12, 12)
-    real(kind=8) :: mat12x12b(12, 12), mat12x4b(12, 4), mat12x2b(12, 2)&
-&   , resb(12, 12)
-    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2)
-    real(kind=8) :: pelem_a_tb(12, 2), pelem_t_tb(12, 2)
-    real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)
-    real(kind=8) :: pelem_y_tb(12, 4), pelem_z_tb(12, 4), t_elem_tb(12, &
-&   12)
-    integer :: i, k1, k2, ind, ind1, ind2, ielem
-    intrinsic mod
-    real(kind=8), dimension(3) :: arg1
-    real(kind=8), dimension(3) :: arg1b
-    real(kind=8) :: temp0
-    real(kind=8) :: temp
-    t_elem(:, :) = 0.
-    ind = 0
-    do ielem=1,num_elems
-      xyz1 = nodes(elems(ielem, 1), :)
-      xyz2 = nodes(elems(ielem, 2), :)
-      arg1(:) = xyz2 - xyz1
-      call pushreal8(l)
-      call norm(arg1(:), l)
-      arg1(:) = xyz2 - xyz1
-      call pushreal8array(x_loc, 3)
-      call unit(arg1(:), x_loc)
-      call pushreal8array(x_cross, 3)
-      call cross(x_loc, x_gl, x_cross)
-      call pushreal8array(y_loc, 3)
-      call unit(x_cross, y_loc)
-      call pushreal8array(y_cross, 3)
-      call cross(x_loc, y_loc, y_cross)
-      call unit(y_cross, z_loc)
-      t(1, :) = x_loc
-      t(2, :) = y_loc
-      t(3, :) = z_loc
-      do i=1,4
-        call pushreal8array(t_elem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1&
-&                     )+3), 3**2)
-        t_elem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = t
-      end do
-      kelem_a = coeff_at*e(ielem)*a(ielem)/l
-      kelem_t = coeff_at*g(ielem)*j(ielem)/l
-      call pushreal8array(kelem_y, 4**2)
-      kelem_y = coeff_y*e(ielem)*iy(ielem)/l**3
-      call pushreal8array(kelem_y(2:4:2, :), 2*4)
-      kelem_y(2:4:2, :) = kelem_y(2:4:2, :)*l
-      call pushreal8array(kelem_y(:, 2:4:2), 4*2)
-      kelem_y(:, 2:4:2) = kelem_y(:, 2:4:2)*l
-      call pushreal8array(kelem_z, 4**2)
-      kelem_z = coeff_z*e(ielem)*iz(ielem)/l**3
-      call pushreal8array(kelem_z(2:4:2, :), 2*4)
-      kelem_z(2:4:2, :) = kelem_z(2:4:2, :)*l
-      call pushreal8array(kelem_z(:, 2:4:2), 4*2)
-      kelem_z(:, 2:4:2) = kelem_z(:, 2:4:2)*l
-      call pushreal8array(k_elem, 12**2)
-      k_elem(:, :) = 0.
-      call pushreal8array(pelem_a_t, 12*2)
-      call transpose2(2, 12, pelem_a, pelem_a_t)
-      call pushreal8array(mat12x2, 12*2)
-      call matmul2(12, 2, 2, pelem_a_t, kelem_a, mat12x2)
-      call matmul2(12, 2, 12, mat12x2, pelem_a, res)
-      k_elem = k_elem + res
-      call pushreal8array(pelem_t_t, 12*2)
-      call transpose2(2, 12, pelem_t, pelem_t_t)
-      call pushreal8array(mat12x2, 12*2)
-      call matmul2(12, 2, 2, pelem_t_t, kelem_t, mat12x2)
-      call matmul2(12, 2, 12, mat12x2, pelem_t, res)
-      k_elem = k_elem + res
-      call pushreal8array(pelem_y_t, 12*4)
-      call transpose2(4, 12, pelem_y, pelem_y_t)
-      call pushreal8array(mat12x4, 12*4)
-      call matmul2(12, 4, 4, pelem_y_t, kelem_y, mat12x4)
-      call matmul2(12, 4, 12, mat12x4, pelem_y, res)
-      k_elem = k_elem + res
-      call pushreal8array(pelem_z_t, 12*4)
-      call transpose2(4, 12, pelem_z, pelem_z_t)
-      call pushreal8array(mat12x4, 12*4)
-      call matmul2(12, 4, 4, pelem_z_t, kelem_z, mat12x4)
-      call matmul2(12, 4, 12, mat12x4, pelem_z, res)
-      k_elem = k_elem + res
-      call pushreal8array(t_elem_t, 12**2)
-      call transpose2(12, 12, t_elem, t_elem_t)
-      call pushreal8array(mat12x12, 12**2)
-      call matmul2(12, 12, 12, t_elem_t, k_elem, mat12x12)
-      do k1=1,12
-        do k2=1,12
-          call pushinteger4(ind)
-          ind = ind + 1
-        end do
-      end do
-    end do
-    nodesb = 0.0_8
-    y_locb = 0.0_8
-    tb = 0.0_8
-    t_elemb = 0.0_8
-    z_locb = 0.0_8
-    t_elem_tb = 0.0_8
-    y_crossb = 0.0_8
-    x_crossb = 0.0_8
-    x_locb = 0.0_8
-    do ielem=num_elems,1,-1
-      k_elemb = 0.0_8
-      do k1=12,1,-1
-        do k2=12,1,-1
-          k_elemb(k1, k2) = k_elemb(k1, k2) + datab(ind)
-          call popinteger4(ind)
-        end do
-      end do
-      mat12x12b = 0.0_8
-      call matmul2_b(12, 12, 12, mat12x12, mat12x12b, t_elem, t_elemb, &
-&              k_elem, k_elemb)
-      call popreal8array(mat12x12, 12**2)
-      k_elemb = 0.0_8
-      call matmul2_b(12, 12, 12, t_elem_t, t_elem_tb, k_elem, k_elemb, &
-&              mat12x12, mat12x12b)
-      call popreal8array(t_elem_t, 12**2)
-      call transpose2_b(12, 12, t_elem, t_elemb, t_elem_t, t_elem_tb)
-      resb = 0.0_8
-      resb = k_elemb
-      mat12x4b = 0.0_8
-      pelem_zb = 0.0_8
-      call matmul2_b(12, 4, 12, mat12x4, mat12x4b, pelem_z, pelem_zb, &
-&              res, resb)
-      call popreal8array(mat12x4, 12*4)
-      pelem_z_tb = 0.0_8
-      kelem_zb = 0.0_8
-      call matmul2_b(12, 4, 4, pelem_z_t, pelem_z_tb, kelem_z, kelem_zb&
-&              , mat12x4, mat12x4b)
-      call popreal8array(pelem_z_t, 12*4)
-      resb = 0.0_8
-      resb = k_elemb
-      mat12x4b = 0.0_8
-      pelem_yb = 0.0_8
-      call matmul2_b(12, 4, 12, mat12x4, mat12x4b, pelem_y, pelem_yb, &
-&              res, resb)
-      call popreal8array(mat12x4, 12*4)
-      pelem_y_tb = 0.0_8
-      kelem_yb = 0.0_8
-      call matmul2_b(12, 4, 4, pelem_y_t, pelem_y_tb, kelem_y, kelem_yb&
-&              , mat12x4, mat12x4b)
-      call popreal8array(pelem_y_t, 12*4)
-      resb = 0.0_8
-      resb = k_elemb
-      mat12x2b = 0.0_8
-      pelem_tb = 0.0_8
-      call matmul2_b(12, 2, 12, mat12x2, mat12x2b, pelem_t, pelem_tb, &
-&              res, resb)
-      kelem_t = coeff_at*g(ielem)*j(ielem)/l
-      call popreal8array(mat12x2, 12*2)
-      pelem_t_tb = 0.0_8
-      kelem_tb = 0.0_8
-      call matmul2_b(12, 2, 2, pelem_t_t, pelem_t_tb, kelem_t, kelem_tb&
-&              , mat12x2, mat12x2b)
-      call popreal8array(pelem_t_t, 12*2)
-      resb = 0.0_8
-      resb = k_elemb
-      mat12x2b = 0.0_8
-      pelem_ab = 0.0_8
-      call matmul2_b(12, 2, 12, mat12x2, mat12x2b, pelem_a, pelem_ab, &
-&              res, resb)
-      kelem_a = coeff_at*e(ielem)*a(ielem)/l
-      call popreal8array(mat12x2, 12*2)
-      pelem_a_tb = 0.0_8
-      kelem_ab = 0.0_8
-      call matmul2_b(12, 2, 2, pelem_a_t, pelem_a_tb, kelem_a, kelem_ab&
-&              , mat12x2, mat12x2b)
-      call popreal8array(pelem_a_t, 12*2)
-      call popreal8array(k_elem, 12**2)
-      call popreal8array(kelem_z(:, 2:4:2), 4*2)
-      lb = sum(kelem_z(:, 2:4:2)*kelem_zb(:, 2:4:2))
-      kelem_zb(:, 2:4:2) = l*kelem_zb(:, 2:4:2)
-      call popreal8array(kelem_z(2:4:2, :), 2*4)
-      lb = lb + sum(kelem_z(2:4:2, :)*kelem_zb(2:4:2, :))
-      kelem_zb(2:4:2, :) = l*kelem_zb(2:4:2, :)
-      call popreal8array(kelem_z, 4**2)
-      temp0 = l**3
-      call popreal8array(kelem_y(:, 2:4:2), 4*2)
-      lb = lb + sum(kelem_y(:, 2:4:2)*kelem_yb(:, 2:4:2)) + 3*l**2*sum(-&
-&       (coeff_z*e(ielem)*iz(ielem)*kelem_zb/temp0))/temp0
-      kelem_yb(:, 2:4:2) = l*kelem_yb(:, 2:4:2)
-      call popreal8array(kelem_y(2:4:2, :), 2*4)
-      lb = lb + sum(kelem_y(2:4:2, :)*kelem_yb(2:4:2, :))
-      kelem_yb(2:4:2, :) = l*kelem_yb(2:4:2, :)
-      call popreal8array(kelem_y, 4**2)
-      temp = l**3
-      lb = lb + g(ielem)*j(ielem)*sum(-(coeff_at*kelem_tb/l))/l + e(&
-&       ielem)*a(ielem)*sum(-(coeff_at*kelem_ab/l))/l + 3*l**2*sum(-(&
-&       coeff_y*e(ielem)*iy(ielem)*kelem_yb/temp))/temp
-      do i=4,1,-1
-        call popreal8array(t_elem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)&
-&                    +3), 3**2)
-        tb = tb + t_elemb(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3)
-        t_elemb(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = 0.0_8
-      end do
-      z_locb = z_locb + tb(3, :)
-      tb(3, :) = 0.0_8
-      y_locb = y_locb + tb(2, :)
-      tb(2, :) = 0.0_8
-      x_locb = x_locb + tb(1, :)
-      tb(1, :) = 0.0_8
-      call unit_b(y_cross, y_crossb, z_loc, z_locb)
-      call popreal8array(y_cross, 3)
-      call cross_b(x_loc, x_locb, y_loc, y_locb, y_cross, y_crossb)
-      call popreal8array(y_loc, 3)
-      call unit_b(x_cross, x_crossb, y_loc, y_locb)
-      call popreal8array(x_cross, 3)
-      x_glb = 0.0_8
-      call cross_b(x_loc, x_locb, x_gl, x_glb, x_cross, x_crossb)
-      xyz1 = nodes(elems(ielem, 1), :)
-      xyz2 = nodes(elems(ielem, 2), :)
-      arg1(:) = xyz2 - xyz1
-      call popreal8array(x_loc, 3)
-      arg1b = 0.0_8
-      call unit_b(arg1(:), arg1b(:), x_loc, x_locb)
-      xyz1b = 0.0_8
-      xyz2b = 0.0_8
-      xyz2b = arg1b(:)
-      xyz1b = -arg1b(:)
-      arg1(:) = xyz2 - xyz1
-      call popreal8(l)
-      arg1b = 0.0_8
-      call norm_b(arg1(:), arg1b(:), l, lb)
-      xyz2b = xyz2b + arg1b
-      xyz1b = xyz1b - arg1b
-      nodesb(elems(ielem, 2), :) = nodesb(elems(ielem, 2), :) + xyz2b
-      nodesb(elems(ielem, 1), :) = nodesb(elems(ielem, 1), :) + xyz1b
-    end do
-    datab = 0.0_8
-  end subroutine assemblesparsemtx_main_b
-  subroutine assemblesparsemtx_main(num_elems, tot_n_fem, nnz, x_gl, e, &
-&   g, a, j, iy, iz, nodes, elems, coeff_at, coeff_y, coeff_z, pelem_a, &
-&   pelem_t, pelem_y, pelem_z, data, rows, cols)
-    implicit none
-! input
-    integer, intent(in) :: tot_n_fem, num_elems, nnz
-    real(kind=8), intent(in) :: x_gl(3)
-    real(kind=8), intent(in) :: e(num_elems), g(num_elems)
-    real(kind=8), intent(in) :: a(num_elems), j(num_elems)
-    real(kind=8), intent(in) :: iy(num_elems), iz(num_elems)
-    real(kind=8), intent(in) :: nodes(tot_n_fem, 3)
-    integer, intent(in) :: elems(num_elems, 2)
-! local stiffness matrix coefficients
-    real(kind=8), intent(in) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4&
-&   , 4)
-! local permutation matrices to map to list of dofs for local element
-    real(kind=8), intent(in) :: pelem_a(2, 12), pelem_t(2, 12)
-    real(kind=8), intent(in) :: pelem_y(4, 12), pelem_z(4, 12)
-! output
-    real(kind=8), intent(out) :: data(nnz)
-    integer, intent(out) :: rows(nnz), cols(nnz)
-! local stiffness matrices for axial, torsion, bending (y,z)
-    real(kind=8) :: kelem_a(2, 2), kelem_t(2, 2)
-    real(kind=8) :: kelem_y(4, 4), kelem_z(4, 4)
-! local transformation matrix (12,12) to map from local to global frame
-    real(kind=8) :: t_elem(12, 12), t(3, 3)
-! arrays that help in mapping from local element ordering to global ordering
-    integer :: rows_elem(12, 12), cols_elem(12, 12)
-    integer :: ones11(12, 12), ones12(12, 12)
-    integer :: ones21(12, 12), ones22(12, 12)
-! local stiffness matrix in global frame
-    real(kind=8) :: k_elem(12, 12)
-! miscellaneous
-    real(kind=8) :: l, xyz1(3), xyz2(3)
-    real(kind=8) :: x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-    real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2), &
-&   res(12, 12)
-    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2)
-    real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)
-    integer :: i, k1, k2, ind, ind1, ind2, ielem
-    intrinsic mod
-    real(kind=8), dimension(3) :: arg1
-    do k1=1,12
-      do k2=1,12
-        rows_elem(k1, k2) = mod(k1 - 1, 6)
-        cols_elem(k1, k2) = mod(k2 - 1, 6)
-      end do
-    end do
-    ones11(:, :) = 0
-    ones12(:, :) = 0
-    ones21(:, :) = 0
-    ones22(:, :) = 0
-    ones11(1:6, 1:6) = 1
-    ones12(1:6, 7:12) = 1
-    ones21(7:12, 1:6) = 1
-    ones22(7:12, 7:12) = 1
-    t_elem(:, :) = 0.
-    data(:) = 0.
-    rows(:) = 0
-    cols(:) = 0
-    ind = 0
-    do ielem=1,num_elems
-      xyz1 = nodes(elems(ielem, 1), :)
-      xyz2 = nodes(elems(ielem, 2), :)
-      arg1(:) = xyz2 - xyz1
-      call norm(arg1(:), l)
-      arg1(:) = xyz2 - xyz1
-      call unit(arg1(:), x_loc)
-      call cross(x_loc, x_gl, x_cross)
-      call unit(x_cross, y_loc)
-      call cross(x_loc, y_loc, y_cross)
-      call unit(y_cross, z_loc)
-      t(1, :) = x_loc
-      t(2, :) = y_loc
-      t(3, :) = z_loc
-      do i=1,4
-        t_elem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = t
-      end do
-      kelem_a = coeff_at*e(ielem)*a(ielem)/l
-      kelem_t = coeff_at*g(ielem)*j(ielem)/l
-      kelem_y = coeff_y*e(ielem)*iy(ielem)/l**3
-      kelem_y(2:4:2, :) = kelem_y(2:4:2, :)*l
-      kelem_y(:, 2:4:2) = kelem_y(:, 2:4:2)*l
-      kelem_z = coeff_z*e(ielem)*iz(ielem)/l**3
-      kelem_z(2:4:2, :) = kelem_z(2:4:2, :)*l
-      kelem_z(:, 2:4:2) = kelem_z(:, 2:4:2)*l
-      k_elem(:, :) = 0.
-      call transpose2(2, 12, pelem_a, pelem_a_t)
-      call matmul2(12, 2, 2, pelem_a_t, kelem_a, mat12x2)
-      call matmul2(12, 2, 12, mat12x2, pelem_a, res)
-      k_elem = k_elem + res
-      call transpose2(2, 12, pelem_t, pelem_t_t)
-      call matmul2(12, 2, 2, pelem_t_t, kelem_t, mat12x2)
-      call matmul2(12, 2, 12, mat12x2, pelem_t, res)
-      k_elem = k_elem + res
-      call transpose2(4, 12, pelem_y, pelem_y_t)
-      call matmul2(12, 4, 4, pelem_y_t, kelem_y, mat12x4)
-      call matmul2(12, 4, 12, mat12x4, pelem_y, res)
-      k_elem = k_elem + res
-      call transpose2(4, 12, pelem_z, pelem_z_t)
-      call matmul2(12, 4, 4, pelem_z_t, kelem_z, mat12x4)
-      call matmul2(12, 4, 12, mat12x4, pelem_z, res)
-      k_elem = k_elem + res
-      call transpose2(12, 12, t_elem, t_elem_t)
-      call matmul2(12, 12, 12, t_elem_t, k_elem, mat12x12)
-      call matmul2(12, 12, 12, mat12x12, t_elem, k_elem)
-      ind1 = 6*(elems(ielem, 1)-1)
-      ind2 = 6*(elems(ielem, 2)-1)
-      do k1=1,12
-        do k2=1,12
-          ind = ind + 1
-          data(ind) = data(ind) + k_elem(k1, k2)
-          rows(ind) = rows(ind) + rows_elem(k1, k2) + 1
-          cols(ind) = cols(ind) + cols_elem(k1, k2) + 1
-          rows(ind) = rows(ind) + ones11(k1, k2)*ind1
-          cols(ind) = cols(ind) + ones11(k1, k2)*ind1
-          rows(ind) = rows(ind) + ones12(k1, k2)*ind1
-          cols(ind) = cols(ind) + ones12(k1, k2)*ind2
-          rows(ind) = rows(ind) + ones21(k1, k2)*ind2
-          cols(ind) = cols(ind) + ones21(k1, k2)*ind1
-          rows(ind) = rows(ind) + ones22(k1, k2)*ind2
-          cols(ind) = cols(ind) + ones22(k1, k2)*ind2
-        end do
-      end do
-    end do
-    if (ind .ne. nnz) print*, &
-&         'error in assemblesparsemtx: did not reach end of nnz vectors'
-    rows(:) = rows(:) - 1
-    cols(:) = cols(:) - 1
-  end subroutine assemblesparsemtx_main
 !  differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: x
 !   with respect to varying inputs: j x nodes iy iz rhs a
@@ -973,29 +562,21 @@ contains
       end do
     end do
   end subroutine matmul2
-!  differentiation of unit in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: u v
-!   with respect to varying inputs: u v
-  subroutine unit_b(v, vb, u, ub)
+  subroutine matmul2c(m, n, p, a, b, c)
     implicit none
-    real(kind=8), intent(in) :: v(3)
-    real(kind=8) :: vb(3)
-    real(kind=8) :: u(3)
-    real(kind=8) :: ub(3)
-    real(kind=8) :: nm
-    real(kind=8) :: nmb
-    call norm(v, nm)
-    vb(3) = vb(3) + ub(3)/nm
-    nmb = -(v(3)*ub(3)/nm**2)
-    ub(3) = 0.0_8
-    vb(2) = vb(2) + ub(2)/nm
-    nmb = nmb - v(2)*ub(2)/nm**2
-    ub(2) = 0.0_8
-    vb(1) = vb(1) + ub(1)/nm
-    nmb = nmb - v(1)*ub(1)/nm**2
-    ub(1) = 0.0_8
-    call norm_b(v, vb, nm, nmb)
-  end subroutine unit_b
+    integer, intent(in) :: m, n, p
+    complex(kind=8), intent(in) :: a(m, n), b(n, p)
+    complex(kind=8), intent(out) :: c(m, p)
+    integer :: i, j, k
+    c(:, :) = 0.
+    do i=1,m
+      do j=1,p
+        do k=1,n
+          c(i, j) = c(i, j) + a(i, k)*b(k, j)
+        end do
+      end do
+    end do
+  end subroutine matmul2c
 !  differentiation of assembleaeromtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: mtx
 !   with respect to varying inputs: alpha points mesh bpts mtx
@@ -1007,41 +588,42 @@ contains
     implicit none
 ! input
     integer, intent(in) :: ny, nx, ny_, nx_
-    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    real(kind=8) :: alphab, meshb(nx_, ny_, 3)
-    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, &
-&   3)
-    real(kind=8) :: pointsb(nx-1, ny-1, 3), bptsb(nx_-1, ny_, 3)
+    complex(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
+    complex(kind=8) :: alphab, meshb(nx_, ny_, 3)
+    complex(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, &
+&   ny_, 3)
+    complex(kind=8) :: pointsb(nx-1, ny-1, 3), bptsb(nx_-1, ny_, 3)
     logical, intent(in) :: skip, symmetry
 ! output
-    real(kind=8) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
-    real(kind=8) :: mtxb((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    complex(kind=8) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    complex(kind=8) :: mtxb((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
 ! working
     integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, &
 &   cp_loc
-    real(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
-    real(kind=8) :: pb(3), ab(3), bb(3), ub(3), cb(3), db(3)
-    real(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
-    real(kind=8) :: a_symb(3), b_symb(3), c_symb(3), d_symb(3)
-    real(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
-    real(kind=8) :: ur2b(3), r1b(3), r2b(3), r1_magb, r2_magb
-    real(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
-    real(kind=8) :: ur1b(3), boundb(3), dot_ur2b, dot_ur1b
-    real(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym(3)
-    real(kind=8) :: edgesb(3), c_teb(3), d_teb(3), c_te_symb(3), &
+    complex(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
+    complex(kind=8) :: pb(3), ab(3), bb(3), ub(3), cb(3), db(3)
+    complex(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
+    complex(kind=8) :: a_symb(3), b_symb(3), c_symb(3), d_symb(3)
+    complex(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
+    complex(kind=8) :: ur2b(3), r1b(3), r2b(3), r1_magb, r2_magb
+    complex(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
+    complex(kind=8) :: ur1b(3), boundb(3), dot_ur2b, dot_ur1b
+    complex(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym&
+&   (3)
+    complex(kind=8) :: edgesb(3), c_teb(3), d_teb(3), c_te_symb(3), &
 &   d_te_symb(3)
     intrinsic atan
     intrinsic cos
     intrinsic sin
     integer :: branch
-    real(kind=8) :: tempb6
-    real(kind=8) :: tempb5(3)
-    real(kind=8) :: tempb4
-    real(kind=8) :: tempb3(3)
-    real(kind=8) :: tempb2
-    real(kind=8) :: tempb1(3)
-    real(kind=8) :: tempb0
-    real(kind=8) :: tempb(3)
+    complex(kind=8) :: tempb6
+    complex(kind=8) :: tempb5(3)
+    complex(kind=8) :: tempb4
+    complex(kind=8) :: tempb3(3)
+    complex(kind=8) :: tempb2
+    complex(kind=8) :: tempb1(3)
+    complex(kind=8) :: tempb0
+    complex(kind=8) :: tempb(3)
     pi = 4.d0*atan(1.d0)
 ! trailing vortices in avl follow the x-axis; no cos or sin
     u(1) = cos(alpha*pi/180.)
@@ -1051,9 +633,9 @@ contains
     do el_j=1,ny_-1
       call pushinteger4(el_loc_j)
       el_loc_j = (el_j-1)*(nx_-1)
-      call pushreal8array(c_te, 3)
+      call pushcomplex16array(c_te, 3)
       c_te = mesh(nx_, el_j+1, :)
-      call pushreal8array(d_te, 3)
+      call pushcomplex16array(d_te, 3)
       d_te = mesh(nx_, el_j+0, :)
       if (symmetry) then
         c_te_sym = c_te
@@ -1071,39 +653,39 @@ contains
         do cp_i=1,nx-1
           call pushinteger4(cp_loc)
           cp_loc = cp_i + cp_loc_j
-          call pushreal8array(p, 3)
+          call pushcomplex16array(p, 3)
           p = points(cp_i, cp_j, :)
-          call pushreal8array(r1, 3)
+          call pushcomplex16array(r1, 3)
           r1 = p - d_te
-          call pushreal8array(r2, 3)
+          call pushcomplex16array(r2, 3)
           r2 = p - c_te
-          call pushreal8(r1_mag)
-          call norm(r1, r1_mag)
-          call pushreal8(r2_mag)
-          call norm(r2, r2_mag)
-          call pushreal8array(ur2, 3)
-          call cross(u, r2, ur2)
-          call pushreal8array(ur1, 3)
-          call cross(u, r1, ur1)
-          call pushreal8(dot_ur2)
-          call dot(u, r2, dot_ur2)
-          call pushreal8(dot_ur1)
-          call dot(u, r1, dot_ur1)
+          call pushcomplex16(r1_mag)
+          call normc(r1, r1_mag)
+          call pushcomplex16(r2_mag)
+          call normc(r2, r2_mag)
+          call pushcomplex16array(ur2, 3)
+          call crossc(u, r2, ur2)
+          call pushcomplex16array(ur1, 3)
+          call crossc(u, r1, ur1)
+          call pushcomplex16(dot_ur2)
+          call dotc(u, r2, dot_ur2)
+          call pushcomplex16(dot_ur1)
+          call dotc(u, r1, dot_ur1)
           if (symmetry) then
             r1 = p - d_te_sym
             r2 = p - c_te_sym
-            call pushreal8(r1_mag)
-            call norm(r1, r1_mag)
-            call pushreal8(r2_mag)
-            call norm(r2, r2_mag)
-            call pushreal8array(ur2, 3)
-            call cross(u, r2, ur2)
-            call pushreal8array(ur1, 3)
-            call cross(u, r1, ur1)
-            call pushreal8(dot_ur2)
-            call dot(u, r2, dot_ur2)
-            call pushreal8(dot_ur1)
-            call dot(u, r1, dot_ur1)
+            call pushcomplex16(r1_mag)
+            call normc(r1, r1_mag)
+            call pushcomplex16(r2_mag)
+            call normc(r2, r2_mag)
+            call pushcomplex16array(ur2, 3)
+            call crossc(u, r2, ur2)
+            call pushcomplex16array(ur1, 3)
+            call crossc(u, r1, ur1)
+            call pushcomplex16(dot_ur2)
+            call dotc(u, r2, dot_ur2)
+            call pushcomplex16(dot_ur1)
+            call dotc(u, r1, dot_ur1)
             call pushcontrol1b(1)
           else
             call pushcontrol1b(0)
@@ -1114,26 +696,26 @@ contains
             a = bpts(el_i+0, el_j+0, :)
             b = bpts(el_i+0, el_j+1, :)
             if (el_i .eq. nx_ - 1) then
-              call pushreal8array(c, 3)
+              call pushcomplex16array(c, 3)
               c = c_te
-              call pushreal8array(d, 3)
+              call pushcomplex16array(d, 3)
               d = d_te
               call pushcontrol1b(0)
             else
-              call pushreal8array(c, 3)
+              call pushcomplex16array(c, 3)
               c = bpts(el_i+1, el_j+1, :)
-              call pushreal8array(d, 3)
+              call pushcomplex16array(d, 3)
               d = bpts(el_i+1, el_j+0, :)
               call pushcontrol1b(1)
             end if
             if (symmetry) then
-              call pushreal8array(a_sym, 3)
+              call pushcomplex16array(a_sym, 3)
               a_sym = a
-              call pushreal8array(b_sym, 3)
+              call pushcomplex16array(b_sym, 3)
               b_sym = b
-              call pushreal8array(c_sym, 3)
+              call pushcomplex16array(c_sym, 3)
               c_sym = c
-              call pushreal8array(d_sym, 3)
+              call pushcomplex16array(d_sym, 3)
               d_sym = d
               a_sym(2) = -a_sym(2)
               b_sym(2) = -b_sym(2)
@@ -1162,95 +744,95 @@ contains
         end do
       end do
     end do
-    pointsb = 0.0_8
-    meshb = 0.0_8
-    bptsb = 0.0_8
-    ub = 0.0_8
-    ur1b = 0.0_8
-    ur2b = 0.0_8
-    a_symb = 0.0_8
-    c_te_symb = 0.0_8
-    b_symb = 0.0_8
-    d_te_symb = 0.0_8
+    pointsb = (0.0_4,0.0_4)
+    meshb = (0.0_4,0.0_4)
+    bptsb = (0.0_4,0.0_4)
+    ub = (0.0_4,0.0_4)
+    ur1b = (0.0_4,0.0_4)
+    ur2b = (0.0_4,0.0_4)
+    a_symb = (0.0_4,0.0_4)
+    c_te_symb = (0.0_4,0.0_4)
+    b_symb = (0.0_4,0.0_4)
+    d_te_symb = (0.0_4,0.0_4)
     do el_j=ny_-1,1,-1
-      c_teb = 0.0_8
-      d_teb = 0.0_8
+      c_teb = (0.0_4,0.0_4)
+      d_teb = (0.0_4,0.0_4)
       do cp_j=ny-1,1,-1
         do cp_i=nx-1,1,-1
-          pb = 0.0_8
-          edgesb = 0.0_8
+          pb = (0.0_4,0.0_4)
+          edgesb = (0.0_4,0.0_4)
           do el_i=1,nx_-1,1
             call popcontrol1b(branch)
             if (branch .eq. 0) then
               el_loc = el_i + el_loc_j
-              boundb = 0.0_8
+              boundb = (0.0_4,0.0_4)
               edgesb = edgesb + mtxb(cp_loc, el_loc, :)
               boundb = mtxb(cp_loc, el_loc, :)
-              mtxb(cp_loc, el_loc, :) = 0.0_8
+              mtxb(cp_loc, el_loc, :) = (0.0_4,0.0_4)
               call popcontrol1b(branch)
               if (branch .eq. 0) call calc_vorticity_b(b_sym, b_symb, &
 &                                                a_sym, a_symb, p, pb, &
 &                                                bound, boundb)
               a = bpts(el_i+0, el_j+0, :)
               b = bpts(el_i+0, el_j+1, :)
-              ab = 0.0_8
-              bb = 0.0_8
+              ab = (0.0_4,0.0_4)
+              bb = (0.0_4,0.0_4)
               call calc_vorticity_b(a, ab, b, bb, p, pb, bound, boundb)
             else
               el_loc = el_i + el_loc_j
-              boundb = 0.0_8
+              boundb = (0.0_4,0.0_4)
               edgesb = edgesb + mtxb(cp_loc, el_loc, :)
               boundb = mtxb(cp_loc, el_loc, :)
-              mtxb(cp_loc, el_loc, :) = 0.0_8
+              mtxb(cp_loc, el_loc, :) = (0.0_4,0.0_4)
               call popcontrol1b(branch)
               if (branch .eq. 0) call calc_vorticity_b(b_sym, b_symb, &
 &                                                a_sym, a_symb, p, pb, &
 &                                                bound, boundb)
               a = bpts(el_i+0, el_j+0, :)
               b = bpts(el_i+0, el_j+1, :)
-              ab = 0.0_8
-              bb = 0.0_8
+              ab = (0.0_4,0.0_4)
+              bb = (0.0_4,0.0_4)
             end if
             call popcontrol1b(branch)
             if (branch .eq. 0) then
-              d_symb = 0.0_8
+              d_symb = (0.0_4,0.0_4)
               call calc_vorticity_b(a_sym, a_symb, d_sym, d_symb, p, pb&
 &                             , edges, edgesb)
-              c_symb = 0.0_8
+              c_symb = (0.0_4,0.0_4)
               call calc_vorticity_b(c_sym, c_symb, b_sym, b_symb, p, pb&
 &                             , edges, edgesb)
               d_symb(2) = -d_symb(2)
               c_symb(2) = -c_symb(2)
               b_symb(2) = -b_symb(2)
               a_symb(2) = -a_symb(2)
-              db = 0.0_8
-              call popreal8array(d_sym, 3)
+              db = (0.0_4,0.0_4)
+              call popcomplex16array(d_sym, 3)
               db = d_symb
-              cb = 0.0_8
-              call popreal8array(c_sym, 3)
+              cb = (0.0_4,0.0_4)
+              call popcomplex16array(c_sym, 3)
               cb = c_symb
-              call popreal8array(b_sym, 3)
+              call popcomplex16array(b_sym, 3)
               bb = bb + b_symb
-              call popreal8array(a_sym, 3)
+              call popcomplex16array(a_sym, 3)
               ab = ab + a_symb
-              a_symb = 0.0_8
-              b_symb = 0.0_8
+              a_symb = (0.0_4,0.0_4)
+              b_symb = (0.0_4,0.0_4)
             else
-              db = 0.0_8
-              cb = 0.0_8
+              db = (0.0_4,0.0_4)
+              cb = (0.0_4,0.0_4)
             end if
             call calc_vorticity_b(d, db, a, ab, p, pb, edges, edgesb)
             call calc_vorticity_b(b, bb, c, cb, p, pb, edges, edgesb)
             call popcontrol1b(branch)
             if (branch .eq. 0) then
-              call popreal8array(d, 3)
+              call popcomplex16array(d, 3)
               d_teb = d_teb + db
-              call popreal8array(c, 3)
+              call popcomplex16array(c, 3)
               c_teb = c_teb + cb
             else
-              call popreal8array(d, 3)
+              call popcomplex16array(d, 3)
               bptsb(el_i+1, el_j+0, :) = bptsb(el_i+1, el_j+0, :) + db
-              call popreal8array(c, 3)
+              call popcomplex16array(c, 3)
               bptsb(el_i+1, el_j+1, :) = bptsb(el_i+1, el_j+1, :) + cb
             end if
             bptsb(el_i+0, el_j+1, :) = bptsb(el_i+0, el_j+1, :) + bb
@@ -1268,20 +850,20 @@ contains
             ur2b = ur2b + tempb5
             r2_magb = (2*r2_mag-dot_ur2)*tempb6
             dot_ur2b = -(r2_mag*tempb6)
-            call popreal8(dot_ur1)
-            r1b = 0.0_8
-            call dot_b(u, ub, r1, r1b, dot_ur1, dot_ur1b)
-            call popreal8(dot_ur2)
-            r2b = 0.0_8
-            call dot_b(u, ub, r2, r2b, dot_ur2, dot_ur2b)
-            call popreal8array(ur1, 3)
-            call cross_b(u, ub, r1, r1b, ur1, ur1b)
-            call popreal8array(ur2, 3)
-            call cross_b(u, ub, r2, r2b, ur2, ur2b)
-            call popreal8(r2_mag)
-            call norm_b(r2, r2b, r2_mag, r2_magb)
-            call popreal8(r1_mag)
-            call norm_b(r1, r1b, r1_mag, r1_magb)
+            call popcomplex16(dot_ur1)
+            r1b = (0.0_4,0.0_4)
+            call dotc_b(u, ub, r1, r1b, dot_ur1, dot_ur1b)
+            call popcomplex16(dot_ur2)
+            r2b = (0.0_4,0.0_4)
+            call dotc_b(u, ub, r2, r2b, dot_ur2, dot_ur2b)
+            call popcomplex16array(ur1, 3)
+            call crossc_b(u, ub, r1, r1b, ur1, ur1b)
+            call popcomplex16array(ur2, 3)
+            call crossc_b(u, ub, r2, r2b, ur2, ur2b)
+            call popcomplex16(r2_mag)
+            call normc_b(r2, r2b, r2_mag, r2_magb)
+            call popcomplex16(r1_mag)
+            call normc_b(r1, r1b, r1_mag, r1_magb)
             pb = pb + r1b + r2b
             c_te_symb = c_te_symb - r2b
             d_te_symb = d_te_symb - r1b
@@ -1297,27 +879,27 @@ contains
           r2_magb = (2*r2_mag-dot_ur2)*tempb2
           dot_ur2b = -(r2_mag*tempb2)
           r1 = p - d_te
-          call popreal8(dot_ur1)
-          r1b = 0.0_8
-          call dot_b(u, ub, r1, r1b, dot_ur1, dot_ur1b)
+          call popcomplex16(dot_ur1)
+          r1b = (0.0_4,0.0_4)
+          call dotc_b(u, ub, r1, r1b, dot_ur1, dot_ur1b)
           r2 = p - c_te
-          call popreal8(dot_ur2)
-          r2b = 0.0_8
-          call dot_b(u, ub, r2, r2b, dot_ur2, dot_ur2b)
-          call popreal8array(ur1, 3)
-          call cross_b(u, ub, r1, r1b, ur1, ur1b)
-          call popreal8array(ur2, 3)
-          call cross_b(u, ub, r2, r2b, ur2, ur2b)
-          call popreal8(r2_mag)
-          call norm_b(r2, r2b, r2_mag, r2_magb)
-          call popreal8(r1_mag)
-          call norm_b(r1, r1b, r1_mag, r1_magb)
-          call popreal8array(r2, 3)
+          call popcomplex16(dot_ur2)
+          r2b = (0.0_4,0.0_4)
+          call dotc_b(u, ub, r2, r2b, dot_ur2, dot_ur2b)
+          call popcomplex16array(ur1, 3)
+          call crossc_b(u, ub, r1, r1b, ur1, ur1b)
+          call popcomplex16array(ur2, 3)
+          call crossc_b(u, ub, r2, r2b, ur2, ur2b)
+          call popcomplex16(r2_mag)
+          call normc_b(r2, r2b, r2_mag, r2_magb)
+          call popcomplex16(r1_mag)
+          call normc_b(r1, r1b, r1_mag, r1_magb)
+          call popcomplex16array(r2, 3)
           pb = pb + r1b + r2b
           c_teb = c_teb - r2b
-          call popreal8array(r1, 3)
+          call popcomplex16array(r1, 3)
           d_teb = d_teb - r1b
-          call popreal8array(p, 3)
+          call popcomplex16array(p, 3)
           pointsb(cp_i, cp_j, :) = pointsb(cp_i, cp_j, :) + pb
           call popinteger4(cp_loc)
         end do
@@ -1328,12 +910,12 @@ contains
         c_te_symb(2) = -c_te_symb(2)
         d_teb = d_teb + d_te_symb
         c_teb = c_teb + c_te_symb
-        c_te_symb = 0.0_8
-        d_te_symb = 0.0_8
+        c_te_symb = (0.0_4,0.0_4)
+        d_te_symb = (0.0_4,0.0_4)
       end if
-      call popreal8array(d_te, 3)
+      call popcomplex16array(d_te, 3)
       meshb(nx_, el_j+0, :) = meshb(nx_, el_j+0, :) + d_teb
-      call popreal8array(c_te, 3)
+      call popcomplex16array(c_te, 3)
       meshb(nx_, el_j+1, :) = meshb(nx_, el_j+1, :) + c_teb
       call popinteger4(el_loc_j)
     end do
@@ -1341,27 +923,29 @@ contains
     ub(3) = 0.0_8
     ub(2) = 0.0_8
     alphab = alphab - pi*sin(pi*(alpha/180.))*ub(1)/180.
-    mtxb = 0.0_8
+    mtxb = (0.0_4,0.0_4)
   end subroutine assembleaeromtx_main_b
   subroutine assembleaeromtx_main(ny, nx, ny_, nx_, alpha, points, bpts&
 &   , mesh, skip, symmetry, mtx)
     implicit none
 ! input
     integer, intent(in) :: ny, nx, ny_, nx_
-    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, &
-&   3)
+    complex(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
+    complex(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, &
+&   ny_, 3)
     logical, intent(in) :: skip, symmetry
 ! output
-    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    complex(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), &
+&   3)
 ! working
     integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, &
 &   cp_loc
-    real(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
-    real(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
-    real(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
-    real(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
-    real(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym(3)
+    complex(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
+    complex(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
+    complex(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
+    complex(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
+    complex(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym&
+&   (3)
     intrinsic atan
     intrinsic cos
     intrinsic sin
@@ -1391,24 +975,24 @@ contains
           p = points(cp_i, cp_j, :)
           r1 = p - d_te
           r2 = p - c_te
-          call norm(r1, r1_mag)
-          call norm(r2, r2_mag)
-          call cross(u, r2, ur2)
-          call cross(u, r1, ur1)
+          call normc(r1, r1_mag)
+          call normc(r2, r2_mag)
+          call crossc(u, r2, ur2)
+          call crossc(u, r1, ur1)
           edges(:) = 0.
-          call dot(u, r2, dot_ur2)
-          call dot(u, r1, dot_ur1)
+          call dotc(u, r2, dot_ur2)
+          call dotc(u, r1, dot_ur1)
           edges = ur2/(r2_mag*(r2_mag-dot_ur2))
           edges = edges - ur1/(r1_mag*(r1_mag-dot_ur1))
           if (symmetry) then
             r1 = p - d_te_sym
             r2 = p - c_te_sym
-            call norm(r1, r1_mag)
-            call norm(r2, r2_mag)
-            call cross(u, r2, ur2)
-            call cross(u, r1, ur1)
-            call dot(u, r2, dot_ur2)
-            call dot(u, r1, dot_ur1)
+            call normc(r1, r1_mag)
+            call normc(r2, r2_mag)
+            call crossc(u, r2, ur2)
+            call crossc(u, r1, ur1)
+            call dotc(u, r2, dot_ur2)
+            call dotc(u, r1, dot_ur1)
             edges = edges - ur2/(r2_mag*(r2_mag-dot_ur2))
             edges = edges + ur1/(r1_mag*(r1_mag-dot_ur1))
           end if
@@ -1459,26 +1043,26 @@ contains
   subroutine calc_vorticity_b(a, ab, b, bb, p, pb, out, outb)
     implicit none
 ! input
-    real(kind=8), intent(in) :: a(3), b(3), p(3)
-    real(kind=8) :: ab(3), bb(3), pb(3)
+    complex(kind=8), intent(in) :: a(3), b(3), p(3)
+    complex(kind=8) :: ab(3), bb(3), pb(3)
 ! output
-    real(kind=8), intent(inout) :: out(3)
-    real(kind=8) :: outb(3)
+    complex(kind=8), intent(inout) :: out(3)
+    complex(kind=8) :: outb(3)
 ! working
-    real(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
+    complex(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
 &   dot_r1r2
-    real(kind=8) :: r1b(3), r2b(3), r1_magb, r2_magb, r1r2b(3), &
+    complex(kind=8) :: r1b(3), r2b(3), r1_magb, r2_magb, r1r2b(3), &
 &   mag_multb, dot_r1r2b
-    real(kind=8) :: tempb0
-    real(kind=8) :: tempb(3)
+    complex(kind=8) :: tempb0
+    complex(kind=8) :: tempb(3)
     r1 = p - a
     r2 = p - b
-    call norm(r1, r1_mag)
-    call norm(r2, r2_mag)
-    call cross(r1, r2, r1r2)
+    call normc(r1, r1_mag)
+    call normc(r2, r2_mag)
+    call crossc(r1, r2, r1r2)
     mag_mult = r1_mag*r2_mag
-    call dot(r1, r2, dot_r1r2)
-    r1r2b = 0.0_8
+    call dotc(r1, r2, dot_r1r2)
+    r1r2b = (0.0_4,0.0_4)
     tempb = outb/(mag_mult*(mag_mult+dot_r1r2))
     tempb0 = sum(-((r1_mag+r2_mag)*r1r2*tempb/(mag_mult*(mag_mult+&
 &     dot_r1r2))))
@@ -1487,12 +1071,12 @@ contains
     r1_magb = r2_mag*mag_multb + sum(r1r2*tempb)
     r2_magb = r1_mag*mag_multb + sum(r1r2*tempb)
     dot_r1r2b = mag_mult*tempb0
-    r1b = 0.0_8
-    r2b = 0.0_8
-    call dot_b(r1, r1b, r2, r2b, dot_r1r2, dot_r1r2b)
-    call cross_b(r1, r1b, r2, r2b, r1r2, r1r2b)
-    call norm_b(r2, r2b, r2_mag, r2_magb)
-    call norm_b(r1, r1b, r1_mag, r1_magb)
+    r1b = (0.0_4,0.0_4)
+    r2b = (0.0_4,0.0_4)
+    call dotc_b(r1, r1b, r2, r2b, dot_r1r2, dot_r1r2b)
+    call crossc_b(r1, r1b, r2, r2b, r1r2, r1r2b)
+    call normc_b(r2, r2b, r2_mag, r2_magb)
+    call normc_b(r1, r1b, r1_mag, r1_magb)
     pb = pb + r1b + r2b
     bb = bb - r2b
     ab = ab - r1b
@@ -1500,59 +1084,59 @@ contains
   subroutine calc_vorticity(a, b, p, out)
     implicit none
 ! input
-    real(kind=8), intent(in) :: a(3), b(3), p(3)
+    complex(kind=8), intent(in) :: a(3), b(3), p(3)
 ! output
-    real(kind=8), intent(inout) :: out(3)
+    complex(kind=8), intent(inout) :: out(3)
 ! working
-    real(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
+    complex(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
 &   dot_r1r2
     r1 = p - a
     r2 = p - b
-    call norm(r1, r1_mag)
-    call norm(r2, r2_mag)
-    call cross(r1, r2, r1r2)
+    call normc(r1, r1_mag)
+    call normc(r2, r2_mag)
+    call crossc(r1, r2, r1r2)
     mag_mult = r1_mag*r2_mag
-    call dot(r1, r2, dot_r1r2)
+    call dotc(r1, r2, dot_r1r2)
     out = out + (r1_mag+r2_mag)*r1r2/(mag_mult*(mag_mult+dot_r1r2))
   end subroutine calc_vorticity
   subroutine biotsavart(a, b, p, inf, rev, out)
     implicit none
 ! input
-    real(kind=8), intent(in) :: a(3), b(3), p(3)
+    complex(kind=8), intent(in) :: a(3), b(3), p(3)
     logical, intent(in) :: inf, rev
 ! output
-    real(kind=8), intent(inout) :: out(3)
+    complex(kind=8), intent(inout) :: out(3)
 ! working
-    real(kind=8) :: rpa, rpb, rab, rh
-    real(kind=8) :: cosa, cosb, c(3)
-    real(kind=8) :: eps, tmp(3), dot_bapa, dot_baba, dot_pbab
-    real(kind=8), dimension(3) :: arg1
-    real(kind=8), dimension(3) :: arg2
+    complex(kind=8) :: rpa, rpb, rab, rh
+    complex(kind=8) :: cosa, cosb, c(3)
+    complex(kind=8) :: eps, tmp(3), dot_bapa, dot_baba, dot_pbab
+    complex(kind=8), dimension(3) :: arg1
+    complex(kind=8), dimension(3) :: arg2
     eps = 1e-5
     arg1(:) = a - p
-    call norm(arg1(:), rpa)
+    call normc(arg1(:), rpa)
     arg1(:) = b - p
-    call norm(arg1(:), rpb)
+    call normc(arg1(:), rpb)
     arg1(:) = b - a
-    call norm(arg1(:), rab)
+    call normc(arg1(:), rab)
     arg1(:) = b - a
     arg2(:) = p - a
-    call dot(arg1(:), arg2(:), dot_bapa)
+    call dotc(arg1(:), arg2(:), dot_bapa)
     arg1(:) = b - a
     arg2(:) = b - a
-    call dot(arg1(:), arg2(:), dot_baba)
+    call dotc(arg1(:), arg2(:), dot_baba)
     arg1(:) = p - b
     arg2(:) = a - b
-    call dot(arg1(:), arg2(:), dot_pbab)
+    call dotc(arg1(:), arg2(:), dot_pbab)
     arg1(:) = p - a - dot_bapa/dot_baba*(b-a)
-    call norm(arg1(:), rh)
+    call normc(arg1(:), rh)
     rh = rh + eps
     cosa = dot_bapa/(rpa*rab)
     cosb = dot_pbab/(rpb*rab)
     arg1(:) = b - p
     arg2(:) = a - p
-    call cross(arg1(:), arg2(:), c)
-    call unit(c, c)
+    call crossc(arg1(:), arg2(:), c)
+    call unitc(c, c)
     if (inf) then
       tmp = -(c/rh*(cosa+1))
     else
@@ -1561,6 +1145,122 @@ contains
     if (rev) tmp = -tmp
     out = out + tmp
   end subroutine biotsavart
+! complex functions
+  subroutine unitc(v, u)
+    implicit none
+    complex(kind=8), intent(in) :: v(3)
+    complex(kind=8), intent(out) :: u(3)
+    complex(kind=8) :: nm
+    call normc(v, nm)
+    u(1) = v(1)/nm
+    u(2) = v(2)/nm
+    u(3) = v(3)/nm
+  end subroutine unitc
+!  differentiation of normc in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: v norm_output
+!   with respect to varying inputs: v
+  subroutine normc_b(v, vb, norm_output, norm_outputb)
+    implicit none
+    complex(kind=8), intent(in) :: v(3)
+    complex(kind=8) :: vb(3)
+    complex(kind=8) :: norm_output
+    complex(kind=8) :: norm_outputb
+    complex(kind=8) :: dot_prod
+    complex(kind=8) :: dot_prodb
+!norm = sqrt(dot_product(v, v))
+    call dotc(v, v, dot_prod)
+    dot_prodb = 0.5*dot_prod**(-0.5)*norm_outputb
+    call dotc_b(v, vb, v, vb, dot_prod, dot_prodb)
+  end subroutine normc_b
+  subroutine normc(v, norm_output)
+    implicit none
+    complex(kind=8), intent(in) :: v(3)
+    complex(kind=8), intent(out) :: norm_output
+    complex(kind=8) :: dot_prod
+!norm = sqrt(dot_product(v, v))
+    call dotc(v, v, dot_prod)
+    norm_output = dot_prod**0.5
+  end subroutine normc
+!  differentiation of dotc in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: dot_prod a b
+!   with respect to varying inputs: a b
+  subroutine dotc_b(a, ab, b, bb, dot_prod, dot_prodb)
+    implicit none
+    complex(kind=8), intent(in) :: a(3), b(3)
+    complex(kind=8) :: ab(3), bb(3)
+    complex(kind=8) :: dot_prod
+    complex(kind=8) :: dot_prodb
+    ab(1) = ab(1) + b(1)*dot_prodb
+    bb(1) = bb(1) + a(1)*dot_prodb
+    ab(2) = ab(2) + b(2)*dot_prodb
+    bb(2) = bb(2) + a(2)*dot_prodb
+    ab(3) = ab(3) + b(3)*dot_prodb
+    bb(3) = bb(3) + a(3)*dot_prodb
+  end subroutine dotc_b
+  subroutine dotc(a, b, dot_prod)
+    implicit none
+    complex(kind=8), intent(in) :: a(3), b(3)
+    complex(kind=8), intent(out) :: dot_prod
+    dot_prod = a(1)*b(1) + a(2)*b(2) + a(3)*b(3)
+  end subroutine dotc
+!  differentiation of crossc in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: a b c
+!   with respect to varying inputs: a b c
+  subroutine crossc_b(a, ab, b, bb, c, cb)
+    implicit none
+    complex(kind=8), intent(in) :: a(3), b(3)
+    complex(kind=8) :: ab(3), bb(3)
+    complex(kind=8) :: c(3)
+    complex(kind=8) :: cb(3)
+    ab(1) = ab(1) + b(2)*cb(3)
+    bb(2) = bb(2) + a(1)*cb(3)
+    ab(2) = ab(2) - b(1)*cb(3)
+    bb(1) = bb(1) - a(2)*cb(3)
+    cb(3) = 0.0_8
+    ab(3) = ab(3) + b(1)*cb(2)
+    bb(1) = bb(1) + a(3)*cb(2)
+    ab(1) = ab(1) - b(3)*cb(2)
+    bb(3) = bb(3) - a(1)*cb(2)
+    cb(2) = 0.0_8
+    ab(2) = ab(2) + b(3)*cb(1)
+    bb(3) = bb(3) + a(2)*cb(1)
+    ab(3) = ab(3) - b(2)*cb(1)
+    bb(2) = bb(2) - a(3)*cb(1)
+    cb(1) = 0.0_8
+  end subroutine crossc_b
+  subroutine crossc(a, b, c)
+    implicit none
+    complex(kind=8), intent(in) :: a(3), b(3)
+    complex(kind=8), intent(out) :: c(3)
+    c(1) = a(2)*b(3) - a(3)*b(2)
+    c(2) = a(3)*b(1) - a(1)*b(3)
+    c(3) = a(1)*b(2) - a(2)*b(1)
+  end subroutine crossc
+!  differentiation of unit in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: u v
+!   with respect to varying inputs: u v
+! real functions
+  subroutine unit_b(v, vb, u, ub)
+    implicit none
+    real(kind=8), intent(in) :: v(3)
+    real(kind=8) :: vb(3)
+    real(kind=8) :: u(3)
+    real(kind=8) :: ub(3)
+    real(kind=8) :: nm
+    real(kind=8) :: nmb
+    call norm(v, nm)
+    vb(3) = vb(3) + ub(3)/nm
+    nmb = -(v(3)*ub(3)/nm**2)
+    ub(3) = 0.0_8
+    vb(2) = vb(2) + ub(2)/nm
+    nmb = nmb - v(2)*ub(2)/nm**2
+    ub(2) = 0.0_8
+    vb(1) = vb(1) + ub(1)/nm
+    nmb = nmb - v(1)*ub(1)/nm**2
+    ub(1) = 0.0_8
+    call norm_b(v, vb, nm, nmb)
+  end subroutine unit_b
+! real functions
   subroutine unit(v, u)
     implicit none
     real(kind=8), intent(in) :: v(3)

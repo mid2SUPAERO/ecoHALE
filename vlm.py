@@ -840,8 +840,8 @@ class VLMForces(Component):
 
         return jac
 
-    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-        print mode, dresids['sec_forces']
+    # def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
+    #     print mode, dresids['sec_forces']
 
 
 class VLMLiftDrag(Component):

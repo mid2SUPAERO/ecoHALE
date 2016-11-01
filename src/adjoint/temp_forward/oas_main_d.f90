@@ -18,330 +18,6 @@ CONTAINS
       END DO
     END DO
   END SUBROUTINE MULT
-!  Differentiation of assemblesparsemtx_main in forward (tangent) mode (with options i4 dr8 r8):
-!   variations   of useful results: data
-!   with respect to varying inputs: nodes
-!   RW status of diff variables: data:out nodes:in
-  SUBROUTINE ASSEMBLESPARSEMTX_MAIN_D(num_elems, tot_n_fem, nnz, x_gl, e&
-&   , g, a, j, iy, iz, nodes, nodesd, elems, coeff_at, coeff_y, coeff_z&
-&   , pelem_a, pelem_t, pelem_y, pelem_z, data, datad, rows, cols)
-    IMPLICIT NONE
-! Input
-    INTEGER, INTENT(IN) :: tot_n_fem, num_elems, nnz
-    REAL(kind=8), INTENT(IN) :: x_gl(3)
-    REAL(kind=8) :: x_gld(3)
-    REAL(kind=8), INTENT(IN) :: e(num_elems), g(num_elems)
-    REAL(kind=8), INTENT(IN) :: a(num_elems), j(num_elems)
-    REAL(kind=8), INTENT(IN) :: iy(num_elems), iz(num_elems)
-    REAL(kind=8), INTENT(IN) :: nodes(tot_n_fem, 3)
-    REAL(kind=8), INTENT(IN) :: nodesd(tot_n_fem, 3)
-    INTEGER, INTENT(IN) :: elems(num_elems, 2)
-! Local stiffness matrix coefficients
-    REAL(kind=8), INTENT(IN) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4&
-&   , 4)
-! Local permutation matrices to map to list of dofs for local element
-    REAL(kind=8), INTENT(IN) :: pelem_a(2, 12), pelem_t(2, 12)
-    REAL(kind=8) :: pelem_ad(2, 12)
-    REAL(kind=8), INTENT(IN) :: pelem_y(4, 12), pelem_z(4, 12)
-    REAL(kind=8) :: pelem_yd(4, 12)
-! Output
-    REAL(kind=8), INTENT(OUT) :: data(nnz)
-    REAL(kind=8), INTENT(OUT) :: datad(nnz)
-    INTEGER, INTENT(OUT) :: rows(nnz), cols(nnz)
-! Local stiffness matrices for axial, torsion, bending (y,z)
-    REAL(kind=8) :: kelem_a(2, 2), kelem_t(2, 2)
-    REAL(kind=8) :: kelem_ad(2, 2), kelem_td(2, 2)
-    REAL(kind=8) :: kelem_y(4, 4), kelem_z(4, 4)
-    REAL(kind=8) :: kelem_yd(4, 4), kelem_zd(4, 4)
-! Local transformation matrix (12,12) to map from local to global frame
-    REAL(kind=8) :: t_elem(12, 12), t(3, 3)
-    REAL(kind=8) :: t_elemd(12, 12), td(3, 3)
-! Arrays that help in mapping from local element ordering to global ordering
-    INTEGER :: rows_elem(12, 12), cols_elem(12, 12)
-    INTEGER :: ones11(12, 12), ones12(12, 12)
-    INTEGER :: ones21(12, 12), ones22(12, 12)
-! Local stiffness matrix in global frame
-    REAL(kind=8) :: k_elem(12, 12)
-    REAL(kind=8) :: k_elemd(12, 12)
-! Miscellaneous
-    REAL(kind=8) :: l, xyz1(3), xyz2(3)
-    REAL(kind=8) :: ld, xyz1d(3), xyz2d(3)
-    REAL(kind=8) :: x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-    REAL(kind=8) :: x_locd(3), y_locd(3), z_locd(3), x_crossd(3), &
-&   y_crossd(3)
-    REAL(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2), &
-&   res(12, 12)
-    REAL(kind=8) :: mat12x12d(12, 12), mat12x4d(12, 4), mat12x2d(12, 2)&
-&   , resd(12, 12)
-    REAL(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2)
-    REAL(kind=8) :: pelem_a_td(12, 2), pelem_t_td(12, 2)
-    REAL(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)
-    REAL(kind=8) :: pelem_y_td(12, 4), pelem_z_td(12, 4), t_elem_td(12, &
-&   12)
-    INTEGER :: i, k1, k2, ind, ind1, ind2, ielem
-    INTRINSIC MOD
-    REAL(kind=8) :: pelem_zd(4, 12)
-    REAL(kind=8) :: pelem_td(2, 12)
-    DO k1=1,12
-      DO k2=1,12
-        rows_elem(k1, k2) = MOD(k1 - 1, 6)
-        cols_elem(k1, k2) = MOD(k2 - 1, 6)
-      END DO
-    END DO
-    ones11(:, :) = 0
-    ones12(:, :) = 0
-    ones21(:, :) = 0
-    ones22(:, :) = 0
-    ones11(1:6, 1:6) = 1
-    ones12(1:6, 7:12) = 1
-    ones21(7:12, 1:6) = 1
-    ones22(7:12, 7:12) = 1
-    t_elem(:, :) = 0.
-    data(:) = 0.
-    rows(:) = 0
-    cols(:) = 0
-    ind = 0
-    datad = 0.0_8
-    y_locd = 0.0_8
-    td = 0.0_8
-    t_elemd = 0.0_8
-    z_locd = 0.0_8
-    t_elem_td = 0.0_8
-    y_crossd = 0.0_8
-    x_crossd = 0.0_8
-    x_locd = 0.0_8
-    DO ielem=1,num_elems
-      xyz1d = nodesd(elems(ielem, 1), :)
-      xyz1 = nodes(elems(ielem, 1), :)
-      xyz2d = nodesd(elems(ielem, 2), :)
-      xyz2 = nodes(elems(ielem, 2), :)
-      CALL NORM_D(xyz2 - xyz1, xyz2d - xyz1d, l, ld)
-      CALL UNIT_D(xyz2 - xyz1, xyz2d - xyz1d, x_loc, x_locd)
-      x_gld = 0.0_8
-      CALL CROSS_D(x_loc, x_locd, x_gl, x_gld, x_cross, x_crossd)
-      CALL UNIT_D(x_cross, x_crossd, y_loc, y_locd)
-      CALL CROSS_D(x_loc, x_locd, y_loc, y_locd, y_cross, y_crossd)
-      CALL UNIT_D(y_cross, y_crossd, z_loc, z_locd)
-      td(1, :) = x_locd
-      t(1, :) = x_loc
-      td(2, :) = y_locd
-      t(2, :) = y_loc
-      td(3, :) = z_locd
-      t(3, :) = z_loc
-      DO i=1,4
-        t_elemd(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = td
-        t_elem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = t
-      END DO
-      kelem_ad = -(coeff_at*e(ielem)*a(ielem)*ld/l**2)
-      kelem_a = coeff_at*e(ielem)*a(ielem)/l
-      kelem_td = -(coeff_at*g(ielem)*j(ielem)*ld/l**2)
-      kelem_t = coeff_at*g(ielem)*j(ielem)/l
-      kelem_yd = -(coeff_y*e(ielem)*iy(ielem)*3*l**2*ld/(l**3)**2)
-      kelem_y = coeff_y*e(ielem)*iy(ielem)/l**3
-      kelem_yd(2:4:2, :) = kelem_yd(2:4:2, :)*l + kelem_y(2:4:2, :)*ld
-      kelem_y(2:4:2, :) = kelem_y(2:4:2, :)*l
-      kelem_yd(:, 2:4:2) = kelem_yd(:, 2:4:2)*l + kelem_y(:, 2:4:2)*ld
-      kelem_y(:, 2:4:2) = kelem_y(:, 2:4:2)*l
-      kelem_zd = -(coeff_z*e(ielem)*iz(ielem)*3*l**2*ld/(l**3)**2)
-      kelem_z = coeff_z*e(ielem)*iz(ielem)/l**3
-      kelem_zd(2:4:2, :) = kelem_zd(2:4:2, :)*l + kelem_z(2:4:2, :)*ld
-      kelem_z(2:4:2, :) = kelem_z(2:4:2, :)*l
-      kelem_zd(:, 2:4:2) = kelem_zd(:, 2:4:2)*l + kelem_z(:, 2:4:2)*ld
-      kelem_z(:, 2:4:2) = kelem_z(:, 2:4:2)*l
-      k_elem(:, :) = 0.
-      CALL TRANSPOSE2(2, 12, pelem_a, pelem_a_t)
-      pelem_a_td = 0.0_8
-      CALL MATMUL2_D(12, 2, 2, pelem_a_t, pelem_a_td, kelem_a, kelem_ad&
-&              , mat12x2, mat12x2d)
-      pelem_ad = 0.0_8
-      CALL MATMUL2_D(12, 2, 12, mat12x2, mat12x2d, pelem_a, pelem_ad, &
-&              res, resd)
-      k_elemd = resd
-      k_elem = k_elem + res
-      CALL TRANSPOSE2(2, 12, pelem_t, pelem_t_t)
-      pelem_t_td = 0.0_8
-      CALL MATMUL2_D(12, 2, 2, pelem_t_t, pelem_t_td, kelem_t, kelem_td&
-&              , mat12x2, mat12x2d)
-      pelem_td = 0.0_8
-      CALL MATMUL2_D(12, 2, 12, mat12x2, mat12x2d, pelem_t, pelem_td, &
-&              res, resd)
-      k_elemd = k_elemd + resd
-      k_elem = k_elem + res
-      CALL TRANSPOSE2(4, 12, pelem_y, pelem_y_t)
-      pelem_y_td = 0.0_8
-      CALL MATMUL2_D(12, 4, 4, pelem_y_t, pelem_y_td, kelem_y, kelem_yd&
-&              , mat12x4, mat12x4d)
-      pelem_yd = 0.0_8
-      CALL MATMUL2_D(12, 4, 12, mat12x4, mat12x4d, pelem_y, pelem_yd, &
-&              res, resd)
-      k_elemd = k_elemd + resd
-      k_elem = k_elem + res
-      CALL TRANSPOSE2(4, 12, pelem_z, pelem_z_t)
-      pelem_z_td = 0.0_8
-      CALL MATMUL2_D(12, 4, 4, pelem_z_t, pelem_z_td, kelem_z, kelem_zd&
-&              , mat12x4, mat12x4d)
-      pelem_zd = 0.0_8
-      CALL MATMUL2_D(12, 4, 12, mat12x4, mat12x4d, pelem_z, pelem_zd, &
-&              res, resd)
-      k_elemd = k_elemd + resd
-      k_elem = k_elem + res
-      CALL TRANSPOSE2_D(12, 12, t_elem, t_elemd, t_elem_t, t_elem_td)
-      CALL MATMUL2_D(12, 12, 12, t_elem_t, t_elem_td, k_elem, k_elemd, &
-&              mat12x12, mat12x12d)
-      CALL MATMUL2_D(12, 12, 12, mat12x12, mat12x12d, t_elem, t_elemd, &
-&              k_elem, k_elemd)
-      ind1 = 6*(elems(ielem, 1)-1)
-      ind2 = 6*(elems(ielem, 2)-1)
-      DO k1=1,12
-        DO k2=1,12
-          ind = ind + 1
-          datad(ind) = datad(ind) + k_elemd(k1, k2)
-          data(ind) = data(ind) + k_elem(k1, k2)
-          rows(ind) = rows(ind) + rows_elem(k1, k2) + 1
-          cols(ind) = cols(ind) + cols_elem(k1, k2) + 1
-          rows(ind) = rows(ind) + ones11(k1, k2)*ind1
-          cols(ind) = cols(ind) + ones11(k1, k2)*ind1
-          rows(ind) = rows(ind) + ones12(k1, k2)*ind1
-          cols(ind) = cols(ind) + ones12(k1, k2)*ind2
-          rows(ind) = rows(ind) + ones21(k1, k2)*ind2
-          cols(ind) = cols(ind) + ones21(k1, k2)*ind1
-          rows(ind) = rows(ind) + ones22(k1, k2)*ind2
-          cols(ind) = cols(ind) + ones22(k1, k2)*ind2
-        END DO
-      END DO
-    END DO
-    IF (ind .NE. nnz) PRINT*, &
-&         'Error in assemblesparsemtx: did not reach end of nnz vectors'
-    rows(:) = rows(:) - 1
-    cols(:) = cols(:) - 1
-  END SUBROUTINE ASSEMBLESPARSEMTX_MAIN_D
-  SUBROUTINE ASSEMBLESPARSEMTX_MAIN(num_elems, tot_n_fem, nnz, x_gl, e, &
-&   g, a, j, iy, iz, nodes, elems, coeff_at, coeff_y, coeff_z, pelem_a, &
-&   pelem_t, pelem_y, pelem_z, data, rows, cols)
-    IMPLICIT NONE
-! Input
-    INTEGER, INTENT(IN) :: tot_n_fem, num_elems, nnz
-    REAL(kind=8), INTENT(IN) :: x_gl(3)
-    REAL(kind=8), INTENT(IN) :: e(num_elems), g(num_elems)
-    REAL(kind=8), INTENT(IN) :: a(num_elems), j(num_elems)
-    REAL(kind=8), INTENT(IN) :: iy(num_elems), iz(num_elems)
-    REAL(kind=8), INTENT(IN) :: nodes(tot_n_fem, 3)
-    INTEGER, INTENT(IN) :: elems(num_elems, 2)
-! Local stiffness matrix coefficients
-    REAL(kind=8), INTENT(IN) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4&
-&   , 4)
-! Local permutation matrices to map to list of dofs for local element
-    REAL(kind=8), INTENT(IN) :: pelem_a(2, 12), pelem_t(2, 12)
-    REAL(kind=8), INTENT(IN) :: pelem_y(4, 12), pelem_z(4, 12)
-! Output
-    REAL(kind=8), INTENT(OUT) :: data(nnz)
-    INTEGER, INTENT(OUT) :: rows(nnz), cols(nnz)
-! Local stiffness matrices for axial, torsion, bending (y,z)
-    REAL(kind=8) :: kelem_a(2, 2), kelem_t(2, 2)
-    REAL(kind=8) :: kelem_y(4, 4), kelem_z(4, 4)
-! Local transformation matrix (12,12) to map from local to global frame
-    REAL(kind=8) :: t_elem(12, 12), t(3, 3)
-! Arrays that help in mapping from local element ordering to global ordering
-    INTEGER :: rows_elem(12, 12), cols_elem(12, 12)
-    INTEGER :: ones11(12, 12), ones12(12, 12)
-    INTEGER :: ones21(12, 12), ones22(12, 12)
-! Local stiffness matrix in global frame
-    REAL(kind=8) :: k_elem(12, 12)
-! Miscellaneous
-    REAL(kind=8) :: l, xyz1(3), xyz2(3)
-    REAL(kind=8) :: x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-    REAL(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2), &
-&   res(12, 12)
-    REAL(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2)
-    REAL(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)
-    INTEGER :: i, k1, k2, ind, ind1, ind2, ielem
-    INTRINSIC MOD
-    DO k1=1,12
-      DO k2=1,12
-        rows_elem(k1, k2) = MOD(k1 - 1, 6)
-        cols_elem(k1, k2) = MOD(k2 - 1, 6)
-      END DO
-    END DO
-    ones11(:, :) = 0
-    ones12(:, :) = 0
-    ones21(:, :) = 0
-    ones22(:, :) = 0
-    ones11(1:6, 1:6) = 1
-    ones12(1:6, 7:12) = 1
-    ones21(7:12, 1:6) = 1
-    ones22(7:12, 7:12) = 1
-    t_elem(:, :) = 0.
-    data(:) = 0.
-    rows(:) = 0
-    cols(:) = 0
-    ind = 0
-    DO ielem=1,num_elems
-      xyz1 = nodes(elems(ielem, 1), :)
-      xyz2 = nodes(elems(ielem, 2), :)
-      CALL NORM(xyz2 - xyz1, l)
-      CALL UNIT(xyz2 - xyz1, x_loc)
-      CALL CROSS(x_loc, x_gl, x_cross)
-      CALL UNIT(x_cross, y_loc)
-      CALL CROSS(x_loc, y_loc, y_cross)
-      CALL UNIT(y_cross, z_loc)
-      t(1, :) = x_loc
-      t(2, :) = y_loc
-      t(3, :) = z_loc
-      DO i=1,4
-        t_elem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = t
-      END DO
-      kelem_a = coeff_at*e(ielem)*a(ielem)/l
-      kelem_t = coeff_at*g(ielem)*j(ielem)/l
-      kelem_y = coeff_y*e(ielem)*iy(ielem)/l**3
-      kelem_y(2:4:2, :) = kelem_y(2:4:2, :)*l
-      kelem_y(:, 2:4:2) = kelem_y(:, 2:4:2)*l
-      kelem_z = coeff_z*e(ielem)*iz(ielem)/l**3
-      kelem_z(2:4:2, :) = kelem_z(2:4:2, :)*l
-      kelem_z(:, 2:4:2) = kelem_z(:, 2:4:2)*l
-      k_elem(:, :) = 0.
-      CALL TRANSPOSE2(2, 12, pelem_a, pelem_a_t)
-      CALL MATMUL2(12, 2, 2, pelem_a_t, kelem_a, mat12x2)
-      CALL MATMUL2(12, 2, 12, mat12x2, pelem_a, res)
-      k_elem = k_elem + res
-      CALL TRANSPOSE2(2, 12, pelem_t, pelem_t_t)
-      CALL MATMUL2(12, 2, 2, pelem_t_t, kelem_t, mat12x2)
-      CALL MATMUL2(12, 2, 12, mat12x2, pelem_t, res)
-      k_elem = k_elem + res
-      CALL TRANSPOSE2(4, 12, pelem_y, pelem_y_t)
-      CALL MATMUL2(12, 4, 4, pelem_y_t, kelem_y, mat12x4)
-      CALL MATMUL2(12, 4, 12, mat12x4, pelem_y, res)
-      k_elem = k_elem + res
-      CALL TRANSPOSE2(4, 12, pelem_z, pelem_z_t)
-      CALL MATMUL2(12, 4, 4, pelem_z_t, kelem_z, mat12x4)
-      CALL MATMUL2(12, 4, 12, mat12x4, pelem_z, res)
-      k_elem = k_elem + res
-      CALL TRANSPOSE2(12, 12, t_elem, t_elem_t)
-      CALL MATMUL2(12, 12, 12, t_elem_t, k_elem, mat12x12)
-      CALL MATMUL2(12, 12, 12, mat12x12, t_elem, k_elem)
-      ind1 = 6*(elems(ielem, 1)-1)
-      ind2 = 6*(elems(ielem, 2)-1)
-      DO k1=1,12
-        DO k2=1,12
-          ind = ind + 1
-          data(ind) = data(ind) + k_elem(k1, k2)
-          rows(ind) = rows(ind) + rows_elem(k1, k2) + 1
-          cols(ind) = cols(ind) + cols_elem(k1, k2) + 1
-          rows(ind) = rows(ind) + ones11(k1, k2)*ind1
-          cols(ind) = cols(ind) + ones11(k1, k2)*ind1
-          rows(ind) = rows(ind) + ones12(k1, k2)*ind1
-          cols(ind) = cols(ind) + ones12(k1, k2)*ind2
-          rows(ind) = rows(ind) + ones21(k1, k2)*ind2
-          cols(ind) = cols(ind) + ones21(k1, k2)*ind1
-          rows(ind) = rows(ind) + ones22(k1, k2)*ind2
-          cols(ind) = cols(ind) + ones22(k1, k2)*ind2
-        END DO
-      END DO
-    END DO
-    IF (ind .NE. nnz) PRINT*, &
-&         'Error in assemblesparsemtx: did not reach end of nnz vectors'
-    rows(:) = rows(:) - 1
-    cols(:) = cols(:) - 1
-  END SUBROUTINE ASSEMBLESPARSEMTX_MAIN
 !  Differentiation of assemblestructmtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: x
 !   with respect to varying inputs: j nodes iy iz rhs a
@@ -740,25 +416,21 @@ CONTAINS
       END DO
     END DO
   END SUBROUTINE MATMUL2
-!  Differentiation of unit in forward (tangent) mode (with options i4 dr8 r8):
-!   variations   of useful results: u
-!   with respect to varying inputs: u v
-  SUBROUTINE UNIT_D(v, vd, u, ud)
+  SUBROUTINE MATMUL2C(m, n, p, a, b, c)
     IMPLICIT NONE
-    REAL(kind=8), INTENT(IN) :: v(3)
-    REAL(kind=8), INTENT(IN) :: vd(3)
-    REAL(kind=8), INTENT(OUT) :: u(3)
-    REAL(kind=8), INTENT(OUT) :: ud(3)
-    REAL(kind=8) :: nm
-    REAL(kind=8) :: nmd
-    CALL NORM_D(v, vd, nm, nmd)
-    ud(1) = (vd(1)*nm-v(1)*nmd)/nm**2
-    u(1) = v(1)/nm
-    ud(2) = (vd(2)*nm-v(2)*nmd)/nm**2
-    u(2) = v(2)/nm
-    ud(3) = (vd(3)*nm-v(3)*nmd)/nm**2
-    u(3) = v(3)/nm
-  END SUBROUTINE UNIT_D
+    INTEGER, INTENT(IN) :: m, n, p
+    COMPLEX(kind=8), INTENT(IN) :: a(m, n), b(n, p)
+    COMPLEX(kind=8), INTENT(OUT) :: c(m, p)
+    INTEGER :: i, j, k
+    c(:, :) = 0.
+    DO i=1,m
+      DO j=1,p
+        DO k=1,n
+          c(i, j) = c(i, j) + a(i, k)*b(k, j)
+        END DO
+      END DO
+    END DO
+  END SUBROUTINE MATMUL2C
 !  Differentiation of assembleaeromtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: mtx
 !   with respect to varying inputs: alpha points mesh bpts
@@ -770,36 +442,39 @@ CONTAINS
     IMPLICIT NONE
 ! Input
     INTEGER, INTENT(IN) :: ny, nx, ny_, nx_
-    REAL(kind=8), INTENT(IN) :: alpha, mesh(nx_, ny_, 3)
-    REAL(kind=8), INTENT(IN) :: alphad, meshd(nx_, ny_, 3)
-    REAL(kind=8), INTENT(IN) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, &
-&   3)
-    REAL(kind=8), INTENT(IN) :: pointsd(nx-1, ny-1, 3), bptsd(nx_-1, ny_&
-&   , 3)
+    COMPLEX(kind=8), INTENT(IN) :: alpha, mesh(nx_, ny_, 3)
+    COMPLEX(kind=8), INTENT(IN) :: alphad, meshd(nx_, ny_, 3)
+    COMPLEX(kind=8), INTENT(IN) :: points(nx-1, ny-1, 3), bpts(nx_-1, &
+&   ny_, 3)
+    COMPLEX(kind=8), INTENT(IN) :: pointsd(nx-1, ny-1, 3), bptsd(nx_-1, &
+&   ny_, 3)
     LOGICAL, INTENT(IN) :: skip, symmetry
 ! Output
-    REAL(kind=8), INTENT(OUT) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
-    REAL(kind=8), INTENT(OUT) :: mtxd((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    COMPLEX(kind=8), INTENT(OUT) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), &
+&   3)
+    COMPLEX(kind=8), INTENT(OUT) :: mtxd((nx-1)*(ny-1), (nx_-1)*(ny_-1)&
+&   , 3)
 ! Working
     INTEGER :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, &
 &   cp_loc
-    REAL(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
-    REAL(kind=8) :: pd(3), ad(3), bd(3), ud(3), cd(3), dd(3)
-    REAL(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
-    REAL(kind=8) :: a_symd(3), b_symd(3), c_symd(3), d_symd(3)
-    REAL(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
-    REAL(kind=8) :: ur2d(3), r1d(3), r2d(3), r1_magd, r2_magd
-    REAL(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
-    REAL(kind=8) :: ur1d(3), boundd(3), dot_ur2d, dot_ur1d
-    REAL(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym(3)
-    REAL(kind=8) :: edgesd(3), c_ted(3), d_ted(3), c_te_symd(3), &
+    COMPLEX(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
+    COMPLEX(kind=8) :: pd(3), ad(3), bd(3), ud(3), cd(3), dd(3)
+    COMPLEX(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
+    COMPLEX(kind=8) :: a_symd(3), b_symd(3), c_symd(3), d_symd(3)
+    COMPLEX(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
+    COMPLEX(kind=8) :: ur2d(3), r1d(3), r2d(3), r1_magd, r2_magd
+    COMPLEX(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
+    COMPLEX(kind=8) :: ur1d(3), boundd(3), dot_ur2d, dot_ur1d
+    COMPLEX(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym&
+&   (3)
+    COMPLEX(kind=8) :: edgesd(3), c_ted(3), d_ted(3), c_te_symd(3), &
 &   d_te_symd(3)
     INTRINSIC ATAN
     INTRINSIC COS
     INTRINSIC SIN
     pi = 4.d0*ATAN(1.d0)
 ! Trailing vortices in AVL follow the x-axis; no cos or sin
-    ud = 0.0_8
+    ud = (0.0_4,0.0_4)
     ud(1) = -(pi*alphad*SIN(alpha*pi/180.)/180.)
     u(1) = COS(alpha*pi/180.)
     ud(2) = 0.0_8
@@ -807,13 +482,13 @@ CONTAINS
     ud(3) = pi*alphad*COS(alpha*pi/180.)/180.
     u(3) = SIN(alpha*pi/180.)
     mtx(:, :, :) = 0.
-    mtxd = 0.0_8
-    ur1d = 0.0_8
-    ur2d = 0.0_8
-    a_symd = 0.0_8
-    c_te_symd = 0.0_8
-    b_symd = 0.0_8
-    d_te_symd = 0.0_8
+    mtxd = (0.0_4,0.0_4)
+    ur1d = (0.0_4,0.0_4)
+    ur2d = (0.0_4,0.0_4)
+    a_symd = (0.0_4,0.0_4)
+    c_te_symd = (0.0_4,0.0_4)
+    b_symd = (0.0_4,0.0_4)
+    d_te_symd = (0.0_4,0.0_4)
 ! spanwise loop through horseshoe elements
     DO el_j=1,ny_-1
       el_loc_j = (el_j-1)*(nx_-1)
@@ -843,13 +518,13 @@ CONTAINS
           r1 = p - d_te
           r2d = pd - c_ted
           r2 = p - c_te
-          CALL NORM_D(r1, r1d, r1_mag, r1_magd)
-          CALL NORM_D(r2, r2d, r2_mag, r2_magd)
-          CALL CROSS_D(u, ud, r2, r2d, ur2, ur2d)
-          CALL CROSS_D(u, ud, r1, r1d, ur1, ur1d)
+          CALL NORMC_D(r1, r1d, r1_mag, r1_magd)
+          CALL NORMC_D(r2, r2d, r2_mag, r2_magd)
+          CALL CROSSC_D(u, ud, r2, r2d, ur2, ur2d)
+          CALL CROSSC_D(u, ud, r1, r1d, ur1, ur1d)
           edges(:) = 0.
-          CALL DOT_D(u, ud, r2, r2d, dot_ur2, dot_ur2d)
-          CALL DOT_D(u, ud, r1, r1d, dot_ur1, dot_ur1d)
+          CALL DOTC_D(u, ud, r2, r2d, dot_ur2, dot_ur2d)
+          CALL DOTC_D(u, ud, r1, r1d, dot_ur1, dot_ur1d)
           edgesd = (ur2d*r2_mag*(r2_mag-dot_ur2)-ur2*(r2_magd*(r2_mag-&
 &           dot_ur2)+r2_mag*(r2_magd-dot_ur2d)))/(r2_mag*(r2_mag-dot_ur2&
 &           ))**2
@@ -863,12 +538,12 @@ CONTAINS
             r1 = p - d_te_sym
             r2d = pd - c_te_symd
             r2 = p - c_te_sym
-            CALL NORM_D(r1, r1d, r1_mag, r1_magd)
-            CALL NORM_D(r2, r2d, r2_mag, r2_magd)
-            CALL CROSS_D(u, ud, r2, r2d, ur2, ur2d)
-            CALL CROSS_D(u, ud, r1, r1d, ur1, ur1d)
-            CALL DOT_D(u, ud, r2, r2d, dot_ur2, dot_ur2d)
-            CALL DOT_D(u, ud, r1, r1d, dot_ur1, dot_ur1d)
+            CALL NORMC_D(r1, r1d, r1_mag, r1_magd)
+            CALL NORMC_D(r2, r2d, r2_mag, r2_magd)
+            CALL CROSSC_D(u, ud, r2, r2d, ur2, ur2d)
+            CALL CROSSC_D(u, ud, r1, r1d, ur1, ur1d)
+            CALL DOTC_D(u, ud, r2, r2d, dot_ur2, dot_ur2d)
+            CALL DOTC_D(u, ud, r1, r1d, dot_ur1, dot_ur1d)
             edgesd = edgesd - (ur2d*r2_mag*(r2_mag-dot_ur2)-ur2*(r2_magd&
 &             *(r2_mag-dot_ur2)+r2_mag*(r2_magd-dot_ur2d)))/(r2_mag*(&
 &             r2_mag-dot_ur2))**2
@@ -923,17 +598,17 @@ CONTAINS
             IF (skip .AND. cp_loc .EQ. el_loc) THEN
               bound(:) = 0.
               IF (symmetry) THEN
-                boundd = 0.0_8
+                boundd = (0.0_4,0.0_4)
                 CALL CALC_VORTICITY_D(b_sym, b_symd, a_sym, a_symd, p, &
 &                               pd, bound, boundd)
               ELSE
-                boundd = 0.0_8
+                boundd = (0.0_4,0.0_4)
               END IF
               mtxd(cp_loc, el_loc, :) = edgesd + boundd
               mtx(cp_loc, el_loc, :) = edges + bound
             ELSE
               bound(:) = 0.
-              boundd = 0.0_8
+              boundd = (0.0_4,0.0_4)
               CALL CALC_VORTICITY_D(a, ad, b, bd, p, pd, bound, boundd)
               IF (symmetry) CALL CALC_VORTICITY_D(b_sym, b_symd, a_sym, &
 &                                           a_symd, p, pd, bound, boundd&
@@ -951,20 +626,22 @@ CONTAINS
     IMPLICIT NONE
 ! Input
     INTEGER, INTENT(IN) :: ny, nx, ny_, nx_
-    REAL(kind=8), INTENT(IN) :: alpha, mesh(nx_, ny_, 3)
-    REAL(kind=8), INTENT(IN) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, &
-&   3)
+    COMPLEX(kind=8), INTENT(IN) :: alpha, mesh(nx_, ny_, 3)
+    COMPLEX(kind=8), INTENT(IN) :: points(nx-1, ny-1, 3), bpts(nx_-1, &
+&   ny_, 3)
     LOGICAL, INTENT(IN) :: skip, symmetry
 ! Output
-    REAL(kind=8), INTENT(OUT) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    COMPLEX(kind=8), INTENT(OUT) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), &
+&   3)
 ! Working
     INTEGER :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, &
 &   cp_loc
-    REAL(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
-    REAL(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
-    REAL(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
-    REAL(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
-    REAL(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym(3)
+    COMPLEX(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
+    COMPLEX(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
+    COMPLEX(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
+    COMPLEX(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
+    COMPLEX(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym&
+&   (3)
     INTRINSIC ATAN
     INTRINSIC COS
     INTRINSIC SIN
@@ -994,24 +671,24 @@ CONTAINS
           p = points(cp_i, cp_j, :)
           r1 = p - d_te
           r2 = p - c_te
-          CALL NORM(r1, r1_mag)
-          CALL NORM(r2, r2_mag)
-          CALL CROSS(u, r2, ur2)
-          CALL CROSS(u, r1, ur1)
+          CALL NORMC(r1, r1_mag)
+          CALL NORMC(r2, r2_mag)
+          CALL CROSSC(u, r2, ur2)
+          CALL CROSSC(u, r1, ur1)
           edges(:) = 0.
-          CALL DOT(u, r2, dot_ur2)
-          CALL DOT(u, r1, dot_ur1)
+          CALL DOTC(u, r2, dot_ur2)
+          CALL DOTC(u, r1, dot_ur1)
           edges = ur2/(r2_mag*(r2_mag-dot_ur2))
           edges = edges - ur1/(r1_mag*(r1_mag-dot_ur1))
           IF (symmetry) THEN
             r1 = p - d_te_sym
             r2 = p - c_te_sym
-            CALL NORM(r1, r1_mag)
-            CALL NORM(r2, r2_mag)
-            CALL CROSS(u, r2, ur2)
-            CALL CROSS(u, r1, ur1)
-            CALL DOT(u, r2, dot_ur2)
-            CALL DOT(u, r1, dot_ur1)
+            CALL NORMC(r1, r1_mag)
+            CALL NORMC(r2, r2_mag)
+            CALL CROSSC(u, r2, ur2)
+            CALL CROSSC(u, r1, ur1)
+            CALL DOTC(u, r2, dot_ur2)
+            CALL DOTC(u, r1, dot_ur1)
             edges = edges - ur2/(r2_mag*(r2_mag-dot_ur2))
             edges = edges + ur1/(r1_mag*(r1_mag-dot_ur1))
           END IF
@@ -1062,27 +739,27 @@ CONTAINS
   SUBROUTINE CALC_VORTICITY_D(a, ad, b, bd, p, pd, out, outd)
     IMPLICIT NONE
 ! Input
-    REAL(kind=8), INTENT(IN) :: a(3), b(3), p(3)
-    REAL(kind=8), INTENT(IN) :: ad(3), bd(3), pd(3)
+    COMPLEX(kind=8), INTENT(IN) :: a(3), b(3), p(3)
+    COMPLEX(kind=8), INTENT(IN) :: ad(3), bd(3), pd(3)
 ! Output
-    REAL(kind=8), INTENT(INOUT) :: out(3)
-    REAL(kind=8), INTENT(INOUT) :: outd(3)
+    COMPLEX(kind=8), INTENT(INOUT) :: out(3)
+    COMPLEX(kind=8), INTENT(INOUT) :: outd(3)
 ! Working
-    REAL(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
+    COMPLEX(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
 &   dot_r1r2
-    REAL(kind=8) :: r1d(3), r2d(3), r1_magd, r2_magd, r1r2d(3), &
+    COMPLEX(kind=8) :: r1d(3), r2d(3), r1_magd, r2_magd, r1r2d(3), &
 &   mag_multd, dot_r1r2d
     r1d = pd - ad
     r1 = p - a
     r2d = pd - bd
     r2 = p - b
-    CALL NORM_D(r1, r1d, r1_mag, r1_magd)
-    CALL NORM_D(r2, r2d, r2_mag, r2_magd)
-    r1r2d = 0.0_8
-    CALL CROSS_D(r1, r1d, r2, r2d, r1r2, r1r2d)
+    CALL NORMC_D(r1, r1d, r1_mag, r1_magd)
+    CALL NORMC_D(r2, r2d, r2_mag, r2_magd)
+    r1r2d = (0.0_4,0.0_4)
+    CALL CROSSC_D(r1, r1d, r2, r2d, r1r2, r1r2d)
     mag_multd = r1_magd*r2_mag + r1_mag*r2_magd
     mag_mult = r1_mag*r2_mag
-    CALL DOT_D(r1, r1d, r2, r2d, dot_r1r2, dot_r1r2d)
+    CALL DOTC_D(r1, r1d, r2, r2d, dot_r1r2, dot_r1r2d)
     outd = outd + (((r1_magd+r2_magd)*r1r2+(r1_mag+r2_mag)*r1r2d)*&
 &     mag_mult*(mag_mult+dot_r1r2)-(r1_mag+r2_mag)*r1r2*(mag_multd*(&
 &     mag_mult+dot_r1r2)+mag_mult*(mag_multd+dot_r1r2d)))/(mag_mult*(&
@@ -1092,45 +769,45 @@ CONTAINS
   SUBROUTINE CALC_VORTICITY(a, b, p, out)
     IMPLICIT NONE
 ! Input
-    REAL(kind=8), INTENT(IN) :: a(3), b(3), p(3)
+    COMPLEX(kind=8), INTENT(IN) :: a(3), b(3), p(3)
 ! Output
-    REAL(kind=8), INTENT(INOUT) :: out(3)
+    COMPLEX(kind=8), INTENT(INOUT) :: out(3)
 ! Working
-    REAL(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
+    COMPLEX(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
 &   dot_r1r2
     r1 = p - a
     r2 = p - b
-    CALL NORM(r1, r1_mag)
-    CALL NORM(r2, r2_mag)
-    CALL CROSS(r1, r2, r1r2)
+    CALL NORMC(r1, r1_mag)
+    CALL NORMC(r2, r2_mag)
+    CALL CROSSC(r1, r2, r1r2)
     mag_mult = r1_mag*r2_mag
-    CALL DOT(r1, r2, dot_r1r2)
+    CALL DOTC(r1, r2, dot_r1r2)
     out = out + (r1_mag+r2_mag)*r1r2/(mag_mult*(mag_mult+dot_r1r2))
   END SUBROUTINE CALC_VORTICITY
   SUBROUTINE BIOTSAVART(a, b, p, inf, rev, out)
     IMPLICIT NONE
 ! Input
-    REAL(kind=8), INTENT(IN) :: a(3), b(3), p(3)
+    COMPLEX(kind=8), INTENT(IN) :: a(3), b(3), p(3)
     LOGICAL, INTENT(IN) :: inf, rev
 ! Output
-    REAL(kind=8), INTENT(INOUT) :: out(3)
+    COMPLEX(kind=8), INTENT(INOUT) :: out(3)
 ! Working
-    REAL(kind=8) :: rpa, rpb, rab, rh
-    REAL(kind=8) :: cosa, cosb, c(3)
-    REAL(kind=8) :: eps, tmp(3), dot_bapa, dot_baba, dot_pbab
+    COMPLEX(kind=8) :: rpa, rpb, rab, rh
+    COMPLEX(kind=8) :: cosa, cosb, c(3)
+    COMPLEX(kind=8) :: eps, tmp(3), dot_bapa, dot_baba, dot_pbab
     eps = 1e-5
-    CALL NORM(a - p, rpa)
-    CALL NORM(b - p, rpb)
-    CALL NORM(b - a, rab)
-    CALL DOT(b - a, p - a, dot_bapa)
-    CALL DOT(b - a, b - a, dot_baba)
-    CALL DOT(p - b, a - b, dot_pbab)
-    CALL NORM(p - a - dot_bapa/dot_baba*(b-a), rh)
+    CALL NORMC(a - p, rpa)
+    CALL NORMC(b - p, rpb)
+    CALL NORMC(b - a, rab)
+    CALL DOTC(b - a, p - a, dot_bapa)
+    CALL DOTC(b - a, b - a, dot_baba)
+    CALL DOTC(p - b, a - b, dot_pbab)
+    CALL NORMC(p - a - dot_bapa/dot_baba*(b-a), rh)
     rh = rh + eps
     cosa = dot_bapa/(rpa*rab)
     cosb = dot_pbab/(rpb*rab)
-    CALL CROSS(b - p, a - p, c)
-    CALL UNIT(c, c)
+    CALL CROSSC(b - p, a - p, c)
+    CALL UNITC(c, c)
     IF (inf) THEN
       tmp = -(c/rh*(cosa+1))
     ELSE
@@ -1139,6 +816,106 @@ CONTAINS
     IF (rev) tmp = -tmp
     out = out + tmp
   END SUBROUTINE BIOTSAVART
+! COMPLEX FUNCTIONS
+  SUBROUTINE UNITC(v, u)
+    IMPLICIT NONE
+    COMPLEX(kind=8), INTENT(IN) :: v(3)
+    COMPLEX(kind=8), INTENT(OUT) :: u(3)
+    COMPLEX(kind=8) :: nm
+    CALL NORMC(v, nm)
+    u(1) = v(1)/nm
+    u(2) = v(2)/nm
+    u(3) = v(3)/nm
+  END SUBROUTINE UNITC
+!  Differentiation of normc in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: norm_output
+!   with respect to varying inputs: v
+  SUBROUTINE NORMC_D(v, vd, norm_output, norm_outputd)
+    IMPLICIT NONE
+    COMPLEX(kind=8), INTENT(IN) :: v(3)
+    COMPLEX(kind=8), INTENT(IN) :: vd(3)
+    COMPLEX(kind=8), INTENT(OUT) :: norm_output
+    COMPLEX(kind=8), INTENT(OUT) :: norm_outputd
+    COMPLEX(kind=8) :: dot_prod
+    COMPLEX(kind=8) :: dot_prodd
+!norm = sqrt(dot_product(v, v))
+    CALL DOTC_D(v, vd, v, vd, dot_prod, dot_prodd)
+    norm_outputd = 0.5*dot_prod**(-0.5)*dot_prodd
+    norm_output = dot_prod**0.5
+  END SUBROUTINE NORMC_D
+  SUBROUTINE NORMC(v, norm_output)
+    IMPLICIT NONE
+    COMPLEX(kind=8), INTENT(IN) :: v(3)
+    COMPLEX(kind=8), INTENT(OUT) :: norm_output
+    COMPLEX(kind=8) :: dot_prod
+!norm = sqrt(dot_product(v, v))
+    CALL DOTC(v, v, dot_prod)
+    norm_output = dot_prod**0.5
+  END SUBROUTINE NORMC
+!  Differentiation of dotc in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: dot_prod
+!   with respect to varying inputs: a b
+  SUBROUTINE DOTC_D(a, ad, b, bd, dot_prod, dot_prodd)
+    IMPLICIT NONE
+    COMPLEX(kind=8), INTENT(IN) :: a(3), b(3)
+    COMPLEX(kind=8), INTENT(IN) :: ad(3), bd(3)
+    COMPLEX(kind=8), INTENT(OUT) :: dot_prod
+    COMPLEX(kind=8), INTENT(OUT) :: dot_prodd
+    dot_prodd = ad(1)*b(1) + a(1)*bd(1) + ad(2)*b(2) + a(2)*bd(2) + ad(3&
+&     )*b(3) + a(3)*bd(3)
+    dot_prod = a(1)*b(1) + a(2)*b(2) + a(3)*b(3)
+  END SUBROUTINE DOTC_D
+  SUBROUTINE DOTC(a, b, dot_prod)
+    IMPLICIT NONE
+    COMPLEX(kind=8), INTENT(IN) :: a(3), b(3)
+    COMPLEX(kind=8), INTENT(OUT) :: dot_prod
+    dot_prod = a(1)*b(1) + a(2)*b(2) + a(3)*b(3)
+  END SUBROUTINE DOTC
+!  Differentiation of crossc in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: c
+!   with respect to varying inputs: a b c
+  SUBROUTINE CROSSC_D(a, ad, b, bd, c, cd)
+    IMPLICIT NONE
+    COMPLEX(kind=8), INTENT(IN) :: a(3), b(3)
+    COMPLEX(kind=8), INTENT(IN) :: ad(3), bd(3)
+    COMPLEX(kind=8), INTENT(OUT) :: c(3)
+    COMPLEX(kind=8), INTENT(OUT) :: cd(3)
+    cd(1) = ad(2)*b(3) + a(2)*bd(3) - ad(3)*b(2) - a(3)*bd(2)
+    c(1) = a(2)*b(3) - a(3)*b(2)
+    cd(2) = ad(3)*b(1) + a(3)*bd(1) - ad(1)*b(3) - a(1)*bd(3)
+    c(2) = a(3)*b(1) - a(1)*b(3)
+    cd(3) = ad(1)*b(2) + a(1)*bd(2) - ad(2)*b(1) - a(2)*bd(1)
+    c(3) = a(1)*b(2) - a(2)*b(1)
+  END SUBROUTINE CROSSC_D
+  SUBROUTINE CROSSC(a, b, c)
+    IMPLICIT NONE
+    COMPLEX(kind=8), INTENT(IN) :: a(3), b(3)
+    COMPLEX(kind=8), INTENT(OUT) :: c(3)
+    c(1) = a(2)*b(3) - a(3)*b(2)
+    c(2) = a(3)*b(1) - a(1)*b(3)
+    c(3) = a(1)*b(2) - a(2)*b(1)
+  END SUBROUTINE CROSSC
+!  Differentiation of unit in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: u
+!   with respect to varying inputs: u v
+! REAL FUNCTIONS
+  SUBROUTINE UNIT_D(v, vd, u, ud)
+    IMPLICIT NONE
+    REAL(kind=8), INTENT(IN) :: v(3)
+    REAL(kind=8), INTENT(IN) :: vd(3)
+    REAL(kind=8), INTENT(OUT) :: u(3)
+    REAL(kind=8), INTENT(OUT) :: ud(3)
+    REAL(kind=8) :: nm
+    REAL(kind=8) :: nmd
+    CALL NORM_D(v, vd, nm, nmd)
+    ud(1) = (vd(1)*nm-v(1)*nmd)/nm**2
+    u(1) = v(1)/nm
+    ud(2) = (vd(2)*nm-v(2)*nmd)/nm**2
+    u(2) = v(2)/nm
+    ud(3) = (vd(3)*nm-v(3)*nmd)/nm**2
+    u(3) = v(3)/nm
+  END SUBROUTINE UNIT_D
+! REAL FUNCTIONS
   SUBROUTINE UNIT(v, u)
     IMPLICIT NONE
     REAL(kind=8), INTENT(IN) :: v(3)

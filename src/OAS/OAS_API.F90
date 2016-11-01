@@ -5,44 +5,6 @@ module oas_api
 
 contains
 
-  subroutine assemblesparsemtx(num_elems, tot_n_fem, nnz, x_gl, &
-      E, G, A, J, Iy, Iz, nodes, elems, &
-      coeff_at, coeff_y, coeff_z, &
-      Pelem_a, Pelem_t, Pelem_y, Pelem_z, &
-      data, rows, cols)
-
-      implicit none
-
-      ! Input
-      integer, intent(in) :: tot_n_fem, num_elems, nnz
-      real(kind=8), intent(in) :: x_gl(3)
-      real(kind=8), intent(in) :: E(num_elems), G(num_elems)
-      real(kind=8), intent(in) :: A(num_elems), J(num_elems)
-      real(kind=8), intent(in) :: Iy(num_elems), Iz(num_elems)
-      real(kind=8), intent(in) :: nodes(tot_n_fem, 3)
-      integer, intent(in) :: elems(num_elems, 2)
-      ! Local stiffness matrix coefficients
-      real(kind=8), intent(in) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4, 4)
-      ! Local permutation matrices to map to list of dofs for local element
-      real(kind=8), intent(in) :: Pelem_a(2, 12), Pelem_t(2, 12)
-      real(kind=8), intent(in) :: Pelem_y(4, 12), Pelem_z(4, 12)
-
-      ! Output
-      real(kind=8), intent(out) :: data(nnz)
-      integer, intent(out) :: rows(nnz), cols(nnz)
-
-      integer :: i, k1, k2, ind, ind1, ind2, ielem
-
-      call assemblesparsemtx_main(num_elems, tot_n_fem, nnz, x_gl, &
-          E, G, A, J, Iy, Iz, nodes, elems, &
-          coeff_at, coeff_y, coeff_z, &
-          Pelem_a, Pelem_t, Pelem_y, Pelem_z, &
-          data, rows, cols)
-
-
-  end subroutine assemblesparsemtx
-
-
   subroutine assemblestructmtx(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
     K_a, K_t, K_y, K_z, & ! 4
     elem_IDs, cons, & ! 3
@@ -160,16 +122,75 @@ contains
 
     ! Input
     integer, intent(in) :: ny, nx, ny_, nx_
-    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
+    complex(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
+    complex(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
     logical, intent(in) :: skip, symmetry
 
     ! Output
-    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    complex(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
 
     call assembleaeromtx_main(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, symmetry, mtx)
 
   end subroutine assembleaeromtx
+
+  subroutine calc_vonmises(elem_IDs, nodes, r, disp, E, G, x_gl, num_elems, n, vonmises)
+
+    implicit none
+
+    ! Input
+    integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: E, G, x_gl(3)
+
+    ! Output
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+
+    ! Working
+    integer :: ielem, in0, in1
+    real(kind=8) :: P0(3), P1(3), L, x_loc(3), y_loc(3), z_loc(3), T(3, 3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+
+    do ielem=1, num_elems
+      in0 = elem_IDs(ielem, 1)
+      in1 = elem_IDs(ielem, 2)
+
+      P0 = nodes(in0, :)
+      P1 = nodes(in1, :)
+      call norm(P1 - P0, L)
+
+      call unit(P1 - P0, x_loc)
+      call cross(x_loc, x_gl, y_loc)
+      call unit(y_loc, y_loc)
+      call cross(x_loc, y_loc, z_loc)
+      call unit(z_loc, z_loc)
+
+      T(1, :) = x_loc
+      T(2, :) = y_loc
+      T(3, :) = z_loc
+
+      ! Nonfunctioning; probably can't handle the 1D array disp correctly
+      ! call matmul2(3, 3, 3, T, disp(in0, :3), u0)
+      ! call matmul2(3, 3, 3, T, disp(in0, 4:), r0)
+      ! call matmul2(3, 3, 3, T, disp(in1, :3), u1)
+      ! call matmul2(3, 3, 3, T, disp(in1, 4:), r1)
+
+      u0 = matmul(T, disp(in0, :3))
+      r0 = matmul(T, disp(in0, 4:))
+      u1 = matmul(T, disp(in1, :3))
+      r1 = matmul(T, disp(in1, 4:))
+
+      tmp = ((r1(2) - r0(2))**2 + (r1(3) - r0(3))**2)**.5
+      sxx0 = E * (u1(1) - u0(1)) / L + E * r(ielem) / L * tmp
+      sxx1 = E * (u0(1) - u1(1)) / L + E * r(ielem) / L * tmp
+      sxt = G * r(ielem) * (r1(1) - r0(1)) / L
+
+      vonmises(ielem, 1) = (sxx0**2 + sxt**2)**.5
+      vonmises(ielem, 2) = (sxx1**2 + sxt**2)**.5
+
+    end do
+
+
+  end subroutine
 
 
 

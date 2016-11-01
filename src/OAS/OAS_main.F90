@@ -24,164 +24,6 @@ contains
 
   end subroutine mult
 
-  subroutine assemblesparsemtx_main(num_elems, tot_n_fem, nnz, x_gl, &
-      E, G, A, J, Iy, Iz, nodes, elems, &
-      coeff_at, coeff_y, coeff_z, &
-      Pelem_a, Pelem_t, Pelem_y, Pelem_z, &
-      data, rows, cols)
-
-      implicit none
-
-      ! Input
-      integer, intent(in) :: tot_n_fem, num_elems, nnz
-      real(kind=8), intent(in) :: x_gl(3)
-      real(kind=8), intent(in) :: E(num_elems), G(num_elems)
-      real(kind=8), intent(in) :: A(num_elems), J(num_elems)
-      real(kind=8), intent(in) :: Iy(num_elems), Iz(num_elems)
-      real(kind=8), intent(in) :: nodes(tot_n_fem, 3)
-      integer, intent(in) :: elems(num_elems, 2)
-      ! Local stiffness matrix coefficients
-      real(kind=8), intent(in) :: coeff_at(2, 2), coeff_y(4, 4), coeff_z(4, 4)
-      ! Local permutation matrices to map to list of dofs for local element
-      real(kind=8), intent(in) :: Pelem_a(2, 12), Pelem_t(2, 12)
-      real(kind=8), intent(in) :: Pelem_y(4, 12), Pelem_z(4, 12)
-
-      ! Output
-      real(kind=8), intent(out) :: data(nnz)
-      integer, intent(out) :: rows(nnz), cols(nnz)
-
-      ! Local stiffness matrices for axial, torsion, bending (y,z)
-      real(kind=8) :: Kelem_a(2, 2), Kelem_t(2, 2)
-      real(kind=8) :: Kelem_y(4, 4), Kelem_z(4, 4)
-      ! Local transformation matrix (12,12) to map from local to global frame
-      real(kind=8) :: T_elem(12, 12), T(3, 3)
-      ! Arrays that help in mapping from local element ordering to global ordering
-      integer :: rows_elem(12, 12), cols_elem(12, 12)
-      integer :: ones11(12, 12), ones12(12, 12)
-      integer :: ones21(12, 12), ones22(12, 12)
-      ! Local stiffness matrix in global frame
-      real(kind=8) :: K_elem(12, 12)
-
-      ! Miscellaneous
-      real(kind=8) :: L, xyz1(3), xyz2(3)
-      real(kind=8) :: x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
-      real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2), res(12, 12)
-      real(kind=8) :: Pelem_a_T(12, 2), Pelem_t_T(12, 2)
-      real(kind=8) :: Pelem_y_T(12, 4), Pelem_z_T(12, 4), T_elem_T(12, 12)
-
-      integer :: i, k1, k2, ind, ind1, ind2, ielem
-
-      do k1 = 1, 12
-          do k2 = 1, 12
-              rows_elem(k1, k2) = mod(k1-1, 6)
-              cols_elem(k1, k2) = mod(k2-1, 6)
-          end do
-      end do
-
-      ones11(:, :) = 0
-      ones12(:, :) = 0
-      ones21(:, :) = 0
-      ones22(:, :) = 0
-
-      ones11( 1:6 , 1:6 ) = 1
-      ones12( 1:6 , 7:12) = 1
-      ones21( 7:12, 1:6 ) = 1
-      ones22( 7:12, 7:12) = 1
-
-      T_elem(:, :) = 0.
-
-      data(:) = 0.
-      rows(:) = 0
-      cols(:) = 0
-
-      ind = 0
-      do ielem = 1, num_elems
-          xyz1 = nodes(elems(ielem, 1), :)
-          xyz2 = nodes(elems(ielem, 2), :)
-          call norm(xyz2 - xyz1, L)
-
-          call unit(xyz2 - xyz1, x_loc)
-          call cross(x_loc, x_gl, x_cross)
-          call unit(x_cross, y_loc)
-          call cross(x_loc, y_loc, y_cross)
-          call unit(y_cross, z_loc)
-
-          T(1, :) = x_loc
-          T(2, :) = y_loc
-          T(3, :) = z_loc
-
-          do i = 1, 4
-              T_elem(3*(i-1)+1:3*(i-1)+3, 3*(i-1)+1:3*(i-1)+3) = T
-          end do
-
-          Kelem_a = coeff_at * E(ielem) * A(ielem) / L
-          Kelem_t = coeff_at * G(ielem) * J(ielem) / L
-          Kelem_y = coeff_y * E(ielem) * Iy(ielem) / L**3
-          Kelem_y(2:4:2, :) = Kelem_y(2:4:2, :) * L
-          Kelem_y(:, 2:4:2) = Kelem_y(:, 2:4:2) * L
-          Kelem_z = coeff_z * E(ielem) * Iz(ielem) / L**3
-          Kelem_z(2:4:2, :) = Kelem_z(2:4:2, :) * L
-          Kelem_z(:, 2:4:2) = Kelem_z(:, 2:4:2) * L
-
-          K_elem(:, :) = 0.
-          call transpose2(2, 12, Pelem_a, Pelem_a_T)
-          call matmul2(12, 2, 2, Pelem_a_T, Kelem_a, mat12x2)
-          call matmul2(12, 2, 12, mat12x2, Pelem_a, res)
-          K_elem = K_elem + res
-
-          call transpose2(2, 12, Pelem_t, Pelem_t_T)
-          call matmul2(12, 2, 2, Pelem_t_T, Kelem_t, mat12x2)
-          call matmul2(12, 2, 12, mat12x2, Pelem_t, res)
-          K_elem = K_elem + res
-
-          call transpose2(4, 12, Pelem_y, Pelem_y_T)
-          call matmul2(12, 4, 4, Pelem_y_T, Kelem_y, mat12x4)
-          call matmul2(12, 4, 12, mat12x4, Pelem_y, res)
-          K_elem = K_elem + res
-
-          call transpose2(4, 12, Pelem_z, Pelem_z_T)
-          call matmul2(12, 4, 4, Pelem_z_T, Kelem_z, mat12x4)
-          call matmul2(12, 4, 12, mat12x4, Pelem_z, res)
-          K_elem = K_elem + res
-
-          call transpose2(12, 12, T_elem, T_elem_T)
-          call matmul2(12, 12, 12, T_elem_T, K_elem, mat12x12)
-          call matmul2(12, 12, 12, mat12x12, T_elem, K_elem)
-
-          ind1 = 6 * (elems(ielem, 1)-1)
-          ind2 = 6 * (elems(ielem, 2)-1)
-
-          do k1 = 1, 12
-              do k2 = 1, 12
-                  ind = ind + 1
-                  data(ind) = data(ind) + K_elem(k1, k2)
-                  rows(ind) = rows(ind) + rows_elem(k1, k2) + 1
-                  cols(ind) = cols(ind) + cols_elem(k1, k2) + 1
-
-                  rows(ind) = rows(ind) + ones11(k1, k2) * ind1
-                  cols(ind) = cols(ind) + ones11(k1, k2) * ind1
-
-                  rows(ind) = rows(ind) + ones12(k1, k2) * ind1
-                  cols(ind) = cols(ind) + ones12(k1, k2) * ind2
-
-                  rows(ind) = rows(ind) + ones21(k1, k2) * ind2
-                  cols(ind) = cols(ind) + ones21(k1, k2) * ind1
-
-                  rows(ind) = rows(ind) + ones22(k1, k2) * ind2
-                  cols(ind) = cols(ind) + ones22(k1, k2) * ind2
-              end do
-          end do
-      end do
-
-      if (ind .ne. nnz) then
-          print *, 'Error in assemblesparsemtx: did not reach end of nnz vectors'
-      end if
-
-      rows(:) = rows(:) - 1
-      cols(:) = cols(:) - 1
-
-  end subroutine assemblesparsemtx_main
-
 
   subroutine assemblestructmtx_main(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
     K_a, K_t, K_y, K_z, & ! 4
@@ -354,20 +196,27 @@ contains
 
   end subroutine
 
-  subroutine unit(v, U)
+  subroutine matmul2c(m, n, p, A, B, C)
 
     implicit none
 
-    real(kind=8), intent(in) :: v(3)
-    real(kind=8), intent(out) :: U(3)
-    real(kind=8) :: nm
+    integer, intent(in) :: m, n, p
+    complex(kind=8), intent(in) :: A(m, n), B(n, p)
+    complex(kind=8), intent(out) :: C(m, p)
 
-    call norm(v, nm)
-    U(1) = v(1) / nm
-    U(2) = v(2) / nm
-    U(3) = v(3) / nm
+    integer :: i, j, k
 
-  end subroutine unit
+    C(:, :) = 0.
+
+    do i=1,m
+      do j=1,p
+        do k=1,n
+          C(i, j) = C(i, j) + A(i, k) * B(k, j)
+        end do
+      end do
+    end do
+
+  end subroutine
 
   subroutine assembleaeromtx_main(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, symmetry, mtx)
 
@@ -375,20 +224,20 @@ contains
 
     ! Input
     integer, intent(in) :: ny, nx, ny_, nx_
-    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
+    complex(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
+    complex(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
     logical, intent(in) :: skip, symmetry
 
     ! Output
-    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    complex(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
 
     ! Working
     integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, cp_loc
-    real(kind=8) :: pi, P(3), A(3), B(3), u(3), C(3), D(3)
-    real(kind=8) :: A_sym(3), B_sym(3), C_sym(3), D_sym(3)
-    real(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
-    real(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
-    real(kind=8) :: edges(3), C_te(3), D_te(3), C_te_sym(3), D_te_sym(3)
+    complex(kind=8) :: pi, P(3), A(3), B(3), u(3), C(3), D(3)
+    complex(kind=8) :: A_sym(3), B_sym(3), C_sym(3), D_sym(3)
+    complex(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
+    complex(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
+    complex(kind=8) :: edges(3), C_te(3), D_te(3), C_te_sym(3), D_te_sym(3)
 
     pi = 4.d0*atan(1.d0)
 
@@ -420,29 +269,29 @@ contains
 
           r1 = P - D_te
           r2 = P - C_te
-          call norm(r1, r1_mag)
-          call norm(r2, r2_mag)
+          call normc(r1, r1_mag)
+          call normc(r2, r2_mag)
 
-          call cross(u, r2, ur2)
-          call cross(u, r1, ur1)
+          call crossc(u, r2, ur2)
+          call crossc(u, r1, ur1)
 
           edges(:) = 0.
-          call dot(u, r2, dot_ur2)
-          call dot(u, r1, dot_ur1)
+          call dotc(u, r2, dot_ur2)
+          call dotc(u, r1, dot_ur1)
           edges = ur2 / (r2_mag * (r2_mag - dot_ur2))
           edges = edges - ur1 / (r1_mag * (r1_mag - dot_ur1))
 
           if (symmetry) then
             r1 = P - D_te_sym
             r2 = P - C_te_sym
-            call norm(r1, r1_mag)
-            call norm(r2, r2_mag)
+            call normc(r1, r1_mag)
+            call normc(r2, r2_mag)
 
-            call cross(u, r2, ur2)
-            call cross(u, r1, ur1)
+            call crossc(u, r2, ur2)
+            call crossc(u, r1, ur1)
 
-            call dot(u, r2, dot_ur2)
-            call dot(u, r1, dot_ur1)
+            call dotc(u, r2, dot_ur2)
+            call dotc(u, r1, dot_ur1)
 
             edges = edges - ur2 / (r2_mag * (r2_mag - dot_ur2))
             edges = edges + ur1 / (r1_mag * (r1_mag - dot_ur1))
@@ -509,24 +358,24 @@ contains
     implicit none
 
     ! Input
-    real(kind=8), intent(in) :: A(3), B(3), P(3)
+    complex(kind=8), intent(in) :: A(3), B(3), P(3)
 
     ! Output
-    real(kind=8), intent(inout) :: out(3)
+    complex(kind=8), intent(inout) :: out(3)
 
     ! Working
-    real(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, dot_r1r2
+    complex(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, dot_r1r2
 
     r1 = P - A
     r2 = P - B
 
-    call norm(r1, r1_mag)
-    call norm(r2, r2_mag)
+    call normc(r1, r1_mag)
+    call normc(r2, r2_mag)
 
-    call cross(r1, r2, r1r2)
+    call crossc(r1, r2, r1r2)
     mag_mult = r1_mag * r2_mag
 
-    call dot(r1, r2, dot_r1r2)
+    call dotc(r1, r2, dot_r1r2)
     out = out + (r1_mag + r2_mag) * r1r2 / (mag_mult * (mag_mult + dot_r1r2))
 
   end subroutine calc_vorticity
@@ -538,33 +387,33 @@ contains
     implicit none
 
     ! Input
-    real(kind=8), intent(in) :: A(3), B(3), P(3)
+    complex(kind=8), intent(in) :: A(3), B(3), P(3)
     logical, intent(in) :: inf, rev
 
     ! Output
-    real(kind=8), intent(inout) :: out(3)
+    complex(kind=8), intent(inout) :: out(3)
 
     ! Working
-    real(kind=8) :: rPA, rPB, rAB, rH
-    real(kind=8) :: cosA, cosB, C(3)
-    real(kind=8) :: eps, tmp(3), dot_BAPA, dot_BABA, dot_PBAB
+    complex(kind=8) :: rPA, rPB, rAB, rH
+    complex(kind=8) :: cosA, cosB, C(3)
+    complex(kind=8) :: eps, tmp(3), dot_BAPA, dot_BABA, dot_PBAB
 
     eps = 1e-5
 
-    call norm(A - P, rPA)
-    call norm(B - P, rPB)
-    call norm(B - A, rAB)
+    call normc(A - P, rPA)
+    call normc(B - P, rPB)
+    call normc(B - A, rAB)
 
-    call dot(B - A, P - A, dot_BAPA)
-    call dot(B - A, B - A, dot_BABA)
-    call dot(P - B, A - B, dot_PBAB)
+    call dotc(B - A, P - A, dot_BAPA)
+    call dotc(B - A, B - A, dot_BABA)
+    call dotc(P - B, A - B, dot_PBAB)
 
-    call norm(P - A - dot_BAPA / dot_BABA * (B - A), rH)
+    call normc(P - A - dot_BAPA / dot_BABA * (B - A), rH)
     rH = rH + eps
     cosA = dot_BAPA / (rPA * rAB)
     cosB = dot_PBAB / (rPB * rAB)
-    call cross(B - P, A - P, C)
-    call unit(C, C)
+    call crossc(B - P, A - P, C)
+    call unitc(C, C)
 
     if (inf) then
        tmp = -C / rH * (cosA + 1)
@@ -581,6 +430,81 @@ contains
   end subroutine biotsavart
 
 
+! COMPLEX FUNCTIONS
+
+  subroutine unitc(v, U)
+
+    implicit none
+
+    complex(kind=8), intent(in) :: v(3)
+    complex(kind=8), intent(out) :: U(3)
+    complex(kind=8) :: nm
+
+    call normc(v, nm)
+    U(1) = v(1) / nm
+    U(2) = v(2) / nm
+    U(3) = v(3) / nm
+
+  end subroutine unitc
+
+  subroutine normc(v, norm_output)
+
+    implicit none
+
+    complex(kind=8), intent(in) :: v(3)
+    complex(kind=8), intent(out) :: norm_output
+    complex(kind=8) :: dot_prod
+
+    !norm = sqrt(dot_product(v, v))
+    call dotc(v, v, dot_prod)
+    norm_output = dot_prod ** 0.5
+
+  end subroutine normc
+
+
+
+  subroutine dotc(a, b, dot_prod)
+
+    implicit none
+
+    complex(kind=8), intent(in) :: a(3), b(3)
+    complex(kind=8), intent(out) :: dot_prod
+
+    dot_prod = a(1) * b(1) + a(2) * b(2) + a(3) * b(3)
+
+  end subroutine dotc
+
+
+
+  subroutine crossc(A, B, C)
+
+    implicit none
+
+    complex(kind=8), intent(in) :: A(3), B(3)
+    complex(kind=8), intent(out) :: C(3)
+
+    C(1) = A(2) * B(3) - A(3) * B(2)
+    C(2) = A(3) * B(1) - A(1) * B(3)
+    C(3) = A(1) * B(2) - A(2) * B(1)
+
+  end subroutine crossc
+
+! REAL FUNCTIONS
+
+  subroutine unit(v, U)
+
+    implicit none
+
+    real(kind=8), intent(in) :: v(3)
+    real(kind=8), intent(out) :: U(3)
+    real(kind=8) :: nm
+
+    call norm(v, nm)
+    U(1) = v(1) / nm
+    U(2) = v(2) / nm
+    U(3) = v(3) / nm
+
+  end subroutine unit
 
   subroutine norm(v, norm_output)
 
