@@ -717,44 +717,61 @@ class SpatialBeamVonMisesTube(Component):
         self.T_elem = numpy.zeros((12, 12), dtype='complex')
         self.T = numpy.zeros((3, 3), dtype='complex')
         self.x_gl = numpy.array([1, 0, 0], dtype='complex')
+        self.t = 0
 
     def solve_nonlinear(self, params, unknowns, resids):
+        st = time()
         elem_IDs = self.elem_IDs
         name = self.surface['name']
         r = params[name+'r']
         disp = params[name+'disp']
         nodes = params[name+'nodes']
         vonmises = unknowns[name+'vonmises']
+        T = self.T
+        E = self.E
+        G = self.G
+        x_gl = self.x_gl
 
-        num_elems = elem_IDs.shape[0]
-        for ielem in xrange(num_elems):
-            in0, in1 = elem_IDs[ielem, :]
+        if fortran_flag:
+            vm = OAS_API.oas_api.calc_vonmises(elem_IDs+1, nodes, r, disp, E, G, x_gl)
+            unknowns[name+'vonmises'] = vm
 
-            P0 = nodes[in0, :]
-            P1 = nodes[in1, :]
-            L = norm(P1 - P0)
+        else:
 
-            x_loc = unit(P1 - P0)
-            y_loc = unit(numpy.cross(x_loc, self.x_gl))
-            z_loc = unit(numpy.cross(x_loc, y_loc))
+            num_elems = elem_IDs.shape[0]
+            for ielem in xrange(num_elems):
+                in0, in1 = elem_IDs[ielem, :]
 
-            self.T[0, :] = x_loc
-            self.T[1, :] = y_loc
-            self.T[2, :] = z_loc
+                P0 = nodes[in0, :]
+                P1 = nodes[in1, :]
+                L = norm(P1 - P0)
 
-            u0x, u0y, u0z = self.T.dot(disp[in0, :3])
-            r0x, r0y, r0z = self.T.dot(disp[in0, 3:])
-            u1x, u1y, u1z = self.T.dot(disp[in1, :3])
-            r1x, r1y, r1z = self.T.dot(disp[in1, 3:])
+                x_loc = unit(P1 - P0)
+                y_loc = unit(numpy.cross(x_loc, x_gl))
+                z_loc = unit(numpy.cross(x_loc, y_loc))
 
-            tmp = numpy.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
-            sxx0 = self.E * (u1x - u0x) / L + self.E * r[ielem] / L * tmp
-            sxx1 = self.E * (u0x - u1x) / L + self.E * r[ielem] / L * tmp
-            sxt = self.G * r[ielem] * (r1x - r0x) / L
+                T[0, :] = x_loc
+                T[1, :] = y_loc
+                T[2, :] = z_loc
 
-            vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
-            vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
+                u0x, u0y, u0z = T.dot(disp[in0, :3])
+                r0x, r0y, r0z = T.dot(disp[in0, 3:])
+                u1x, u1y, u1z = T.dot(disp[in1, :3])
+                r1x, r1y, r1z = T.dot(disp[in1, 3:])
 
+                tmp = numpy.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
+                sxx0 = E * (u1x - u0x) / L + E * r[ielem] / L * tmp
+                sxx1 = E * (u0x - u1x) / L + E * r[ielem] / L * tmp
+                sxt = G * r[ielem] * (r1x - r0x) / L
+
+                vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
+                vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
+
+
+        # unknowns[name+'vonmises'] = vonmises
+
+        self.t += time() - st
+        # print self.t
 
 class SpatialBeamFailureKS(Component):
     """
