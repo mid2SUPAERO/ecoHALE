@@ -144,6 +144,30 @@ python module OAS_API ! in
                 integer, optional,intent(in),check(shape(nodes,0)==n),depend(nodes) :: n=shape(nodes,0)
                 real(kind=8) dimension(num_elems,2),intent(out),depend(num_elems) :: vonmises
             end subroutine calc_vonmises
+            subroutine mult(nx,ny,x,y) ! in :OAS_API:OAS_API.F90:oas_api
+                integer, optional,intent(in),check(len(x)>=nx),depend(x) :: nx=len(x)
+                integer intent(in) :: ny
+                real*8 dimension(nx),intent(in) :: x
+                real*8 dimension(ny),intent(out),depend(ny) :: y
+            end subroutine mult
+            subroutine mult_b(nx,ny,x,xb,y,yb) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_b, only: mult_main_b
+                integer, optional,intent(in),check(len(x)>=nx),depend(x) :: nx=len(x)
+                integer, optional,intent(in),check(len(y)>=ny),depend(y) :: ny=len(y)
+                real*8 dimension(nx),intent(in) :: x
+                real*8 dimension(nx),intent(out),depend(nx) :: xb
+                real*8 dimension(ny),intent(in) :: y
+                real*8 dimension(ny),intent(in),depend(ny) :: yb
+            end subroutine mult_b
+            subroutine mult_d(nx,ny,x,xd,y,yd) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_d, only: mult_main_d
+                integer, optional,intent(in),check(len(x)>=nx),depend(x) :: nx=len(x)
+                integer intent(in) :: ny
+                real*8 dimension(nx),intent(in) :: x
+                real*8 dimension(nx),intent(in),depend(nx) :: xd
+                real*8 dimension(ny),intent(out),depend(ny) :: y
+                real*8 dimension(ny),intent(out),depend(ny) :: yd
+            end subroutine mult_d
         end module oas_api
     end interface 
 end python module OAS_API

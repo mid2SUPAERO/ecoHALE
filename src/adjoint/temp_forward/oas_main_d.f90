@@ -5,7 +5,28 @@ MODULE OAS_MAIN_D
   IMPLICIT NONE
 
 CONTAINS
-  SUBROUTINE MULT(nx, ny, x, y)
+!  Differentiation of mult_main in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: y
+!   with respect to varying inputs: x
+!   RW status of diff variables: x:in y:out
+  SUBROUTINE MULT_MAIN_D(nx, ny, x, xd, y, yd)
+    IMPLICIT NONE
+    INTEGER, INTENT(IN) :: nx, ny
+    REAL*8, INTENT(IN) :: x(nx)
+    REAL*8, INTENT(IN) :: xd(nx)
+    REAL*8, INTENT(OUT) :: y(ny)
+    REAL*8, INTENT(OUT) :: yd(ny)
+    INTEGER :: i, j
+    y(:) = 0.
+    yd = 0.0_8
+    DO j=1,ny
+      DO i=1,nx
+        yd(j) = yd(j) + 2*x(i)*xd(i)
+        y(j) = y(j) + x(i)**2 + j
+      END DO
+    END DO
+  END SUBROUTINE MULT_MAIN_D
+  SUBROUTINE MULT_MAIN(nx, ny, x, y)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nx, ny
     REAL*8, INTENT(IN) :: x(nx)
@@ -14,10 +35,10 @@ CONTAINS
     y(:) = 0.
     DO j=1,ny
       DO i=1,nx
-        y(j) = y(j) + x(i)**2
+        y(j) = y(j) + x(i)**2 + j
       END DO
     END DO
-  END SUBROUTINE MULT
+  END SUBROUTINE MULT_MAIN
 !  Differentiation of assemblestructmtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: x
 !   with respect to varying inputs: j nodes iy iz rhs a

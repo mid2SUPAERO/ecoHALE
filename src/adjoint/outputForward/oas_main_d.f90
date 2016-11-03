@@ -5,7 +5,28 @@ module oas_main_d
   implicit none
 
 contains
-  subroutine mult(nx, ny, x, y)
+!  differentiation of mult_main in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: y
+!   with respect to varying inputs: x
+!   rw status of diff variables: x:in y:out
+  subroutine mult_main_d(nx, ny, x, xd, y, yd)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real*8, intent(in) :: x(nx)
+    real*8, intent(in) :: xd(nx)
+    real*8, intent(out) :: y(ny)
+    real*8, intent(out) :: yd(ny)
+    integer :: i, j
+    y(:) = 0.
+    yd = 0.0_8
+    do j=1,ny
+      do i=1,nx
+        yd(j) = yd(j) + 2*x(i)*xd(i)
+        y(j) = y(j) + x(i)**2 + j
+      end do
+    end do
+  end subroutine mult_main_d
+  subroutine mult_main(nx, ny, x, y)
     implicit none
     integer, intent(in) :: nx, ny
     real*8, intent(in) :: x(nx)
@@ -14,10 +35,10 @@ contains
     y(:) = 0.
     do j=1,ny
       do i=1,nx
-        y(j) = y(j) + x(i)**2
+        y(j) = y(j) + x(i)**2 + j
       end do
     end do
-  end subroutine mult
+  end subroutine mult_main
 !  differentiation of assemblestructmtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: x
 !   with respect to varying inputs: j nodes iy iz rhs a

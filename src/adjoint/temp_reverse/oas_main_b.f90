@@ -5,7 +5,26 @@ MODULE OAS_MAIN_B
   IMPLICIT NONE
 
 CONTAINS
-  SUBROUTINE MULT(nx, ny, x, y)
+!  Differentiation of mult_main in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: x y
+!   with respect to varying inputs: x y
+!   RW status of diff variables: x:incr y:in-zero
+  SUBROUTINE MULT_MAIN_B(nx, ny, x, xb, y, yb)
+    IMPLICIT NONE
+    INTEGER, INTENT(IN) :: nx, ny
+    REAL*8, INTENT(IN) :: x(nx)
+    REAL*8 :: xb(nx)
+    REAL*8 :: y(ny)
+    REAL*8 :: yb(ny)
+    INTEGER :: i, j
+    DO j=ny,1,-1
+      DO i=nx,1,-1
+        xb(i) = xb(i) + 2*x(i)*yb(j)
+      END DO
+    END DO
+    yb = 0.0_8
+  END SUBROUTINE MULT_MAIN_B
+  SUBROUTINE MULT_MAIN(nx, ny, x, y)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nx, ny
     REAL*8, INTENT(IN) :: x(nx)
@@ -14,10 +33,10 @@ CONTAINS
     y(:) = 0.
     DO j=1,ny
       DO i=1,nx
-        y(j) = y(j) + x(i)**2
+        y(j) = y(j) + x(i)**2 + j
       END DO
     END DO
-  END SUBROUTINE MULT
+  END SUBROUTINE MULT_MAIN
 !  Differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: x
 !   with respect to varying inputs: j x nodes iy iz rhs a

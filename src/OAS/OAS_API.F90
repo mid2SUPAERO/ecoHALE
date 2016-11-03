@@ -168,16 +168,10 @@ contains
       T(2, :) = y_loc
       T(3, :) = z_loc
 
-      ! Nonfunctioning; probably can't handle the 1D array disp correctly
-      ! call matmul2(3, 3, 3, T, disp(in0, :3), u0)
-      ! call matmul2(3, 3, 3, T, disp(in0, 4:), r0)
-      ! call matmul2(3, 3, 3, T, disp(in1, :3), u1)
-      ! call matmul2(3, 3, 3, T, disp(in1, 4:), r1)
-
-      u0 = matmul(T, disp(in0, :3))
-      r0 = matmul(T, disp(in0, 4:))
-      u1 = matmul(T, disp(in1, :3))
-      r1 = matmul(T, disp(in1, 4:))
+      call matmul2(3, 3, 1, T, disp(in0, :3), u0)
+      call matmul2(3, 3, 1, T, disp(in0, 4:), r0)
+      call matmul2(3, 3, 1, T, disp(in1, :3), u1)
+      call matmul2(3, 3, 1, T, disp(in1, 4:), r1)
 
       tmp = ((r1(2) - r0(2))**2 + (r1(3) - r0(3))**2)**.5
       sxx0 = E * (u1(1) - u0(1)) / L + E * r(ielem) / L * tmp
@@ -189,6 +183,50 @@ contains
 
     end do
 
+
+  end subroutine
+
+  subroutine mult(nx, ny, x, y)
+
+    implicit none
+
+    integer, intent(in) :: nx, ny
+    real*8, intent(in) :: x(nx)
+    real*8, intent(out) :: y(ny)
+
+    integer :: i, j
+
+    call mult_main(nx, ny, x, y)
+
+  end subroutine mult
+
+  subroutine mult_b(nx, ny, x, xb, y, yb)
+
+    use oas_main_b, only: mult_main_b
+    implicit none
+
+    integer, intent(in) :: nx, ny
+    real*8, intent(in) :: x(nx), y(ny), yb(ny)
+    real*8, intent(out) :: xb(nx)
+
+    integer :: i, j
+
+    call mult_main_b(nx, ny, x, xb, y, yb)
+
+  end subroutine
+
+  subroutine mult_d(nx, ny, x, xd, y, yd)
+
+    use oas_main_d, only: mult_main_d
+    implicit none
+
+    integer, intent(in) :: nx, ny
+    real*8, intent(in) :: x(nx), xd(nx)
+    real*8, intent(out) :: y(ny), yd(ny)
+
+    integer :: i, j
+
+    call mult_main_d(nx, ny, x, xd, y, yd)
 
   end subroutine
 

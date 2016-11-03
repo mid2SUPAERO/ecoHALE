@@ -4,7 +4,7 @@ module oas_main
 
 contains
 
-  subroutine mult(nx, ny, x, y)
+  subroutine mult_main(nx, ny, x, y)
 
     implicit none
 
@@ -18,11 +18,11 @@ contains
 
     do j=1,ny
       do i=1,nx
-        y(j) = y(j) + x(i)**2
+        y(j) = y(j) + x(i)**2 + j
       end do
     end do
 
-  end subroutine mult
+  end subroutine mult_main
 
 
   subroutine assemblestructmtx_main(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6

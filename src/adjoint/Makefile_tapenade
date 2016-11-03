@@ -58,7 +58,8 @@ ad_forward:
 # The following is the single Tapenade command to run:
 	$(TAPENADE_HOME)/bin/tapenade -d \
 	-head "assemblestructmtx_main(A, Iy, Iz, J, nodes, rhs) > (x) \
-	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx)" ../OAS/OAS_main.F90 \
+	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx) \
+	mult_main" ../OAS/OAS_main.F90 \
 	-forward $(TAPENADE_PRECISION) \
 	-O temp_forward $(I_RES_FILES)
 
@@ -81,7 +82,8 @@ ad_reverse:
 # The following is the single Tapenade command to run:
 	$(TAPENADE_HOME)/bin/tapenade -b \
 	-head "assemblestructmtx_main(A, Iy, Iz, J, nodes, rhs) > (x) \
-	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx)" ../OAS/OAS_main.F90 \
+	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx) \
+	mult_main" ../OAS/OAS_main.F90 \
 	-reverse $(TAPENADE_PRECISION) \
 	-O temp_reverse $(I_RES_FILES)
 

@@ -2,6 +2,7 @@
 
 from __future__ import division
 import numpy
+from time import time
 
 from openmdao.api import Component
 
@@ -49,6 +50,7 @@ class TransferDisplacements(Component):
         self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
+        self.t = 0.
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
@@ -57,6 +59,7 @@ class TransferDisplacements(Component):
 
         w = self.surface['fem_origin']
         ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+        st = time()
 
         Smesh = numpy.zeros(mesh.shape, dtype="complex")
         for ind in xrange(self.nx):
@@ -80,6 +83,8 @@ class TransferDisplacements(Component):
             def_mesh[:, ind, 2] += dz
 
         unknowns[name+'def_mesh'] = def_mesh + mesh
+        self.t += time() - st
+        print self.t
 
 
 class TransferLoads(Component):
