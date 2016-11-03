@@ -37,6 +37,213 @@ contains
       end do
     end do
   end subroutine mult_main
+!  differentiation of calc_vonmises_main in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: r vonmises nodes disp
+!   with respect to varying inputs: r vonmises nodes disp
+!   rw status of diff variables: r:incr vonmises:in-out nodes:incr
+!                disp:incr
+  subroutine calc_vonmises_main_b(elem_ids, nodes, nodesb, r, rb, disp, &
+&   dispb, e, g, x_gl, num_elems, n, vonmises, vonmisesb)
+    implicit none
+! input
+    integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
+    real(kind=8) :: x_glb(3)
+! output
+    real(kind=8) :: vonmises(num_elems, 2)
+    real(kind=8) :: vonmisesb(num_elems, 2)
+! working
+    integer :: ielem, in0, in1
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: p0b(3), p1b(3), lb, x_locb(3), y_locb(3), z_locb(3)&
+&   , tb(3, 3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: u0b(3), r0b(3), u1b(3), r1b(3), sxx0b, sxx1b, sxtb, &
+&   tmpb
+    real(kind=8), dimension(3) :: arg1
+    real(kind=8), dimension(3) :: arg1b
+    real(kind=8) :: tempb9
+    real(kind=8) :: tempb8
+    real(kind=8) :: tempb7
+    real(kind=8) :: tempb6
+    real(kind=8) :: tempb5
+    real(kind=8) :: tempb4
+    real(kind=8) :: tempb3
+    real(kind=8) :: tempb2
+    real(kind=8) :: tempb1
+    real(kind=8) :: tempb0
+    real(kind=8) :: tempb
+    real(kind=8) :: temp
+    do ielem=1,num_elems
+      in0 = elem_ids(ielem, 1)
+      in1 = elem_ids(ielem, 2)
+      p0 = nodes(in0, :)
+      p1 = nodes(in1, :)
+      arg1(:) = p1 - p0
+      call pushreal8(l)
+      call norm(arg1(:), l)
+      arg1(:) = p1 - p0
+      call pushreal8array(x_loc, 3)
+      call unit(arg1(:), x_loc)
+      call pushreal8array(y_loc, 3)
+      call cross(x_loc, x_gl, y_loc)
+      call unit(y_loc, y_loc)
+      call pushreal8array(z_loc, 3)
+      call cross(x_loc, y_loc, z_loc)
+      call unit(z_loc, z_loc)
+      call pushreal8array(t(1, :), 3)
+      t(1, :) = x_loc
+      call pushreal8array(t(2, :), 3)
+      t(2, :) = y_loc
+      call pushreal8array(t(3, :), 3)
+      t(3, :) = z_loc
+      call pushreal8array(u0, 3)
+      call matmul2(3, 3, 1, t, disp(in0, :3), u0)
+      call pushreal8array(r0, 3)
+      call matmul2(3, 3, 1, t, disp(in0, 4:), r0)
+      call pushreal8array(u1, 3)
+      call matmul2(3, 3, 1, t, disp(in1, :3), u1)
+      call pushreal8array(r1, 3)
+      call matmul2(3, 3, 1, t, disp(in1, 4:), r1)
+    end do
+    y_locb = 0.0_8
+    tb = 0.0_8
+    z_locb = 0.0_8
+    x_locb = 0.0_8
+    do ielem=num_elems,1,-1
+      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
+      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
+      tempb = .5*(sxx1**2+sxt**2)**(-0.5)*vonmisesb(ielem, 2)
+      sxx1b = 2*sxx1*tempb
+      vonmisesb(ielem, 2) = 0.0_8
+      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
+      tempb0 = .5*(sxx0**2+sxt**2)**(-0.5)*vonmisesb(ielem, 1)
+      sxtb = 2*sxt*tempb0 + 2*sxt*tempb
+      sxx0b = 2*sxx0*tempb0
+      vonmisesb(ielem, 1) = 0.0_8
+      r0b = 0.0_8
+      r1b = 0.0_8
+      temp = r(ielem)/l
+      tempb1 = (r1(1)-r0(1))*g*sxtb/l
+      tempb2 = g*temp*sxtb
+      rb(ielem) = rb(ielem) + e*tmp*sxx1b/l + e*tmp*sxx0b/l + tempb1
+      r1b(1) = r1b(1) + tempb2
+      r0b(1) = r0b(1) - tempb2
+      u0b = 0.0_8
+      u1b = 0.0_8
+      tempb3 = e*sxx1b/l
+      tempb4 = r(ielem)*e*sxx1b/l
+      tempb6 = e*sxx0b/l
+      u0b(1) = u0b(1) + tempb3 - tempb6
+      u1b(1) = u1b(1) + tempb6 - tempb3
+      tempb5 = r(ielem)*e*sxx0b/l
+      lb = -((u0(1)-u1(1))*tempb3/l) - tmp*tempb4/l - tmp*tempb5/l - (u1&
+&       (1)-u0(1))*tempb6/l - temp*tempb1
+      tmpb = tempb5 + tempb4
+      tempb7 = .5*((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**(-0.5)*tmpb
+      tempb8 = 2*(r1(2)-r0(2))*tempb7
+      tempb9 = 2*(r1(3)-r0(3))*tempb7
+      r1b(2) = r1b(2) + tempb8
+      r0b(2) = r0b(2) - tempb8
+      r1b(3) = r1b(3) + tempb9
+      r0b(3) = r0b(3) - tempb9
+      in1 = elem_ids(ielem, 2)
+      call popreal8array(r1, 3)
+      call matmul2_b(3, 3, 1, t, tb, disp(in1, 4:), dispb(in1, 4:), r1, &
+&              r1b)
+      call popreal8array(u1, 3)
+      call matmul2_b(3, 3, 1, t, tb, disp(in1, :3), dispb(in1, :3), u1, &
+&              u1b)
+      in0 = elem_ids(ielem, 1)
+      call popreal8array(r0, 3)
+      call matmul2_b(3, 3, 1, t, tb, disp(in0, 4:), dispb(in0, 4:), r0, &
+&              r0b)
+      call popreal8array(u0, 3)
+      call matmul2_b(3, 3, 1, t, tb, disp(in0, :3), dispb(in0, :3), u0, &
+&              u0b)
+      call popreal8array(t(3, :), 3)
+      z_locb = z_locb + tb(3, :)
+      tb(3, :) = 0.0_8
+      call popreal8array(t(2, :), 3)
+      y_locb = y_locb + tb(2, :)
+      tb(2, :) = 0.0_8
+      call popreal8array(t(1, :), 3)
+      x_locb = x_locb + tb(1, :)
+      tb(1, :) = 0.0_8
+      call unit_b(z_loc, z_locb, z_loc, z_locb)
+      call popreal8array(z_loc, 3)
+      call cross_b(x_loc, x_locb, y_loc, y_locb, z_loc, z_locb)
+      call unit_b(y_loc, y_locb, y_loc, y_locb)
+      call popreal8array(y_loc, 3)
+      x_glb = 0.0_8
+      call cross_b(x_loc, x_locb, x_gl, x_glb, y_loc, y_locb)
+      p0 = nodes(in0, :)
+      p1 = nodes(in1, :)
+      arg1(:) = p1 - p0
+      call popreal8array(x_loc, 3)
+      arg1b = 0.0_8
+      call unit_b(arg1(:), arg1b(:), x_loc, x_locb)
+      p0b = 0.0_8
+      p1b = 0.0_8
+      p1b = arg1b(:)
+      p0b = -arg1b(:)
+      arg1(:) = p1 - p0
+      call popreal8(l)
+      arg1b = 0.0_8
+      call norm_b(arg1(:), arg1b(:), l, lb)
+      p1b = p1b + arg1b
+      p0b = p0b - arg1b
+      nodesb(in1, :) = nodesb(in1, :) + p1b
+      nodesb(in0, :) = nodesb(in0, :) + p0b
+    end do
+  end subroutine calc_vonmises_main_b
+  subroutine calc_vonmises_main(elem_ids, nodes, r, disp, e, g, x_gl, &
+&   num_elems, n, vonmises)
+    implicit none
+! input
+    integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
+! output
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+! working
+    integer :: ielem, in0, in1
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8), dimension(3) :: arg1
+    do ielem=1,num_elems
+      in0 = elem_ids(ielem, 1)
+      in1 = elem_ids(ielem, 2)
+      p0 = nodes(in0, :)
+      p1 = nodes(in1, :)
+      arg1(:) = p1 - p0
+      call norm(arg1(:), l)
+      arg1(:) = p1 - p0
+      call unit(arg1(:), x_loc)
+      call cross(x_loc, x_gl, y_loc)
+      call unit(y_loc, y_loc)
+      call cross(x_loc, y_loc, z_loc)
+      call unit(z_loc, z_loc)
+      t(1, :) = x_loc
+      t(2, :) = y_loc
+      t(3, :) = z_loc
+      call matmul2(3, 3, 1, t, disp(in0, :3), u0)
+      call matmul2(3, 3, 1, t, disp(in0, 4:), r0)
+      call matmul2(3, 3, 1, t, disp(in1, :3), u1)
+      call matmul2(3, 3, 1, t, disp(in1, 4:), r1)
+      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
+      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
+      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
+      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      vonmises(ielem, 1) = (sxx0**2+sxt**2)**.5
+      vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
+    end do
+  end subroutine calc_vonmises_main
 !  differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: x
 !   with respect to varying inputs: j x nodes iy iz rhs a

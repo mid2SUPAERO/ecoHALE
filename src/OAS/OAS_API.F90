@@ -145,44 +145,47 @@ contains
     ! Output
     real(kind=8), intent(out) :: vonmises(num_elems, 2)
 
-    ! Working
-    integer :: ielem, in0, in1
-    real(kind=8) :: P0(3), P1(3), L, x_loc(3), y_loc(3), z_loc(3), T(3, 3)
-    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    call calc_vonmises_main(elem_IDs, nodes, r, disp, E, G, x_gl, num_elems, n, vonmises)
 
-    do ielem=1, num_elems
-      in0 = elem_IDs(ielem, 1)
-      in1 = elem_IDs(ielem, 2)
+  end subroutine
 
-      P0 = nodes(in0, :)
-      P1 = nodes(in1, :)
-      call norm(P1 - P0, L)
+  subroutine calc_vonmises_b(elem_ids, nodes, nodesb, r, rb, disp, &
+&   dispb, e, g, x_gl, num_elems, n, vonmises, vonmisesb)
 
-      call unit(P1 - P0, x_loc)
-      call cross(x_loc, x_gl, y_loc)
-      call unit(y_loc, y_loc)
-      call cross(x_loc, y_loc, z_loc)
-      call unit(z_loc, z_loc)
+    use oas_main_b, only: calc_vonmises_main_b
+    implicit none
 
-      T(1, :) = x_loc
-      T(2, :) = y_loc
-      T(3, :) = z_loc
+    ! Input
+    integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: E, G, x_gl(3)
+    real(kind=8), intent(in) :: vonmises(num_elems, 2), vonmisesb(num_elems, 2)
 
-      call matmul2(3, 3, 1, T, disp(in0, :3), u0)
-      call matmul2(3, 3, 1, T, disp(in0, 4:), r0)
-      call matmul2(3, 3, 1, T, disp(in1, :3), u1)
-      call matmul2(3, 3, 1, T, disp(in1, 4:), r1)
+    ! Output
+    real(kind=8), intent(out) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
 
-      tmp = ((r1(2) - r0(2))**2 + (r1(3) - r0(3))**2)**.5
-      sxx0 = E * (u1(1) - u0(1)) / L + E * r(ielem) / L * tmp
-      sxx1 = E * (u0(1) - u1(1)) / L + E * r(ielem) / L * tmp
-      sxt = G * r(ielem) * (r1(1) - r0(1)) / L
+    call calc_vonmises_main_b(elem_ids, nodes, nodesb, r, rb, disp, &
+  &   dispb, e, g, x_gl, num_elems, n, vonmises, vonmisesb)
 
-      vonmises(ielem, 1) = (sxx0**2 + sxt**2)**.5
-      vonmises(ielem, 2) = (sxx1**2 + sxt**2)**.5
+  end subroutine
 
-    end do
+  subroutine calc_vonmises_d(elem_ids, nodes, nodesd, r, rd, disp, &
+&   dispd, e, g, x_gl, num_elems, n, vonmises, vonmisesd)
 
+    use oas_main_d, only: calc_vonmises_main_d
+    implicit none
+
+    ! Input
+    integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
+    real(kind=8), intent(in) :: nodes(n, 3), nodesd(n, 3), r(num_elems), rd(num_elems)
+    real(kind=8), intent(in) :: disp(n, 6), dispd(n, 6)
+    real(kind=8), intent(in) :: E, G, x_gl(3)
+
+    ! Output
+    real(kind=8), intent(out) :: vonmises(num_elems, 2),vonmisesd(num_elems, 2)
+
+    call calc_vonmises_main_d(elem_ids, nodes, nodesd, r, rd, disp, &
+  &   dispd, e, g, x_gl, num_elems, n, vonmises, vonmisesd)
 
   end subroutine
 

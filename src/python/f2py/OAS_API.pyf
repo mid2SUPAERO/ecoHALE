@@ -144,6 +144,40 @@ python module OAS_API ! in
                 integer, optional,intent(in),check(shape(nodes,0)==n),depend(nodes) :: n=shape(nodes,0)
                 real(kind=8) dimension(num_elems,2),intent(out),depend(num_elems) :: vonmises
             end subroutine calc_vonmises
+            subroutine calc_vonmises_b(elem_ids,nodes,nodesb,r,rb,disp,dispb,e,g,x_gl,num_elems,n,vonmises,vonmisesb) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_b, only: calc_vonmises_main_b
+                integer dimension(num_elems,2),intent(in) :: elem_ids
+                real(kind=8) dimension(n,3),intent(in) :: nodes
+                real(kind=8) dimension(n,3),intent(out),depend(n) :: nodesb
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: r
+                real(kind=8) dimension(num_elems),intent(out),depend(num_elems) :: rb
+                real(kind=8) dimension(n,6),intent(in),depend(n) :: disp
+                real(kind=8) dimension(n,6),intent(out),depend(n) :: dispb
+                real(kind=8) intent(in) :: e
+                real(kind=8) intent(in) :: g
+                real(kind=8) dimension(3),intent(in) :: x_gl
+                integer, optional,intent(in),check(shape(elem_ids,0)==num_elems),depend(elem_ids) :: num_elems=shape(elem_ids,0)
+                integer, optional,intent(in),check(shape(nodes,0)==n),depend(nodes) :: n=shape(nodes,0)
+                real(kind=8) dimension(num_elems,2),intent(in),depend(num_elems) :: vonmises
+                real(kind=8) dimension(num_elems,2),intent(in),depend(num_elems) :: vonmisesb
+            end subroutine calc_vonmises_b
+            subroutine calc_vonmises_d(elem_ids,nodes,nodesd,r,rd,disp,dispd,e,g,x_gl,num_elems,n,vonmises,vonmisesd) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_d, only: calc_vonmises_main_d
+                integer dimension(num_elems,2),intent(in) :: elem_ids
+                real(kind=8) dimension(n,3),intent(in) :: nodes
+                real(kind=8) dimension(n,3),intent(in),depend(n) :: nodesd
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: r
+                real(kind=8) dimension(num_elems),intent(in),depend(num_elems) :: rd
+                real(kind=8) dimension(n,6),intent(in),depend(n) :: disp
+                real(kind=8) dimension(n,6),intent(in),depend(n) :: dispd
+                real(kind=8) intent(in) :: e
+                real(kind=8) intent(in) :: g
+                real(kind=8) dimension(3),intent(in) :: x_gl
+                integer, optional,intent(in),check(shape(elem_ids,0)==num_elems),depend(elem_ids) :: num_elems=shape(elem_ids,0)
+                integer, optional,intent(in),check(shape(nodes,0)==n),depend(nodes) :: n=shape(nodes,0)
+                real(kind=8) dimension(num_elems,2),intent(out),depend(num_elems) :: vonmises
+                real(kind=8) dimension(num_elems,2),intent(out),depend(num_elems) :: vonmisesd
+            end subroutine calc_vonmises_d
             subroutine mult(nx,ny,x,y) ! in :OAS_API:OAS_API.F90:oas_api
                 integer, optional,intent(in),check(len(x)>=nx),depend(x) :: nx=len(x)
                 integer intent(in) :: ny

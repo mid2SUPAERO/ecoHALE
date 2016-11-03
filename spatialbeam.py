@@ -654,8 +654,9 @@ class SpatialBeamVonMisesTube(Component):
         self.add_output(name+'vonmises', val=numpy.zeros((self.ny-1, 2),
                         dtype="complex"))
 
-        self.deriv_options['type'] = 'fd'
-        self.deriv_options['form'] = 'central'
+        if not fortran_flag:
+            self.deriv_options['type'] = 'fd'
+            self.deriv_options['form'] = 'central'
 
         elem_IDs = numpy.zeros((self.ny - 1, 2), int)
         arange = numpy.arange(self.ny-1)
@@ -716,6 +717,26 @@ class SpatialBeamVonMisesTube(Component):
 
                 vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
                 vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
+
+    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
+
+        name = self.surface['name']
+        elem_IDs = self.elem_IDs
+        name = self.surface['name']
+        r = params[name+'r']
+        disp = params[name+'disp']
+        nodes = params[name+'nodes']
+        vonmises = unknowns[name+'vonmises']
+        T = self.T
+        E = self.E
+        G = self.G
+        x_gl = self.x_gl
+
+        if mode == 'fwd':
+            _, dunknowns[name+'vonmises'] = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, dparams[name+'nodes'], r, dparams[name+'r'], disp, dparams[name+'disp'], E, G, x_gl)
+
+        if mode == 'rev':
+            dparams[name+'nodes'], dparams[name+'r'], dparams[name+'disp'] = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, dresids[name+'vonmises'])
 
 
 class SpatialBeamFailureKS(Component):

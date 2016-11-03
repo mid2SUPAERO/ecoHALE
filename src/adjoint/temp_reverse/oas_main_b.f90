@@ -37,6 +37,213 @@ CONTAINS
       END DO
     END DO
   END SUBROUTINE MULT_MAIN
+!  Differentiation of calc_vonmises_main in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: r vonmises nodes disp
+!   with respect to varying inputs: r vonmises nodes disp
+!   RW status of diff variables: r:incr vonmises:in-out nodes:incr
+!                disp:incr
+  SUBROUTINE CALC_VONMISES_MAIN_B(elem_ids, nodes, nodesb, r, rb, disp, &
+&   dispb, e, g, x_gl, num_elems, n, vonmises, vonmisesb)
+    IMPLICIT NONE
+! Input
+    INTEGER, INTENT(IN) :: elem_ids(num_elems, 2), num_elems, n
+    REAL(kind=8), INTENT(IN) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    REAL(kind=8) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
+    REAL(kind=8), INTENT(IN) :: e, g, x_gl(3)
+    REAL(kind=8) :: x_glb(3)
+! Output
+    REAL(kind=8) :: vonmises(num_elems, 2)
+    REAL(kind=8) :: vonmisesb(num_elems, 2)
+! Working
+    INTEGER :: ielem, in0, in1
+    REAL(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    REAL(kind=8) :: p0b(3), p1b(3), lb, x_locb(3), y_locb(3), z_locb(3)&
+&   , tb(3, 3)
+    REAL(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    REAL(kind=8) :: u0b(3), r0b(3), u1b(3), r1b(3), sxx0b, sxx1b, sxtb, &
+&   tmpb
+    REAL(kind=8), DIMENSION(3) :: arg1
+    REAL(kind=8), DIMENSION(3) :: arg1b
+    REAL(kind=8) :: tempb9
+    REAL(kind=8) :: tempb8
+    REAL(kind=8) :: tempb7
+    REAL(kind=8) :: tempb6
+    REAL(kind=8) :: tempb5
+    REAL(kind=8) :: tempb4
+    REAL(kind=8) :: tempb3
+    REAL(kind=8) :: tempb2
+    REAL(kind=8) :: tempb1
+    REAL(kind=8) :: tempb0
+    REAL(kind=8) :: tempb
+    REAL(kind=8) :: temp
+    DO ielem=1,num_elems
+      in0 = elem_ids(ielem, 1)
+      in1 = elem_ids(ielem, 2)
+      p0 = nodes(in0, :)
+      p1 = nodes(in1, :)
+      arg1(:) = p1 - p0
+      CALL PUSHREAL8(l)
+      CALL NORM(arg1(:), l)
+      arg1(:) = p1 - p0
+      CALL PUSHREAL8ARRAY(x_loc, 3)
+      CALL UNIT(arg1(:), x_loc)
+      CALL PUSHREAL8ARRAY(y_loc, 3)
+      CALL CROSS(x_loc, x_gl, y_loc)
+      CALL UNIT(y_loc, y_loc)
+      CALL PUSHREAL8ARRAY(z_loc, 3)
+      CALL CROSS(x_loc, y_loc, z_loc)
+      CALL UNIT(z_loc, z_loc)
+      CALL PUSHREAL8ARRAY(t(1, :), 3)
+      t(1, :) = x_loc
+      CALL PUSHREAL8ARRAY(t(2, :), 3)
+      t(2, :) = y_loc
+      CALL PUSHREAL8ARRAY(t(3, :), 3)
+      t(3, :) = z_loc
+      CALL PUSHREAL8ARRAY(u0, 3)
+      CALL MATMUL2(3, 3, 1, t, disp(in0, :3), u0)
+      CALL PUSHREAL8ARRAY(r0, 3)
+      CALL MATMUL2(3, 3, 1, t, disp(in0, 4:), r0)
+      CALL PUSHREAL8ARRAY(u1, 3)
+      CALL MATMUL2(3, 3, 1, t, disp(in1, :3), u1)
+      CALL PUSHREAL8ARRAY(r1, 3)
+      CALL MATMUL2(3, 3, 1, t, disp(in1, 4:), r1)
+    END DO
+    y_locb = 0.0_8
+    tb = 0.0_8
+    z_locb = 0.0_8
+    x_locb = 0.0_8
+    DO ielem=num_elems,1,-1
+      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
+      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
+      tempb = .5*(sxx1**2+sxt**2)**(-0.5)*vonmisesb(ielem, 2)
+      sxx1b = 2*sxx1*tempb
+      vonmisesb(ielem, 2) = 0.0_8
+      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
+      tempb0 = .5*(sxx0**2+sxt**2)**(-0.5)*vonmisesb(ielem, 1)
+      sxtb = 2*sxt*tempb0 + 2*sxt*tempb
+      sxx0b = 2*sxx0*tempb0
+      vonmisesb(ielem, 1) = 0.0_8
+      r0b = 0.0_8
+      r1b = 0.0_8
+      temp = r(ielem)/l
+      tempb1 = (r1(1)-r0(1))*g*sxtb/l
+      tempb2 = g*temp*sxtb
+      rb(ielem) = rb(ielem) + e*tmp*sxx1b/l + e*tmp*sxx0b/l + tempb1
+      r1b(1) = r1b(1) + tempb2
+      r0b(1) = r0b(1) - tempb2
+      u0b = 0.0_8
+      u1b = 0.0_8
+      tempb3 = e*sxx1b/l
+      tempb4 = r(ielem)*e*sxx1b/l
+      tempb6 = e*sxx0b/l
+      u0b(1) = u0b(1) + tempb3 - tempb6
+      u1b(1) = u1b(1) + tempb6 - tempb3
+      tempb5 = r(ielem)*e*sxx0b/l
+      lb = -((u0(1)-u1(1))*tempb3/l) - tmp*tempb4/l - tmp*tempb5/l - (u1&
+&       (1)-u0(1))*tempb6/l - temp*tempb1
+      tmpb = tempb5 + tempb4
+      tempb7 = .5*((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**(-0.5)*tmpb
+      tempb8 = 2*(r1(2)-r0(2))*tempb7
+      tempb9 = 2*(r1(3)-r0(3))*tempb7
+      r1b(2) = r1b(2) + tempb8
+      r0b(2) = r0b(2) - tempb8
+      r1b(3) = r1b(3) + tempb9
+      r0b(3) = r0b(3) - tempb9
+      in1 = elem_ids(ielem, 2)
+      CALL POPREAL8ARRAY(r1, 3)
+      CALL MATMUL2_B(3, 3, 1, t, tb, disp(in1, 4:), dispb(in1, 4:), r1, &
+&              r1b)
+      CALL POPREAL8ARRAY(u1, 3)
+      CALL MATMUL2_B(3, 3, 1, t, tb, disp(in1, :3), dispb(in1, :3), u1, &
+&              u1b)
+      in0 = elem_ids(ielem, 1)
+      CALL POPREAL8ARRAY(r0, 3)
+      CALL MATMUL2_B(3, 3, 1, t, tb, disp(in0, 4:), dispb(in0, 4:), r0, &
+&              r0b)
+      CALL POPREAL8ARRAY(u0, 3)
+      CALL MATMUL2_B(3, 3, 1, t, tb, disp(in0, :3), dispb(in0, :3), u0, &
+&              u0b)
+      CALL POPREAL8ARRAY(t(3, :), 3)
+      z_locb = z_locb + tb(3, :)
+      tb(3, :) = 0.0_8
+      CALL POPREAL8ARRAY(t(2, :), 3)
+      y_locb = y_locb + tb(2, :)
+      tb(2, :) = 0.0_8
+      CALL POPREAL8ARRAY(t(1, :), 3)
+      x_locb = x_locb + tb(1, :)
+      tb(1, :) = 0.0_8
+      CALL UNIT_B(z_loc, z_locb, z_loc, z_locb)
+      CALL POPREAL8ARRAY(z_loc, 3)
+      CALL CROSS_B(x_loc, x_locb, y_loc, y_locb, z_loc, z_locb)
+      CALL UNIT_B(y_loc, y_locb, y_loc, y_locb)
+      CALL POPREAL8ARRAY(y_loc, 3)
+      x_glb = 0.0_8
+      CALL CROSS_B(x_loc, x_locb, x_gl, x_glb, y_loc, y_locb)
+      p0 = nodes(in0, :)
+      p1 = nodes(in1, :)
+      arg1(:) = p1 - p0
+      CALL POPREAL8ARRAY(x_loc, 3)
+      arg1b = 0.0_8
+      CALL UNIT_B(arg1(:), arg1b(:), x_loc, x_locb)
+      p0b = 0.0_8
+      p1b = 0.0_8
+      p1b = arg1b(:)
+      p0b = -arg1b(:)
+      arg1(:) = p1 - p0
+      CALL POPREAL8(l)
+      arg1b = 0.0_8
+      CALL NORM_B(arg1(:), arg1b(:), l, lb)
+      p1b = p1b + arg1b
+      p0b = p0b - arg1b
+      nodesb(in1, :) = nodesb(in1, :) + p1b
+      nodesb(in0, :) = nodesb(in0, :) + p0b
+    END DO
+  END SUBROUTINE CALC_VONMISES_MAIN_B
+  SUBROUTINE CALC_VONMISES_MAIN(elem_ids, nodes, r, disp, e, g, x_gl, &
+&   num_elems, n, vonmises)
+    IMPLICIT NONE
+! Input
+    INTEGER, INTENT(IN) :: elem_ids(num_elems, 2), num_elems, n
+    REAL(kind=8), INTENT(IN) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    REAL(kind=8), INTENT(IN) :: e, g, x_gl(3)
+! Output
+    REAL(kind=8), INTENT(OUT) :: vonmises(num_elems, 2)
+! Working
+    INTEGER :: ielem, in0, in1
+    REAL(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    REAL(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    REAL(kind=8), DIMENSION(3) :: arg1
+    DO ielem=1,num_elems
+      in0 = elem_ids(ielem, 1)
+      in1 = elem_ids(ielem, 2)
+      p0 = nodes(in0, :)
+      p1 = nodes(in1, :)
+      arg1(:) = p1 - p0
+      CALL NORM(arg1(:), l)
+      arg1(:) = p1 - p0
+      CALL UNIT(arg1(:), x_loc)
+      CALL CROSS(x_loc, x_gl, y_loc)
+      CALL UNIT(y_loc, y_loc)
+      CALL CROSS(x_loc, y_loc, z_loc)
+      CALL UNIT(z_loc, z_loc)
+      t(1, :) = x_loc
+      t(2, :) = y_loc
+      t(3, :) = z_loc
+      CALL MATMUL2(3, 3, 1, t, disp(in0, :3), u0)
+      CALL MATMUL2(3, 3, 1, t, disp(in0, 4:), r0)
+      CALL MATMUL2(3, 3, 1, t, disp(in1, :3), u1)
+      CALL MATMUL2(3, 3, 1, t, disp(in1, 4:), r1)
+      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
+      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
+      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
+      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      vonmises(ielem, 1) = (sxx0**2+sxt**2)**.5
+      vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
+    END DO
+  END SUBROUTINE CALC_VONMISES_MAIN
 !  Differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: x
 !   with respect to varying inputs: j x nodes iy iz rhs a

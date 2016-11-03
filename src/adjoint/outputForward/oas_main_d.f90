@@ -39,6 +39,136 @@ contains
       end do
     end do
   end subroutine mult_main
+!  differentiation of calc_vonmises_main in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: vonmises
+!   with respect to varying inputs: r nodes disp
+!   rw status of diff variables: r:in vonmises:out nodes:in disp:in
+  subroutine calc_vonmises_main_d(elem_ids, nodes, nodesd, r, rd, disp, &
+&   dispd, e, g, x_gl, num_elems, n, vonmises, vonmisesd)
+    implicit none
+! input
+    integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: nodesd(n, 3), rd(num_elems), dispd(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
+    real(kind=8) :: x_gld(3)
+! output
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+    real(kind=8), intent(out) :: vonmisesd(num_elems, 2)
+! working
+    integer :: ielem, in0, in1
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: p0d(3), p1d(3), ld, x_locd(3), y_locd(3), z_locd(3)&
+&   , td(3, 3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: u0d(3), r0d(3), u1d(3), r1d(3), sxx0d, sxx1d, sxtd, &
+&   tmpd
+    vonmisesd = 0.0_8
+    y_locd = 0.0_8
+    td = 0.0_8
+    z_locd = 0.0_8
+    x_locd = 0.0_8
+    do ielem=1,num_elems
+      in0 = elem_ids(ielem, 1)
+      in1 = elem_ids(ielem, 2)
+      p0d = nodesd(in0, :)
+      p0 = nodes(in0, :)
+      p1d = nodesd(in1, :)
+      p1 = nodes(in1, :)
+      call norm_d(p1 - p0, p1d - p0d, l, ld)
+      call unit_d(p1 - p0, p1d - p0d, x_loc, x_locd)
+      x_gld = 0.0_8
+      call cross_d(x_loc, x_locd, x_gl, x_gld, y_loc, y_locd)
+      call unit_d(y_loc, y_locd, y_loc, y_locd)
+      call cross_d(x_loc, x_locd, y_loc, y_locd, z_loc, z_locd)
+      call unit_d(z_loc, z_locd, z_loc, z_locd)
+      td(1, :) = x_locd
+      t(1, :) = x_loc
+      td(2, :) = y_locd
+      t(2, :) = y_loc
+      td(3, :) = z_locd
+      t(3, :) = z_loc
+      call matmul2_d(3, 3, 1, t, td, disp(in0, :3), dispd(in0, :3), u0, &
+&              u0d)
+      call matmul2_d(3, 3, 1, t, td, disp(in0, 4:), dispd(in0, 4:), r0, &
+&              r0d)
+      call matmul2_d(3, 3, 1, t, td, disp(in1, :3), dispd(in1, :3), u1, &
+&              u1d)
+      call matmul2_d(3, 3, 1, t, td, disp(in1, 4:), dispd(in1, 4:), r1, &
+&              r1d)
+      if ((r1(2)-r0(2))**2 + (r1(3)-r0(3))**2 .gt. 0.0_8) then
+        tmpd = .5*((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**(-0.5)*(2*(r1(2)-&
+&         r0(2))*(r1d(2)-r0d(2))+2*(r1(3)-r0(3))*(r1d(3)-r0d(3)))
+      else
+        tmpd = 0.0_8
+      end if
+      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
+      sxx0d = (e*(u1d(1)-u0d(1))*l-e*(u1(1)-u0(1))*ld)/l**2 + (e*rd(&
+&       ielem)*l-e*r(ielem)*ld)*tmp/l**2 + e*r(ielem)*tmpd/l
+      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
+      sxx1d = (e*(u0d(1)-u1d(1))*l-e*(u0(1)-u1(1))*ld)/l**2 + (e*rd(&
+&       ielem)*l-e*r(ielem)*ld)*tmp/l**2 + e*r(ielem)*tmpd/l
+      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
+      sxtd = (g*(rd(ielem)*(r1(1)-r0(1))+r(ielem)*(r1d(1)-r0d(1)))*l-g*r&
+&       (ielem)*(r1(1)-r0(1))*ld)/l**2
+      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      if (sxx0**2 + sxt**2 .gt. 0.0_8) then
+        vonmisesd(ielem, 1) = .5*(sxx0**2+sxt**2)**(-0.5)*(2*sxx0*sxx0d+&
+&         2*sxt*sxtd)
+      else
+        vonmisesd(ielem, 1) = 0.0_8
+      end if
+      vonmises(ielem, 1) = (sxx0**2+sxt**2)**.5
+      if (sxx1**2 + sxt**2 .gt. 0.0_8) then
+        vonmisesd(ielem, 2) = .5*(sxx1**2+sxt**2)**(-0.5)*(2*sxx1*sxx1d+&
+&         2*sxt*sxtd)
+      else
+        vonmisesd(ielem, 2) = 0.0_8
+      end if
+      vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
+    end do
+  end subroutine calc_vonmises_main_d
+  subroutine calc_vonmises_main(elem_ids, nodes, r, disp, e, g, x_gl, &
+&   num_elems, n, vonmises)
+    implicit none
+! input
+    integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
+! output
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+! working
+    integer :: ielem, in0, in1
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    do ielem=1,num_elems
+      in0 = elem_ids(ielem, 1)
+      in1 = elem_ids(ielem, 2)
+      p0 = nodes(in0, :)
+      p1 = nodes(in1, :)
+      call norm(p1 - p0, l)
+      call unit(p1 - p0, x_loc)
+      call cross(x_loc, x_gl, y_loc)
+      call unit(y_loc, y_loc)
+      call cross(x_loc, y_loc, z_loc)
+      call unit(z_loc, z_loc)
+      t(1, :) = x_loc
+      t(2, :) = y_loc
+      t(3, :) = z_loc
+      call matmul2(3, 3, 1, t, disp(in0, :3), u0)
+      call matmul2(3, 3, 1, t, disp(in0, 4:), r0)
+      call matmul2(3, 3, 1, t, disp(in1, :3), u1)
+      call matmul2(3, 3, 1, t, disp(in1, 4:), r1)
+      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
+      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
+      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
+      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      vonmises(ielem, 1) = (sxx0**2+sxt**2)**.5
+      vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
+    end do
+  end subroutine calc_vonmises_main
 !  differentiation of assemblestructmtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: x
 !   with respect to varying inputs: j nodes iy iz rhs a
