@@ -139,11 +139,11 @@ contains
 
     ! Input
     integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
-    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    real(kind=8), intent(in) :: E, G, x_gl(3)
+    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    complex(kind=8), intent(in) :: E, G, x_gl(3)
 
     ! Output
-    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+    complex(kind=8), intent(out) :: vonmises(num_elems, 2)
 
     call calc_vonmises_main(elem_IDs, nodes, r, disp, E, G, x_gl, num_elems, n, vonmises)
 
@@ -157,12 +157,12 @@ contains
 
     ! Input
     integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
-    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    real(kind=8), intent(in) :: E, G, x_gl(3)
-    real(kind=8), intent(in) :: vonmises(num_elems, 2), vonmisesb(num_elems, 2)
+    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    complex(kind=8), intent(in) :: E, G, x_gl(3)
+    complex(kind=8), intent(in) :: vonmises(num_elems, 2), vonmisesb(num_elems, 2)
 
     ! Output
-    real(kind=8), intent(out) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
+    complex(kind=8), intent(out) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
 
     call calc_vonmises_main_b(elem_ids, nodes, nodesb, r, rb, disp, &
   &   dispb, e, g, x_gl, num_elems, n, vonmises, vonmisesb)
@@ -177,12 +177,12 @@ contains
 
     ! Input
     integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
-    real(kind=8), intent(in) :: nodes(n, 3), nodesd(n, 3), r(num_elems), rd(num_elems)
-    real(kind=8), intent(in) :: disp(n, 6), dispd(n, 6)
-    real(kind=8), intent(in) :: E, G, x_gl(3)
+    complex(kind=8), intent(in) :: nodes(n, 3), nodesd(n, 3), r(num_elems), rd(num_elems)
+    complex(kind=8), intent(in) :: disp(n, 6), dispd(n, 6)
+    complex(kind=8), intent(in) :: E, G, x_gl(3)
 
     ! Output
-    real(kind=8), intent(out) :: vonmises(num_elems, 2),vonmisesd(num_elems, 2)
+    complex(kind=8), intent(out) :: vonmises(num_elems, 2),vonmisesd(num_elems, 2)
 
     call calc_vonmises_main_d(elem_ids, nodes, nodesd, r, rd, disp, &
   &   dispd, e, g, x_gl, num_elems, n, vonmises, vonmisesd)

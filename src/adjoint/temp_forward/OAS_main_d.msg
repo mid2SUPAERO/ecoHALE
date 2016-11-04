@@ -3,8 +3,8 @@
 3 Command: Procedure mult_main understood as oas_main.mult_main
 4 Command: Procedure calc_vonmises_main understood as oas_main.calc_vonmises_main
 5 Command: unit vonmises: not found
-6 calc_vonmises_main: (DF02) Potential aliasing in calling function unit, between arguments 1 2
-7 calc_vonmises_main: (DF02) Potential aliasing in calling function unit, between arguments 1 2
+6 calc_vonmises_main: (DF02) Potential aliasing in calling function unitc, between arguments 1 2
+7 calc_vonmises_main: (DF02) Potential aliasing in calling function unitc, between arguments 1 2
 8 assemblestructmtx_main: (DD15) Module solveroutines is not defined
 9 assemblestructmtx_main: (TC33) External procedure solve is not declared
 10 assemblestructmtx_main: (AD09) Please provide a differential of function solve for arguments Arg1=(in) Arg2=(out) Arg3=(in)

@@ -30,16 +30,16 @@ contains
 
     ! Input
     integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
-    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    real(kind=8), intent(in) :: E, G, x_gl(3)
+    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    complex(kind=8), intent(in) :: E, G, x_gl(3)
 
     ! Output
-    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+    complex(kind=8), intent(out) :: vonmises(num_elems, 2)
 
     ! Working
     integer :: ielem, in0, in1
-    real(kind=8) :: P0(3), P1(3), L, x_loc(3), y_loc(3), z_loc(3), T(3, 3)
-    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    complex(kind=8) :: P0(3), P1(3), L, x_loc(3), y_loc(3), z_loc(3), T(3, 3)
+    complex(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
 
     do ielem=1, num_elems
       in0 = elem_IDs(ielem, 1)
@@ -47,22 +47,22 @@ contains
 
       P0 = nodes(in0, :)
       P1 = nodes(in1, :)
-      call norm(P1 - P0, L)
+      call normc(P1 - P0, L)
 
-      call unit(P1 - P0, x_loc)
-      call cross(x_loc, x_gl, y_loc)
-      call unit(y_loc, y_loc)
-      call cross(x_loc, y_loc, z_loc)
-      call unit(z_loc, z_loc)
+      call unitc(P1 - P0, x_loc)
+      call crossc(x_loc, x_gl, y_loc)
+      call unitc(y_loc, y_loc)
+      call crossc(x_loc, y_loc, z_loc)
+      call unitc(z_loc, z_loc)
 
       T(1, :) = x_loc
       T(2, :) = y_loc
       T(3, :) = z_loc
 
-      call matmul2(3, 3, 1, T, disp(in0, :3), u0)
-      call matmul2(3, 3, 1, T, disp(in0, 4:), r0)
-      call matmul2(3, 3, 1, T, disp(in1, :3), u1)
-      call matmul2(3, 3, 1, T, disp(in1, 4:), r1)
+      call matmul2c(3, 3, 1, T, disp(in0, :3), u0)
+      call matmul2c(3, 3, 1, T, disp(in0, 4:), r0)
+      call matmul2c(3, 3, 1, T, disp(in1, :3), u1)
+      call matmul2c(3, 3, 1, T, disp(in1, 4:), r1)
 
       tmp = ((r1(2) - r0(2))**2 + (r1(3) - r0(3))**2)**.5
       sxx0 = E * (u1(1) - u0(1)) / L + E * r(ielem) / L * tmp
