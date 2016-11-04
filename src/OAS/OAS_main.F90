@@ -76,6 +76,66 @@ contains
 
   end subroutine
 
+
+  subroutine transferdisplacements_main(nx, ny, mesh, disp, ref_curve, def_mesh)
+
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    complex(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), ref_curve(ny, 3)
+
+    ! Output
+    complex(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+
+    ! Working
+    integer :: ind, indx
+    complex(kind=8) :: Smesh(nx, ny, 3), T(3, 3), T_base(3, 3), vec(3)
+    complex(kind=8) :: sinr(3), cosr(3), r(3)
+
+
+    def_mesh(:, :, :) = 0.
+
+    T_base(:, :) = 0.
+    do ind=1,3
+      T_base(ind, ind) = -2.
+    end do
+
+    do ind=1,nx
+      Smesh(ind, :, :) = mesh(ind, :, :) - ref_curve
+    end do
+
+    do ind=1,ny
+      r = disp(ind, 4:6)
+      cosr = cos(r)
+      sinr = sin(r)
+      T(:, :) = 0.
+
+      T(1, 1) = cosr(3) + cosr(2)
+      T(2, 2) = cosr(3) + cosr(1)
+      T(3, 3) = cosr(1) + cosr(2)
+      T(1, 2) = sinr(3)
+      T(1, 3) = -sinr(2)
+      T(2, 1) = -sinr(3)
+      T(2, 3) = -sinr(1)
+      T(3, 1) = -sinr(2)
+      T(3, 2) = sinr(1)
+
+      T = T + T_base
+
+      do indx=1,nx
+        call matmul2c(1, 3, 3, Smesh(indx, ind, :), T, vec)
+        def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
+      end do
+
+      def_mesh(:, ind, 1) = def_mesh(:, ind, 1) + disp(ind, 1)
+      def_mesh(:, ind, 2) = def_mesh(:, ind, 2) + disp(ind, 2)
+      def_mesh(:, ind, 3) = def_mesh(:, ind, 3) + disp(ind, 3)
+    end do
+
+  end subroutine
+
+
   subroutine assemblestructmtx_main(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
     K_a, K_t, K_y, K_z, & ! 4
     elem_IDs, cons, & ! 3

@@ -189,6 +189,21 @@ contains
 
   end subroutine
 
+  subroutine transferdisplacements(nx, ny, mesh, disp, ref_curve, def_mesh)
+
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    complex(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), ref_curve(ny, 3)
+
+    ! Output
+    complex(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+
+    call transferdisplacements_main(nx, ny, mesh, disp, ref_curve, def_mesh)
+
+  end subroutine transferdisplacements
+
   subroutine mult(nx, ny, x, y)
 
     implicit none

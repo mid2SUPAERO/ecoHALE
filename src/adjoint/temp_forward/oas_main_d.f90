@@ -158,6 +158,53 @@ CONTAINS
       vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
     END DO
   END SUBROUTINE CALC_VONMISES_MAIN
+  SUBROUTINE TRANSFERDISPLACEMENTS_MAIN(nx, ny, mesh, disp, ref_curve, &
+&   def_mesh)
+    IMPLICIT NONE
+! Input
+    INTEGER, INTENT(IN) :: nx, ny
+    COMPLEX(kind=8), INTENT(IN) :: mesh(nx, ny, 3), disp(ny, 6), &
+&   ref_curve(ny, 3)
+! Output
+    COMPLEX(kind=8), INTENT(OUT) :: def_mesh(nx, ny, 3)
+! Working
+    INTEGER :: ind, indx
+    COMPLEX(kind=8) :: smesh(nx, ny, 3), t(3, 3), t_base(3, 3), vec(3)
+    COMPLEX(kind=8) :: sinr(3), cosr(3), r(3)
+    INTRINSIC COS
+    INTRINSIC SIN
+    def_mesh(:, :, :) = 0.
+    t_base(:, :) = 0.
+    DO ind=1,3
+      t_base(ind, ind) = -2.
+    END DO
+    DO ind=1,nx
+      smesh(ind, :, :) = mesh(ind, :, :) - ref_curve
+    END DO
+    DO ind=1,ny
+      r = disp(ind, 4:6)
+      cosr = COS(r)
+      sinr = SIN(r)
+      t(:, :) = 0.
+      t(1, 1) = cosr(3) + cosr(2)
+      t(2, 2) = cosr(3) + cosr(1)
+      t(3, 3) = cosr(1) + cosr(2)
+      t(1, 2) = sinr(3)
+      t(1, 3) = -sinr(2)
+      t(2, 1) = -sinr(3)
+      t(2, 3) = -sinr(1)
+      t(3, 1) = -sinr(2)
+      t(3, 2) = sinr(1)
+      t = t + t_base
+      DO indx=1,nx
+        CALL MATMUL2C(1, 3, 3, smesh(indx, ind, :), t, vec)
+        def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
+      END DO
+      def_mesh(:, ind, 1) = def_mesh(:, ind, 1) + disp(ind, 1)
+      def_mesh(:, ind, 2) = def_mesh(:, ind, 2) + disp(ind, 2)
+      def_mesh(:, ind, 3) = def_mesh(:, ind, 3) + disp(ind, 3)
+    END DO
+  END SUBROUTINE TRANSFERDISPLACEMENTS_MAIN
 !  Differentiation of assemblestructmtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: x
 !   with respect to varying inputs: j nodes iy iz rhs a

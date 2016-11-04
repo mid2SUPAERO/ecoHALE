@@ -275,8 +275,8 @@ class OASProblem():
         self.prob.driver.add_recorder(SqliteRecorder(self.prob_dict['prob_name']+".db"))
 
         # Profile (time) the problem
-        # profile.setup(self.prob)
-        # profile.start()
+        profile.setup(self.prob)
+        profile.start()
 
         # Set up the problem
         self.prob.setup()

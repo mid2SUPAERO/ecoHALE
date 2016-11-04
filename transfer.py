@@ -3,6 +3,13 @@
 from __future__ import division
 import numpy
 from time import time
+try:
+    dd
+    import OAS_API
+    fortran_flag = True
+except:
+    fortran_flag = False
+print 'Fortran = ', fortran_flag
 
 from openmdao.api import Component
 

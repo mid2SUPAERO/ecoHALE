@@ -655,8 +655,8 @@ class SpatialBeamVonMisesTube(Component):
                         dtype="complex"))
 
         # if not fortran_flag:
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['type'] = 'cs'
+        # self.deriv_options['form'] = 'central'
 
         elem_IDs = numpy.zeros((self.ny - 1, 2), int)
         arange = numpy.arange(self.ny-1)
