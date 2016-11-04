@@ -4,8 +4,8 @@ from __future__ import division
 import numpy
 from time import time
 try:
-    dd
     import OAS_API
+    dd
     fortran_flag = True
 except:
     fortran_flag = False
@@ -67,26 +67,30 @@ class TransferDisplacements(Component):
         ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
         st = time()
 
-        Smesh = numpy.zeros(mesh.shape, dtype="complex")
-        for ind in xrange(self.nx):
-            Smesh[ind, :, :] = mesh[ind, :, :] - ref_curve
+        if fortran_flag:
+            def_mesh = OAS_API.oas_api.transferdisplacements(mesh, disp, ref_curve)
+        else:
 
-        def_mesh = numpy.zeros(mesh.shape, dtype="complex")
-        cos, sin = numpy.cos, numpy.sin
-        for ind in xrange(self.ny):
-            dx, dy, dz, rx, ry, rz = disp[ind, :]
+            Smesh = numpy.zeros(mesh.shape, dtype="complex")
+            for ind in xrange(self.nx):
+                Smesh[ind, :, :] = mesh[ind, :, :] - ref_curve
 
-            # 1 eye from the axis rotation matrices
-            # -3 eye from subtracting Smesh three times
-            T = -2 * numpy.eye(3, dtype="complex")
-            T[ 1:,  1:] += [[cos(rx), -sin(rx)], [ sin(rx), cos(rx)]]
-            T[::2, ::2] += [[cos(ry),  sin(ry)], [-sin(ry), cos(ry)]]
-            T[ :2,  :2] += [[cos(rz), -sin(rz)], [ sin(rz), cos(rz)]]
+            def_mesh = numpy.zeros(mesh.shape, dtype="complex")
+            cos, sin = numpy.cos, numpy.sin
+            for ind in xrange(self.ny):
+                dx, dy, dz, rx, ry, rz = disp[ind, :]
 
-            def_mesh[:, ind, :] += Smesh[:, ind, :].dot(T)
-            def_mesh[:, ind, 0] += dx
-            def_mesh[:, ind, 1] += dy
-            def_mesh[:, ind, 2] += dz
+                # 1 eye from the axis rotation matrices
+                # -3 eye from subtracting Smesh three times
+                T = -2 * numpy.eye(3, dtype="complex")
+                T[ 1:,  1:] += [[cos(rx), -sin(rx)], [ sin(rx), cos(rx)]]
+                T[::2, ::2] += [[cos(ry),  sin(ry)], [-sin(ry), cos(ry)]]
+                T[ :2,  :2] += [[cos(rz), -sin(rz)], [ sin(rz), cos(rz)]]
+
+                def_mesh[:, ind, :] += Smesh[:, ind, :].dot(T)
+                def_mesh[:, ind, 0] += dx
+                def_mesh[:, ind, 1] += dy
+                def_mesh[:, ind, 2] += dz
 
         unknowns[name+'def_mesh'] = def_mesh + mesh
 

@@ -114,15 +114,15 @@ contains
       T(1, 1) = cosr(3) + cosr(2)
       T(2, 2) = cosr(3) + cosr(1)
       T(3, 3) = cosr(1) + cosr(2)
-      T(1, 2) = sinr(3)
-      T(1, 3) = -sinr(2)
-      T(2, 1) = -sinr(3)
+      T(1, 2) = -sinr(3)
+      T(1, 3) = sinr(2)
+      T(2, 1) = sinr(3)
       T(2, 3) = -sinr(1)
       T(3, 1) = -sinr(2)
       T(3, 2) = sinr(1)
 
       T = T + T_base
-
+      
       do indx=1,nx
         call matmul2c(1, 3, 3, Smesh(indx, ind, :), T, vec)
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
