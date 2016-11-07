@@ -244,21 +244,118 @@ contains
       vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
     end do
   end subroutine calc_vonmises_main
-  subroutine transferdisplacements_main(nx, ny, mesh, disp, ref_curve, &
-&   def_mesh)
+!  differentiation of transferdisplacements_main in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: mesh def_mesh disp
+!   with respect to varying inputs: mesh def_mesh disp
+!   rw status of diff variables: mesh:incr def_mesh:in-zero disp:incr
+  subroutine transferdisplacements_main_b(nx, ny, mesh, meshb, disp, &
+&   dispb, w, def_mesh, def_meshb)
     implicit none
 ! input
     integer, intent(in) :: nx, ny
-    complex(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), &
-&   ref_curve(ny, 3)
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
+    real(kind=8) :: meshb(nx, ny, 3), dispb(ny, 6)
 ! output
-    complex(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+    real(kind=8) :: def_mesh(nx, ny, 3)
+    real(kind=8) :: def_meshb(nx, ny, 3)
 ! working
     integer :: ind, indx
-    complex(kind=8) :: smesh(nx, ny, 3), t(3, 3), t_base(3, 3), vec(3)
-    complex(kind=8) :: sinr(3), cosr(3), r(3)
+    real(kind=8) :: smesh(nx, ny, 3), t(3, 3), t_base(3, 3), vec(3)
+    real(kind=8) :: smeshb(nx, ny, 3), tb(3, 3), vecb(3)
+    real(kind=8) :: sinr(3), cosr(3), r(3), ref_curve(ny, 3)
+    real(kind=8) :: sinrb(3), cosrb(3), rb(3), ref_curveb(ny, 3)
     intrinsic cos
     intrinsic sin
+    ref_curve = (1-w)*mesh(1, :, :) + w*mesh(nx, :, :)
+    t_base(:, :) = 0.
+    do ind=1,3
+      t_base(ind, ind) = -2.
+    end do
+    do ind=1,nx
+      smesh(ind, :, :) = mesh(ind, :, :) - ref_curve
+    end do
+    do ind=1,ny
+      r = disp(ind, 4:6)
+      cosr = cos(r)
+      sinr = sin(r)
+      call pushreal8array(t, 3**2)
+      t(:, :) = 0.
+      t(1, 1) = cosr(3) + cosr(2)
+      t(2, 2) = cosr(3) + cosr(1)
+      t(3, 3) = cosr(1) + cosr(2)
+      t(1, 2) = -sinr(3)
+      t(1, 3) = sinr(2)
+      t(2, 1) = sinr(3)
+      t(2, 3) = -sinr(1)
+      t(3, 1) = -sinr(2)
+      t(3, 2) = sinr(1)
+      t = t + t_base
+    end do
+    meshb = meshb + def_meshb
+    smeshb = 0.0_8
+    do ind=ny,1,-1
+      dispb(ind, 3) = dispb(ind, 3) + sum(def_meshb(:, ind, 3))
+      dispb(ind, 2) = dispb(ind, 2) + sum(def_meshb(:, ind, 2))
+      dispb(ind, 1) = dispb(ind, 1) + sum(def_meshb(:, ind, 1))
+      tb = 0.0_8
+      do indx=nx,1,-1
+        vecb = 0.0_8
+        vecb = def_meshb(indx, ind, :)
+        call matmul2_b(1, 3, 3, smesh(indx, ind, :), smeshb(indx, ind, :&
+&                ), t, tb, vec, vecb)
+      end do
+      sinrb = 0.0_8
+      sinrb(1) = sinrb(1) + tb(3, 2)
+      tb(3, 2) = 0.0_8
+      sinrb(2) = sinrb(2) - tb(3, 1)
+      tb(3, 1) = 0.0_8
+      sinrb(1) = sinrb(1) - tb(2, 3)
+      tb(2, 3) = 0.0_8
+      sinrb(3) = sinrb(3) + tb(2, 1)
+      tb(2, 1) = 0.0_8
+      sinrb(2) = sinrb(2) + tb(1, 3)
+      tb(1, 3) = 0.0_8
+      sinrb(3) = sinrb(3) - tb(1, 2)
+      tb(1, 2) = 0.0_8
+      cosrb = 0.0_8
+      cosrb(1) = cosrb(1) + tb(3, 3)
+      cosrb(2) = cosrb(2) + tb(3, 3)
+      tb(3, 3) = 0.0_8
+      cosrb(3) = cosrb(3) + tb(2, 2)
+      cosrb(1) = cosrb(1) + tb(2, 2)
+      tb(2, 2) = 0.0_8
+      cosrb(3) = cosrb(3) + tb(1, 1)
+      cosrb(2) = cosrb(2) + tb(1, 1)
+      call popreal8array(t, 3**2)
+      r = disp(ind, 4:6)
+      rb = 0.0_8
+      rb = cos(r)*sinrb - sin(r)*cosrb
+      dispb(ind, 4:6) = dispb(ind, 4:6) + rb
+    end do
+    ref_curveb = 0.0_8
+    do ind=nx,1,-1
+      meshb(ind, :, :) = meshb(ind, :, :) + smeshb(ind, :, :)
+      ref_curveb = ref_curveb - smeshb(ind, :, :)
+      smeshb(ind, :, :) = 0.0_8
+    end do
+    meshb(1, :, :) = meshb(1, :, :) + (1-w)*ref_curveb
+    meshb(nx, :, :) = meshb(nx, :, :) + w*ref_curveb
+    def_meshb = 0.0_8
+  end subroutine transferdisplacements_main_b
+  subroutine transferdisplacements_main(nx, ny, mesh, disp, w, def_mesh)
+    implicit none
+! input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
+! output
+    real(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+! working
+    integer :: ind, indx
+    real(kind=8) :: smesh(nx, ny, 3), t(3, 3), t_base(3, 3), vec(3)
+    real(kind=8) :: sinr(3), cosr(3), r(3), ref_curve(ny, 3)
+    intrinsic cos
+    intrinsic sin
+    ref_curve = (1-w)*mesh(1, :, :) + w*mesh(nx, :, :)
     def_mesh(:, :, :) = 0.
     t_base(:, :) = 0.
     do ind=1,3
@@ -283,13 +380,14 @@ contains
       t(3, 2) = sinr(1)
       t = t + t_base
       do indx=1,nx
-        call matmul2c(1, 3, 3, smesh(indx, ind, :), t, vec)
+        call matmul2(1, 3, 3, smesh(indx, ind, :), t, vec)
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
       end do
       def_mesh(:, ind, 1) = def_mesh(:, ind, 1) + disp(ind, 1)
       def_mesh(:, ind, 2) = def_mesh(:, ind, 2) + disp(ind, 2)
       def_mesh(:, ind, 3) = def_mesh(:, ind, 3) + disp(ind, 3)
     end do
+    def_mesh = def_mesh + mesh
   end subroutine transferdisplacements_main
 !  differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: x

@@ -933,9 +933,9 @@ c
       ENDIF
       END
 
-c======================= COMPLEX*16 =========================
+c======================= complex(kind=16) =========================
       BLOCK DATA COMPLEXS16
-      COMPLEX*16 adc16buf(512), adc16lbuf(512)
+      complex(kind=16) adc16buf(512), adc16lbuf(512)
       INTEGER adc16ibuf,adc16ilbuf
       LOGICAL adc16inlbuf
       COMMON /adc16fbuf/adc16buf,adc16lbuf,
@@ -946,7 +946,7 @@ c======================= COMPLEX*16 =========================
       END
 
       SUBROUTINE PUSHCOMPLEX16(x)
-      COMPLEX*16 x, adc16buf(512), adc16lbuf(512)
+      complex(kind=16) x, adc16buf(512), adc16lbuf(512)
       INTEGER adc16ibuf,adc16ilbuf
       LOGICAL adc16inlbuf
       COMMON /adc16fbuf/adc16buf,adc16lbuf,
@@ -972,7 +972,7 @@ c
       END
 
       SUBROUTINE LOOKCOMPLEX16(x)
-      COMPLEX*16 x, adc16buf(512), adc16lbuf(512)
+      complex(kind=16) x, adc16buf(512), adc16lbuf(512)
       INTEGER adc16ibuf,adc16ilbuf
       LOGICAL adc16inlbuf
       COMMON /adc16fbuf/adc16buf,adc16lbuf,
@@ -1003,7 +1003,7 @@ c
       END
 
       SUBROUTINE POPCOMPLEX16(x)
-      COMPLEX*16 x, adc16buf(512), adc16lbuf(512)
+      complex(kind=16) x, adc16buf(512), adc16lbuf(512)
       INTEGER adc16ibuf,adc16ilbuf
       LOGICAL adc16inlbuf
       COMMON /adc16fbuf/adc16buf,adc16lbuf,
@@ -1023,6 +1023,97 @@ c
       ELSE
          adc16ibuf = adc16ibuf-1
          x = adc16buf(adc16ibuf)
+      ENDIF
+      END
+
+c======================= COMPLEX*32 =========================
+      BLOCK DATA COMPLEXS32
+      COMPLEX*32 adc32buf(512), adc32lbuf(512)
+      INTEGER adc32ibuf,adc32ilbuf
+      LOGICAL adc32inlbuf
+      COMMON /adc32fbuf/adc32buf,adc32lbuf,
+     +       adc32ibuf,adc32ilbuf,adc32inlbuf
+      DATA adc32ibuf/1/
+      DATA adc32ilbuf/-1/
+      DATA adc32inlbuf/.FALSE./
+      END
+c
+      SUBROUTINE PUSHCOMPLEX32(x)
+      COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
+      INTEGER adc32ibuf,adc32ilbuf
+      LOGICAL adc32inlbuf
+      COMMON /adc32fbuf/adc32buf,adc32lbuf,
+     +       adc32ibuf,adc32ilbuf,adc32inlbuf
+      LOGICAL looking
+      COMMON /lookingfbuf/looking
+c
+      CALL addftraffic(32)
+      IF (adc32ilbuf.ne.-1) THEN
+         adc32ilbuf = -1
+         adc32inlbuf = .FALSE.
+         looking = .FALSE.
+      ENDIF
+      IF (adc32ibuf.ge.512) THEN
+         adc32buf(512) = x
+         CALL PUSHCOMPLEX32ARRAY(adc32buf, 512)
+      CALL addftraffic(-16384)
+         adc32ibuf = 1
+      ELSE
+         adc32buf(adc32ibuf) = x
+         adc32ibuf = adc32ibuf+1
+      ENDIF
+      END
+      SUBROUTINE LOOKCOMPLEX32(x)
+      COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
+      INTEGER adc32ibuf,adc32ilbuf
+      LOGICAL adc32inlbuf
+      COMMON /adc32fbuf/adc32buf,adc32lbuf,
+     +       adc32ibuf,adc32ilbuf,adc32inlbuf
+      LOGICAL looking
+      COMMON /lookingfbuf/looking
+c
+      IF (adc32ilbuf.eq.-1) THEN
+         adc32ilbuf=adc32ibuf
+         IF (.not.looking) THEN
+            CALL RESETADLOOKSTACK()
+           looking = .TRUE.
+         ENDIF
+      ENDIF
+      IF (adc32ilbuf.le.1) THEN
+         CALL LOOKCOMPLEX32ARRAY(adc32lbuf, 512)
+         adc32inlbuf = .TRUE.
+         adc32ilbuf = 512
+         x = adc32lbuf(512)
+      ELSE
+         adc32ilbuf = adc32ilbuf-1
+         if (adc32inlbuf) THEN
+            x = adc32lbuf(adc32ilbuf)
+         ELSE
+            x = adc32buf(adc32ilbuf)
+         ENDIF
+      ENDIF
+      END
+      SUBROUTINE POPCOMPLEX32(x)
+      COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
+      INTEGER adc32ibuf,adc32ilbuf
+      LOGICAL adc32inlbuf
+      COMMON /adc32fbuf/adc32buf,adc32lbuf,
+     +       adc32ibuf,adc32ilbuf,adc32inlbuf
+      LOGICAL looking
+      COMMON /lookingfbuf/looking
+c
+      IF (adc32ilbuf.ne.-1) THEN
+         adc32ilbuf = -1
+         adc32inlbuf = .FALSE.
+         looking = .FALSE.
+      ENDIF
+      IF (adc32ibuf.le.1) THEN
+         CALL POPCOMPLEX32ARRAY(adc32buf, 512)
+         adc32ibuf = 512
+         x = adc32buf(512)
+      ELSE
+         adc32ibuf = adc32ibuf-1
+         x = adc32buf(adc32ibuf)
       ENDIF
       END
 
@@ -1138,18 +1229,18 @@ c          +       adc4ibuf,adc4ilbuf,adc4inlbuf
       LOGICAL adc8inlbuf
       COMMON /adc8fbuf/adc8buf,adc8lbuf,
      +       adc8ibuf,adc8ilbuf,adc8inlbuf
-      COMPLEX*16 adc16buf(512), adc16lbuf(512)
+      complex(kind=16) adc16buf(512), adc16lbuf(512)
       INTEGER adc16ibuf,adc16ilbuf
       LOGICAL adc16inlbuf
       COMMON /adc16fbuf/adc16buf,adc16lbuf,
      +       adc16ibuf,adc16ilbuf,adc16inlbuf
-c           COMPLEX*32 adc32buf(512), adc32lbuf(512)
-c           INTEGER adc32ibuf,adc32ilbuf
-c           LOGICAL adc32inlbuf
-c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
-c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
+      COMPLEX*32 adc32buf(512), adc32lbuf(512)
+      INTEGER adc32ibuf,adc32ilbuf
+      LOGICAL adc32inlbuf
+      COMMON /adc32fbuf/adc32buf,adc32lbuf,
+     +       adc32ibuf,adc32ilbuf,adc32inlbuf
       integer*4 smallstacksize
-c     
+c
       smallstacksize = 0
       smallstacksize = smallstacksize + (ads1ibuf-1)*1
 c           smallstacksize = smallstacksize + (adl4ibuf-1)*4
@@ -1225,7 +1316,7 @@ c          +       adc4ibuf,adc4ilbuf,adc4inlbuf
       LOGICAL adc8inlbuf
       COMMON /adc8fbuf/adc8buf,adc8lbuf,
      +       adc8ibuf,adc8ilbuf,adc8inlbuf
-      COMPLEX*16 adc16buf(512), adc16lbuf(512)
+      complex(kind=16) adc16buf(512), adc16lbuf(512)
       INTEGER adc16ibuf,adc16ilbuf
       LOGICAL adc16inlbuf
       COMMON /adc16fbuf/adc16buf,adc16lbuf,
@@ -1237,7 +1328,7 @@ c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
 c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
       integer*4 bsize,lookbsize
       integer*4 cblocks, csize, lookcblocks, lookcsize
-c     
+c
       call getbigcsizes(cblocks,csize,lookcblocks,lookcsize)
       write (6,'(a,i8,a,i5,a,i8,a,i5,a)')
      +     'MAIN C stack size :',cblocks,'B +',csize,
@@ -1332,7 +1423,7 @@ c          +       adr16ibuf,adr16ilbuf,adr16inlbuf
       LOGICAL adc8inlbuf
       COMMON /adc8fbuf/adc8buf,adc8lbuf,
      +       adc8ibuf,adc8ilbuf,adc8inlbuf
-      COMPLEX*16 adc16buf(512), adc16lbuf(512)
+      complex(kind=16) adc16buf(512), adc16lbuf(512)
       INTEGER adc16ibuf,adc16ilbuf
       LOGICAL adc16inlbuf
       COMMON /adc16fbuf/adc16buf,adc16lbuf,
@@ -1404,7 +1495,7 @@ c              adi16buf(adi16ibuf) = x
 c              adi16ibuf = adi16ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKINTEGER16(x)
 c           INTEGER*16 x, adi16buf(512), adi16lbuf(512)
 c           INTEGER adi16ibuf,adi16ilbuf
@@ -1435,7 +1526,7 @@ c                 x = adi16buf(adi16ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPINTEGER16(x)
 c           INTEGER*16 x, adi16buf(512), adi16lbuf(512)
 c           INTEGER adi16ibuf,adi16ilbuf
@@ -1471,7 +1562,7 @@ c           DATA adr16ibuf/1/
 c           DATA adr16ilbuf/-1/
 c           DATA adr16inlbuf/.FALSE./
 c           END
-c     
+c
 c           SUBROUTINE PUSHREAL16(x)
 c           REAL*16 x, adr16buf(512), adr16lbuf(512)
 c           INTEGER adr16ibuf,adr16ilbuf
@@ -1497,7 +1588,7 @@ c              adr16buf(adr16ibuf) = x
 c              adr16ibuf = adr16ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKREAL16(x)
 c           REAL*16 x, adr16buf(512), adr16lbuf(512)
 c           INTEGER adr16ibuf,adr16ilbuf
@@ -1528,7 +1619,7 @@ c                 x = adr16buf(adr16ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPREAL16(x)
 c           REAL*16 x, adr16buf(512), adr16lbuf(512)
 c           INTEGER adr16ibuf,adr16ilbuf
@@ -1590,7 +1681,7 @@ c              adr32buf(adr32ibuf) = x
 c              adr32ibuf = adr32ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKREAL32(x)
 c           REAL*32 x, adr32buf(512), adr32lbuf(512)
 c           INTEGER adr32ibuf,adr32ilbuf
@@ -1621,7 +1712,7 @@ c                 x = adr32buf(adr32ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPREAL32(x)
 c           REAL*32 x, adr32buf(512), adr32lbuf(512)
 c           INTEGER adr32ibuf,adr32ilbuf
@@ -1683,7 +1774,7 @@ c              adc4buf(adc4ibuf) = x
 c              adc4ibuf = adc4ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKCOMPLEX4(x)
 c           COMPLEX*4 x, adc4buf(512), adc4lbuf(512)
 c           INTEGER adc4ibuf,adc4ilbuf
@@ -1714,7 +1805,7 @@ c                 x = adc4buf(adc4ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPCOMPLEX4(x)
 c           COMPLEX*4 x, adc4buf(512), adc4lbuf(512)
 c           INTEGER adc4ibuf,adc4ilbuf
@@ -1739,98 +1830,7 @@ c              x = adc4buf(adc4ibuf)
 c           ENDIF
 c           END
 
-c======================= COMPLEX*32 =========================
-c           BLOCK DATA COMPLEXS32
-c           COMPLEX*32 adc32buf(512), adc32lbuf(512)
-c           INTEGER adc32ibuf,adc32ilbuf
-c           LOGICAL adc32inlbuf
-c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
-c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
-c           DATA adc32ibuf/1/
-c           DATA adc32ilbuf/-1/
-c           DATA adc32inlbuf/.FALSE./
-c           END
-c     c
-c           SUBROUTINE PUSHCOMPLEX32(x)
-c           COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
-c           INTEGER adc32ibuf,adc32ilbuf
-c           LOGICAL adc32inlbuf
-c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
-c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
-c           LOGICAL looking
-c           COMMON /lookingfbuf/looking
-c     c
-c           CALL addftraffic(32)
-c           IF (adc32ilbuf.ne.-1) THEN
-c              adc32ilbuf = -1
-c              adc32inlbuf = .FALSE.
-c              looking = .FALSE.
-c           ENDIF
-c           IF (adc32ibuf.ge.512) THEN
-c              adc32buf(512) = x
-c              CALL PUSHCOMPLEX32ARRAY(adc32buf, 512)
-c           CALL addftraffic(-16384)
-c              adc32ibuf = 1
-c           ELSE
-c              adc32buf(adc32ibuf) = x
-c              adc32ibuf = adc32ibuf+1
-c           ENDIF
-c           END
-c     
-c           SUBROUTINE LOOKCOMPLEX32(x)
-c           COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
-c           INTEGER adc32ibuf,adc32ilbuf
-c           LOGICAL adc32inlbuf
-c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
-c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
-c           LOGICAL looking
-c           COMMON /lookingfbuf/looking
-c     c
-c           IF (adc32ilbuf.eq.-1) THEN
-c              adc32ilbuf=adc32ibuf
-c              IF (.not.looking) THEN
-c                 CALL RESETADLOOKSTACK()
-c                looking = .TRUE.
-c              ENDIF
-c           ENDIF
-c           IF (adc32ilbuf.le.1) THEN
-c              CALL LOOKCOMPLEX32ARRAY(adc32lbuf, 512)
-c              adc32inlbuf = .TRUE.
-c              adc32ilbuf = 512
-c              x = adc32lbuf(512)
-c           ELSE
-c              adc32ilbuf = adc32ilbuf-1
-c              if (adc32inlbuf) THEN
-c                 x = adc32lbuf(adc32ilbuf)
-c              ELSE
-c                 x = adc32buf(adc32ilbuf)
-c              ENDIF
-c           ENDIF
-c           END
-c     
-c           SUBROUTINE POPCOMPLEX32(x)
-c           COMPLEX*32 x, adc32buf(512), adc32lbuf(512)
-c           INTEGER adc32ibuf,adc32ilbuf
-c           LOGICAL adc32inlbuf
-c           COMMON /adc32fbuf/adc32buf,adc32lbuf,
-c          +       adc32ibuf,adc32ilbuf,adc32inlbuf
-c           LOGICAL looking
-c           COMMON /lookingfbuf/looking
-c     c
-c           IF (adc32ilbuf.ne.-1) THEN
-c              adc32ilbuf = -1
-c              adc32inlbuf = .FALSE.
-c              looking = .FALSE.
-c           ENDIF
-c           IF (adc32ibuf.le.1) THEN
-c              CALL POPCOMPLEX32ARRAY(adc32buf, 512)
-c              adc32ibuf = 512
-c              x = adc32buf(512)
-c           ELSE
-c              adc32ibuf = adc32ibuf-1
-c              x = adc32buf(adc32ibuf)
-c           ENDIF
-c           END
+
 
 C========================================================
 C        HOW TO CREATE PUSH* POP* SUBROUTINES
@@ -1884,7 +1884,7 @@ c              adz9buf(adz9ibuf) = x
 c              adz9ibuf = adz9ibuf+1
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE LOOKTTTT9(x)
 c           TTTT*9 x, adz9buf(512), adz9lbuf(512)
 c           INTEGER adz9ibuf,adz9ilbuf
@@ -1915,7 +1915,7 @@ c                 x = adz9buf(adz9ilbuf)
 c              ENDIF
 c           ENDIF
 c           END
-c     
+c
 c           SUBROUTINE POPTTTT9(x)
 c           TTTT*9 x, adz9buf(512), adz9lbuf(512)
 c           INTEGER adz9ibuf,adz9ilbuf

@@ -77,22 +77,23 @@ contains
   end subroutine
 
 
-  subroutine transferdisplacements_main(nx, ny, mesh, disp, ref_curve, def_mesh)
+  subroutine transferdisplacements_main(nx, ny, mesh, disp, w, def_mesh)
 
     implicit none
 
     ! Input
     integer, intent(in) :: nx, ny
-    complex(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), ref_curve(ny, 3)
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
 
     ! Output
-    complex(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: def_mesh(nx, ny, 3)
 
     ! Working
     integer :: ind, indx
-    complex(kind=8) :: Smesh(nx, ny, 3), T(3, 3), T_base(3, 3), vec(3)
-    complex(kind=8) :: sinr(3), cosr(3), r(3)
+    real(kind=8) :: Smesh(nx, ny, 3), T(3, 3), T_base(3, 3), vec(3)
+    real(kind=8) :: sinr(3), cosr(3), r(3), ref_curve(ny, 3)
 
+    ref_curve = (1-w) * mesh(1, :, :) + w * mesh(nx, :, :)
 
     def_mesh(:, :, :) = 0.
 
@@ -122,9 +123,9 @@ contains
       T(3, 2) = sinr(1)
 
       T = T + T_base
-      
+
       do indx=1,nx
-        call matmul2c(1, 3, 3, Smesh(indx, ind, :), T, vec)
+        call matmul2(1, 3, 3, Smesh(indx, ind, :), T, vec)
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
       end do
 
@@ -132,6 +133,8 @@ contains
       def_mesh(:, ind, 2) = def_mesh(:, ind, 2) + disp(ind, 2)
       def_mesh(:, ind, 3) = def_mesh(:, ind, 3) + disp(ind, 3)
     end do
+
+    def_mesh = def_mesh + mesh
 
   end subroutine
 

@@ -178,14 +178,38 @@ python module OAS_API ! in
                 complex(kind=8) dimension(num_elems,2),intent(out),depend(num_elems) :: vonmises
                 complex(kind=8) dimension(num_elems,2),intent(out),depend(num_elems) :: vonmisesd
             end subroutine calc_vonmises_d
-            subroutine transferdisplacements(nx,ny,mesh,disp,ref_curve,def_mesh) ! in :OAS_API:OAS_API.F90:oas_api
+            subroutine transferdisplacements(nx,ny,mesh,disp,w,def_mesh) ! in :OAS_API:OAS_API.F90:oas_api
                 integer, optional,intent(in),check(shape(mesh,0)==nx),depend(mesh) :: nx=shape(mesh,0)
                 integer, optional,intent(in),check(shape(mesh,1)==ny),depend(mesh) :: ny=shape(mesh,1)
-                complex(kind=8) dimension(nx,ny,3),intent(in) :: mesh
-                complex(kind=8) dimension(ny,6),intent(in),depend(ny) :: disp
-                complex(kind=8) dimension(ny,3),intent(in),depend(ny) :: ref_curve
-                complex(kind=8) dimension(nx,ny,3),intent(out),depend(nx,ny) :: def_mesh
+                real(kind=8) dimension(nx,ny,3),intent(in) :: mesh
+                real(kind=8) dimension(ny,6),intent(in),depend(ny) :: disp
+                real(kind=8) intent(in) :: w
+                real(kind=8) dimension(nx,ny,3),intent(out),depend(nx,ny) :: def_mesh
             end subroutine transferdisplacements
+            subroutine transferdisplacements_d(nx,ny,mesh,meshd,disp,dispd,w,def_mesh,def_meshd) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_d, only: transferdisplacements_main_d
+                integer, optional,intent(in),check(shape(mesh,0)==nx),depend(mesh) :: nx=shape(mesh,0)
+                integer, optional,intent(in),check(shape(mesh,1)==ny),depend(mesh) :: ny=shape(mesh,1)
+                real(kind=8) dimension(nx,ny,3),intent(in) :: mesh
+                real(kind=8) dimension(nx,ny,3),intent(in),depend(nx,ny) :: meshd
+                real(kind=8) dimension(ny,6),intent(in),depend(ny) :: disp
+                real(kind=8) dimension(ny,6),intent(in),depend(ny) :: dispd
+                real(kind=8) intent(in) :: w
+                real(kind=8) dimension(nx,ny,3),intent(out),depend(nx,ny) :: def_mesh
+                real(kind=8) dimension(nx,ny,3),intent(out),depend(nx,ny) :: def_meshd
+            end subroutine transferdisplacements_d
+            subroutine transferdisplacements_b(nx,ny,mesh,meshb,disp,dispb,w,def_mesh,def_meshb) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_b, only: transferdisplacements_main_b
+                integer, optional,intent(in),check(shape(mesh,0)==nx),depend(mesh) :: nx=shape(mesh,0)
+                integer, optional,intent(in),check(shape(mesh,1)==ny),depend(mesh) :: ny=shape(mesh,1)
+                real(kind=8) dimension(nx,ny,3),intent(in) :: mesh
+                real(kind=8) dimension(nx,ny,3),intent(out),depend(nx,ny) :: meshb
+                real(kind=8) dimension(ny,6),intent(in),depend(ny) :: disp
+                real(kind=8) dimension(ny,6),intent(out),depend(ny) :: dispb
+                real(kind=8) intent(in) :: w
+                real(kind=8) dimension(nx,ny,3),intent(in),depend(nx,ny) :: def_mesh
+                real(kind=8) dimension(nx,ny,3),intent(in),depend(nx,ny) :: def_meshb
+            end subroutine transferdisplacements_b
             subroutine mult(nx,ny,x,y) ! in :OAS_API:OAS_API.F90:oas_api
                 integer, optional,intent(in),check(len(x)>=nx),depend(x) :: nx=len(x)
                 integer intent(in) :: ny

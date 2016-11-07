@@ -5,7 +5,6 @@ import numpy
 from time import time
 try:
     import OAS_API
-    dd
     fortran_flag = True
 except:
     fortran_flag = False
@@ -54,9 +53,8 @@ class TransferDisplacements(Component):
         self.add_param(name+'disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
         self.add_output(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
 
-        self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
+        if not fortran_flag:
+            self.deriv_options['type'] = 'fd'
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
@@ -64,13 +62,13 @@ class TransferDisplacements(Component):
         disp = params[name+'disp']
 
         w = self.surface['fem_origin']
-        ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
         st = time()
 
         if fortran_flag:
-            def_mesh = OAS_API.oas_api.transferdisplacements(mesh, disp, ref_curve)
+            def_mesh = OAS_API.oas_api.transferdisplacements(mesh, disp, w)
         else:
 
+            ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
             Smesh = numpy.zeros(mesh.shape, dtype="complex")
             for ind in xrange(self.nx):
                 Smesh[ind, :, :] = mesh[ind, :, :] - ref_curve
@@ -92,7 +90,51 @@ class TransferDisplacements(Component):
                 def_mesh[:, ind, 1] += dy
                 def_mesh[:, ind, 2] += dz
 
-        unknowns[name+'def_mesh'] = def_mesh + mesh
+            def_mesh += mesh
+
+        unknowns[name+'def_mesh'] = def_mesh
+
+    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
+        name = self.surface['name']
+        mesh = params[name+'mesh']
+        disp = params[name+'disp']
+
+        w = self.surface['fem_origin']
+        st = time()
+
+        if mode == 'fwd':
+            a, b = OAS_API.oas_api.transferdisplacements_d(mesh, dparams[name+'mesh'], disp, dparams[name+'disp'], w)
+            dresids[name+'def_mesh'] += b.real
+
+        if mode == 'rev':
+            a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, unknowns[name+'def_mesh'], dresids[name+'def_mesh'])
+            dparams[name+'mesh'] += a.real
+            dparams[name+'disp'] += b.real
+
+        # ### DOT PRODUCT TEST ###
+        # meshd = numpy.random.random_sample(mesh.shape)
+        # dispd = numpy.random.random_sample(disp.shape)
+        #
+        # meshd_copy = meshd.copy()
+        # dispd_copy = dispd.copy()
+        #
+        # def_mesh, def_meshd = OAS_API.oas_api.transferdisplacements_d(mesh, meshd, disp, dispd, w)
+        #
+        # def_meshb = numpy.random.random_sample(mesh.shape)
+        # def_meshb_copy = def_meshb.copy()
+        #
+        # meshb, dispb = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, def_mesh, def_meshb)
+        #
+        # dotprod = 0.
+        # dotprod += numpy.sum(meshd_copy*meshb)
+        # dotprod += numpy.sum(dispd_copy*dispb)
+        # dotprod -= numpy.sum(def_meshd*def_meshb_copy)
+        #
+        # print 'Should be zero:', dotprod
+        # print def_meshd
+        # print meshb
+        # print dispb
+        # exit()
 
 
 class TransferLoads(Component):

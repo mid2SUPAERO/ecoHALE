@@ -235,13 +235,13 @@ class OASProblem():
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
             self.prob.driver.options['optimizer'] = "SNOPT"
-            self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
-                                        'Major feasibility tolerance': 1.0e-7}
+            self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
+                                        'Major feasibility tolerance': 1.0e-6}
         except:  # Use SLSQP optimizer if SNOPT not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'
             self.prob.driver.options['disp'] = True
-            self.prob.driver.options['tol'] = 1.0e-7
+            self.prob.driver.options['tol'] = 1.0e-6
 
     def add_desvar(self, *args, **kwargs):
         """
@@ -575,15 +575,8 @@ class OASProblem():
         coupled.ln_solver.preconditioner = LinearGaussSeidel()
         coupled.vlmstates.ln_solver = LinearGaussSeidel()
 
-        coupled.nl_solver = HybridGSNewton()
-        coupled.nl_solver.nlgs.options['iprint'] = 1
-        coupled.nl_solver.nlgs.options['maxiter'] = 10
-        coupled.nl_solver.nlgs.options['atol'] = 1e-8
-        coupled.nl_solver.nlgs.options['rtol'] = 1e-12
-        coupled.nl_solver.newton.options['atol'] = 1e-7
-        coupled.nl_solver.newton.options['rtol'] = 1e-7
-        coupled.nl_solver.newton.options['maxiter'] = 5
-        coupled.nl_solver.newton.options['iprint'] = 1
+        coupled.nl_solver = NLGaussSeidel()
+        coupled.nl_solver.options['iprint'] = 1
 
         # Ensure that the groups are ordered correctly within the coupled group
         order_list = []

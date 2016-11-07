@@ -727,7 +727,6 @@ class SpatialBeamVonMisesTube(Component):
         disp = params[name+'disp']
         nodes = params[name+'nodes']
         vonmises = unknowns[name+'vonmises']
-        T = self.T
         E = self.E
         G = self.G
         x_gl = self.x_gl
@@ -738,6 +737,29 @@ class SpatialBeamVonMisesTube(Component):
         if mode == 'rev':
             dparams[name+'nodes'], dparams[name+'r'], dparams[name+'disp'] = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, dresids[name+'vonmises'])
 
+        nodesd = numpy.random.random_sample(nodes.shape)
+        rd = numpy.random.random_sample(r.shape)
+        dispd = numpy.random.random_sample(disp.shape)
+
+        nodesd_copy = nodesd.copy()
+        rd_copy = rd.copy()
+        dispd_copy = dispd.copy()
+
+        _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, nodesd, r, rd, disp, dispd, E, G, x_gl)
+
+        vonmisesb = numpy.random.random_sample(vonmises.shape)
+        vonmisesb_copy = vonmisesb.copy()
+
+        nodesb, rb, dispb = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, vonmisesb)
+
+        dotprod = 0.
+        dotprod += numpy.sum(nodesd_copy*nodesb)
+        dotprod += numpy.sum(rd_copy*rb)
+        dotprod += numpy.sum(dispd_copy*dispb)
+        dotprod -= numpy.sum(vonmisesd*vonmisesb_copy)
+        print
+        print 'SHOULD BE ZERO:', dotprod
+        print
 
 class SpatialBeamFailureKS(Component):
     """

@@ -189,20 +189,54 @@ contains
 
   end subroutine
 
-  subroutine transferdisplacements(nx, ny, mesh, disp, ref_curve, def_mesh)
+  subroutine transferdisplacements(nx, ny, mesh, disp, w, def_mesh)
 
     implicit none
 
     ! Input
     integer, intent(in) :: nx, ny
-    complex(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), ref_curve(ny, 3)
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
 
     ! Output
-    complex(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: def_mesh(nx, ny, 3)
 
-    call transferdisplacements_main(nx, ny, mesh, disp, ref_curve, def_mesh)
+    call transferdisplacements_main(nx, ny, mesh, disp, w, def_mesh)
 
   end subroutine transferdisplacements
+
+  subroutine transferdisplacements_d(nx, ny, mesh, meshd, disp, dispd, w, def_mesh, def_meshd)
+
+    use oas_main_d, only: transferdisplacements_main_d
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
+    real(kind=8), intent(in) :: meshd(nx, ny, 3), dispd(ny, 6)
+
+    ! Output
+    real(kind=8), intent(out) :: def_mesh(nx, ny, 3), def_meshd(nx, ny, 3)
+
+    call transferdisplacements_main_d(nx, ny, mesh, meshd, disp, dispd, w, def_mesh, def_meshd)
+
+  end subroutine transferdisplacements_d
+
+  subroutine transferdisplacements_b(nx, ny, mesh, meshb, disp, dispb, w, def_mesh, def_meshb)
+
+    use oas_main_b, only: transferdisplacements_main_b
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
+    real(kind=8), intent(in) :: def_meshb(nx, ny, 3), def_mesh(nx, ny, 3)
+
+    ! Output
+    real(kind=8), intent(out) :: meshb(nx, ny, 3), dispb(ny, 6)
+
+    call transferdisplacements_main_b(nx, ny, mesh, meshb, disp, dispb, w, def_mesh, def_meshb)
+
+  end subroutine transferdisplacements_b
 
   subroutine mult(nx, ny, x, y)
 

@@ -158,21 +158,99 @@ contains
       vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
     end do
   end subroutine calc_vonmises_main
-  subroutine transferdisplacements_main(nx, ny, mesh, disp, ref_curve, &
-&   def_mesh)
+!  differentiation of transferdisplacements_main in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: def_mesh
+!   with respect to varying inputs: mesh disp
+!   rw status of diff variables: mesh:in def_mesh:out disp:in
+  subroutine transferdisplacements_main_d(nx, ny, mesh, meshd, disp, &
+&   dispd, w, def_mesh, def_meshd)
     implicit none
 ! input
     integer, intent(in) :: nx, ny
-    complex(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), &
-&   ref_curve(ny, 3)
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
+    real(kind=8), intent(in) :: meshd(nx, ny, 3), dispd(ny, 6)
 ! output
-    complex(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: def_meshd(nx, ny, 3)
 ! working
     integer :: ind, indx
-    complex(kind=8) :: smesh(nx, ny, 3), t(3, 3), t_base(3, 3), vec(3)
-    complex(kind=8) :: sinr(3), cosr(3), r(3)
+    real(kind=8) :: smesh(nx, ny, 3), t(3, 3), t_base(3, 3), vec(3)
+    real(kind=8) :: smeshd(nx, ny, 3), td(3, 3), vecd(3)
+    real(kind=8) :: sinr(3), cosr(3), r(3), ref_curve(ny, 3)
+    real(kind=8) :: sinrd(3), cosrd(3), rd(3), ref_curved(ny, 3)
     intrinsic cos
     intrinsic sin
+    ref_curved = (1-w)*meshd(1, :, :) + w*meshd(nx, :, :)
+    ref_curve = (1-w)*mesh(1, :, :) + w*mesh(nx, :, :)
+    def_mesh(:, :, :) = 0.
+    t_base(:, :) = 0.
+    do ind=1,3
+      t_base(ind, ind) = -2.
+    end do
+    smeshd = 0.0_8
+    do ind=1,nx
+      smeshd(ind, :, :) = meshd(ind, :, :) - ref_curved
+      smesh(ind, :, :) = mesh(ind, :, :) - ref_curve
+    end do
+    def_meshd = 0.0_8
+    do ind=1,ny
+      rd = dispd(ind, 4:6)
+      r = disp(ind, 4:6)
+      cosrd = -(rd*sin(r))
+      cosr = cos(r)
+      sinrd = rd*cos(r)
+      sinr = sin(r)
+      t(:, :) = 0.
+      td = 0.0_8
+      td(1, 1) = cosrd(3) + cosrd(2)
+      t(1, 1) = cosr(3) + cosr(2)
+      td(2, 2) = cosrd(3) + cosrd(1)
+      t(2, 2) = cosr(3) + cosr(1)
+      td(3, 3) = cosrd(1) + cosrd(2)
+      t(3, 3) = cosr(1) + cosr(2)
+      td(1, 2) = -sinrd(3)
+      t(1, 2) = -sinr(3)
+      td(1, 3) = sinrd(2)
+      t(1, 3) = sinr(2)
+      td(2, 1) = sinrd(3)
+      t(2, 1) = sinr(3)
+      td(2, 3) = -sinrd(1)
+      t(2, 3) = -sinr(1)
+      td(3, 1) = -sinrd(2)
+      t(3, 1) = -sinr(2)
+      td(3, 2) = sinrd(1)
+      t(3, 2) = sinr(1)
+      t = t + t_base
+      do indx=1,nx
+        call matmul2_d(1, 3, 3, smesh(indx, ind, :), smeshd(indx, ind, :&
+&                ), t, td, vec, vecd)
+        def_meshd(indx, ind, :) = def_meshd(indx, ind, :) + vecd
+        def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
+      end do
+      def_meshd(:, ind, 1) = def_meshd(:, ind, 1) + dispd(ind, 1)
+      def_mesh(:, ind, 1) = def_mesh(:, ind, 1) + disp(ind, 1)
+      def_meshd(:, ind, 2) = def_meshd(:, ind, 2) + dispd(ind, 2)
+      def_mesh(:, ind, 2) = def_mesh(:, ind, 2) + disp(ind, 2)
+      def_meshd(:, ind, 3) = def_meshd(:, ind, 3) + dispd(ind, 3)
+      def_mesh(:, ind, 3) = def_mesh(:, ind, 3) + disp(ind, 3)
+    end do
+    def_meshd = def_meshd + meshd
+    def_mesh = def_mesh + mesh
+  end subroutine transferdisplacements_main_d
+  subroutine transferdisplacements_main(nx, ny, mesh, disp, w, def_mesh)
+    implicit none
+! input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3), disp(ny, 6), w
+! output
+    real(kind=8), intent(out) :: def_mesh(nx, ny, 3)
+! working
+    integer :: ind, indx
+    real(kind=8) :: smesh(nx, ny, 3), t(3, 3), t_base(3, 3), vec(3)
+    real(kind=8) :: sinr(3), cosr(3), r(3), ref_curve(ny, 3)
+    intrinsic cos
+    intrinsic sin
+    ref_curve = (1-w)*mesh(1, :, :) + w*mesh(nx, :, :)
     def_mesh(:, :, :) = 0.
     t_base(:, :) = 0.
     do ind=1,3
@@ -197,13 +275,14 @@ contains
       t(3, 2) = sinr(1)
       t = t + t_base
       do indx=1,nx
-        call matmul2c(1, 3, 3, smesh(indx, ind, :), t, vec)
+        call matmul2(1, 3, 3, smesh(indx, ind, :), t, vec)
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
       end do
       def_mesh(:, ind, 1) = def_mesh(:, ind, 1) + disp(ind, 1)
       def_mesh(:, ind, 2) = def_mesh(:, ind, 2) + disp(ind, 2)
       def_mesh(:, ind, 3) = def_mesh(:, ind, 3) + disp(ind, 3)
     end do
+    def_mesh = def_mesh + mesh
   end subroutine transferdisplacements_main
 !  differentiation of assemblestructmtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: x
