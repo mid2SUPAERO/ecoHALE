@@ -420,24 +420,24 @@ contains
     def_mesh = def_mesh + mesh
   end subroutine transferdisplacements_main
 !  differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: x
-!   with respect to varying inputs: j x nodes iy iz rhs a
-!   rw status of diff variables: j:out k:(loc) x:in-out nodes:out
-!                iy:out iz:out rhs:out a:out
+!   gradient     of useful results: k x
+!   with respect to varying inputs: loads j k x nodes iy iz a
+!   rw status of diff variables: loads:out j:out k:in-zero x:in-out
+!                nodes:out iy:out iz:out a:out
 ! 6
 ! 4
 ! 3
 ! 3
 ! 6
-  subroutine assemblestructmtx_main_b(n, tot_n_fem, size, nodes, nodesb&
-&   , a, ab, j, jb, iy, iyb, iz, izb, k_a, k_t, k_y, k_z, elem_ids, cons&
-&   , e, g, x_gl, t, k_elem, pelem_a, pelem_t, pelem_y, pelem_z, t_elem&
-&   , const2, const_y, const_z, rhs, rhsb, k, kb, x, xb)
+  subroutine assemblestructmtx_main_b(n, tot_n_fem, nodes, nodesb, a, ab&
+&   , j, jb, iy, iyb, iz, izb, k_a, k_t, k_y, k_z, elem_ids, cons, e, g&
+&   , x_gl, t, k_elem, pelem_a, pelem_t, pelem_y, pelem_z, t_elem, &
+&   const2, const_y, const_z, loads, loadsb, k, kb, x, xb)
 ! 7
     use solveroutines, only : solve_b
     implicit none
 ! input
-    integer, intent(in) :: n, size, cons, tot_n_fem
+    integer, intent(in) :: n, cons, tot_n_fem
     integer, intent(inout) :: elem_ids(n-1, 2)
     real(kind=8), intent(in) :: nodes(tot_n_fem, 3), a(n-1), j(n-1), iy(&
 &   n-1), iz(n-1)
@@ -454,11 +454,11 @@ contains
     real(kind=8) :: pelem_ab(2, 12), pelem_tb(2, 12), pelem_yb(4, 12), &
 &   pelem_zb(4, 12)
     real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, &
-&   4), rhs(size)
-    real(kind=8) :: rhsb(size)
+&   4), loads(n, 6)
+    real(kind=8) :: loadsb(n, 6)
 ! output
-    real(kind=8) :: x(size), k(size, size)
-    real(kind=8) :: xb(size), kb(size, size)
+    real(kind=8) :: x(6*n+6), k(6*n+6, 6*n+6)
+    real(kind=8) :: xb(6*n+6), kb(6*n+6, 6*n+6)
 ! working
     real(kind=8) :: p0(3), p1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(&
 &   3), y_cross(3)
@@ -469,14 +469,15 @@ contains
     real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2)
     real(kind=8) :: mat12x12b(12, 12), mat12x4b(12, 4), mat12x2b(12, 2)
     integer :: num_elems, num_nodes, num_cons, ielem, in0, in1, ind, i
-    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(size, size)
-    real(kind=8) :: pelem_a_tb(12, 2), pelem_t_tb(12, 2), k_b(size, size&
-&   )
+    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(6*n+6, 6*n+6)&
+&   , rhs(6*n+6)
+    real(kind=8) :: pelem_a_tb(12, 2), pelem_t_tb(12, 2), k_b(6*n+6, 6*n&
+&   +6), rhsb(6*n+6)
     real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)&
-&   , b(size)
+&   , b(6*n+6)
     real(kind=8) :: pelem_y_tb(12, 4), pelem_z_tb(12, 4), t_elem_tb(12, &
-&   12), bb(size)
-    integer :: ipiv(size), n_solve
+&   12), bb(6*n+6)
+    integer :: ipiv(6*n+6), n_solve
     real(kind=8), dimension(3) :: arg1
     real(kind=8), dimension(3) :: arg1b
     real(kind=8) :: temp0
@@ -495,6 +496,12 @@ contains
     num_elems = n - 1
     num_nodes = n
 ! only 1 con in current spatialbeam code
+    rhs(:) = 0.
+    do ind=1,n
+      do i=1,6
+        rhs((ind-1)*6+i) = loads(ind, i)
+      end do
+    end do
     k(:, :) = 0.
 ! loop over num elements
     do ielem=1,num_elems
@@ -593,14 +600,13 @@ contains
       k(6*num_nodes+i, 6*cons+i) = 10**9.
       k(6*cons+i, 6*num_nodes+i) = 10**9.
     end do
-    n_solve = size
+    n_solve = 6*n + 6
     b = rhs
     k_ = k
     k_b = 0.0_8
     bb = 0.0_8
     call solve_b(k_, k_b, x, xb, b, bb, n_solve, ipiv)
-    kb = 0.0_8
-    kb = k_b
+    kb = kb + k_b
     rhsb = 0.0_8
     rhsb = bb
     do i=6,1,-1
@@ -779,21 +785,29 @@ contains
       nodesb(elem_ids(ielem, 1), :) = nodesb(elem_ids(ielem, 1), :) + &
 &       p0b
     end do
+    loadsb = 0.0_8
+    do ind=n,1,-1
+      do i=6,1,-1
+        loadsb(ind, i) = loadsb(ind, i) + rhsb((ind-1)*6+i)
+        rhsb((ind-1)*6+i) = 0.0_8
+      end do
+    end do
+    kb = 0.0_8
   end subroutine assemblestructmtx_main_b
 ! 6
 ! 4
 ! 3
 ! 3
 ! 6
-  subroutine assemblestructmtx_main(n, tot_n_fem, size, nodes, a, j, iy&
-&   , iz, k_a, k_t, k_y, k_z, elem_ids, cons, e, g, x_gl, t, k_elem, &
-&   pelem_a, pelem_t, pelem_y, pelem_z, t_elem, const2, const_y, const_z&
-&   , rhs, k, x)
+  subroutine assemblestructmtx_main(n, tot_n_fem, nodes, a, j, iy, iz, &
+&   k_a, k_t, k_y, k_z, elem_ids, cons, e, g, x_gl, t, k_elem, pelem_a, &
+&   pelem_t, pelem_y, pelem_z, t_elem, const2, const_y, const_z, loads, &
+&   k, x)
 ! 7
     use solveroutines, only : solve
     implicit none
 ! input
-    integer, intent(in) :: n, size, cons, tot_n_fem
+    integer, intent(in) :: n, cons, tot_n_fem
     integer, intent(inout) :: elem_ids(n-1, 2)
     real(kind=8), intent(in) :: nodes(tot_n_fem, 3), a(n-1), j(n-1), iy(&
 &   n-1), iz(n-1)
@@ -805,24 +819,31 @@ contains
     real(kind=8), intent(in) :: pelem_a(2, 12), pelem_t(2, 12), pelem_y(&
 &   4, 12), pelem_z(4, 12)
     real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, &
-&   4), rhs(size)
+&   4), loads(n, 6)
 ! output
-    real(kind=8), intent(out) :: x(size), k(size, size)
+    real(kind=8), intent(out) :: x(6*n+6), k(6*n+6, 6*n+6)
 ! working
     real(kind=8) :: p0(3), p1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(&
 &   3), y_cross(3)
     real(kind=8) :: l, ea_l, gj_l, eiy_l3, eiz_l3, res(12, 12)
     real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2)
     integer :: num_elems, num_nodes, num_cons, ielem, in0, in1, ind, i
-    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(size, size)
+    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(6*n+6, 6*n+6)&
+&   , rhs(6*n+6)
     real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)&
-&   , b(size)
-    integer :: ipiv(size), n_solve
+&   , b(6*n+6)
+    integer :: ipiv(6*n+6), n_solve
     real(kind=8), dimension(3) :: arg1
     num_elems = n - 1
     num_nodes = n
 ! only 1 con in current spatialbeam code
     num_cons = 1
+    rhs(:) = 0.
+    do ind=1,n
+      do i=1,6
+        rhs((ind-1)*6+i) = loads(ind, i)
+      end do
+    end do
     k(:, :) = 0.
 ! loop over num elements
     do ielem=1,num_elems
@@ -893,7 +914,7 @@ contains
       k(6*num_nodes+i, 6*cons+i) = 10**9.
       k(6*cons+i, 6*num_nodes+i) = 10**9.
     end do
-    n_solve = size
+    n_solve = 6*n + 6
     b = rhs
     k_ = k
     call solve(k_, x, b, n_solve, ipiv)

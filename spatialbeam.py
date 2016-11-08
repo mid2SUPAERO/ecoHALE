@@ -62,7 +62,8 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     # Populate the right-hand side of the linear system using the
     # prescribed or computed loads
     rhs[:] = 0.0
-    rhs[:6*n] = loads.reshape((6*n))
+    rhs[:6*n] = loads.reshape(n*6)
+    rhs[numpy.abs(rhs) < 1e-6] = 0.
 
     # Dense Fortran
     if fortran_flag:
@@ -71,11 +72,11 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                                      elem_IDs+1, cons,
                                      E_vec, G_vec, x_gl, T,
                                      K_elem, S_a, S_t, S_y, S_z, T_elem,
-                                     const2, const_y, const_z, rhs)
-
+                                     const2, const_y, const_z, loads)
 
     # Dense Python
     else:
+
         num_nodes = num_elems + 1
 
         K[:] = 0.
@@ -142,47 +143,11 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                 K[-6+k, 6*cons+k] = 1.e9
                 K[6*cons+k, -6+k] = 1.e9
 
-
-    rhs[numpy.abs(rhs) < 1e-6] = 0.
-
     # Check to solve on the Python level if not done on the Fortran level
     if not fortran_flag:
         x = numpy.linalg.solve(K, rhs)
 
     return K, x, rhs
-
-
-def _assemble_system_b(nodes, A, J, Iy, Iz, loads,
-                     K_a, K_t, K_y, K_z,
-                     elem_IDs, cons,
-                     E, G, x_gl, T,
-                     K_elem, S_a, S_t, S_y, S_z, T_elem,
-                     const2, const_y, const_z, n, size, K, Kb, x, xb, rhs):
-
-
-    size = 6 * n + 6
-    num_cons = 1
-
-    num_elems = elem_IDs.shape[0]
-    E_vec = E*numpy.ones(num_elems)
-    G_vec = G*numpy.ones(num_elems)
-
-    # Populate the right-hand side of the linear system using the
-    # prescribed or computed loads
-    rhs[:] = 0.0
-    rhs[:6*n] = loads.reshape((6*n))
-
-    # Fortran
-    if fortran_flag:
-        nodesb, Ab, Jb, Iyb, Izb, rhsb = OAS_API.oas_api.assemblestructmtx_b(nodes, A, J, Iy, Iz,
-                                     K_a, K_t, K_y, K_z,
-                                     elem_IDs+1, cons,
-                                     E_vec, G_vec, x_gl, T,
-                                     K_elem, S_a, S_t, S_y, S_z, T_elem,
-                                     const2, const_y, const_z, rhs, K, Kb, x, xb)
-
-
-    return nodesb, Ab, Jb, Iyb, Izb, rhsb
 
 
 class SpatialBeamFEM(Component):
@@ -237,7 +202,7 @@ class SpatialBeamFEM(Component):
         # self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
         #self.deriv_options['extra_check_partials_form'] = "central"
-        self.deriv_options['linearize'] = True  # only for circulations
+        self.deriv_options['linearize'] = True  # only for FEM
 
         self.E = surface['E']
         self.G = surface['G']
@@ -303,10 +268,12 @@ class SpatialBeamFEM(Component):
         idx = (numpy.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
 
+        loads = params[name+'loads']
+
         self.K, self.x, self.rhs = \
             _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
-                             params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
+                             params[name+'Iz'], loads, self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
@@ -319,10 +286,11 @@ class SpatialBeamFEM(Component):
 
     def apply_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
+        loads = params[name+'loads']
         self.K, _, self.rhs = \
             _assemble_system(params[name+'nodes'],
                              params[name+'A'], params[name+'J'], params[name+'Iy'],
-                             params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
+                             params[name+'Iz'], loads, self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
                              self.E, self.G, self.x_gl, self.T, self.K_elem,
                              self.S_a, self.S_t, self.S_y, self.S_z,
@@ -335,33 +303,116 @@ class SpatialBeamFEM(Component):
 
     # def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
     #     name = self.surface['name']
+    #     loads = params[name+'loads']
+    #     num_elems = self.elem_IDs.shape[0]
+    #
+    #     ### DOT PRODUCT TEST ###
+    #     nodesd = numpy.random.random_sample(params[name+'nodes'].shape)
+    #     Ad = numpy.random.random_sample(params[name+'A'].shape)
+    #     Jd = numpy.random.random_sample(params[name+'J'].shape)
+    #     Iyd = numpy.random.random_sample(params[name+'Iy'].shape)
+    #     Izd = numpy.random.random_sample(params[name+'Iz'].shape)
+    #     loadsd = numpy.random.random_sample(loads.shape)
+    #
+    #     nodesd_copy = nodesd.copy()
+    #     Ad_copy = Ad.copy()
+    #     Jd_copy = Jd.copy()
+    #     Iyd_copy = Iyd.copy()
+    #     Izd_copy = Izd.copy()
+    #     loadsd_copy = loadsd.copy()
+    #
+    #     self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params[name+'nodes'], nodesd,
+    #                      params[name+'A'], Ad, params[name+'J'], Jd, params[name+'Iy'], Iyd,
+    #                      params[name+'Iz'], Izd,
+    #                                  self.K_a, self.K_t,
+    #                                  self.K_y, self.K_z, self.elem_IDs+1, self.cons,
+    #                                  self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
+    #                                  self.S_a, self.S_t, self.S_y, self.S_z,
+    #                                  self.T_elem, self.const2, self.const_y,
+    #                                  self.const_z, loads, loadsd)
+    #
+    #     Kb = numpy.random.random_sample(self.K.shape)
+    #     xb = numpy.random.random_sample(unknowns[name+'disp_aug'].shape)
+    #     Kb_copy = Kb.copy()
+    #     xb_copy = xb.copy()
+    #
+    #     nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params[name+'nodes'],
+    #                      params[name+'A'], params[name+'J'], params[name+'Iy'],
+    #                      params[name+'Iz'],
+    #                                  self.K_a, self.K_t,
+    #                                  self.K_y, self.K_z, self.elem_IDs+1, self.cons,
+    #                                  self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
+    #                                  self.S_a, self.S_t, self.S_y, self.S_z,
+    #                                  self.T_elem, self.const2, self.const_y,
+    #                                  self.const_z, loads, self.K, Kb, self.x, xb)
+    #
+    #
+    #     dotprod = 0.
+    #     dotprod += numpy.sum(nodesd_copy*nodesb)
+    #     dotprod += numpy.sum(Ad_copy*Ab)
+    #     dotprod += numpy.sum(Jd_copy*Jb)
+    #     dotprod += numpy.sum(Iyd_copy*Iyb)
+    #     dotprod += numpy.sum(Izd_copy*Izb)
+    #     dotprod += numpy.sum(loadsd_copy*loadsb)
+    #     dotprod -= numpy.sum(Kb_copy*Kd)
+    #     dotprod -= numpy.sum(xd*xb_copy)
+    #     # print
+    #     # print 'SHOULD BE ZERO:', dotprod
+    #     # print
+    #     # exit()
+    #
+    #
     #     if mode == 'fwd':
-    #         print 'forward'
+    #         self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params[name+'nodes'], dparams[name+'nodes'],
+    #                          params[name+'A'], dparams[name+'A'], params[name+'J'], dparams[name+'J'], params[name+'Iy'], dparams[name+'Iy'],
+    #                          params[name+'Iz'], dparams[name+'Iz'],
+    #                                      self.K_a, self.K_t,
+    #                                      self.K_y, self.K_z, self.elem_IDs+1, self.cons,
+    #                                      self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
+    #                                      self.S_a, self.S_t, self.S_y, self.S_z,
+    #                                      self.T_elem, self.const2, self.const_y,
+    #                                      self.const_z, loads, dparams[name+'loads'])
+    #
+    #         dresids[name+'disp_aug'] += xd
+    #         # print '!!!!!!!!!!!!!!!!!!!'
+    #         # print dparams[name+'nodes']
+    #         # print dparams[name+'A']
+    #         # print dparams[name+'J']
+    #         # print dparams[name+'Iy']
+    #         # print dparams[name+'Iz']
+    #         # print dparams[name+'loads']
+    #         # print dresids[name+'disp_aug']
     #
     #
     #     else:
-    #         print 'reverse'
-    #         nodesb, Ab, Jb, Iyb, Izb, rhsb = \
-    #             _assemble_system_b(params[name+'nodes'],
-    #                              params[name+'A'], params[name+'J'], params[name+'Iy'],
-    #                              params[name+'Iz'], params[name+'loads'], self.K_a, self.K_t,
-    #                              self.K_y, self.K_z, self.elem_IDs, self.cons,
-    #                              self.E, self.G, self.x_gl, self.T, self.K_elem,
-    #                              self.S_a, self.S_t, self.S_y, self.S_z,
-    #                              self.T_elem, self.const2, self.const_y,
-    #                              self.const_z, self.ny, self.size,
-    #                              self.K, numpy.zeros(self.K.shape),
-    #                              unknowns[name+'disp_aug'], dresids[name+'disp_aug'], self.rhs)
+    #         seeds = dresids[name+'disp_aug'].copy()
     #
-    #         print nodesb, Ab, Jb, Iyb, Izb, rhsb
+    #         nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params[name+'nodes'].copy(),
+    #                          params[name+'A'].copy(), params[name+'J'].copy(), params[name+'Iy'].copy(),
+    #                          params[name+'Iz'].copy(),
+    #                                      self.K_a, self.K_t,
+    #                                      self.K_y, self.K_z, self.elem_IDs+1, self.cons,
+    #                                      self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
+    #                                      self.S_a, self.S_t, self.S_y, self.S_z,
+    #                                      self.T_elem, self.const2, self.const_y,
+    #                                      self.const_z, loads, self.K, numpy.zeros(self.K.shape), unknowns[name+'disp_aug'].copy(), seeds)
     #
     #         dparams[name+'nodes'] += nodesb
     #         dparams[name+'A'] += Ab
     #         dparams[name+'J'] += Jb
     #         dparams[name+'Iy'] += Iyb
     #         dparams[name+'Iz'] += Izb
-    #         dparams[name+'loads'] += rhsb[:-6].reshape(-1, 6)
-
+    #         dparams[name+'loads'] += loadsb
+    #
+    #         # print '@@@@@@@@@@@@@@@@@@@@'
+    #         # print dparams[name+'nodes']
+    #         # print dparams[name+'A']
+    #         # print dparams[name+'J']
+    #         # print dparams[name+'Iy']
+    #         # print dparams[name+'Iz']
+    #         # print dparams[name+'loads']
+    #         # print dresids[name+'disp_aug']
+    #
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
 

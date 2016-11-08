@@ -47,7 +47,7 @@ contains
     nodes2 = nodes
     r2 = r
     disp2 = disp
-    
+
     do ielem=1, num_elems
       in0 = elem_IDs(ielem, 1)
       in1 = elem_IDs(ielem, 2)
@@ -153,42 +153,49 @@ contains
   end subroutine
 
 
-  subroutine assemblestructmtx_main(n, tot_n_fem, size, nodes, A, J, Iy, Iz, & ! 6
+  subroutine assemblestructmtx_main(n, tot_n_fem, nodes, A, J, Iy, Iz, & ! 6
     K_a, K_t, K_y, K_z, & ! 4
     elem_IDs, cons, & ! 3
     E, G, x_gl, T, & ! 3
     K_elem, Pelem_a, Pelem_t, Pelem_y, Pelem_z, T_elem, & ! 6
-    const2, const_y, const_z, rhs, K, x) ! 7
+    const2, const_y, const_z, loads, K, x) ! 7
 
     use solveRoutines, only: solve
     implicit none
 
     ! Input
-    integer, intent(in) :: n, size, cons, tot_n_fem
+    integer, intent(in) :: n, cons, tot_n_fem
     integer, intent(inout) :: elem_IDs(n-1, 2)
     real(kind=8), intent(in) :: nodes(tot_n_fem, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
     real(kind=8), intent(in) :: E(n-1), G(n-1), x_gl(3)
     real(kind=8), intent(inout) :: K_a(2, 2), K_t(2, 2), K_y(4, 4), K_z(4, 4)
     real(kind=8), intent(inout) :: T(3, 3), K_elem(12, 12), T_elem(12, 12)
     real(kind=8), intent(in) :: Pelem_a(2, 12), Pelem_t(2, 12), Pelem_y(4, 12), Pelem_z(4, 12)
-    real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, 4), rhs(size)
+    real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, 4), loads(n, 6)
 
     ! Output
-    real(kind=8), intent(out) :: x(size), K(size, size)
+    real(kind=8), intent(out) :: x(6*n+6), K(6*n+6, 6*n+6)
 
     ! Working
     real(kind=8) :: P0(3), P1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
     real(kind=8) :: L, EA_L, GJ_L, EIy_L3, EIz_L3, res(12, 12)
     real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2)
     integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, i
-    real(kind=8) :: Pelem_a_T(12, 2), Pelem_t_T(12, 2), K_(size, size)
-    real(kind=8) :: Pelem_y_T(12, 4), Pelem_z_T(12, 4), T_elem_T(12, 12), b(size)
-    integer :: ipiv(size), n_solve
+    real(kind=8) :: Pelem_a_T(12, 2), Pelem_t_T(12, 2), K_(6*n+6, 6*n+6), rhs(6*n+6)
+    real(kind=8) :: Pelem_y_T(12, 4), Pelem_z_T(12, 4), T_elem_T(12, 12), b(6*n+6)
+    integer :: ipiv(6*n+6), n_solve
 
 
     num_elems = n - 1
     num_nodes = n
     num_cons = 1 ! only 1 con in current spatialbeam code
+
+    rhs(:) = 0.
+    do ind=1,n
+      do i=1,6
+        rhs((ind-1)*6+i) = loads(ind, i)
+      end do
+    end do
 
     K(:, :) = 0.
     do ielem = 1, num_elems ! loop over num elements
@@ -277,9 +284,10 @@ contains
       K(6*cons+i, 6*num_nodes+i) = 10**9.
     end do
 
-    n_solve = size
+    n_solve = 6*n+6
     b = rhs
     K_ = K
+
     call solve(K_, x, b, n_solve, ipiv)
 
   end subroutine assemblestructmtx_main

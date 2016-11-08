@@ -5,10 +5,9 @@ python module OAS_API ! in
     interface  ! in :OAS_API
         module oas_api ! in :OAS_API:OAS_API.F90
             use oas_main
-            subroutine assemblestructmtx(n,tot_n_fem,size_bn,nodes,a,j,iy,iz,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,rhs,k,x) ! in :OAS_API:OAS_API.F90:oas_api
+            subroutine assemblestructmtx(n,tot_n_fem,nodes,a,j,iy,iz,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,loads,k,x) ! in :OAS_API:OAS_API.F90:oas_api
                 integer, optional,intent(in),check((len(a)+1)>=n),depend(a) :: n=(len(a)+1)
                 integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)
-                integer, optional,intent(in),check(len(rhs)>=size_bn),depend(rhs) :: size_bn=len(rhs)
                 real(kind=8) dimension(tot_n_fem,3),intent(in) :: nodes
                 real(kind=8) dimension(n - 1),intent(in) :: a
                 real(kind=8) dimension(n - 1),intent(in),depend(n) :: j
@@ -33,15 +32,14 @@ python module OAS_API ! in
                 real(kind=8) dimension(2,2),intent(in) :: const2
                 real(kind=8) dimension(4,4),intent(in) :: const_y
                 real(kind=8) dimension(4,4),intent(in) :: const_z
-                real(kind=8) dimension(size_bn),intent(in) :: rhs
-                real(kind=8) dimension(size_bn,size_bn),intent(out),depend(size_bn,size_bn) :: k
-                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: x
+                real(kind=8) dimension(n,6),intent(in),depend(n) :: loads
+                real(kind=8) dimension(6 * n + 6,6 * n + 6),intent(out),depend(n,n) :: k
+                real(kind=8) dimension(6 * n + 6),intent(out),depend(n) :: x
             end subroutine assemblestructmtx
-            subroutine assemblestructmtx_d(n,tot_n_fem,size_bn,nodes,nodesd,a,ad,j,jd,iy,iyd,iz,izd,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,rhs,rhsd,k,kd,x,xd) ! in :OAS_API:OAS_API.F90:oas_api
+            subroutine assemblestructmtx_d(n,tot_n_fem,nodes,nodesd,a,ad,j,jd,iy,iyd,iz,izd,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,loads,loadsd,k,kd,x,xd) ! in :OAS_API:OAS_API.F90:oas_api
                 use oas_main_d, only: assemblestructmtx_main_d
                 integer, optional,intent(in),check((len(a)+1)>=n),depend(a) :: n=(len(a)+1)
                 integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)
-                integer, optional,intent(in),check(len(rhs)>=size_bn),depend(rhs) :: size_bn=len(rhs)
                 real(kind=8) dimension(tot_n_fem,3),intent(in) :: nodes
                 real(kind=8) dimension(tot_n_fem,3),intent(in),depend(tot_n_fem) :: nodesd
                 real(kind=8) dimension(n - 1),intent(in) :: a
@@ -71,18 +69,17 @@ python module OAS_API ! in
                 real(kind=8) dimension(2,2),intent(in) :: const2
                 real(kind=8) dimension(4,4),intent(in) :: const_y
                 real(kind=8) dimension(4,4),intent(in) :: const_z
-                real(kind=8) dimension(size_bn),intent(in) :: rhs
-                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: rhsd
-                real(kind=8) dimension(size_bn,size_bn),intent(out),depend(size_bn,size_bn) :: k
-                real(kind=8) dimension(size_bn,size_bn),intent(out),depend(size_bn,size_bn) :: kd
-                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: x
-                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: xd
+                real(kind=8) dimension(n,6),intent(in),depend(n) :: loads
+                real(kind=8) dimension(n,6),intent(in),depend(n) :: loadsd
+                real(kind=8) dimension(6 * n + 6,6 * n + 6),intent(out),depend(n,n) :: k
+                real(kind=8) dimension(6 * n + 6,6 * n + 6),intent(out),depend(n,n) :: kd
+                real(kind=8) dimension(6 * n + 6),intent(out),depend(n) :: x
+                real(kind=8) dimension(6 * n + 6),intent(out),depend(n) :: xd
             end subroutine assemblestructmtx_d
-            subroutine assemblestructmtx_b(n,tot_n_fem,size_bn,nodes,nodesb,a,ab,j,jb,iy,iyb,iz,izb,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,rhs,rhsb,k,kb,x,xb) ! in :OAS_API:OAS_API.F90:oas_api
+            subroutine assemblestructmtx_b(n,tot_n_fem,nodes,nodesb,a,ab,j,jb,iy,iyb,iz,izb,k_a,k_t,k_y,k_z,elem_ids,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,loads,loadsb,k,kb,x,xb) ! in :OAS_API:OAS_API.F90:oas_api
                 use oas_main_b, only: assemblestructmtx_main_b
                 integer, optional,intent(in),check((len(a)+1)>=n),depend(a) :: n=(len(a)+1)
                 integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)
-                integer, optional,intent(in),check(len(rhs)>=size_bn),depend(rhs) :: size_bn=len(rhs)
                 real(kind=8) dimension(tot_n_fem,3),intent(in) :: nodes
                 real(kind=8) dimension(tot_n_fem,3),intent(out),depend(tot_n_fem) :: nodesb
                 real(kind=8) dimension(n - 1),intent(in) :: a
@@ -112,12 +109,12 @@ python module OAS_API ! in
                 real(kind=8) dimension(2,2),intent(in) :: const2
                 real(kind=8) dimension(4,4),intent(in) :: const_y
                 real(kind=8) dimension(4,4),intent(in) :: const_z
-                real(kind=8) dimension(size_bn),intent(in) :: rhs
-                real(kind=8) dimension(size_bn),intent(out),depend(size_bn) :: rhsb
-                real(kind=8) dimension(size_bn,size_bn),intent(in),depend(size_bn,size_bn) :: k
-                real(kind=8) dimension(size_bn,size_bn),intent(in),depend(size_bn,size_bn) :: kb
-                real(kind=8) dimension(size_bn),intent(in),depend(size_bn) :: x
-                real(kind=8) dimension(size_bn),intent(in),depend(size_bn) :: xb
+                real(kind=8) dimension(n,6),intent(in),depend(n) :: loads
+                real(kind=8) dimension(n,6),intent(out),depend(n) :: loadsb
+                real(kind=8) dimension(6 * n + 6,6 * n + 6),intent(in),depend(n,n) :: k
+                real(kind=8) dimension(6 * n + 6,6 * n + 6),intent(in),depend(n,n) :: kb
+                real(kind=8) dimension(6 * n + 6),intent(in),depend(n) :: x
+                real(kind=8) dimension(6 * n + 6),intent(in),depend(n) :: xb
             end subroutine assemblestructmtx_b
             subroutine assembleaeromtx(ny,nx,ny_,nx_,alpha,points,bpts,mesh,skip,symmetry,mtx) ! in :OAS_API:OAS_API.F90:oas_api
                 integer, optional,intent(in),check((shape(points,1)+1)==ny),depend(points) :: ny=(shape(points,1)+1)
