@@ -7,6 +7,7 @@ rotation about the x, y, and z-axes.
 
 from __future__ import division
 import numpy
+numpy.random.seed(123)
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
@@ -654,9 +655,9 @@ class SpatialBeamVonMisesTube(Component):
         self.add_output(name+'vonmises', val=numpy.zeros((self.ny-1, 2),
                         dtype="complex"))
 
-        # if not fortran_flag:
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+        if not fortran_flag:
+            self.deriv_options['type'] = 'cs'
+            self.deriv_options['form'] = 'central'
 
         elem_IDs = numpy.zeros((self.ny - 1, 2), int)
         arange = numpy.arange(self.ny-1)
@@ -722,44 +723,48 @@ class SpatialBeamVonMisesTube(Component):
 
         name = self.surface['name']
         elem_IDs = self.elem_IDs
-        name = self.surface['name']
-        r = params[name+'r']
-        disp = params[name+'disp']
-        nodes = params[name+'nodes']
-        vonmises = unknowns[name+'vonmises']
+        r = params[name+'r'].real
+        disp = params[name+'disp'].real
+        nodes = params[name+'nodes'].real
+        vonmises = unknowns[name+'vonmises'].real
         E = self.E
         G = self.G
         x_gl = self.x_gl
 
         if mode == 'fwd':
-            _, dresids[name+'vonmises'] = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, dparams[name+'nodes'], r, dparams[name+'r'], disp, dparams[name+'disp'], E, G, x_gl)
+            _, a = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, dparams[name+'nodes'], r, dparams[name+'r'], disp, dparams[name+'disp'], E, G, x_gl)
+            dresids[name+'vonmises'] += a
 
         if mode == 'rev':
-            dparams[name+'nodes'], dparams[name+'r'], dparams[name+'disp'] = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, dresids[name+'vonmises'])
+            a, b, c = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, dresids[name+'vonmises'])
+            dparams[name+'nodes'] += a
+            dparams[name+'r'] += b
+            dparams[name+'disp'] += c
 
-        nodesd = numpy.random.random_sample(nodes.shape)
-        rd = numpy.random.random_sample(r.shape)
-        dispd = numpy.random.random_sample(disp.shape)
-
-        nodesd_copy = nodesd.copy()
-        rd_copy = rd.copy()
-        dispd_copy = dispd.copy()
-
-        _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, nodesd, r, rd, disp, dispd, E, G, x_gl)
-
-        vonmisesb = numpy.random.random_sample(vonmises.shape)
-        vonmisesb_copy = vonmisesb.copy()
-
-        nodesb, rb, dispb = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, vonmisesb)
-
-        dotprod = 0.
-        dotprod += numpy.sum(nodesd_copy*nodesb)
-        dotprod += numpy.sum(rd_copy*rb)
-        dotprod += numpy.sum(dispd_copy*dispb)
-        dotprod -= numpy.sum(vonmisesd*vonmisesb_copy)
-        print
-        print 'SHOULD BE ZERO:', dotprod
-        print
+        ### DOT PRODUCT TEST ###
+        # nodesd = numpy.random.random_sample(nodes.shape)
+        # rd = numpy.random.random_sample(r.shape)
+        # dispd = numpy.random.random_sample(disp.shape)
+        #
+        # nodesd_copy = nodesd.copy()
+        # rd_copy = rd.copy()
+        # dispd_copy = dispd.copy()
+        #
+        # vonmises, vonmisesd = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, nodesd, r, rd, disp, dispd, E, G, x_gl)
+        #
+        # vonmisesb = numpy.random.random_sample(vonmises.shape)
+        # vonmisesb_copy = vonmisesb.copy()
+        #
+        # nodesb, rb, dispb = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, vonmisesb)
+        #
+        # dotprod = 0.
+        # dotprod += numpy.sum(nodesd_copy*nodesb)
+        # dotprod += numpy.sum(rd_copy*rb)
+        # dotprod += numpy.sum(dispd_copy*dispb)
+        # dotprod -= numpy.sum(vonmisesd*vonmisesb_copy)
+        # print
+        # print 'SHOULD BE ZERO:', dotprod
+        # print
 
 class SpatialBeamFailureKS(Component):
     """

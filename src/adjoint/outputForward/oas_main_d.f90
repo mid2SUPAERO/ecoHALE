@@ -48,73 +48,108 @@ contains
     implicit none
 ! input
     integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
-    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    complex(kind=8), intent(in) :: nodesd(n, 3), rd(num_elems), dispd(n&
-&   , 6)
-    complex(kind=8), intent(in) :: e, g, x_gl(3)
-    complex(kind=8) :: x_gld(3)
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: nodesd(n, 3), rd(num_elems), dispd(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
+    real(kind=8) :: x_gld(3)
 ! output
-    complex(kind=8), intent(out) :: vonmises(num_elems, 2)
-    complex(kind=8), intent(out) :: vonmisesd(num_elems, 2)
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+    real(kind=8), intent(out) :: vonmisesd(num_elems, 2)
 ! working
     integer :: ielem, in0, in1
-    complex(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(&
-&   3, 3)
-    complex(kind=8) :: p0d(3), p1d(3), ld, x_locd(3), y_locd(3), z_locd(&
-&   3), td(3, 3)
-    complex(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
-    complex(kind=8) :: u0d(3), r0d(3), u1d(3), r1d(3), sxx0d, sxx1d, &
-&   sxtd, tmpd
-    vonmisesd = (0.0_4,0.0_4)
-    y_locd = (0.0_4,0.0_4)
-    td = (0.0_4,0.0_4)
-    z_locd = (0.0_4,0.0_4)
-    x_locd = (0.0_4,0.0_4)
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: p0d(3), p1d(3), ld, x_locd(3), y_locd(3), z_locd(3)&
+&   , td(3, 3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: u0d(3), r0d(3), u1d(3), r1d(3), sxx0d, sxx1d, sxtd, &
+&   tmpd
+    real(kind=8) :: y_raw(3), z_raw(3), r1r0(3), t1(3), t2(3), t3(3), t4&
+&   (3)
+    real(kind=8) :: y_rawd(3), z_rawd(3), r1r0d(3), t1d(3), t2d(3), t3d(&
+&   3), t4d(3)
+    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
+    real(kind=8) :: nodes2d(n, 3), r2d(num_elems), disp2d(n, 6), p1p0d(3&
+&   )
+    vonmises(:, :) = 0.
+    nodes2d = nodesd
+    nodes2 = nodes
+    r2d = rd
+    r2 = r
+    disp2d = dispd
+    disp2 = disp
+    vonmisesd = 0.0_8
+    y_locd = 0.0_8
+    td = 0.0_8
+    z_locd = 0.0_8
+    y_rawd = 0.0_8
+    z_rawd = 0.0_8
+    x_locd = 0.0_8
     do ielem=1,num_elems
       in0 = elem_ids(ielem, 1)
       in1 = elem_ids(ielem, 2)
-      p0d = nodesd(in0, :)
-      p0 = nodes(in0, :)
-      p1d = nodesd(in1, :)
-      p1 = nodes(in1, :)
-      call normc_d(p1 - p0, p1d - p0d, l, ld)
-      call unitc_d(p1 - p0, p1d - p0d, x_loc, x_locd)
-      x_gld = (0.0_4,0.0_4)
-      call crossc_d(x_loc, x_locd, x_gl, x_gld, y_loc, y_locd)
-      call unitc_d(y_loc, y_locd, y_loc, y_locd)
-      call crossc_d(x_loc, x_locd, y_loc, y_locd, z_loc, z_locd)
-      call unitc_d(z_loc, z_locd, z_loc, z_locd)
+      p0d = nodes2d(in0, :)
+      p0 = nodes2(in0, :)
+      p1d = nodes2d(in1, :)
+      p1 = nodes2(in1, :)
+      p1p0d = p1d - p0d
+      p1p0 = p1 - p0
+      call norm_d(p1p0, p1p0d, l, ld)
+      call unit_d(p1p0, p1p0d, x_loc, x_locd)
+      x_gld = 0.0_8
+      call cross_d(x_loc, x_locd, x_gl, x_gld, y_raw, y_rawd)
+      call unit_d(y_raw, y_rawd, y_loc, y_locd)
+      call cross_d(x_loc, x_locd, y_loc, y_locd, z_raw, z_rawd)
+      call unit_d(z_raw, z_rawd, z_loc, z_locd)
       td(1, :) = x_locd
       t(1, :) = x_loc
       td(2, :) = y_locd
       t(2, :) = y_loc
       td(3, :) = z_locd
       t(3, :) = z_loc
-      call matmul2c_d(3, 3, 1, t, td, disp(in0, :3), dispd(in0, :3), u0&
-&               , u0d)
-      call matmul2c_d(3, 3, 1, t, td, disp(in0, 4:), dispd(in0, 4:), r0&
-&               , r0d)
-      call matmul2c_d(3, 3, 1, t, td, disp(in1, :3), dispd(in1, :3), u1&
-&               , u1d)
-      call matmul2c_d(3, 3, 1, t, td, disp(in1, 4:), dispd(in1, 4:), r1&
-&               , r1d)
-      tmpd = .5*((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**(-0.5)*(2*(r1(2)-r0&
-&       (2))*(r1d(2)-r0d(2))+2*(r1(3)-r0(3))*(r1d(3)-r0d(3)))
-      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
-      sxx0d = (e*(u1d(1)-u0d(1))*l-e*(u1(1)-u0(1))*ld)/l**2 + (e*rd(&
-&       ielem)*l-e*r(ielem)*ld)*tmp/l**2 + e*r(ielem)*tmpd/l
-      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
-      sxx1d = (e*(u0d(1)-u1d(1))*l-e*(u0(1)-u1(1))*ld)/l**2 + (e*rd(&
-&       ielem)*l-e*r(ielem)*ld)*tmp/l**2 + e*r(ielem)*tmpd/l
-      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
-      sxtd = (g*(rd(ielem)*(r1(1)-r0(1))+r(ielem)*(r1d(1)-r0d(1)))*l-g*r&
-&       (ielem)*(r1(1)-r0(1))*ld)/l**2
-      sxt = g*r(ielem)*(r1(1)-r0(1))/l
-      vonmisesd(ielem, 1) = .5*(sxx0**2+sxt**2)**(-0.5)*(2*sxx0*sxx0d+2*&
-&       sxt*sxtd)
+      t1d = disp2d(in0, 1:3)
+      t1 = disp2(in0, 1:3)
+      t2d = disp2d(in0, 4:6)
+      t2 = disp2(in0, 4:6)
+      t3d = disp2d(in1, 1:3)
+      t3 = disp2(in1, 1:3)
+      t4d = disp2d(in1, 4:6)
+      t4 = disp2(in1, 4:6)
+      call matmul2_d(3, 3, 1, t, td, t1, t1d, u0, u0d)
+      call matmul2_d(3, 3, 1, t, td, t2, t2d, r0, r0d)
+      call matmul2_d(3, 3, 1, t, td, t3, t3d, u1, u1d)
+      call matmul2_d(3, 3, 1, t, td, t4, t4d, r1, r1d)
+      r1r0d = r1d - r0d
+      r1r0 = r1 - r0
+      if (r1r0(2)**2 + r1r0(3)**2 .gt. 0.0_8) then
+        tmpd = .5*(r1r0(2)**2+r1r0(3)**2)**(-0.5)*(2*r1r0(2)*r1r0d(2)+2*&
+&         r1r0(3)*r1r0d(3))
+      else
+        tmpd = 0.0_8
+      end if
+      tmp = (r1r0(2)**2+r1r0(3)**2)**.5
+      sxx0d = (e*(u1d(1)-u0d(1))*l-e*(u1(1)-u0(1))*ld)/l**2 + (e*r2d(&
+&       ielem)*l-e*r2(ielem)*ld)*tmp/l**2 + e*r2(ielem)*tmpd/l
+      sxx0 = e*(u1(1)-u0(1))/l + e*r2(ielem)/l*tmp
+      sxx1d = (e*(u0d(1)-u1d(1))*l-e*(u0(1)-u1(1))*ld)/l**2 + (e*r2d(&
+&       ielem)*l-e*r2(ielem)*ld)*tmp/l**2 + e*r2(ielem)*tmpd/l
+      sxx1 = e*(u0(1)-u1(1))/l + e*r2(ielem)/l*tmp
+      sxtd = (g*(r2d(ielem)*r1r0(1)+r2(ielem)*r1r0d(1))*l-g*r2(ielem)*&
+&       r1r0(1)*ld)/l**2
+      sxt = g*r2(ielem)*r1r0(1)/l
+      if (sxx0**2 + sxt**2 .gt. 0.0_8) then
+        vonmisesd(ielem, 1) = .5*(sxx0**2+sxt**2)**(-0.5)*(2*sxx0*sxx0d+&
+&         2*sxt*sxtd)
+      else
+        vonmisesd(ielem, 1) = 0.0_8
+      end if
       vonmises(ielem, 1) = (sxx0**2+sxt**2)**.5
-      vonmisesd(ielem, 2) = .5*(sxx1**2+sxt**2)**(-0.5)*(2*sxx1*sxx1d+2*&
-&       sxt*sxtd)
+      if (sxx1**2 + sxt**2 .gt. 0.0_8) then
+        vonmisesd(ielem, 2) = .5*(sxx1**2+sxt**2)**(-0.5)*(2*sxx1*sxx1d+&
+&         2*sxt*sxtd)
+      else
+        vonmisesd(ielem, 2) = 0.0_8
+      end if
       vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
     end do
   end subroutine calc_vonmises_main_d
@@ -123,37 +158,50 @@ contains
     implicit none
 ! input
     integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
-    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    complex(kind=8), intent(in) :: e, g, x_gl(3)
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
 ! output
-    complex(kind=8), intent(out) :: vonmises(num_elems, 2)
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
 ! working
     integer :: ielem, in0, in1
-    complex(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(&
-&   3, 3)
-    complex(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: y_raw(3), z_raw(3), r1r0(3), t1(3), t2(3), t3(3), t4&
+&   (3)
+    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
+    vonmises(:, :) = 0.
+    nodes2 = nodes
+    r2 = r
+    disp2 = disp
     do ielem=1,num_elems
       in0 = elem_ids(ielem, 1)
       in1 = elem_ids(ielem, 2)
-      p0 = nodes(in0, :)
-      p1 = nodes(in1, :)
-      call normc(p1 - p0, l)
-      call unitc(p1 - p0, x_loc)
-      call crossc(x_loc, x_gl, y_loc)
-      call unitc(y_loc, y_loc)
-      call crossc(x_loc, y_loc, z_loc)
-      call unitc(z_loc, z_loc)
+      p0 = nodes2(in0, :)
+      p1 = nodes2(in1, :)
+      p1p0 = p1 - p0
+      call norm(p1p0, l)
+      call unit(p1p0, x_loc)
+      call cross(x_loc, x_gl, y_raw)
+      call unit(y_raw, y_loc)
+      call cross(x_loc, y_loc, z_raw)
+      call unit(z_raw, z_loc)
       t(1, :) = x_loc
       t(2, :) = y_loc
       t(3, :) = z_loc
-      call matmul2c(3, 3, 1, t, disp(in0, :3), u0)
-      call matmul2c(3, 3, 1, t, disp(in0, 4:), r0)
-      call matmul2c(3, 3, 1, t, disp(in1, :3), u1)
-      call matmul2c(3, 3, 1, t, disp(in1, 4:), r1)
-      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
-      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
-      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
-      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      t1 = disp2(in0, 1:3)
+      t2 = disp2(in0, 4:6)
+      t3 = disp2(in1, 1:3)
+      t4 = disp2(in1, 4:6)
+      call matmul2(3, 3, 1, t, t1, u0)
+      call matmul2(3, 3, 1, t, t2, r0)
+      call matmul2(3, 3, 1, t, t3, u1)
+      call matmul2(3, 3, 1, t, t4, r1)
+      r1r0 = r1 - r0
+      tmp = (r1r0(2)**2+r1r0(3)**2)**.5
+      sxx0 = e*(u1(1)-u0(1))/l + e*r2(ielem)/l*tmp
+      sxx1 = e*(u0(1)-u1(1))/l + e*r2(ielem)/l*tmp
+      sxt = g*r2(ielem)*r1r0(1)/l
       vonmises(ielem, 1) = (sxx0**2+sxt**2)**.5
       vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
     end do
@@ -679,28 +727,6 @@ contains
       end do
     end do
   end subroutine matmul2
-!  differentiation of matmul2c in forward (tangent) mode (with options i4 dr8 r8):
-!   variations   of useful results: c
-!   with respect to varying inputs: a b
-  subroutine matmul2c_d(m, n, p, a, ad, b, bd, c, cd)
-    implicit none
-    integer, intent(in) :: m, n, p
-    complex(kind=8), intent(in) :: a(m, n), b(n, p)
-    complex(kind=8), intent(in) :: ad(m, n), bd(n, p)
-    complex(kind=8), intent(out) :: c(m, p)
-    complex(kind=8), intent(out) :: cd(m, p)
-    integer :: i, j, k
-    c(:, :) = 0.
-    cd = (0.0_4,0.0_4)
-    do i=1,m
-      do j=1,p
-        do k=1,n
-          cd(i, j) = cd(i, j) + ad(i, k)*b(k, j) + a(i, k)*bd(k, j)
-          c(i, j) = c(i, j) + a(i, k)*b(k, j)
-        end do
-      end do
-    end do
-  end subroutine matmul2c_d
   subroutine matmul2c(m, n, p, a, b, c)
     implicit none
     integer, intent(in) :: m, n, p
@@ -1101,26 +1127,6 @@ contains
     if (rev) tmp = -tmp
     out = out + tmp
   end subroutine biotsavart
-!  differentiation of unitc in forward (tangent) mode (with options i4 dr8 r8):
-!   variations   of useful results: u
-!   with respect to varying inputs: u v
-! complex functions
-  subroutine unitc_d(v, vd, u, ud)
-    implicit none
-    complex(kind=8), intent(in) :: v(3)
-    complex(kind=8), intent(in) :: vd(3)
-    complex(kind=8), intent(out) :: u(3)
-    complex(kind=8), intent(out) :: ud(3)
-    complex(kind=8) :: nm
-    complex(kind=8) :: nmd
-    call normc_d(v, vd, nm, nmd)
-    ud(1) = (vd(1)*nm-v(1)*nmd)/nm**2
-    u(1) = v(1)/nm
-    ud(2) = (vd(2)*nm-v(2)*nmd)/nm**2
-    u(2) = v(2)/nm
-    ud(3) = (vd(3)*nm-v(3)*nmd)/nm**2
-    u(3) = v(3)/nm
-  end subroutine unitc_d
 ! complex functions
   subroutine unitc(v, u)
     implicit none

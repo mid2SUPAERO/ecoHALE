@@ -30,44 +30,58 @@ contains
 
     ! Input
     integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
-    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    complex(kind=8), intent(in) :: E, G, x_gl(3)
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: E, G, x_gl(3)
 
     ! Output
-    complex(kind=8), intent(out) :: vonmises(num_elems, 2)
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
 
     ! Working
     integer :: ielem, in0, in1
-    complex(kind=8) :: P0(3), P1(3), L, x_loc(3), y_loc(3), z_loc(3), T(3, 3)
-    complex(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: P0(3), P1(3), L, x_loc(3), y_loc(3), z_loc(3), T(3, 3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: y_raw(3), z_raw(3), r1r0(3), t1(3), t2(3), t3(3), t4(3)
+    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
 
+    vonmises(:, :) = 0.
+    nodes2 = nodes
+    r2 = r
+    disp2 = disp
+    
     do ielem=1, num_elems
       in0 = elem_IDs(ielem, 1)
       in1 = elem_IDs(ielem, 2)
 
-      P0 = nodes(in0, :)
-      P1 = nodes(in1, :)
-      call normc(P1 - P0, L)
+      P0 = nodes2(in0, :)
+      P1 = nodes2(in1, :)
+      p1p0 = P1 - P0
+      call norm(p1p0, L)
 
-      call unitc(P1 - P0, x_loc)
-      call crossc(x_loc, x_gl, y_loc)
-      call unitc(y_loc, y_loc)
-      call crossc(x_loc, y_loc, z_loc)
-      call unitc(z_loc, z_loc)
+      call unit(p1p0, x_loc)
+      call cross(x_loc, x_gl, y_raw)
+      call unit(y_raw, y_loc)
+      call cross(x_loc, y_loc, z_raw)
+      call unit(z_raw, z_loc)
 
       T(1, :) = x_loc
       T(2, :) = y_loc
       T(3, :) = z_loc
 
-      call matmul2c(3, 3, 1, T, disp(in0, :3), u0)
-      call matmul2c(3, 3, 1, T, disp(in0, 4:), r0)
-      call matmul2c(3, 3, 1, T, disp(in1, :3), u1)
-      call matmul2c(3, 3, 1, T, disp(in1, 4:), r1)
+      t1 = disp2(in0, 1:3)
+      t2 = disp2(in0, 4:6)
+      t3 = disp2(in1, 1:3)
+      t4 = disp2(in1, 4:6)
 
-      tmp = ((r1(2) - r0(2))**2 + (r1(3) - r0(3))**2)**.5
-      sxx0 = E * (u1(1) - u0(1)) / L + E * r(ielem) / L * tmp
-      sxx1 = E * (u0(1) - u1(1)) / L + E * r(ielem) / L * tmp
-      sxt = G * r(ielem) * (r1(1) - r0(1)) / L
+      call matmul2(3, 3, 1, T, t1, u0)
+      call matmul2(3, 3, 1, T, t2, r0)
+      call matmul2(3, 3, 1, T, t3, u1)
+      call matmul2(3, 3, 1, T, t4, r1)
+
+      r1r0 = r1 - r0
+      tmp = (r1r0(2)**2 + r1r0(3)**2)**.5
+      sxx0 = E * (u1(1) - u0(1)) / L + E * r2(ielem) / L * tmp
+      sxx1 = E * (u0(1) - u1(1)) / L + E * r2(ielem) / L * tmp
+      sxt = G * r2(ielem) * (r1r0(1)) / L
 
       vonmises(ielem, 1) = (sxx0**2 + sxt**2)**.5
       vonmises(ielem, 2) = (sxx1**2 + sxt**2)**.5

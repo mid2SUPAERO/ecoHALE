@@ -33,9 +33,11 @@ if __name__ == "__main__":
     # Create a dictionary to store options about the surface
     surf_dict = {'name' : 'wing',
                  'symmetry' : False,
-                 'num_y' : 13,
+                 'num_y' : 21,
                  'num_x' : 2,
-                 'wing_type' : 'CRM'}
+                 'wing_type' : 'CRM',
+                 'CL0' : 0.2,
+                 'CD0' : 0.015}
 
     # Add the specified wing surface to the problem
     OAS_prob.add_surface(surf_dict)

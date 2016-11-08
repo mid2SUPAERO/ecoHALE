@@ -40,206 +40,236 @@ contains
 !  differentiation of calc_vonmises_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: r vonmises nodes disp
 !   with respect to varying inputs: r vonmises nodes disp
-!   rw status of diff variables: r:incr vonmises:in-out nodes:incr
+!   rw status of diff variables: r:incr vonmises:in-zero nodes:incr
 !                disp:incr
   subroutine calc_vonmises_main_b(elem_ids, nodes, nodesb, r, rb, disp, &
 &   dispb, e, g, x_gl, num_elems, n, vonmises, vonmisesb)
     implicit none
 ! input
     integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
-    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    complex(kind=8) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
-    complex(kind=8), intent(in) :: e, g, x_gl(3)
-    complex(kind=8) :: x_glb(3)
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
+    real(kind=8) :: x_glb(3)
 ! output
-    complex(kind=8) :: vonmises(num_elems, 2)
-    complex(kind=8) :: vonmisesb(num_elems, 2)
+    real(kind=8) :: vonmises(num_elems, 2)
+    real(kind=8) :: vonmisesb(num_elems, 2)
 ! working
     integer :: ielem, in0, in1
-    complex(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(&
-&   3, 3)
-    complex(kind=8) :: p0b(3), p1b(3), lb, x_locb(3), y_locb(3), z_locb(&
-&   3), tb(3, 3)
-    complex(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
-    complex(kind=8) :: u0b(3), r0b(3), u1b(3), r1b(3), sxx0b, sxx1b, &
-&   sxtb, tmpb
-    complex(kind=8), dimension(3) :: arg1
-    complex(kind=8), dimension(3) :: arg1b
-    complex(kind=8) :: tempb9
-    complex(kind=8) :: tempb8
-    complex(kind=8) :: tempb7
-    complex(kind=8) :: tempb6
-    complex(kind=8) :: tempb5
-    complex(kind=8) :: tempb4
-    complex(kind=8) :: tempb3
-    complex(kind=8) :: tempb2
-    complex(kind=8) :: tempb1
-    complex(kind=8) :: tempb0
-    complex(kind=8) :: tempb
-    complex(kind=8) :: temp
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: p0b(3), p1b(3), lb, x_locb(3), y_locb(3), z_locb(3)&
+&   , tb(3, 3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: u0b(3), r0b(3), u1b(3), r1b(3), sxx0b, sxx1b, sxtb, &
+&   tmpb
+    real(kind=8) :: y_raw(3), z_raw(3), r1r0(3), t1(3), t2(3), t3(3), t4&
+&   (3)
+    real(kind=8) :: y_rawb(3), z_rawb(3), r1r0b(3), t1b(3), t2b(3), t3b(&
+&   3), t4b(3)
+    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
+    real(kind=8) :: nodes2b(n, 3), r2b(num_elems), disp2b(n, 6), p1p0b(3&
+&   )
+    real(kind=8) :: tempb6
+    real(kind=8) :: tempb5
+    real(kind=8) :: tempb4
+    real(kind=8) :: tempb3
+    real(kind=8) :: tempb2
+    real(kind=8) :: tempb1
+    real(kind=8) :: tempb0
+    real(kind=8) :: tempb
+    real(kind=8) :: temp
+    nodes2 = nodes
+    r2 = r
+    disp2 = disp
     do ielem=1,num_elems
       in0 = elem_ids(ielem, 1)
       in1 = elem_ids(ielem, 2)
-      p0 = nodes(in0, :)
-      p1 = nodes(in1, :)
-      arg1(:) = p1 - p0
-      call pushcomplex16(l)
-      call normc(arg1(:), l)
-      arg1(:) = p1 - p0
-      call pushcomplex16array(x_loc, 3)
-      call unitc(arg1(:), x_loc)
-      call pushcomplex16array(y_loc, 3)
-      call crossc(x_loc, x_gl, y_loc)
-      call unitc(y_loc, y_loc)
-      call pushcomplex16array(z_loc, 3)
-      call crossc(x_loc, y_loc, z_loc)
-      call unitc(z_loc, z_loc)
-      call pushcomplex16array(t(1, :), 3)
+      p0 = nodes2(in0, :)
+      p1 = nodes2(in1, :)
+      p1p0 = p1 - p0
+      call pushreal8(l)
+      call norm(p1p0, l)
+      call pushreal8array(x_loc, 3)
+      call unit(p1p0, x_loc)
+      call pushreal8array(y_raw, 3)
+      call cross(x_loc, x_gl, y_raw)
+      call pushreal8array(y_loc, 3)
+      call unit(y_raw, y_loc)
+      call pushreal8array(z_raw, 3)
+      call cross(x_loc, y_loc, z_raw)
+      call unit(z_raw, z_loc)
+      call pushreal8array(t(1, :), 3)
       t(1, :) = x_loc
-      call pushcomplex16array(t(2, :), 3)
+      call pushreal8array(t(2, :), 3)
       t(2, :) = y_loc
-      call pushcomplex16array(t(3, :), 3)
+      call pushreal8array(t(3, :), 3)
       t(3, :) = z_loc
-      call pushcomplex16array(u0, 3)
-      call matmul2c(3, 3, 1, t, disp(in0, :3), u0)
-      call pushcomplex16array(r0, 3)
-      call matmul2c(3, 3, 1, t, disp(in0, 4:), r0)
-      call pushcomplex16array(u1, 3)
-      call matmul2c(3, 3, 1, t, disp(in1, :3), u1)
-      call pushcomplex16array(r1, 3)
-      call matmul2c(3, 3, 1, t, disp(in1, 4:), r1)
+      t1 = disp2(in0, 1:3)
+      t2 = disp2(in0, 4:6)
+      t3 = disp2(in1, 1:3)
+      t4 = disp2(in1, 4:6)
+      call pushreal8array(u0, 3)
+      call matmul2(3, 3, 1, t, t1, u0)
+      call matmul2(3, 3, 1, t, t2, r0)
+      call pushreal8array(u1, 3)
+      call matmul2(3, 3, 1, t, t3, u1)
+      call matmul2(3, 3, 1, t, t4, r1)
+      call pushreal8array(r1r0, 3)
+      r1r0 = r1 - r0
     end do
-    y_locb = (0.0_4,0.0_4)
-    tb = (0.0_4,0.0_4)
-    z_locb = (0.0_4,0.0_4)
-    x_locb = (0.0_4,0.0_4)
+    y_locb = 0.0_8
+    tb = 0.0_8
+    nodes2b = 0.0_8
+    z_locb = 0.0_8
+    y_rawb = 0.0_8
+    r2b = 0.0_8
+    z_rawb = 0.0_8
+    disp2b = 0.0_8
+    x_locb = 0.0_8
     do ielem=num_elems,1,-1
-      sxt = g*r(ielem)*(r1(1)-r0(1))/l
-      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
-      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
+      sxt = g*r2(ielem)*r1r0(1)/l
+      tmp = (r1r0(2)**2+r1r0(3)**2)**.5
+      sxx1 = e*(u0(1)-u1(1))/l + e*r2(ielem)/l*tmp
       tempb = .5*(sxx1**2+sxt**2)**(-0.5)*vonmisesb(ielem, 2)
       sxx1b = 2*sxx1*tempb
       vonmisesb(ielem, 2) = 0.0_8
-      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
+      sxx0 = e*(u1(1)-u0(1))/l + e*r2(ielem)/l*tmp
       tempb0 = .5*(sxx0**2+sxt**2)**(-0.5)*vonmisesb(ielem, 1)
       sxtb = 2*sxt*tempb0 + 2*sxt*tempb
       sxx0b = 2*sxx0*tempb0
       vonmisesb(ielem, 1) = 0.0_8
-      r0b = (0.0_4,0.0_4)
-      r1b = (0.0_4,0.0_4)
-      temp = r(ielem)/l
-      tempb1 = (r1(1)-r0(1))*g*sxtb/l
-      tempb2 = g*temp*sxtb
-      rb(ielem) = rb(ielem) + e*tmp*sxx1b/l + e*tmp*sxx0b/l + tempb1
-      r1b(1) = r1b(1) + tempb2
-      r0b(1) = r0b(1) - tempb2
-      u0b = (0.0_4,0.0_4)
-      u1b = (0.0_4,0.0_4)
-      tempb3 = e*sxx1b/l
-      tempb4 = r(ielem)*e*sxx1b/l
-      tempb6 = e*sxx0b/l
-      u0b(1) = u0b(1) + tempb3 - tempb6
-      u1b(1) = u1b(1) + tempb6 - tempb3
-      tempb5 = r(ielem)*e*sxx0b/l
-      lb = -((u0(1)-u1(1))*tempb3/l) - tmp*tempb4/l - tmp*tempb5/l - (u1&
-&       (1)-u0(1))*tempb6/l - temp*tempb1
-      tmpb = tempb5 + tempb4
-      tempb7 = .5*((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**(-0.5)*tmpb
-      tempb8 = 2*(r1(2)-r0(2))*tempb7
-      tempb9 = 2*(r1(3)-r0(3))*tempb7
-      r1b(2) = r1b(2) + tempb8
-      r0b(2) = r0b(2) - tempb8
-      r1b(3) = r1b(3) + tempb9
-      r0b(3) = r0b(3) - tempb9
+      r1r0b = 0.0_8
+      temp = r1r0(1)/l
+      tempb1 = r2(ielem)*g*sxtb/l
+      r2b(ielem) = r2b(ielem) + e*tmp*sxx1b/l + e*tmp*sxx0b/l + g*temp*&
+&       sxtb
+      r1r0b(1) = r1r0b(1) + tempb1
+      u0b = 0.0_8
+      u1b = 0.0_8
+      tempb2 = e*sxx1b/l
+      tempb3 = r2(ielem)*e*sxx1b/l
+      tempb5 = e*sxx0b/l
+      u0b(1) = u0b(1) + tempb2 - tempb5
+      u1b(1) = u1b(1) + tempb5 - tempb2
+      tempb4 = r2(ielem)*e*sxx0b/l
+      lb = -((u0(1)-u1(1))*tempb2/l) - tmp*tempb3/l - tmp*tempb4/l - (u1&
+&       (1)-u0(1))*tempb5/l - temp*tempb1
+      tmpb = tempb4 + tempb3
+      tempb6 = .5*(r1r0(2)**2+r1r0(3)**2)**(-0.5)*tmpb
+      r1r0b(2) = r1r0b(2) + 2*r1r0(2)*tempb6
+      r1r0b(3) = r1r0b(3) + 2*r1r0(3)*tempb6
+      r0b = 0.0_8
+      r1b = 0.0_8
+      call popreal8array(r1r0, 3)
+      r1b = r1r0b
+      r0b = -r1r0b
       in1 = elem_ids(ielem, 2)
-      call popcomplex16array(r1, 3)
-      call matmul2c_b(3, 3, 1, t, tb, disp(in1, 4:), dispb(in1, 4:), r1&
-&               , r1b)
-      call popcomplex16array(u1, 3)
-      call matmul2c_b(3, 3, 1, t, tb, disp(in1, :3), dispb(in1, :3), u1&
-&               , u1b)
+      t4 = disp2(in1, 4:6)
+      t4b = 0.0_8
+      call matmul2_b(3, 3, 1, t, tb, t4, t4b, r1, r1b)
+      t3 = disp2(in1, 1:3)
+      call popreal8array(u1, 3)
+      t3b = 0.0_8
+      call matmul2_b(3, 3, 1, t, tb, t3, t3b, u1, u1b)
       in0 = elem_ids(ielem, 1)
-      call popcomplex16array(r0, 3)
-      call matmul2c_b(3, 3, 1, t, tb, disp(in0, 4:), dispb(in0, 4:), r0&
-&               , r0b)
-      call popcomplex16array(u0, 3)
-      call matmul2c_b(3, 3, 1, t, tb, disp(in0, :3), dispb(in0, :3), u0&
-&               , u0b)
-      call popcomplex16array(t(3, :), 3)
+      t2 = disp2(in0, 4:6)
+      t2b = 0.0_8
+      call matmul2_b(3, 3, 1, t, tb, t2, t2b, r0, r0b)
+      t1 = disp2(in0, 1:3)
+      call popreal8array(u0, 3)
+      t1b = 0.0_8
+      call matmul2_b(3, 3, 1, t, tb, t1, t1b, u0, u0b)
+      disp2b(in1, 4:6) = disp2b(in1, 4:6) + t4b
+      disp2b(in1, 1:3) = disp2b(in1, 1:3) + t3b
+      disp2b(in0, 4:6) = disp2b(in0, 4:6) + t2b
+      disp2b(in0, 1:3) = disp2b(in0, 1:3) + t1b
+      call popreal8array(t(3, :), 3)
       z_locb = z_locb + tb(3, :)
-      tb(3, :) = (0.0_4,0.0_4)
-      call popcomplex16array(t(2, :), 3)
+      tb(3, :) = 0.0_8
+      call popreal8array(t(2, :), 3)
       y_locb = y_locb + tb(2, :)
-      tb(2, :) = (0.0_4,0.0_4)
-      call popcomplex16array(t(1, :), 3)
+      tb(2, :) = 0.0_8
+      call popreal8array(t(1, :), 3)
       x_locb = x_locb + tb(1, :)
-      tb(1, :) = (0.0_4,0.0_4)
-      call unitc_b(z_loc, z_locb, z_loc, z_locb)
-      call popcomplex16array(z_loc, 3)
-      call crossc_b(x_loc, x_locb, y_loc, y_locb, z_loc, z_locb)
-      call unitc_b(y_loc, y_locb, y_loc, y_locb)
-      call popcomplex16array(y_loc, 3)
-      x_glb = (0.0_4,0.0_4)
-      call crossc_b(x_loc, x_locb, x_gl, x_glb, y_loc, y_locb)
-      p0 = nodes(in0, :)
-      p1 = nodes(in1, :)
-      arg1(:) = p1 - p0
-      call popcomplex16array(x_loc, 3)
-      arg1b = (0.0_4,0.0_4)
-      call unitc_b(arg1(:), arg1b(:), x_loc, x_locb)
-      p0b = (0.0_4,0.0_4)
-      p1b = (0.0_4,0.0_4)
-      p1b = arg1b(:)
-      p0b = -arg1b(:)
-      arg1(:) = p1 - p0
-      call popcomplex16(l)
-      arg1b = (0.0_4,0.0_4)
-      call normc_b(arg1(:), arg1b(:), l, lb)
-      p1b = p1b + arg1b
-      p0b = p0b - arg1b
-      nodesb(in1, :) = nodesb(in1, :) + p1b
-      nodesb(in0, :) = nodesb(in0, :) + p0b
+      tb(1, :) = 0.0_8
+      call unit_b(z_raw, z_rawb, z_loc, z_locb)
+      call popreal8array(z_raw, 3)
+      call cross_b(x_loc, x_locb, y_loc, y_locb, z_raw, z_rawb)
+      call popreal8array(y_loc, 3)
+      call unit_b(y_raw, y_rawb, y_loc, y_locb)
+      call popreal8array(y_raw, 3)
+      x_glb = 0.0_8
+      call cross_b(x_loc, x_locb, x_gl, x_glb, y_raw, y_rawb)
+      p0 = nodes2(in0, :)
+      p1 = nodes2(in1, :)
+      p1p0 = p1 - p0
+      call popreal8array(x_loc, 3)
+      p1p0b = 0.0_8
+      call unit_b(p1p0, p1p0b, x_loc, x_locb)
+      call popreal8(l)
+      call norm_b(p1p0, p1p0b, l, lb)
+      p0b = 0.0_8
+      p1b = 0.0_8
+      p1b = p1p0b
+      p0b = -p1p0b
+      nodes2b(in1, :) = nodes2b(in1, :) + p1b
+      nodes2b(in0, :) = nodes2b(in0, :) + p0b
     end do
+    dispb = dispb + disp2b
+    rb = rb + r2b
+    nodesb = nodesb + nodes2b
+    vonmisesb = 0.0_8
   end subroutine calc_vonmises_main_b
   subroutine calc_vonmises_main(elem_ids, nodes, r, disp, e, g, x_gl, &
 &   num_elems, n, vonmises)
     implicit none
 ! input
     integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
-    complex(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    complex(kind=8), intent(in) :: e, g, x_gl(3)
+    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
 ! output
-    complex(kind=8), intent(out) :: vonmises(num_elems, 2)
+    real(kind=8), intent(out) :: vonmises(num_elems, 2)
 ! working
     integer :: ielem, in0, in1
-    complex(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(&
-&   3, 3)
-    complex(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
-    complex(kind=8), dimension(3) :: arg1
+    real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
+&   3)
+    real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
+    real(kind=8) :: y_raw(3), z_raw(3), r1r0(3), t1(3), t2(3), t3(3), t4&
+&   (3)
+    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
+    vonmises(:, :) = 0.
+    nodes2 = nodes
+    r2 = r
+    disp2 = disp
     do ielem=1,num_elems
       in0 = elem_ids(ielem, 1)
       in1 = elem_ids(ielem, 2)
-      p0 = nodes(in0, :)
-      p1 = nodes(in1, :)
-      arg1(:) = p1 - p0
-      call normc(arg1(:), l)
-      arg1(:) = p1 - p0
-      call unitc(arg1(:), x_loc)
-      call crossc(x_loc, x_gl, y_loc)
-      call unitc(y_loc, y_loc)
-      call crossc(x_loc, y_loc, z_loc)
-      call unitc(z_loc, z_loc)
+      p0 = nodes2(in0, :)
+      p1 = nodes2(in1, :)
+      p1p0 = p1 - p0
+      call norm(p1p0, l)
+      call unit(p1p0, x_loc)
+      call cross(x_loc, x_gl, y_raw)
+      call unit(y_raw, y_loc)
+      call cross(x_loc, y_loc, z_raw)
+      call unit(z_raw, z_loc)
       t(1, :) = x_loc
       t(2, :) = y_loc
       t(3, :) = z_loc
-      call matmul2c(3, 3, 1, t, disp(in0, :3), u0)
-      call matmul2c(3, 3, 1, t, disp(in0, 4:), r0)
-      call matmul2c(3, 3, 1, t, disp(in1, :3), u1)
-      call matmul2c(3, 3, 1, t, disp(in1, 4:), r1)
-      tmp = ((r1(2)-r0(2))**2+(r1(3)-r0(3))**2)**.5
-      sxx0 = e*(u1(1)-u0(1))/l + e*r(ielem)/l*tmp
-      sxx1 = e*(u0(1)-u1(1))/l + e*r(ielem)/l*tmp
-      sxt = g*r(ielem)*(r1(1)-r0(1))/l
+      t1 = disp2(in0, 1:3)
+      t2 = disp2(in0, 4:6)
+      t3 = disp2(in1, 1:3)
+      t4 = disp2(in1, 4:6)
+      call matmul2(3, 3, 1, t, t1, u0)
+      call matmul2(3, 3, 1, t, t2, r0)
+      call matmul2(3, 3, 1, t, t3, u1)
+      call matmul2(3, 3, 1, t, t4, r1)
+      r1r0 = r1 - r0
+      tmp = (r1r0(2)**2+r1r0(3)**2)**.5
+      sxx0 = e*(u1(1)-u0(1))/l + e*r2(ielem)/l*tmp
+      sxx1 = e*(u0(1)-u1(1))/l + e*r2(ielem)/l*tmp
+      sxt = g*r2(ielem)*r1r0(1)/l
       vonmises(ielem, 1) = (sxx0**2+sxt**2)**.5
       vonmises(ielem, 2) = (sxx1**2+sxt**2)**.5
     end do
@@ -933,26 +963,6 @@ contains
       end do
     end do
   end subroutine matmul2
-!  differentiation of matmul2c in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: a b c
-!   with respect to varying inputs: a b
-  subroutine matmul2c_b(m, n, p, a, ab, b, bb, c, cb)
-    implicit none
-    integer, intent(in) :: m, n, p
-    complex(kind=8), intent(in) :: a(m, n), b(n, p)
-    complex(kind=8) :: ab(m, n), bb(n, p)
-    complex(kind=8) :: c(m, p)
-    complex(kind=8) :: cb(m, p)
-    integer :: i, j, k
-    do i=m,1,-1
-      do j=p,1,-1
-        do k=n,1,-1
-          ab(i, k) = ab(i, k) + b(k, j)*cb(i, j)
-          bb(k, j) = bb(k, j) + a(i, k)*cb(i, j)
-        end do
-      end do
-    end do
-  end subroutine matmul2c_b
   subroutine matmul2c(m, n, p, a, b, c)
     implicit none
     integer, intent(in) :: m, n, p
@@ -1536,30 +1546,6 @@ contains
     if (rev) tmp = -tmp
     out = out + tmp
   end subroutine biotsavart
-!  differentiation of unitc in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: u v
-!   with respect to varying inputs: u v
-! complex functions
-  subroutine unitc_b(v, vb, u, ub)
-    implicit none
-    complex(kind=8), intent(in) :: v(3)
-    complex(kind=8) :: vb(3)
-    complex(kind=8) :: u(3)
-    complex(kind=8) :: ub(3)
-    complex(kind=8) :: nm
-    complex(kind=8) :: nmb
-    call normc(v, nm)
-    vb(3) = vb(3) + ub(3)/nm
-    nmb = -(v(3)*ub(3)/nm**2)
-    ub(3) = 0.0_8
-    vb(2) = vb(2) + ub(2)/nm
-    nmb = nmb - v(2)*ub(2)/nm**2
-    ub(2) = 0.0_8
-    vb(1) = vb(1) + ub(1)/nm
-    nmb = nmb - v(1)*ub(1)/nm**2
-    ub(1) = 0.0_8
-    call normc_b(v, vb, nm, nmb)
-  end subroutine unitc_b
 ! complex functions
   subroutine unitc(v, u)
     implicit none
