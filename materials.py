@@ -39,12 +39,12 @@ class MaterialsTube(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'r', val=surface['r'])
-        self.add_param(name+'thickness', val=surface['t'])
-        self.add_output(name+'A', val=numpy.zeros((self.ny - 1)))
-        self.add_output(name+'Iy', val=numpy.zeros((self.ny - 1)))
-        self.add_output(name+'Iz', val=numpy.zeros((self.ny - 1)))
-        self.add_output(name+'J', val=numpy.zeros((self.ny - 1)))
+        self.add_param('r', val=surface['r'])
+        self.add_param('thickness', val=surface['t'])
+        self.add_output('A', val=numpy.zeros((self.ny - 1)))
+        self.add_output('Iy', val=numpy.zeros((self.ny - 1)))
+        self.add_output('Iz', val=numpy.zeros((self.ny - 1)))
+        self.add_output('J', val=numpy.zeros((self.ny - 1)))
 
         # self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -55,13 +55,13 @@ class MaterialsTube(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
         pi = numpy.pi
-        r1 = params[name+'r'] - 0.5 * params[name+'thickness']
-        r2 = params[name+'r'] + 0.5 * params[name+'thickness']
+        r1 = params['r'] - 0.5 * params['thickness']
+        r2 = params['r'] + 0.5 * params['thickness']
 
-        unknowns[name+'A'] = pi * (r2**2 - r1**2)
-        unknowns[name+'Iy'] = pi * (r2**4 - r1**4) / 4.
-        unknowns[name+'Iz'] = pi * (r2**4 - r1**4) / 4.
-        unknowns[name+'J'] = pi * (r2**4 - r1**4) / 2.
+        unknowns['A'] = pi * (r2**2 - r1**2)
+        unknowns['Iy'] = pi * (r2**4 - r1**4) / 4.
+        unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
+        unknowns['J'] = pi * (r2**4 - r1**4) / 2.
 
 
     def linearize(self, params, unknowns, resids):
@@ -69,8 +69,8 @@ class MaterialsTube(Component):
         jac = self.alloc_jacobian()
 
         pi = numpy.pi
-        r = params[name+'r'].real
-        t = params[name+'thickness'].real
+        r = params['r'].real
+        t = params['thickness'].real
         r1 = r - 0.5 * t
         r2 = r + 0.5 * t
 
@@ -83,13 +83,13 @@ class MaterialsTube(Component):
         r2_3 = r2**3
 
         a = self.arange
-        jac[name+'A', name+'r'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
-        jac[name+'A', name+'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
-        jac[name+'Iy', name+'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac[name+'Iy', name+'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        jac[name+'Iz', name+'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac[name+'Iz', name+'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        jac[name+'J', name+'r'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac[name+'J', name+'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['A', 'r'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
+        jac['A', 'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
+        jac['Iy', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac['Iy', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['Iz', 'r'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac['Iz', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        jac['J', 'r'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        jac['J', 'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
 
         return jac

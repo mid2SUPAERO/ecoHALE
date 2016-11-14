@@ -275,8 +275,8 @@ class OASProblem():
         self.prob.driver.add_recorder(SqliteRecorder(self.prob_dict['prob_name']+".db"))
 
         # Profile (time) the problem
-        # profile.setup(self.prob)
-        # profile.start()
+        profile.setup(self.prob)
+        profile.start()
 
         # Set up the problem
         self.prob.setup()
@@ -360,7 +360,7 @@ class OASProblem():
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),
-                     promotes=['*'])
+                     promotes=['A', 'Iy', 'Iz', 'J'])
             tmp_group.add('spatialbeamstates',
                      SpatialBeamStates(surface),
                      promotes=['*'])
@@ -369,9 +369,10 @@ class OASProblem():
                      promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface
+            nm = name
             name = name + 'struct'
             exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
+            exec('root.add("' + name + '", ' + name + ', promotes=["' + nm + 'thickness_cp", "' + nm + 'weight", "' + nm + 'failure"])')
 
         self.setup_prob()
 
