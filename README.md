@@ -24,7 +24,7 @@ Note that the master branch is a development branch and may be unstable. Using a
 
     git checkout v0.2.0
 
-This will use v0.2.0 of OpenAeroStruct, the most recent version.
+This will use v0.2.0 of OpenAeroStruct, the most recent stable version.
 
 ## Usage
 
