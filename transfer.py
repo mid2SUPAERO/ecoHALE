@@ -49,17 +49,17 @@ class TransferDisplacements(Component):
         name = surface['name']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param(name+'mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
-        self.add_param(name+'disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
-        self.add_output(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
+        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
+        self.add_param('disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
+        self.add_output('def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
 
         if not fortran_flag:
             self.deriv_options['type'] = 'fd'
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        mesh = params[name+'mesh']
-        disp = params[name+'disp']
+        mesh = params['mesh']
+        disp = params['disp']
 
         w = self.surface['fem_origin']
         st = time()
@@ -92,24 +92,24 @@ class TransferDisplacements(Component):
 
             def_mesh += mesh
 
-        unknowns[name+'def_mesh'] = def_mesh
+        unknowns['def_mesh'] = def_mesh
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
         name = self.surface['name']
-        mesh = params[name+'mesh']
-        disp = params[name+'disp']
+        mesh = params['mesh']
+        disp = params['disp']
 
         w = self.surface['fem_origin']
         st = time()
 
         if mode == 'fwd':
-            a, b = OAS_API.oas_api.transferdisplacements_d(mesh, dparams[name+'mesh'], disp, dparams[name+'disp'], w)
-            dresids[name+'def_mesh'] += b.real
+            a, b = OAS_API.oas_api.transferdisplacements_d(mesh, dparams['mesh'], disp, dparams['disp'], w)
+            dresids['def_mesh'] += b.real
 
         if mode == 'rev':
-            a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, unknowns[name+'def_mesh'], dresids[name+'def_mesh'])
-            dparams[name+'mesh'] += a.real
-            dparams[name+'disp'] += b.real
+            a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, unknowns['def_mesh'], dresids['def_mesh'])
+            dparams['mesh'] += a.real
+            dparams['disp'] += b.real
 
         # ### DOT PRODUCT TEST ###
         # meshd = numpy.random.random_sample(mesh.shape)
@@ -173,10 +173,10 @@ class TransferLoads(Component):
         name = surface['name']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3)))
-        self.add_param(name+'sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3),
+        self.add_param('def_mesh', val=numpy.zeros((self.nx, self.ny, 3)))
+        self.add_param('sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3),
                        dtype="complex"))
-        self.add_output(name+'loads', val=numpy.zeros((self.ny, 6),
+        self.add_output('loads', val=numpy.zeros((self.ny, 6),
                         dtype="complex"))
 
         self.deriv_options['type'] = 'cs'
@@ -185,9 +185,9 @@ class TransferLoads(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        mesh = params[name+'def_mesh']
+        mesh = params['def_mesh']
 
-        sec_forces = params[name+'sec_forces']
+        sec_forces = params['sec_forces']
         sec_forces = numpy.sum(sec_forces, axis=0)
 
 
@@ -215,4 +215,4 @@ class TransferLoads(Component):
         loads[:-1, 3:] += 0.5 * moment
         loads[ 1:, 3:] += 0.5 * moment
 
-        unknowns[name+'loads'] = loads
+        unknowns['loads'] = loads

@@ -195,9 +195,9 @@ class SpatialBeamFEM(Component):
         self.add_param('Iy', val=numpy.zeros((self.ny - 1)))
         self.add_param('Iz', val=numpy.zeros((self.ny - 1)))
         self.add_param('J', val=numpy.zeros((self.ny - 1)))
-        self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3)))
+        self.add_param('nodes', val=numpy.zeros((self.ny, 3)))
         self.add_param(name+'loads', val=numpy.zeros((self.ny, 6)))
-        self.add_state(name+'disp_aug', val=numpy.zeros((size), dtype="complex"))
+        self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
         # self.deriv_options['form'] = 'central'
@@ -263,7 +263,7 @@ class SpatialBeamFEM(Component):
         name = self.surface['name']
 
         # Find constrained nodes based on closeness to specified cg point
-        nodes = params[name+'nodes']
+        nodes = params['nodes']
         dist = nodes - numpy.array([self.cg_x, 0, 0])
         idx = (numpy.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
@@ -271,7 +271,7 @@ class SpatialBeamFEM(Component):
         loads = params[name+'loads']
 
         self.K, self.x, self.rhs = \
-            _assemble_system(params[name+'nodes'],
+            _assemble_system(params['nodes'],
                              params['A'], params['J'], params['Iy'],
                              params['Iz'], loads, self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
@@ -281,14 +281,14 @@ class SpatialBeamFEM(Component):
                              self.const_z, self.ny, self.size,
                              self.K, self.rhs)
 
-        unknowns[name+'disp_aug'] = self.x
+        unknowns['disp_aug'] = self.x
 
 
     def apply_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
         loads = params[name+'loads']
         self.K, _, self.rhs = \
-            _assemble_system(params[name+'nodes'],
+            _assemble_system(params['nodes'],
                              params['A'], params['J'], params['Iy'],
                              params['Iz'], loads, self.K_a, self.K_t,
                              self.K_y, self.K_z, self.elem_IDs, self.cons,
@@ -298,8 +298,8 @@ class SpatialBeamFEM(Component):
                              self.const_z, self.ny, self.size,
                              self.K, self.rhs)
 
-        disp_aug = unknowns[name+'disp_aug']
-        resids[name+'disp_aug'] = self.K.dot(disp_aug) - self.rhs
+        disp_aug = unknowns['disp_aug']
+        resids['disp_aug'] = self.K.dot(disp_aug) - self.rhs
 
     # def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
     #     name = self.surface['name']
@@ -307,7 +307,7 @@ class SpatialBeamFEM(Component):
     #     num_elems = self.elem_IDs.shape[0]
     #
     #     ### DOT PRODUCT TEST ###
-    #     nodesd = numpy.random.random_sample(params[name+'nodes'].shape)
+    #     nodesd = numpy.random.random_sample(params['nodes'].shape)
     #     Ad = numpy.random.random_sample(params['A'].shape)
     #     Jd = numpy.random.random_sample(params['J'].shape)
     #     Iyd = numpy.random.random_sample(params['Iy'].shape)
@@ -321,7 +321,7 @@ class SpatialBeamFEM(Component):
     #     Izd_copy = Izd.copy()
     #     loadsd_copy = loadsd.copy()
     #
-    #     self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params[name+'nodes'], nodesd,
+    #     self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params['nodes'], nodesd,
     #                      params['A'], Ad, params['J'], Jd, params['Iy'], Iyd,
     #                      params['Iz'], Izd,
     #                                  self.K_a, self.K_t,
@@ -332,11 +332,11 @@ class SpatialBeamFEM(Component):
     #                                  self.const_z, loads, loadsd)
     #
     #     Kb = numpy.random.random_sample(self.K.shape)
-    #     xb = numpy.random.random_sample(unknowns[name+'disp_aug'].shape)
+    #     xb = numpy.random.random_sample(unknowns['disp_aug'].shape)
     #     Kb_copy = Kb.copy()
     #     xb_copy = xb.copy()
     #
-    #     nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params[name+'nodes'],
+    #     nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params['nodes'],
     #                      params['A'], params['J'], params['Iy'],
     #                      params['Iz'],
     #                                  self.K_a, self.K_t,
@@ -363,7 +363,7 @@ class SpatialBeamFEM(Component):
     #
     #
     #     if mode == 'fwd':
-    #         self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params[name+'nodes'], dparams[name+'nodes'],
+    #         self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params['nodes'], dparams['nodes'],
     #                          params['A'], dparams['A'], params['J'], dparams['J'], params['Iy'], dparams['Iy'],
     #                          params['Iz'], dparams['Iz'],
     #                                      self.K_a, self.K_t,
@@ -373,21 +373,21 @@ class SpatialBeamFEM(Component):
     #                                      self.T_elem, self.const2, self.const_y,
     #                                      self.const_z, loads, dparams[name+'loads'])
     #
-    #         dresids[name+'disp_aug'] += xd
+    #         dresids['disp_aug'] += xd
     #         # print '!!!!!!!!!!!!!!!!!!!'
-    #         # print dparams[name+'nodes']
+    #         # print dparams['nodes']
     #         # print dparams['A']
     #         # print dparams['J']
     #         # print dparams['Iy']
     #         # print dparams['Iz']
     #         # print dparams[name+'loads']
-    #         # print dresids[name+'disp_aug']
+    #         # print dresids['disp_aug']
     #
     #
     #     else:
-    #         seeds = dresids[name+'disp_aug'].copy()
+    #         seeds = dresids['disp_aug'].copy()
     #
-    #         nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params[name+'nodes'].copy(),
+    #         nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params['nodes'].copy(),
     #                          params['A'].copy(), params['J'].copy(), params['Iy'].copy(),
     #                          params['Iz'].copy(),
     #                                      self.K_a, self.K_t,
@@ -395,9 +395,9 @@ class SpatialBeamFEM(Component):
     #                                      self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
     #                                      self.S_a, self.S_t, self.S_y, self.S_z,
     #                                      self.T_elem, self.const2, self.const_y,
-    #                                      self.const_z, loads, self.K, numpy.zeros(self.K.shape), unknowns[name+'disp_aug'].copy(), seeds)
+    #                                      self.const_z, loads, self.K, numpy.zeros(self.K.shape), unknowns['disp_aug'].copy(), seeds)
     #
-    #         dparams[name+'nodes'] += nodesb
+    #         dparams['nodes'] += nodesb
     #         dparams['A'] += Ab
     #         dparams['J'] += Jb
     #         dparams['Iy'] += Iyb
@@ -405,13 +405,13 @@ class SpatialBeamFEM(Component):
     #         dparams[name+'loads'] += loadsb
     #
     #         # print '@@@@@@@@@@@@@@@@@@@@'
-    #         # print dparams[name+'nodes']
+    #         # print dparams['nodes']
     #         # print dparams['A']
     #         # print dparams['J']
     #         # print dparams['Iy']
     #         # print dparams['Iz']
     #         # print dparams[name+'loads']
-    #         # print dresids[name+'disp_aug']
+    #         # print dresids['disp_aug']
     #
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
@@ -420,10 +420,10 @@ class SpatialBeamFEM(Component):
         jac = self.alloc_jacobian()
         fd_jac = self.fd_jacobian(params, unknowns, resids,
                                             fd_params=['A', 'Iy', 'Iz', 'J',
-                                                       name+'nodes', name+'loads'],
+                                                       'nodes', name+'loads'],
                                             fd_states=[])
         jac.update(fd_jac)
-        jac[name+'disp_aug', name+'disp_aug'] = self.K.real
+        jac['disp_aug', 'disp_aug'] = self.K.real
 
         self.lup = lu_factor(self.K.real)
 
@@ -481,8 +481,8 @@ class SpatialBeamDisp(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype='complex'))
-        self.add_output(name+'disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
+        self.add_param('disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype='complex'))
+        self.add_output('disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
         self.arange = numpy.arange(6*self.ny)
 
         # self.deriv_options['type'] = 'cs'
@@ -493,13 +493,13 @@ class SpatialBeamDisp(Component):
         # in disp
         name = self.surface['name']
 
-        unknowns[name+'disp'] = params[name+'disp_aug'][:-6].reshape((self.ny, 6))
+        unknowns['disp'] = params['disp_aug'][:-6].reshape((self.ny, 6))
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         name = self.surface['name']
         n = self.ny * 6
-        jac[name+'disp', name+'disp_aug'] = numpy.hstack((numpy.eye((n)), numpy.zeros((n, 6))))
+        jac['disp', 'disp_aug'] = numpy.hstack((numpy.eye((n)), numpy.zeros((n, 6))))
         return jac
 
 
@@ -534,14 +534,14 @@ class ComputeNodes(Component):
         self.fem_origin = surface['fem_origin']
 
         self.add_param(name+'mesh', val=numpy.zeros((self.nx, self.ny, 3)))
-        self.add_output(name+'nodes', val=numpy.zeros((self.ny, 3)))
+        self.add_output('nodes', val=numpy.zeros((self.ny, 3)))
 
     def solve_nonlinear(self, params, unknowns, resids):
         w = self.fem_origin
         name = self.surface['name']
         mesh = params[name+'mesh']
 
-        unknowns[name+'nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
+        unknowns['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -582,19 +582,19 @@ class SpatialBeamEnergy(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'disp', val=numpy.zeros((self.ny, 6)))
+        self.add_param('disp', val=numpy.zeros((self.ny, 6)))
         self.add_param(name+'loads', val=numpy.zeros((self.ny, 6)))
-        self.add_output(name+'energy', val=0.)
+        self.add_output('energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        unknowns[name+'energy'] = numpy.sum(params[name+'disp'] * params[name+'loads'])
+        unknowns['energy'] = numpy.sum(params['disp'] * params[name+'loads'])
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         name = self.surface['name']
-        jac[name+'energy', name+'disp'][0, :] = params[name+'loads'].real.flatten()
-        jac[name+'energy', name+'loads'][0, :] = params[name+'disp'].real.flatten()
+        jac['energy', 'disp'][0, :] = params[name+'loads'].real.flatten()
+        jac['energy', name+'loads'][0, :] = params['disp'].real.flatten()
         return jac
 
 
@@ -625,8 +625,8 @@ class SpatialBeamWeight(Component):
         name = surface['name']
 
         self.add_param('A', val=numpy.zeros((self.ny - 1)))
-        self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3)))
-        self.add_output(name+'weight', val=0.)
+        self.add_param('nodes', val=numpy.zeros((self.ny, 3)))
+        self.add_output('weight', val=0.)
 
         self.deriv_options['type'] = 'fd'
         self.deriv_options['form'] = 'central'
@@ -640,7 +640,7 @@ class SpatialBeamWeight(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
         A = params['A']
-        nodes = params[name+'nodes']
+        nodes = params['nodes']
         num_elems = self.elem_IDs.shape[0]
 
         # Calculate the volume and weight of the total structure
@@ -657,12 +657,12 @@ class SpatialBeamWeight(Component):
         if self.surface['symmetry']:
             weight *= 2.
 
-        unknowns[name+'weight'] = weight
+        unknowns['weight'] = weight
 
     def linearize(self, params, unknowns, resids):
         name = self.surface['name']
         jac = self.alloc_jacobian()
-        jac[name+'weight', name+'t'][0, :] = 1.0
+        jac['weight', name+'t'][0, :] = 1.0
         return jac
 
 
@@ -696,14 +696,14 @@ class SpatialBeamVonMisesTube(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'nodes', val=numpy.zeros((self.ny, 3),
+        self.add_param('nodes', val=numpy.zeros((self.ny, 3),
                        dtype="complex"))
-        self.add_param(name+'r', val=numpy.zeros((self.ny - 1),
+        self.add_param('r', val=numpy.zeros((self.ny - 1),
                        dtype="complex"))
-        self.add_param(name+'disp', val=numpy.zeros((self.ny, 6),
+        self.add_param('disp', val=numpy.zeros((self.ny, 6),
                        dtype="complex"))
 
-        self.add_output(name+'vonmises', val=numpy.zeros((self.ny-1, 2),
+        self.add_output('vonmises', val=numpy.zeros((self.ny-1, 2),
                         dtype="complex"))
 
         if not fortran_flag:
@@ -726,10 +726,10 @@ class SpatialBeamVonMisesTube(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         elem_IDs = self.elem_IDs
         name = self.surface['name']
-        r = params[name+'r']
-        disp = params[name+'disp']
-        nodes = params[name+'nodes']
-        vonmises = unknowns[name+'vonmises']
+        r = params['r']
+        disp = params['disp']
+        nodes = params['nodes']
+        vonmises = unknowns['vonmises']
         T = self.T
         E = self.E
         G = self.G
@@ -737,7 +737,7 @@ class SpatialBeamVonMisesTube(Component):
 
         if fortran_flag:
             vm = OAS_API.oas_api.calc_vonmises(elem_IDs+1, nodes, r, disp, E, G, x_gl)
-            unknowns[name+'vonmises'] = vm
+            unknowns['vonmises'] = vm
 
         else:
 
@@ -774,23 +774,23 @@ class SpatialBeamVonMisesTube(Component):
 
         name = self.surface['name']
         elem_IDs = self.elem_IDs
-        r = params[name+'r'].real
-        disp = params[name+'disp'].real
-        nodes = params[name+'nodes'].real
-        vonmises = unknowns[name+'vonmises'].real
+        r = params['r'].real
+        disp = params['disp'].real
+        nodes = params['nodes'].real
+        vonmises = unknowns['vonmises'].real
         E = self.E
         G = self.G
         x_gl = self.x_gl
 
         if mode == 'fwd':
-            _, a = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, dparams[name+'nodes'], r, dparams[name+'r'], disp, dparams[name+'disp'], E, G, x_gl)
-            dresids[name+'vonmises'] += a
+            _, a = OAS_API.oas_api.calc_vonmises_d(elem_IDs+1, nodes, dparams['nodes'], r, dparams['r'], disp, dparams['disp'], E, G, x_gl)
+            dresids['vonmises'] += a
 
         if mode == 'rev':
-            a, b, c = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, dresids[name+'vonmises'])
-            dparams[name+'nodes'] += a
-            dparams[name+'r'] += b
-            dparams[name+'disp'] += c
+            a, b, c = OAS_API.oas_api.calc_vonmises_b(elem_IDs+1, nodes, r, disp, E, G, x_gl, vonmises, dresids['vonmises'])
+            dparams['nodes'] += a
+            dparams['r'] += b
+            dparams['disp'] += c
 
         ### DOT PRODUCT TEST ###
         # nodesd = numpy.random.random_sample(nodes.shape)
@@ -854,8 +854,8 @@ class SpatialBeamFailureKS(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'vonmises', val=numpy.zeros((self.ny-1, 2)))
-        self.add_output(name+'failure', val=0.)
+        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2)))
+        self.add_output('failure', val=0.)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -867,13 +867,13 @@ class SpatialBeamFailureKS(Component):
         name = self.surface['name']
         sigma = self.sigma
         rho = self.rho
-        vonmises = params[name+'vonmises']
+        vonmises = params['vonmises']
 
         fmax = numpy.max(vonmises/sigma - 1)
 
         nlog, nsum, nexp = numpy.log, numpy.sum, numpy.exp
         ks = 1 / rho * nlog(nsum(nexp(rho * (vonmises/sigma - 1 - fmax))))
-        unknowns[name+'failure'] = fmax + ks
+        unknowns['failure'] = fmax + ks
 
 
 class SpatialBeamStates(Group):

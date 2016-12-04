@@ -93,19 +93,19 @@ class TestAero(unittest.TestCase):
         OAS_prob.add_surface(surf_dict)
         OAS_prob.setup()
 
-        OAS_prob.add_desvar('tail_twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_desvar('tail_sweep', lower=10., upper=30.)
-        OAS_prob.add_desvar('tail_dihedral', lower=-10., upper=20.)
-        OAS_prob.add_desvar('tail_taper', lower=.5, upper=2.)
-        OAS_prob.add_constraint('tail_CL', equals=0.5)
-        OAS_prob.add_objective('tail_CD', scaler=1e4)
+        OAS_prob.add_desvar('tail.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('tail.sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('tail.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('tail.taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('tail_performance.CL', equals=0.5)
+        OAS_prob.add_objective('tail_performance.CD', scaler=1e4)
 
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_CL'], .41543435621928004, places=5)
-        self.assertAlmostEqual(prob['tail_CL'], .5, places=5)
-        self.assertAlmostEqual(prob['wing_CD'], .0075400306289957033, places=5)
-        self.assertAlmostEqual(prob['tail_CD'], .00791118243006308, places=5)
+        self.assertAlmostEqual(prob['wing_performance.CL'], .41543435621928004, places=5)
+        self.assertAlmostEqual(prob['tail_performance.CL'], .5, places=5)
+        self.assertAlmostEqual(prob['wing_performance.CD'], .0075400306289957033, places=5)
+        self.assertAlmostEqual(prob['tail_performance.CD'], .00791118243006308, places=5)
 
 
 class TestStruct(unittest.TestCase):

@@ -441,12 +441,12 @@ class GeometryMesh(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'span', val=58.7630524)
-        self.add_param(name+'sweep', val=0.)
-        self.add_param(name+'dihedral', val=0.)
-        self.add_param(name+'twist', val=numpy.zeros(self.ny), dtype='complex')
-        self.add_param(name+'taper', val=1.)
-        self.add_output(name+'mesh', val=self.mesh)
+        self.add_param('span', val=58.7630524)
+        self.add_param('sweep', val=0.)
+        self.add_param('dihedral', val=0.)
+        self.add_param('twist', val=numpy.zeros(self.ny), dtype='complex')
+        self.add_param('taper', val=1.)
+        self.add_output('mesh', val=self.mesh)
 
         self.symmetry = surface['symmetry']
 
@@ -456,13 +456,13 @@ class GeometryMesh(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
         mesh = self.mesh.copy()
-        # stretch(mesh, params[name+'span'])
-        sweep(mesh, params[name+'sweep'], self.symmetry)
-        rotate(mesh, params[name+'twist'])
-        dihedral(mesh, params[name+'dihedral'], self.symmetry)
-        taper(mesh, params[name+'taper'], self.symmetry)
+        # stretch(mesh, params['span'])
+        sweep(mesh, params['sweep'], self.symmetry)
+        rotate(mesh, params['twist'])
+        dihedral(mesh, params['dihedral'], self.symmetry)
+        taper(mesh, params['taper'], self.symmetry)
 
-        unknowns[name+'mesh'] = mesh
+        unknowns['mesh'] = mesh
 
     def linearize(self, params, unknowns, resids):
         name = self.surface['name']
@@ -470,9 +470,9 @@ class GeometryMesh(Component):
         jac = self.alloc_jacobian()
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=[name+'span', name+'sweep',
-                                                       name+'dihedral', name+'twist',
-                                                       name+'taper'],
+                                            fd_params=['span', 'sweep',
+                                                       'dihedral', 'twist',
+                                                       'taper'],
                                             fd_states=[])
         jac.update(fd_jac)
         return jac

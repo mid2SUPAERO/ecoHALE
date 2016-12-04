@@ -275,8 +275,8 @@ class OASProblem():
         self.prob.driver.add_recorder(SqliteRecorder(self.prob_dict['prob_name']+".db"))
 
         # Profile (time) the problem
-        profile.setup(self.prob)
-        profile.start()
+        # profile.setup(self.prob)
+        # profile.start()
 
         # Set up the problem
         self.prob.setup()
@@ -331,13 +331,13 @@ class OASProblem():
 
             # Add independent variables that do not belong to a specific component
             indep_vars = [
-                (name+'twist_cp', numpy.zeros(surface['num_twist'])),
-                (name+'thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
+                ('twist_cp', numpy.zeros(surface['num_twist'])),
+                ('thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
                 (name+'dihedral', surface['dihedral']),
                 (name+'sweep', surface['sweep']),
                 (name+'span', surface['span']),
                 (name+'taper', surface['taper']),
-                (name+'r', surface['r']),
+                ('r', surface['r']),
                 (name+'loads', surface['loads'])]
 
             # Obtain the Jacobians to interpolate the data from the b-spline
@@ -350,17 +350,17 @@ class OASProblem():
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline(name+'twist_cp', name+'twist', jac_twist),
+                     Bspline('twist_cp', 'twist', jac_twist),
                      promotes=['*'])
             tmp_group.add('thickness_bsp',
-                     Bspline(name+'thickness_cp', name+'thickness', jac_thickness),
+                     Bspline('thickness_cp', 'thickness', jac_thickness),
                      promotes=['*'])
             tmp_group.add('mesh',
                      GeometryMesh(surface),
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),
-                     promotes=['A', 'Iy', 'Iz', 'J'])
+                     promotes=['thickness', 'r', 'A', 'Iy', 'Iz', 'J'])
             tmp_group.add('spatialbeamstates',
                      SpatialBeamStates(surface),
                      promotes=['*'])
@@ -372,7 +372,7 @@ class OASProblem():
             nm = name
             name = name + 'struct'
             exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["' + nm + 'thickness_cp", "' + nm + 'weight", "' + nm + 'failure"])')
+            exec('root.add("' + name + '", ' + name + ', promotes=[])')
 
         self.setup_prob()
 
@@ -403,12 +403,12 @@ class OASProblem():
 
             # Add independent variables that do not belong to a specific component
             indep_vars = [
-                (name+'twist_cp', numpy.zeros(surface['num_twist'])),
-                (name+'dihedral', surface['dihedral']),
-                (name+'sweep', surface['sweep']),
-                (name+'span', surface['span']),
-                (name+'taper', surface['taper']),
-                (name+'disp', numpy.zeros((surface['num_y'], 6)))]
+                ('twist_cp', numpy.zeros(surface['num_twist'])),
+                ('dihedral', surface['dihedral']),
+                ('sweep', surface['sweep']),
+                ('span', surface['span']),
+                ('taper', surface['taper']),
+                ('disp', numpy.zeros((surface['num_y'], 6)))]
 
             # Obtain the Jacobian to interpolate the data from the b-spline
             # control points
@@ -417,9 +417,10 @@ class OASProblem():
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
+                    #  promotes=['twist_cp', 'dihedral', 'sweep', 'span', 'taper', 'disp'])
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline(name+'twist_cp', name+'twist', jac_twist),
+                     Bspline('twist_cp', 'twist', jac_twist),
                      promotes=['*'])
             tmp_group.add('mesh',
                      GeometryMesh(surface),
@@ -436,13 +437,14 @@ class OASProblem():
             # Note that is a '_pre_solve' and '_post_solve' group for each
             # individual surface.
             name_orig = name.strip('_')
-            name = name_orig + '_pre_solve'
+            name = name_orig
             exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
+            exec('root.add("' + name + '", ' + name + ', promotes=[])')
 
             # Add a '_post_solve' group
-            name = name_orig + '_post_solve'
-            exec('root.add("' + name + '", ' + 'VLMFunctionals(surface)' + ', promotes=["*"])')
+            name = name_orig + '_performance'
+            exec('root.add("' + name + '", ' + 'VLMFunctionals(surface)' + ', promotes=["v", "alpha", "M", "Re", "rho"])')
+            # exec('root.add("' + name + '", ' + 'VLMFunctionals(surface)' + ', promotes=["*"])')
 
         # Add problem information as an independent variables component
         prob_vars = [('v', self.prob_dict['v']),
@@ -461,7 +463,27 @@ class OASProblem():
         # each surface interacts with the others.
         root.add('vlmstates',
                  VLMStates(self.surfaces, self.prob_dict),
-                 promotes=['*'])
+                 promotes=['circulations', 'v', 'alpha', 'rho'])
+
+        # Explicitly connect parameters from each surface's group and the common
+        # VLMStates group.
+        for surface in self.surfaces:
+            name = surface['name']
+
+            # Perform the connections with the modified names within the
+            # VLMStates group.
+            root.connect(name[:-1] + '.def_mesh', 'vlmstates.' + name + 'def_mesh')
+            root.connect(name[:-1] + '.b_pts', 'vlmstates.' + name + 'b_pts')
+            root.connect(name[:-1] + '.c_pts', 'vlmstates.' + name + 'c_pts')
+            root.connect(name[:-1] + '.normals', 'vlmstates.' + name + 'normals')
+
+            # Connect the results from VLMStates to the performance groups
+            root.connect('vlmstates.' + name + 'sec_forces', name + 'performance' + '.sec_forces')
+
+            root.connect(name[:-1] + '.S_ref', name + 'performance' + '.S_ref')
+
+
+
 
         self.setup_prob()
 
@@ -506,7 +528,7 @@ class OASProblem():
             jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
             jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1)
 
-            # Add components to include in the '_pre_solve' group
+            # Add components to include in the surface's group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
                      promotes=['*'])
@@ -520,10 +542,9 @@ class OASProblem():
                      MaterialsTube(surface),
                      promotes=['*'])
 
-            # Add tmp_group to the problem with the name of the surface and
-            # '_pre_solve' appended.
-            name_orig = name#.strip('_')
-            name = name + 'pre_solve'
+            # Add tmp_group to the problem with the name of the surface.
+            name_orig = name
+            name = name
             exec(name + ' = tmp_group')
             exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
 

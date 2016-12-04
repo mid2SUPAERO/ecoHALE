@@ -38,12 +38,12 @@ if __name__ == "__main__":
 
         # Setup problem and add design variables, constraint, and objective
         OAS_prob.setup()
-        OAS_prob.add_desvar('wing_twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_desvar('wing_sweep', lower=10., upper=30.)
-        OAS_prob.add_desvar('wing_dihedral', lower=-10., upper=20.)
-        OAS_prob.add_desvar('wing_taper', lower=.5, upper=2.)
-        OAS_prob.add_constraint('wing_CL', equals=0.5)
-        OAS_prob.add_objective('wing_CD', scaler=1e4)
+        OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('wing_performance.CL', equals=0.5)
+        OAS_prob.add_objective('wing_performance.CD', scaler=1e4)
 
     # Multiple lifting surfaces
     else:
@@ -56,24 +56,24 @@ if __name__ == "__main__":
         # Setup problem and add design variables, constraints, and objective
         OAS_prob.setup()
 
-        OAS_prob.add_desvar('wing_twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_desvar('wing_sweep', lower=10., upper=30.)
-        OAS_prob.add_desvar('wing_dihedral', lower=-10., upper=20.)
-        OAS_prob.add_desvar('wing_taper', lower=.5, upper=2.)
-        OAS_prob.add_constraint('wing_CL', equals=0.5)
+        OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('wing_performance.CL', equals=0.5)
 
         # Note that these tail variables have no effect on the wing and thus
         # have no need to be changed except to satisfy the failure constraint
         # The tail has no effect because it's adequately far away from the wing
-        OAS_prob.add_desvar('tail_twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_desvar('tail_sweep', lower=10., upper=30.)
-        OAS_prob.add_desvar('tail_dihedral', lower=-10., upper=20.)
-        OAS_prob.add_desvar('tail_taper', lower=.5, upper=2.)
-        OAS_prob.add_constraint('tail_CL', equals=0.5)
-        OAS_prob.add_objective('tail_CD', scaler=1e4)
+        OAS_prob.add_desvar('tail.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('tail.sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('tail.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('tail.taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('tail_performance.CL', equals=0.5)
+        OAS_prob.add_objective('tail_performance.CD', scaler=1e4)
 
     # Actually run the problem
     OAS_prob.run()
 
-    print "\nWing CL:", OAS_prob.prob['wing_CL']
-    print "Wing CD:", OAS_prob.prob['wing_CD']
+    print "\nWing CL:", OAS_prob.prob['wing_performance.CL']
+    print "Wing CD:", OAS_prob.prob['wing_performance.CD']

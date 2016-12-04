@@ -49,7 +49,7 @@ if __name__ == "__main__":
         OAS_prob.setup()
         OAS_prob.add_desvar('wing_twist_cp', lower=-15., upper=15.)
         OAS_prob.add_desvar('wing_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-        OAS_prob.add_constraint('wing_failure', upper=0.)
+        OAS_prob.add_constraint('failure', upper=0.)
 
     # Multiple lifting surfaces
     else:

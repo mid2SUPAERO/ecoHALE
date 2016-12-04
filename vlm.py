@@ -384,8 +384,8 @@ def _assemble_AIC_mtx_d(mtx, params, surfaces, skip=False):
 
         # Obtain the lifting surface mesh in the form expected by the solver,
         # with shape [nx_, ny_, 3]
-        mesh = params[name_+'def_mesh']
-        bpts = params[name_+'b_pts']
+        mesh = params['def_mesh']
+        bpts = params['b_pts']
 
         # Set counters to know where to index the sub-matrix within the full mtx
         i = 0
@@ -408,10 +408,10 @@ def _assemble_AIC_mtx_d(mtx, params, surfaces, skip=False):
             # midpoints of the bound vortices.
             if skip:
                 # Find the midpoints of the bound points, used in drag computations
-                pts = (params[name+'b_pts'][:, 1:, :] + \
-                    params[name+'b_pts'][:, :-1, :]) / 2
+                pts = (params['b_pts'][:, 1:, :] + \
+                    params['b_pts'][:, :-1, :]) / 2
             else:
-                pts = params[name+'c_pts']
+                pts = params['c_pts']
 
             # Initialize sub-matrix to populate within full mtx
             small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype='complex')
@@ -473,21 +473,21 @@ class VLMGeometry(Component):
         name = surface['name']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3),
+        self.add_param('def_mesh', val=numpy.zeros((self.nx, self.ny, 3),
                        dtype="complex"))
-        self.add_output(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
+        self.add_output('b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
                         dtype="complex"))
-        self.add_output(name+'c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
-        self.add_output(name+'widths', val=numpy.zeros((self.nx-1, self.ny-1)))
-        self.add_output(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
-        self.add_output(name+'S_ref', val=0.)
+        self.add_output('c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output('widths', val=numpy.zeros((self.nx-1, self.ny-1)))
+        self.add_output('normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output('S_ref', val=0.)
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        mesh = params[name+'def_mesh']
+        mesh = params['def_mesh']
 
         # Compute the bound points at 1/4 chord
         b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
@@ -515,11 +515,11 @@ class VLMGeometry(Component):
             normals[:, :, j] /= norms
 
         # Store each array
-        unknowns[name+'b_pts'] = b_pts
-        unknowns[name+'c_pts'] = c_pts
-        unknowns[name+'widths'] = widths
-        unknowns[name+'normals'] = normals
-        unknowns[name+'S_ref'] = 0.5 * numpy.sum(norms)
+        unknowns['b_pts'] = b_pts
+        unknowns['c_pts'] = c_pts
+        unknowns['widths'] = widths
+        unknowns['normals'] = normals
+        unknowns['S_ref'] = 0.5 * numpy.sum(norms)
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
@@ -528,9 +528,9 @@ class VLMGeometry(Component):
         name = self.surface['name']
 
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=[name+'def_mesh'],
-                                            fd_unknowns=[name+'widths', name+'normals',
-                                                         name+'S_ref'],
+                                            fd_params=['def_mesh'],
+                                            fd_unknowns=['widths', 'normals',
+                                                         'S_ref'],
                                             fd_states=[])
         jac.update(fd_jac)
 
@@ -538,13 +538,13 @@ class VLMGeometry(Component):
         ny = self.surface['num_y']
 
         for iz, v in zip((0, ny*3), (.75, .25)):
-            numpy.fill_diagonal(jac[name+'b_pts', name+'def_mesh'][:, iz:], v)
+            numpy.fill_diagonal(jac['b_pts', 'def_mesh'][:, iz:], v)
 
 
         for iz, v in zip((0, 3, ny*3, (ny+1)*3),
                          (.125, .125, .375, .375)):
             for ix in range(nx-1):
-                numpy.fill_diagonal(jac[name+'c_pts', name+'def_mesh']
+                numpy.fill_diagonal(jac['c_pts', 'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
         return jac
@@ -885,15 +885,15 @@ class VLMLiftDrag(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'sec_forces', val=numpy.zeros((self.nx - 1, self.ny - 1, 3)))
+        self.add_param('sec_forces', val=numpy.zeros((self.nx - 1, self.ny - 1, 3)))
         self.add_param('alpha', val=3.)
         self.add_param('Re', val=5.e6)
         self.add_param('M', val=.84)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
-        self.add_param(name+'S_ref', val=0.)
-        self.add_output(name+'L', val=0.)
-        self.add_output(name+'D', val=0.)
+        self.add_param('S_ref', val=0.)
+        self.add_output('L', val=0.)
+        self.add_output('D', val=0.)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -901,7 +901,7 @@ class VLMLiftDrag(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
         alpha = params['alpha'] * numpy.pi / 180.
-        forces = params[name+'sec_forces'].reshape(-1, 3)
+        forces = params['sec_forces'].reshape(-1, 3)
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
@@ -909,7 +909,7 @@ class VLMLiftDrag(Component):
         M = params['M']
         v = params['v']
         rho = params['rho']
-        S_ref = params[name+'S_ref']
+        S_ref = params['S_ref']
 
         # Compute the skin friction coefficient
         # Use eq. 12.27 of Raymer for turbulent Cf
@@ -920,20 +920,20 @@ class VLMLiftDrag(Component):
             Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
 
         # Compute the induced lift force on each lifting surface
-        unknowns[name+'L'] = \
+        unknowns['L'] = \
             numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
 
         # Compute the induced drag force on each lifting surface
-        unknowns[name+'D'] = \
+        unknowns['D'] = \
             numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
 
         # Compute the drag contribution from skin friction
         D_f = Cf * rho * v**2 / 2. * S_ref
-        unknowns[name+'D'] += D_f
+        unknowns['D'] += D_f
 
         if self.surface['symmetry']:
-            unknowns[name+'D'] *= 2
-            unknowns[name+'L'] *= 2
+            unknowns['D'] *= 2
+            unknowns['L'] *= 2
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for lift and drag."""
@@ -946,21 +946,21 @@ class VLMLiftDrag(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        forces = params[name+'sec_forces']
+        forces = params['sec_forces']
 
         tmp = numpy.array([-sina, 0, cosa])
         panel_start = i_panels*3
         panel_end = i_panels*3+n_panels*3
-        jac[name+'L', name+'sec_forces'][i_surf, panel_start:panel_end] = \
+        jac['L', 'sec_forces'][i_surf, panel_start:panel_end] = \
             numpy.atleast_2d(numpy.tile(tmp, n_panels))
         tmp = numpy.array([cosa, 0, sina])
-        jac[name+'D', name+'sec_forces'][i_surf, panel_start:panel_end] = \
+        jac['D', 'sec_forces'][i_surf, panel_start:panel_end] = \
             numpy.atleast_2d(numpy.tile(tmp, n_panels))
 
         p180 = numpy.pi / 180.
-        jac[name+'L', name+'alpha'][i_surf] = p180 * \
+        jac['L', 'alpha'][i_surf] = p180 * \
             numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
-        jac[name+'D', name+'alpha'][i_surf] = p180 * \
+        jac['D', 'alpha'][i_surf] = p180 * \
             numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
 
         return jac
@@ -1002,30 +1002,30 @@ class VLMCoeffs(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'S_ref', val=0.)
-        self.add_param(name+'L', val=0.)
-        self.add_param(name+'D', val=0.)
+        self.add_param('S_ref', val=0.)
+        self.add_param('L', val=0.)
+        self.add_param('D', val=0.)
         self.add_param('v', val=0.)
         self.add_param('rho', val=0.)
-        self.add_output(name+'CL1', val=0.)
-        self.add_output(name+'CDi', val=0.)
+        self.add_output('CL1', val=0.)
+        self.add_output('CDi', val=0.)
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        S_ref = params[name+'S_ref']
+        S_ref = params['S_ref']
         rho = params['rho']
         v = params['v']
-        L = params[name+'L']
-        D = params[name+'D']
+        L = params['L']
+        D = params['D']
 
         if self.surface['symmetry']:
             S_ref *= 2
 
-        unknowns[name+'CL1'] = L / (0.5 * rho * v**2 * S_ref)
-        unknowns[name+'CDi'] = D / (0.5 * rho * v**2 * S_ref)
+        unknowns['CL1'] = L / (0.5 * rho * v**2 * S_ref)
+        unknowns['CDi'] = D / (0.5 * rho * v**2 * S_ref)
 
 class TotalLift(Component):
     """ Calculate total lift in force units.
@@ -1054,8 +1054,8 @@ class TotalLift(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'CL1', val=0.)
-        self.add_output(name+'CL', val=0.)
+        self.add_param('CL1', val=0.)
+        self.add_output('CL', val=0.)
         self.CL0 = surface['CL0']
 
         self.deriv_options['type'] = 'cs'
@@ -1063,7 +1063,7 @@ class TotalLift(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        unknowns[name+'CL'] = params[name+'CL1'] + self.CL0
+        unknowns['CL'] = params['CL1'] + self.CL0
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -1098,8 +1098,8 @@ class TotalDrag(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param(name+'CDi', val=0.)
-        self.add_output(name+'CD', val=0.)
+        self.add_param('CDi', val=0.)
+        self.add_output('CD', val=0.)
 
         self.CD0 = surface['CD0']
 
@@ -1108,7 +1108,7 @@ class TotalDrag(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        unknowns[name+'CD'] = params[name+'CDi'] + self.CD0
+        unknowns['CD'] = params['CDi'] + self.CD0
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -1122,12 +1122,13 @@ class VLMStates(Group):
     def __init__(self, surfaces, prob_dict):
         super(VLMStates, self).__init__()
 
-        self.add('forces',
-                 VLMForces(surfaces, prob_dict),
-                 promotes=['*'])
         self.add('circulations',
                  VLMCirculations(surfaces, prob_dict),
                  promotes=['*'])
+        self.add('forces',
+                 VLMForces(surfaces, prob_dict),
+                 promotes=['*'])
+
 
 
 class VLMFunctionals(Group):
