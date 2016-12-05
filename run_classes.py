@@ -68,7 +68,7 @@ class OASProblem():
         Each dictionary describes one surface.
         """
 
-        defaults = {'name' : '',            # name of the surface
+        defaults = {'name' : 'wing',        # name of the surface
                     'num_x' : 3,            # number of chordwise points
                     'num_y' : 5,            # number of spanwise points
                     'span' : 10.,           # full wingspan
@@ -480,10 +480,8 @@ class OASProblem():
             # Connect the results from VLMStates to the performance groups
             root.connect('vlmstates.' + name + 'sec_forces', name + 'performance' + '.sec_forces')
 
+            # Connect S_ref for performance calcs
             root.connect(name[:-1] + '.S_ref', name + 'performance' + '.S_ref')
-
-
-
 
         self.setup_prob()
 
@@ -515,13 +513,13 @@ class OASProblem():
 
             # Add independent variables that do not belong to a specific component
             indep_vars = [
-                (name+'twist_cp', numpy.zeros(surface['num_twist'])),
-                (name+'thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
-                (name+'r', surface['r']),
-                (name+'dihedral', surface['dihedral']),
-                (name+'sweep', surface['sweep']),
-                (name+'span', surface['span']),
-                (name+'taper', surface['taper'])]
+                ('twist_cp', numpy.zeros(surface['num_twist'])),
+                ('thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
+                ('r', surface['r']),
+                ('dihedral', surface['dihedral']),
+                ('sweep', surface['sweep']),
+                ('span', surface['span']),
+                ('taper', surface['taper'])]
 
             # Obtain the Jacobians to interpolate the data from the b-spline
             # control points
@@ -533,10 +531,10 @@ class OASProblem():
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline(name+'twist_cp', name+'twist', jac_twist),
+                     Bspline('twist_cp', 'twist', jac_twist),
                      promotes=['*'])
             tmp_group.add('thickness_bsp',
-                     Bspline(name+'thickness_cp', name+'thickness', jac_thickness),
+                     Bspline('thickness_cp', 'thickness', jac_thickness),
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),
@@ -544,9 +542,9 @@ class OASProblem():
 
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name
-            name = name
+            name = name[:-1]
             exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
+            exec('root.add("' + name + '", ' + name + ', promotes=[])')
 
             # Add components to the 'coupled' group for each surface
             tmp_group = Group()
@@ -566,10 +564,10 @@ class OASProblem():
 
             name = name_orig + 'group'
             exec(name + ' = tmp_group')
-            exec('coupled.add("' + name + '", ' + name + ', promotes=["*"])')
+            exec('coupled.add("' + name + '", ' + name + ', promotes=[])')
 
             # Add a loads component to the coupled group
-            exec('coupled.add("' + name_orig + 'loads' + '", ' + 'TransferLoads(surface)' + ', promotes=["*"])')
+            exec('coupled.add("' + name_orig + 'loads' + '", ' + 'TransferLoads(surface)' + ', promotes=[])')
 
             # Add a '_post_solve' group which evaluates the data after solving
             # the coupled system
@@ -584,12 +582,68 @@ class OASProblem():
 
             name = name_orig + 'post_solve'
             exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["*"])')
+            exec('root.add("' + name + '", ' + name + ', promotes=["rho", "v", "alpha", "Re", "M"])')
 
         # Add a single 'VLMStates' component for the whole system
         coupled.add('vlmstates',
                  VLMStates(self.surfaces, self.prob_dict),
-                 promotes=['*'])
+                 promotes=['v', 'alpha', 'rho'])
+
+        # Explicitly connect parameters from each surface's group and the common
+        # VLMStates group.
+        for surface in self.surfaces:
+            name = surface['name']
+
+            # Perform the connections with the modified names within the
+            # VLMStates group.
+            root.connect('coupled.' + name + 'group.def_mesh', 'coupled.vlmstates.' + name + 'def_mesh')
+            root.connect('coupled.' + name + 'group.b_pts', 'coupled.vlmstates.' + name + 'b_pts')
+            root.connect('coupled.' + name + 'group.c_pts', 'coupled.vlmstates.' + name + 'c_pts')
+            root.connect('coupled.' + name + 'group.normals', 'coupled.vlmstates.' + name + 'normals')
+
+            # Connect the results from VLMStates to the performance groups
+            root.connect('coupled.vlmstates.' + name + 'sec_forces', name + 'post_solve' + '.sec_forces')
+
+            # Connect the results from VLMStates to the performance groups
+            root.connect('coupled.' + name + 'loads.loads', 'coupled.' + name + 'group.loads')
+            root.connect('coupled.' + name + 'group.def_mesh', 'coupled.' + name + 'loads.def_mesh')
+            root.connect('coupled.vlmstates.' + name + 'sec_forces', 'coupled.' + name + 'loads.sec_forces')
+
+            root.connect('coupled.' + name + 'loads.loads', name + 'post_solve.loads')
+
+            # # Connect S_ref for performance calcs
+            # root.connect(name[:-1] + '.S_ref', name + 'performance' + '.S_ref')
+
+            # Connect aerodyamic design variables
+            root.connect(name[:-1] + '.dihedral', 'coupled.' + name + 'group.dihedral')
+            root.connect(name[:-1] + '.span', 'coupled.' + name + 'group.span')
+            root.connect(name[:-1] + '.sweep', 'coupled.' + name + 'group.sweep')
+            root.connect(name[:-1] + '.taper', 'coupled.' + name + 'group.taper')
+            root.connect(name[:-1] + '.twist', 'coupled.' + name + 'group.twist')
+
+            # Connect structural design variables
+            root.connect(name[:-1] + '.A', 'coupled.' + name + 'group.A')
+            root.connect(name[:-1] + '.Iy', 'coupled.' + name + 'group.Iy')
+            root.connect(name[:-1] + '.Iz', 'coupled.' + name + 'group.Iz')
+            root.connect(name[:-1] + '.J', 'coupled.' + name + 'group.J')
+
+            # Connect performance calculation variables
+            root.connect(name[:-1] + '.r', name + 'post_solve.r')
+            root.connect(name[:-1] + '.A', name + 'post_solve.A')
+
+            # Connection performance functional variables
+            root.connect(name + 'post_solve.weight', 'fuelburn.' + name + 'weight')
+            root.connect(name + 'post_solve.weight', 'eq_con.' + name + 'weight')
+            root.connect(name + 'post_solve.L', 'eq_con.' + name + 'L')
+            root.connect(name + 'post_solve.CL', 'fuelburn.' + name + 'CL')
+            root.connect(name + 'post_solve.CD', 'fuelburn.' + name + 'CD')
+
+            root.connect('coupled.' + name + 'group.nodes', name + 'post_solve.nodes')
+            root.connect('coupled.' + name + 'group.disp', name + 'post_solve.disp')
+            root.connect('coupled.' + name + 'group.S_ref', name + 'post_solve.S_ref')
+            # root.connect('coupled.' + name + 'group.nodes', name + 'post_solve.nodes')
+
+
 
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyGMRES()
@@ -610,7 +664,7 @@ class OASProblem():
         coupled.set_order(order_list)
 
         # Add the coupled group to the root problem
-        root.add('coupled', coupled, promotes=['*'])
+        root.add('coupled', coupled, promotes=['v', 'alpha', 'rho'])#, 'nodes', 'S_ref', 'alpha', 'v', 'A', 'Iy', 'Iz', 'J', 'dihedral', 'rho', 'sec_forces',  'b_pts', 'c_pts', 'def_mesh', 'normals'])
 
         # Add problem information as an independent variables component
         prob_vars = [('v', self.prob_dict['v']),
@@ -625,9 +679,9 @@ class OASProblem():
         # Add functionals to evaluate performance of the system
         root.add('fuelburn',
                  FunctionalBreguetRange(self.surfaces, self.prob_dict),
-                 promotes=['*'])
+                 promotes=['fuelburn'])
         root.add('eq_con',
                  FunctionalEquilibrium(self.surfaces, self.prob_dict),
-                 promotes=['*'])
+                 promotes=['eq_con', 'fuelburn'])
 
         self.setup_prob()

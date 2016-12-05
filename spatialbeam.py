@@ -196,7 +196,7 @@ class SpatialBeamFEM(Component):
         self.add_param('Iz', val=numpy.zeros((self.ny - 1)))
         self.add_param('J', val=numpy.zeros((self.ny - 1)))
         self.add_param('nodes', val=numpy.zeros((self.ny, 3)))
-        self.add_param(name+'loads', val=numpy.zeros((self.ny, 6)))
+        self.add_param('loads', val=numpy.zeros((self.ny, 6)))
         self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
@@ -268,7 +268,7 @@ class SpatialBeamFEM(Component):
         idx = (numpy.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
 
-        loads = params[name+'loads']
+        loads = params['loads']
 
         self.K, self.x, self.rhs = \
             _assemble_system(params['nodes'],
@@ -286,7 +286,7 @@ class SpatialBeamFEM(Component):
 
     def apply_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        loads = params[name+'loads']
+        loads = params['loads']
         self.K, _, self.rhs = \
             _assemble_system(params['nodes'],
                              params['A'], params['J'], params['Iy'],
@@ -303,7 +303,7 @@ class SpatialBeamFEM(Component):
 
     # def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
     #     name = self.surface['name']
-    #     loads = params[name+'loads']
+    #     loads = params['loads']
     #     num_elems = self.elem_IDs.shape[0]
     #
     #     ### DOT PRODUCT TEST ###
@@ -371,7 +371,7 @@ class SpatialBeamFEM(Component):
     #                                      self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
     #                                      self.S_a, self.S_t, self.S_y, self.S_z,
     #                                      self.T_elem, self.const2, self.const_y,
-    #                                      self.const_z, loads, dparams[name+'loads'])
+    #                                      self.const_z, loads, dparams['loads'])
     #
     #         dresids['disp_aug'] += xd
     #         # print '!!!!!!!!!!!!!!!!!!!'
@@ -380,7 +380,7 @@ class SpatialBeamFEM(Component):
     #         # print dparams['J']
     #         # print dparams['Iy']
     #         # print dparams['Iz']
-    #         # print dparams[name+'loads']
+    #         # print dparams['loads']
     #         # print dresids['disp_aug']
     #
     #
@@ -402,7 +402,7 @@ class SpatialBeamFEM(Component):
     #         dparams['J'] += Jb
     #         dparams['Iy'] += Iyb
     #         dparams['Iz'] += Izb
-    #         dparams[name+'loads'] += loadsb
+    #         dparams['loads'] += loadsb
     #
     #         # print '@@@@@@@@@@@@@@@@@@@@'
     #         # print dparams['nodes']
@@ -410,7 +410,7 @@ class SpatialBeamFEM(Component):
     #         # print dparams['J']
     #         # print dparams['Iy']
     #         # print dparams['Iz']
-    #         # print dparams[name+'loads']
+    #         # print dparams['loads']
     #         # print dresids['disp_aug']
     #
     def linearize(self, params, unknowns, resids):
@@ -420,7 +420,7 @@ class SpatialBeamFEM(Component):
         jac = self.alloc_jacobian()
         fd_jac = self.fd_jacobian(params, unknowns, resids,
                                             fd_params=['A', 'Iy', 'Iz', 'J',
-                                                       'nodes', name+'loads'],
+                                                       'nodes', 'loads'],
                                             fd_states=[])
         jac.update(fd_jac)
         jac['disp_aug', 'disp_aug'] = self.K.real
@@ -533,13 +533,13 @@ class ComputeNodes(Component):
         name = surface['name']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param(name+'mesh', val=numpy.zeros((self.nx, self.ny, 3)))
+        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3)))
         self.add_output('nodes', val=numpy.zeros((self.ny, 3)))
 
     def solve_nonlinear(self, params, unknowns, resids):
         w = self.fem_origin
         name = self.surface['name']
-        mesh = params[name+'mesh']
+        mesh = params['mesh']
 
         unknowns['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
@@ -547,7 +547,7 @@ class ComputeNodes(Component):
         jac = self.alloc_jacobian()
         name = self.surface['name']
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=[name+'mesh'],
+                                            fd_params=['mesh'],
                                             fd_states=[])
         jac.update(fd_jac)
         return jac
@@ -583,18 +583,18 @@ class SpatialBeamEnergy(Component):
         name = surface['name']
 
         self.add_param('disp', val=numpy.zeros((self.ny, 6)))
-        self.add_param(name+'loads', val=numpy.zeros((self.ny, 6)))
+        self.add_param('loads', val=numpy.zeros((self.ny, 6)))
         self.add_output('energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        unknowns['energy'] = numpy.sum(params['disp'] * params[name+'loads'])
+        unknowns['energy'] = numpy.sum(params['disp'] * params['loads'])
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         name = self.surface['name']
-        jac['energy', 'disp'][0, :] = params[name+'loads'].real.flatten()
-        jac['energy', name+'loads'][0, :] = params['disp'].real.flatten()
+        jac['energy', 'disp'][0, :] = params['loads'].real.flatten()
+        jac['energy', 'loads'][0, :] = params['disp'].real.flatten()
         return jac
 
 
@@ -662,7 +662,7 @@ class SpatialBeamWeight(Component):
     def linearize(self, params, unknowns, resids):
         name = self.surface['name']
         jac = self.alloc_jacobian()
-        jac['weight', name+'t'][0, :] = 1.0
+        jac['weight', 't'][0, :] = 1.0
         return jac
 
 

@@ -47,9 +47,9 @@ if __name__ == "__main__":
 
         # Setup problem and add design variables, constraint, and objective
         OAS_prob.setup()
-        OAS_prob.add_desvar('wing_twist_cp', lower=-15., upper=15.)
-        OAS_prob.add_desvar('wing_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-        OAS_prob.add_constraint('failure', upper=0.)
+        OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
+        OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_constraint('wing_post_solve.failure', upper=0.)
 
     # Multiple lifting surfaces
     else:
@@ -63,12 +63,12 @@ if __name__ == "__main__":
         OAS_prob.setup()
 
         # Add design variables and constraints for both the wing and tail
-        OAS_prob.add_desvar('wing_twist_cp', lower=-15., upper=15.)
-        OAS_prob.add_desvar('wing_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-        OAS_prob.add_constraint('wing_failure', upper=0.)
-        OAS_prob.add_desvar('tail_twist_cp', lower=-15., upper=15.)
-        OAS_prob.add_desvar('tail_thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-        OAS_prob.add_constraint('tail_failure', upper=0.)
+        OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
+        OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_constraint('wing_post_solve.failure', upper=0.)
+        OAS_prob.add_desvar('tail.twist_cp', lower=-15., upper=15.)
+        OAS_prob.add_desvar('tail.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_constraint('tail_post_solve.failure', upper=0.)
 
     # Add design variables, constraint, and objective on the problem
     OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
