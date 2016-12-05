@@ -104,7 +104,6 @@ class Display(object):
         # Change for future versions of OpenMDAO, still in progress
         # self.db_metadata = sqlitedict.SqliteDict(self.db_name, 'metadata')
         # self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
-
         self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
 
         self.twist = []
@@ -146,36 +145,62 @@ class Display(object):
         for case_name, case_data in self.db.iteritems():
             if "metadata" in case_name or "derivs" in case_name or "Driver" in case_name:
                 continue  # don't plot these cases
+
             names = []
             for key in case_data['Unknowns'].keys():
-                if 'mesh' in key and 'def_mesh' not in key:
-                    names.append(key.split('_')[:-1][0] + '_')
+                if 'coupled' in key and 'loads' in key:
+                    self.aerostruct = True
+                    names.append(key.split('_')[:-1][0])
+                elif 'mesh' in key and 'def_mesh' not in key and 'coupled' not in key:
+                    self.aerostruct = False
+                    names.append(key.split('.')[0])
+
             self.names = names
             n_names = len(names)
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
+            # Loop through each of the surfaces
             for name in names:
-                self.mesh.append(case_data['Unknowns'][name+'mesh'])
 
-                try:
-                    self.r.append(case_data['Unknowns'][name+'r'])
-                    self.t.append(case_data['Unknowns'][name+'thickness'])
+                # A mesh exists for all types of cases
+                self.mesh.append(case_data['Unknowns'][name+'.mesh'])
+
+                # Check if this is an aerostructual case; treat differently
+                # due to the way the problem is organized
+                if not self.aerostruct:
+                    try:
+                        self.r.append(case_data['Unknowns'][name+'.r'])
+                        self.t.append(case_data['Unknowns'][name+'.thickness'])
+                        self.vonmises.append(
+                            numpy.max(case_data['Unknowns'][name+'.vonmises'], axis=1))
+                        self.show_tube = True
+                    except:
+                        self.show_tube = False
+                    try:
+                        self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
+                        self.twist.append(case_data['Unknowns'][name+'.twist'])
+                        normals.append(case_data['Unknowns'][name+'.normals'])
+                        widths.append(case_data['Unknowns'][name+'.widths'])
+                        sec_forces.append(case_data['Unknowns']['aero_states.' + name + '_sec_forces'])
+                        self.CL.append(case_data['Unknowns'][name+'_perf.CL1'])
+                        self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
+                        self.show_wing = True
+                    except:
+                        self.show_wing = False
+                else:
+                    self.show_wing, self.show_tube = True, True
+                    short_name = name.split('.')[1:][0]
+                    self.r.append(case_data['Unknowns'][short_name+'.r'])
+                    self.t.append(case_data['Unknowns'][short_name+'.thickness'])
                     self.vonmises.append(
-                        numpy.max(case_data['Unknowns'][name+'vonmises'], axis=1))
-                    self.show_tube = True
-                except:
-                    self.show_tube = False
-                try:
-                    self.def_mesh.append(case_data['Unknowns'][name+'def_mesh'])
-                    self.twist.append(case_data['Unknowns'][name+'twist'])
-                    normals.append(case_data['Unknowns'][name+'normals'])
-                    widths.append(case_data['Unknowns'][name+'widths'])
-                    sec_forces.append(case_data['Unknowns'][name+'sec_forces'])
-                    self.CL.append(case_data['Unknowns'][name+'CL1'])
-                    self.S_ref.append(case_data['Unknowns'][name+'S_ref'])
-                    self.show_wing = True
-                except:
-                    self.show_wing = False
+                        numpy.max(case_data['Unknowns'][short_name+'_perf.vonmises'], axis=1))
+                    self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
+                    self.twist.append(case_data['Unknowns'][short_name+'.twist'])
+                    normals.append(case_data['Unknowns'][name+'.normals'])
+                    widths.append(case_data['Unknowns'][name+'.widths'])
+                    sec_forces.append(case_data['Unknowns']['coupled.aero_states.' + short_name + '_sec_forces'])
+                    self.CL.append(case_data['Unknowns'][short_name+'_perf.CL1'])
+                    self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
 
             if self.show_wing:
                 alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
@@ -196,15 +221,15 @@ class Display(object):
         if self.show_wing:
             for i in range(self.num_iters + 1):
                 for j, name in enumerate(names):
-                    m_vals = self.mesh[i+j].copy()
+                    m_vals = self.mesh[i*n_names+j].copy()
                     cvec = m_vals[0, :, :] - m_vals[-1, :, :]
                     chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
                     chords = 0.5 * (chords[1:] + chords[:-1])
                     a = alpha[i]
                     cosa = numpy.cos(a)
                     sina = numpy.sin(a)
-                    forces = numpy.sum(sec_forces[i+j], axis=0)
-                    widths_ = numpy.mean(widths[i+j], axis=0)
+                    forces = numpy.sum(sec_forces[i*n_names+j], axis=0)
+                    widths_ = numpy.mean(widths[i*n_names+j], axis=0)
 
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                         widths_/0.5/rho[i]/v[i]**2
@@ -235,38 +260,41 @@ class Display(object):
                     self.lift_ell.append(lift_ell)
 
                     wingspan = numpy.abs(m_vals[0, -1, 1] - m_vals[0, 0, 1])
-                    self.AR.append(wingspan**2 / self.S_ref[i+j])
+                    self.AR.append(wingspan**2 / self.S_ref[i*n_names+j])
 
             # recenter def_mesh points for better viewing
             for i in range(self.num_iters + 1):
-                center = numpy.mean(self.mesh[i*n_names:i*n_names+n_names], axis=(0,1,2))
-                self.def_mesh[i*n_names:i*n_names+n_names] = self.def_mesh[i*n_names:i*n_names+n_names] - center
+                center = numpy.zeros((3))
+                for j in range(n_names):
+                    center += numpy.mean(self.def_mesh[i*n_names+j], axis=(0,1))
+                for j in range(n_names):
+                    self.def_mesh[i*n_names+j] -= center / n_names
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
-            # center defined as the average of all nodal points
-            center = numpy.mean(self.mesh[i*n_names:i*n_names+n_names], axis=(0,1,2))
-            # center defined as the mean of the min and max in each direction
-            # center = (numpy.max(self.mesh[i], axis=0) + numpy.min(self.mesh[i], axis=0)) / 2
-            self.mesh[i*n_names:i*n_names+n_names] = self.mesh[i*n_names:i*n_names+n_names] - center
+            center = numpy.zeros((3))
+            for j in range(n_names):
+                center += numpy.mean(self.mesh[i*n_names+j], axis=(0,1))
+            for j in range(n_names):
+                self.mesh[i*n_names+j] -= center / n_names
 
         if self.show_wing:
-            self.min_twist, self.max_twist = numpy.min(self.twist), numpy.max(self.twist)
+            self.min_twist, self.max_twist = self.get_list_limits(self.twist)
             diff = (self.max_twist - self.min_twist) * 0.05
             self.min_twist -= diff
             self.max_twist += diff
-            self.min_l, self.max_l = numpy.min(self.lift), numpy.max(self.lift)
-            self.min_le, self.max_le = numpy.min(self.lift_ell), numpy.max(self.lift_ell)
+            self.min_l, self.max_l = self.get_list_limits(self.lift)
+            self.min_le, self.max_le = self.get_list_limits(self.lift_ell)
             self.min_l, self.max_l = min(self.min_l, self.min_le), max(self.max_l, self.max_le)
             diff = (self.max_l - self.min_l) * 0.05
             self.min_l -= diff
             self.max_l += diff
         if self.show_tube:
-            self.min_t, self.max_t = numpy.min(self.t), numpy.max(self.t)
+            self.min_t, self.max_t = self.get_list_limits(self.t)
             diff = (self.max_t - self.min_t) * 0.05
             self.min_t -= diff
             self.max_t += diff
-            self.min_vm, self.max_vm = numpy.min(self.vonmises), numpy.max(self.vonmises)
+            self.min_vm, self.max_vm = self.get_list_limits(self.vonmises)
             diff = (self.max_vm - self.min_vm) * 0.05
             self.min_vm -= diff
             self.max_vm += diff
@@ -418,7 +446,12 @@ class Display(object):
                         self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                             facecolors=cm.coolwarm(col), linewidth=0)
 
-        lim = numpy.max(self.mesh[self.curr_pos*n_names:self.curr_pos*n_names+n_names], axis=(0,1,2)) / float(zoom_scale)
+        lim = 0.
+        for j in range(n_names):
+            ma = numpy.max(self.mesh[self.curr_pos*n_names+j], axis=(0,1,2))
+            if ma > lim:
+                lim = ma
+        lim /= float(zoom_scale)
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
 
@@ -426,11 +459,6 @@ class Display(object):
         obj_val = round_to_n(self.obj[self.curr_pos], 7)
         self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
             transform=self.ax.transAxes, color='k')
-
-        # if self.show_wing and not self.show_tube:
-        #     span_eff = self.CL[self.curr_pos+j]**2 / numpy.pi / self.AR[self.curr_pos+j] / obj_val
-        #     self.ax.text2D(.55, .0, 'e: {}'.format(round_to_n(span_eff, 7)),
-        #         transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist
@@ -472,11 +500,25 @@ class Display(object):
         self.canvas.show()
 
     def check_length(self):
-        db = sqlitedict.SqliteDict(self.db_name, 'iterations')
-        n = 0
-        for case_name, case_data in db.iteritems():
-            n += 1
-        self.num_iters = n
+        # Load the current sqlitedict
+        db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+
+        # Get the number of current iterations
+        self.num_iters = max(db.keys()[-1].split('/'))
+
+    def get_list_limits(self, input_list):
+        list_min = 1.e20
+        list_max = -1.e20
+        for list_ in input_list:
+            mi = numpy.min(list_)
+            if mi < list_min:
+                list_min = mi
+            ma = numpy.max(list_)
+            if ma > list_max:
+                list_max = ma
+
+        return list_min, list_max
+
 
     def auto_ref(self):
         """
@@ -488,6 +530,8 @@ class Display(object):
             self.check_length()
             self.update_graphs()
 
+            # Check if the sqlitedict file has change and if so, fully
+            # load in the new file.
             if self.num_iters > self.old_n:
                 self.load_db()
                 self.old_n = self.num_iters

@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
         # Add additional lifting surface
         surf_dict.update({'name' : 'tail',
-                          'offset':numpy.array([10., 0., 0.])})
+                          'offset':numpy.array([0., 0., 10.])})
         OAS_prob.add_surface(surf_dict)
 
         # Setup problem and add design variables, constraints, and objective

@@ -48,4 +48,5 @@ If you wish to examine the code in more depth, see `run_classes.py` and the meth
 
 ## Known Issues
 
+* The increase in accuracy of results when using a cosine-spaced mesh is not as great as it should be.
 * Aerostructural optimization sometimes fails to converge for certain geometries. The example provided in `run_aerostruct.py` should converge. The structural and aerodynamic values must make sense together, e.g. the beam thickness and radius must be able to support the aerodynamic loads.

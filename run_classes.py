@@ -566,9 +566,9 @@ class OASProblem():
                      promotes=['*'])
             tmp_group.struct_states.ln_solver = LinearGaussSeidel()
 
-            name = name_orig + 'group'
+            name = name_orig
             exec(name + ' = tmp_group')
-            exec('coupled.add("' + name + '", ' + name + ', promotes=[])')
+            exec('coupled.add("' + name[:-1] + '", ' + name + ', promotes=[])')
 
             # Add a loads component to the coupled group
             exec('coupled.add("' + name_orig + 'loads' + '", ' + 'TransferLoads(surface)' + ', promotes=[])')
@@ -601,36 +601,36 @@ class OASProblem():
 
             # Perform the connections with the modified names within the
             # 'aero_states' group.
-            root.connect('coupled.' + name + 'group.def_mesh', 'coupled.aero_states.' + name + 'def_mesh')
-            root.connect('coupled.' + name + 'group.b_pts', 'coupled.aero_states.' + name + 'b_pts')
-            root.connect('coupled.' + name + 'group.c_pts', 'coupled.aero_states.' + name + 'c_pts')
-            root.connect('coupled.' + name + 'group.normals', 'coupled.aero_states.' + name + 'normals')
+            root.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.aero_states.' + name + 'def_mesh')
+            root.connect('coupled.' + name[:-1] + '.b_pts', 'coupled.aero_states.' + name + 'b_pts')
+            root.connect('coupled.' + name[:-1] + '.c_pts', 'coupled.aero_states.' + name + 'c_pts')
+            root.connect('coupled.' + name[:-1] + '.normals', 'coupled.aero_states.' + name + 'normals')
 
             # Connect the results from 'aero_states' to the performance groups
             root.connect('coupled.aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
 
             # Connect the results from 'coupled' to the performance groups
-            root.connect('coupled.' + name + 'group.def_mesh', 'coupled.' + name + 'loads.def_mesh')
+            root.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.' + name + 'loads.def_mesh')
             root.connect('coupled.aero_states.' + name + 'sec_forces', 'coupled.' + name + 'loads.sec_forces')
             root.connect('coupled.' + name + 'loads.loads', name + 'perf.loads')
 
             # Connect the output of the loads component with the FEM
             # displacement parameter. This links the coupling within the coupled
             # group that necessitates the subgroup solver.
-            root.connect('coupled.' + name + 'loads.loads', 'coupled.' + name + 'group.loads')
+            root.connect('coupled.' + name + 'loads.loads', 'coupled.' + name[:-1] + '.loads')
 
             # Connect aerodyamic design variables
-            root.connect(name[:-1] + '.dihedral', 'coupled.' + name + 'group.dihedral')
-            root.connect(name[:-1] + '.span', 'coupled.' + name + 'group.span')
-            root.connect(name[:-1] + '.sweep', 'coupled.' + name + 'group.sweep')
-            root.connect(name[:-1] + '.taper', 'coupled.' + name + 'group.taper')
-            root.connect(name[:-1] + '.twist', 'coupled.' + name + 'group.twist')
+            root.connect(name[:-1] + '.dihedral', 'coupled.' + name[:-1] + '.dihedral')
+            root.connect(name[:-1] + '.span', 'coupled.' + name[:-1] + '.span')
+            root.connect(name[:-1] + '.sweep', 'coupled.' + name[:-1] + '.sweep')
+            root.connect(name[:-1] + '.taper', 'coupled.' + name[:-1] + '.taper')
+            root.connect(name[:-1] + '.twist', 'coupled.' + name[:-1] + '.twist')
 
             # Connect structural design variables
-            root.connect(name[:-1] + '.A', 'coupled.' + name + 'group.A')
-            root.connect(name[:-1] + '.Iy', 'coupled.' + name + 'group.Iy')
-            root.connect(name[:-1] + '.Iz', 'coupled.' + name + 'group.Iz')
-            root.connect(name[:-1] + '.J', 'coupled.' + name + 'group.J')
+            root.connect(name[:-1] + '.A', 'coupled.' + name[:-1] + '.A')
+            root.connect(name[:-1] + '.Iy', 'coupled.' + name[:-1] + '.Iy')
+            root.connect(name[:-1] + '.Iz', 'coupled.' + name[:-1] + '.Iz')
+            root.connect(name[:-1] + '.J', 'coupled.' + name[:-1] + '.J')
 
             # Connect performance calculation variables
             root.connect(name[:-1] + '.r', name + 'perf.r')
@@ -645,9 +645,9 @@ class OASProblem():
 
             # Connect paramters from the 'coupled' group to the performance
             # group.
-            root.connect('coupled.' + name + 'group.nodes', name + 'perf.nodes')
-            root.connect('coupled.' + name + 'group.disp', name + 'perf.disp')
-            root.connect('coupled.' + name + 'group.S_ref', name + 'perf.S_ref')
+            root.connect('coupled.' + name[:-1] + '.nodes', name + 'perf.nodes')
+            root.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
+            root.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
 
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyGMRES()
@@ -662,7 +662,7 @@ class OASProblem():
         # so that a system with multiple surfaces is solved corretly.
         order_list = []
         for surface in self.surfaces:
-            order_list.append(surface['name']+'group')
+            order_list.append(surface['name'][:-1])
         order_list.append('aero_states')
         for surface in self.surfaces:
             order_list.append(surface['name']+'loads')
