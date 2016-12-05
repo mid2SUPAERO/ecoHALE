@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # Create a dictionary to store options about the surface
     surf_dict = {'name' : 'wing',
                  'symmetry' : False,
-                 'num_y' : 21,
+                 'num_y' : 13,
                  'num_x' : 2,
                  'wing_type' : 'CRM',
                  'CL0' : 0.2,
@@ -49,14 +49,14 @@ if __name__ == "__main__":
         OAS_prob.setup()
         OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
         OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-        OAS_prob.add_constraint('wing_post_solve.failure', upper=0.)
+        OAS_prob.add_constraint('wing_perf.failure', upper=0.)
 
     # Multiple lifting surfaces
     else:
 
         # Add additional lifting surface
         surf_dict.update({'name' : 'tail',
-                          'offset':numpy.array([10., 0., 10.])})
+                          'offset':numpy.array([10., 0., 0.])})
         OAS_prob.add_surface(surf_dict)
 
         # Setup problem and add design variables, constraints, and objective
@@ -65,10 +65,10 @@ if __name__ == "__main__":
         # Add design variables and constraints for both the wing and tail
         OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
         OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-        OAS_prob.add_constraint('wing_post_solve.failure', upper=0.)
+        OAS_prob.add_constraint('wing_perf.failure', upper=0.)
         OAS_prob.add_desvar('tail.twist_cp', lower=-15., upper=15.)
         OAS_prob.add_desvar('tail.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
-        OAS_prob.add_constraint('tail_post_solve.failure', upper=0.)
+        OAS_prob.add_constraint('tail_perf.failure', upper=0.)
 
     # Add design variables, constraint, and objective on the problem
     OAS_prob.add_desvar('alpha', lower=-10., upper=10.)

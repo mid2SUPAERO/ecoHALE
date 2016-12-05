@@ -1,10 +1,10 @@
 #      ******************************************************************
 #      *                                                                *
 #      * File:          Makefile                                        *
-#      * Authors: John Jasa                 							              *
+#      * Author: John Jasa                 					  		              *
 #      * Based on Gaetan Kenway's Makefiles                             *
 #      * Starting date: 07-27-2016                                      *
-#      * Last modified: 10-29-2016                                      *
+#      * Last modified: 12-05-2016                                      *
 #      *                                                                *
 #      ******************************************************************
 
@@ -24,7 +24,8 @@ default: all
 
 all:
 	@echo "            Making in OpenAeroStruct Derivatives... "
-	$(PMAKE)  derivatives
+	# Only possible if you have Tapenade installed
+	# $(PMAKE)  derivatives
 	$(PMAKE)  src1
 	cp -f *.mod $(MODDIR)
 

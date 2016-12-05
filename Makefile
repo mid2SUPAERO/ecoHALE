@@ -1,10 +1,10 @@
 #      ******************************************************************
 #      *                                                                *
 #      * File:          Makefile                                        *
-#      * Authors: John Jasa                 							              *
+#      * Author: John Jasa                  							              *
 #      * Based on Gaetan Kenway's Makefiles                             *
 #      * Starting date: 07-27-2016                                      *
-#      * Last modified: 10-29-2016                                      *
+#      * Last modified: 12-08-2016                                      *
 #      *                                                                *
 #      ******************************************************************
 

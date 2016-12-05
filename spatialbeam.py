@@ -497,7 +497,6 @@ class SpatialBeamDisp(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        name = self.surface['name']
         n = self.ny * 6
         jac['disp', 'disp_aug'] = numpy.hstack((numpy.eye((n)), numpy.zeros((n, 6))))
         return jac
@@ -545,7 +544,6 @@ class ComputeNodes(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        name = self.surface['name']
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
                                             fd_params=['mesh'],
                                             fd_states=[])
@@ -580,19 +578,16 @@ class SpatialBeamEnergy(Component):
         self.nx = surface['num_x']
         self.n = self.nx * self.ny
         self.mesh = surface['mesh']
-        name = surface['name']
 
         self.add_param('disp', val=numpy.zeros((self.ny, 6)))
         self.add_param('loads', val=numpy.zeros((self.ny, 6)))
         self.add_output('energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
-        name = self.surface['name']
         unknowns['energy'] = numpy.sum(params['disp'] * params['loads'])
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        name = self.surface['name']
         jac['energy', 'disp'][0, :] = params['loads'].real.flatten()
         jac['energy', 'loads'][0, :] = params['disp'].real.flatten()
         return jac
@@ -638,7 +633,6 @@ class SpatialBeamWeight(Component):
         self.elem_IDs = elem_IDs
 
     def solve_nonlinear(self, params, unknowns, resids):
-        name = self.surface['name']
         A = params['A']
         nodes = params['nodes']
         num_elems = self.elem_IDs.shape[0]
@@ -660,7 +654,6 @@ class SpatialBeamWeight(Component):
         unknowns['weight'] = weight
 
     def linearize(self, params, unknowns, resids):
-        name = self.surface['name']
         jac = self.alloc_jacobian()
         jac['weight', 't'][0, :] = 1.0
         return jac
