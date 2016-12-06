@@ -53,4 +53,5 @@ oas:
 		done
 	(cd lib && make)
 	(cd src/python/f2py && make)
+	mkdir -p python
 	(cd python && cp *.so ../)
