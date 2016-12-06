@@ -6,7 +6,7 @@ OpenAeroStruct is a lightweight Python tool to perform aerostructural optimizati
 
 ## Installation
 
-To use OpenAeroStruct, you must first install OpenMDAO 1.7.1 by following the instructions here: https://github.com/openmdao/openmdao. If you are unfamiliar with OpenMDAO and wish to modify the internals of OpenAeroStruct, you should examine the OpenMDAO documentation at http://openmdao.readthedocs.io/en/1.7.0/. The tutorials provided with OpenMDAO, especially The Sellar Problem, are helpful to understand the basics of using OpenMDAO to solve an optimization problem.
+To use OpenAeroStruct, you must first install OpenMDAO 1.7.1 by following the instructions here: https://github.com/openmdao/openmdao. If you are unfamiliar with OpenMDAO and wish to modify the internals of OpenAeroStruct, you should examine the OpenMDAO documentation at http://openmdao.readthedocs.io/en/1.7.1/. The tutorials provided with OpenMDAO, especially The Sellar Problem, are helpful to understand the basics of using OpenMDAO to solve an optimization problem. Note that OpenMDAO 1.7.1 is the most recent version that has been tested and confirmed working with OpenAeroStruct.
 
 Next, clone this repository:
 
@@ -17,12 +17,6 @@ Lastly, from within the OpenAeroStruct folder, make the Fortran files:
     make
 
 Note that the code will run without compiling the Fortran library, but it will run significantly faster when using Fortran.
-
-Note that the master branch is a development branch and may be unstable. Using a stable release is suggested. To do so, checkout a release using the git command:
-
-    git checkout v0.3.0
-
-This will use v0.3.0 of OpenAeroStruct, the most recent stable version.
 
 ## Usage
 
