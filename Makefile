@@ -39,7 +39,7 @@ clean:
 		done
 	rm -f *~ config.mk;
 	rm -f mod/* obj/*
-	(cd python && rm *.so) || exit 1;
+	(rm *.so) || exit 1;
 
 oas:
 	mkdir -p obj
