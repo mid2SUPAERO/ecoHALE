@@ -6,8 +6,6 @@ OpenAeroStruct is a lightweight Python tool to perform aerostructural optimizati
 
 ## Installation
 
-Note: This version of OpenAeroStruct is under active development and may not function as expected. We highly recommend that you use the latest stable release, found under the `releases` tab at the top of this Github page.
-
 To use OpenAeroStruct, you must first install OpenMDAO 1.7.1 by following the instructions here: https://github.com/openmdao/openmdao. If you are unfamiliar with OpenMDAO and wish to modify the internals of OpenAeroStruct, you should examine the OpenMDAO documentation at http://openmdao.readthedocs.io/en/1.7.0/. The tutorials provided with OpenMDAO, especially The Sellar Problem, are helpful to understand the basics of using OpenMDAO to solve an optimization problem.
 
 Next, clone this repository:

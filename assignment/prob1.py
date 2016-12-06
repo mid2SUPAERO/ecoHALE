@@ -3,6 +3,9 @@ import numpy
 import sys
 import time
 
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, SqliteRecorder
 from geometry import GeometryMesh, gen_crm_mesh, LinearInterp
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
