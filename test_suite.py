@@ -273,7 +273,7 @@ class TestAeroStruct(unittest.TestCase):
         prob = OAS_prob.prob
         self.assertAlmostEqual(prob['fuelburn'], 1708184.640125683, places=0)
         self.assertAlmostEqual(prob['wing_perf.failure'], 1e-9)
-        self.assertAlmostEqual(numpy.linalg.norm(prob['wing.twist_cp']), numpy.linalg.norm(prob['tail.twist_cp']), places=3)
+        self.assertAlmostEqual(numpy.linalg.norm(prob['wing.twist_cp']), numpy.linalg.norm(prob['tail.twist_cp']), places=2)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ OpenAeroStruct is a lightweight Python tool to perform aerostructural optimizati
 
 Note: This version of OpenAeroStruct is under active development and may not function as expected. We highly recommend that you use the latest stable release, found under the `releases` tab at the top of this Github page.
 
-To use OpenAeroStruct, you must first install OpenMDAO 1.7.0 by following the instructions here: https://github.com/openmdao/openmdao. If you are unfamiliar with OpenMDAO and wish to modify the internals of OpenAeroStruct, you should examine the OpenMDAO documentation at http://openmdao.readthedocs.io/en/1.7.0/. The tutorials provided with OpenMDAO, especially The Sellar Problem, are helpful to understand the basics of using OpenMDAO to solve an optimization problem.
+To use OpenAeroStruct, you must first install OpenMDAO 1.7.1 by following the instructions here: https://github.com/openmdao/openmdao. If you are unfamiliar with OpenMDAO and wish to modify the internals of OpenAeroStruct, you should examine the OpenMDAO documentation at http://openmdao.readthedocs.io/en/1.7.0/. The tutorials provided with OpenMDAO, especially The Sellar Problem, are helpful to understand the basics of using OpenMDAO to solve an optimization problem.
 
 Next, clone this repository:
 
@@ -22,9 +22,9 @@ Note that the code will run without compiling the Fortran library, but it will r
 
 Note that the master branch is a development branch and may be unstable. Using a stable release is suggested. To do so, checkout a release using the git command:
 
-    git checkout v0.2.0
+    git checkout v0.3.0
 
-This will use v0.2.0 of OpenAeroStruct, the most recent stable version.
+This will use v0.3.0 of OpenAeroStruct, the most recent stable version.
 
 ## Usage
 
@@ -45,6 +45,10 @@ An example workflow would be:
 The keywords used for each file are explained in their respective docstrings at the top of the file.
 
 If you wish to examine the code in more depth, see `run_classes.py` and the methods it calls. These methods interface directly with OpenMDAO.
+
+## Notes
+
+This current version of the repository has grown past the previous Matlab implementation. If you are looking for a Matlab-capable version, please see https://github.com/samtx/OpenAeroStruct for the latest version.
 
 ## Known Issues
 
