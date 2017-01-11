@@ -37,7 +37,6 @@ import matplotlib.animation as manimation
 
 import numpy
 import sqlitedict
-import aluminum
 
 #####################
 # User-set parameters
@@ -335,7 +334,8 @@ class Display(object):
             self.ax5.set_ylim([0, 25e6])
             self.ax5.set_xlim([-1, 1])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
-            self.ax5.axhline(aluminum.stress, c='r', lw=2, ls='--')
+            # 20.e6 Pa stress limit hardcoded for aluminum
+            self.ax5.axhline(20.e6, c='r', lw=2, ls='--')
             self.ax5.text(0.05, 0.85, 'failure limit',
                 transform=self.ax5.transAxes, color='r')
 
