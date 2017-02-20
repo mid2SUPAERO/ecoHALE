@@ -7,7 +7,7 @@ produced by the files for the assignment. The plot_all.py file in the main
 level is more complicated and can handle multiple surfaces.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 import tkFont
 import Tkinter as Tk
 from time import time

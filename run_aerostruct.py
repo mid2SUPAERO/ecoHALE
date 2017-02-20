@@ -10,7 +10,7 @@ multiple surfaces.
 
 """
 
-from __future__ import division
+from __future__ import division, print_function
 import sys
 from time import time
 import numpy
@@ -78,6 +78,6 @@ if __name__ == "__main__":
     st = time()
     # Actually run the problem
     OAS_prob.run()
-    print "\nTime:", time()-st, 'secs'
+    print("\nTime:", time()-st, 'secs')
 
-    print "\nFuelburn:", OAS_prob.prob['fuelburn']
+    print("\nFuelburn:", OAS_prob.prob['fuelburn'])

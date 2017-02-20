@@ -1,7 +1,7 @@
 """ Example script to produce drag polar
     Flat rectangular wing from NASA report """
 
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 import sys
 import warnings
@@ -80,11 +80,11 @@ a_list = []
 CL_list = []
 CD_list = []
 
-print
+print()
 for alpha in numpy.linspace(alpha_start, alpha_stop, num_alpha):
     prob['alpha'] = alpha
     prob.run_once()
-    print 'alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y
+    print('alpha', prob['alpha'], "; CL", prob['CL'], "; CD", prob['CD'], "; num", num_y)
     a_list.append(alpha)
     CL_list.append(prob['CL'])
     CD_list.append(prob['CD'] + 0.009364)

@@ -1,6 +1,6 @@
 """ Manipulate geometry mesh based on high-level design parameters. """
 
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 from numpy import cos, sin, tan
 

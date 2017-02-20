@@ -6,7 +6,7 @@ aerostructural optimization using OpenAeroStruct.
 # =============================================================================
 # Standard Python modules
 # =============================================================================
-from __future__ import division
+from __future__ import division, print_function
 import sys
 from time import time
 import numpy
@@ -171,7 +171,7 @@ class OASProblem():
                 num_x, num_y = mesh.shape[:2]
 
             else:
-                print 'Error: wing_type option not understood. Must be either "CRM" or "rectangular".'
+                print('Error: wing_type option not understood. Must be either "CRM" or "rectangular".')
 
             # Chop the mesh in half if using symmetry during analysis.
             # Note that this means that the provided mesh should be the full mesh
@@ -180,7 +180,7 @@ class OASProblem():
                 mesh = mesh[:, :num_y, :]
 
         else:
-            print "Error: Please either provide a mesh or a valid set of parameters."
+            print("Error: Please either provide a mesh or a valid set of parameters.")
 
         # Apply the user-provided coordinate offset to position the mesh
         mesh = mesh + surf_dict['offset']
@@ -214,7 +214,7 @@ class OASProblem():
         name = surf_dict['name']
         for surface in self.surfaces:
             if name == surface['name']:
-                print "Warning: Two surfaces have the same name."
+                print("Warning: Two surfaces have the same name.")
 
         # Append '_' to each repeated surface name
         if not name:

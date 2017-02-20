@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 import sys
 import time
@@ -22,10 +22,10 @@ from b_spline import get_bspline_mtx
 try:
     input_arg = sys.argv[1]
 except IndexError:
-    print '\n +--------------------------------------------------------+'
-    print   ' | ERROR: Please supply an input argument to this script. |'
-    print   ' | Example: Run `python problems.py prob1`                |'
-    print   ' +--------------------------------------------------------+\n'
+    print('\n +--------------------------------------------------------+')
+    print(' | ERROR: Please supply an input argument to this script. |')
+    print(' | Example: Run `python problems.py prob1`                |')
+    print(' +--------------------------------------------------------+\n')
     raise
 
 if input_arg == 'prob1':
@@ -88,12 +88,11 @@ if input_arg == 'prob1':
     prob.driver.options['disp'] = True
     # prob.driver.options['tol'] = 1.0e-12
 
-    prob.driver.add_desvar('thickness', lower=0.001, upper=0.75, scaler=1e2)
+    prob.driver.add_desvar('thickness', lower=0.001, upper=0.25, scaler=1e2)
     prob.driver.add_objective('weight', scaler=1e-3)
     prob.driver.add_constraint('failure', upper=0., scaler=1e-4)
 
     prob.root.deriv_options['type'] = 'fd'
-    #
     prob.root.deriv_options['form'] = 'central'
     prob.root.deriv_options['step_size'] = 1e-10
 
@@ -108,8 +107,8 @@ if input_arg == 'prob1':
 
     st = time.time()
     prob.run()
-    print "run time: {} secs".format(time.time() - st)
-    print 'thickness distribution:', prob['thickness']
+    print("run time: {} secs".format(time.time() - st))
+    print('thickness distribution:', prob['thickness'])
 
 
 elif 'prob2' in input_arg or 'prob3' in input_arg:
@@ -309,9 +308,9 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
 
     if 'prob3a' in input_arg:
 
-        print "------------------------------------------------"
-        print "Solving for Derivatives"
-        print "------------------------------------------------"
+        print("------------------------------------------------")
+        print("Solving for Derivatives")
+        print("------------------------------------------------")
         st = time.time()
         profile.setup(prob)
         profile.start()
@@ -319,9 +318,9 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         run_time = time.time() - st
         profile.stop()
 
-        print "d_fuelburn/d_alpha", jac['fuelburn']['alpha']
-        print "norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist'])
-        print "norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness'])
+        print("d_fuelburn/d_alpha", jac['fuelburn']['alpha'])
+        print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist']))
+        print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness']))
 
     # Uncomment this to print partial derivatives accuracy information
     prob.check_partial_derivatives(compact_print=True)
@@ -362,5 +361,5 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # Actually run the optimization
     prob.run()
 
-    print "run time: {} secs".format(time.time() - st)
-    print "fuelburn:", prob['fuelburn']
+    print("run time: {} secs".format(time.time() - st))
+    print("fuelburn:", prob['fuelburn'])

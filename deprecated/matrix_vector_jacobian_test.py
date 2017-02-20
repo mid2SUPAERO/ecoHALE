@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 import numpy as np
 
 from openmdao.api import Component, Group, IndepVarComp, Problem, ScipyOptimizer
@@ -52,4 +52,4 @@ prob.setup()
 prob.run()
 
 result = prob['simp_mult.x']
-print result
+print(result)

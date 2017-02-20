@@ -28,7 +28,7 @@ the flow tangency condition is inforced.
 For this depiction, num_x = 2 and num_y = 5.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 
 from openmdao.api import Component, Group
@@ -833,9 +833,6 @@ class VLMForces(Component):
             jac[name+'sec_forces', 'rho'] = sec_forces.flatten() / rho
 
         return jac
-
-    # def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-    #     print mode, dresids['sec_forces']
 
 
 class VLMLiftDrag(Component):

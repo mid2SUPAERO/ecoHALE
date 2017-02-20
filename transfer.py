@@ -1,6 +1,6 @@
 """ Define the transfer components to couple aero and struct analyses. """
 
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 from time import time
 try:
@@ -8,7 +8,7 @@ try:
     fortran_flag = True
 except:
     fortran_flag = False
-print 'Fortran = ', fortran_flag
+print('Fortran = ', fortran_flag)
 
 from openmdao.api import Component
 

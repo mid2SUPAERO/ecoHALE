@@ -9,7 +9,7 @@ call as `python run_vlm.py 1m` to perform optimization.
 
 """
 
-from __future__ import division
+from __future__ import division, print_function
 import sys
 from time import time
 import numpy
@@ -74,5 +74,5 @@ if __name__ == "__main__":
     # Actually run the problem
     OAS_prob.run()
 
-    print "\nWing CL:", OAS_prob.prob['wing_perf.CL']
-    print "Wing CD:", OAS_prob.prob['wing_perf.CD']
+    print("\nWing CL:", OAS_prob.prob['wing_perf.CL'])
+    print("Wing CD:", OAS_prob.prob['wing_perf.CD'])

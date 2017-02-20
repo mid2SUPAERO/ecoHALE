@@ -5,7 +5,7 @@ rotation about the x, y, and z-axes.
 
 """
 
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 numpy.random.seed(123)
 

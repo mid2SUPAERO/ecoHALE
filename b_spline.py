@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 import scipy.sparse
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     import time
     t0 = time.time()
     jac = get_bspline_mtx(num_cp, num_pt)
-    print time.time() - t0
+    print(time.time() - t0)
 
 
     h_cp[3] += 2
