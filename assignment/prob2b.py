@@ -16,7 +16,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from openmdao.devtools.partition_tree_n2 import view_tree
+from openmdao.api import view_model
 from run_classes import OASProblem
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
@@ -179,14 +179,15 @@ root.add('eq_con',
 
 prob = Problem()
 prob.root = root
-prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
 # change file name to save data from each experiment separately
 prob.driver.add_recorder(SqliteRecorder('prob2b.db'))
 
 prob.setup()
+prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
+
 # uncomment this to see an n2 diagram of your problem
-view_tree(prob, outfile="aerostruct_n2.html", show_browser=False)
+view_model(prob, outfile="aerostruct_n2.html", show_browser=False)
 
 st = time.time()
 prob.run_once()

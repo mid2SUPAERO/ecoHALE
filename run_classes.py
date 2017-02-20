@@ -15,7 +15,7 @@ import numpy
 # OpenMDAO modules
 # =============================================================================
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
-from openmdao.devtools.partition_tree_n2 import view_tree
+from openmdao.api import view_model
 
 # =============================================================================
 # OpenAeroStruct modules
@@ -285,7 +285,7 @@ class OASProblem():
         # self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        view_tree(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         # Run a single analysis loop to populate uninitialized values
         self.prob.run_once()

@@ -16,7 +16,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from openmdao.devtools.partition_tree_n2 import view_tree
+from openmdao.api import view_model
 from run_classes import OASProblem
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
@@ -29,7 +29,7 @@ prob_dict = {'type' : 'aerostruct'}
 OAS_prob = OASProblem(prob_dict)
 OAS_prob.add_surface({'name' : '',
                       'wing_type' : 'CRM',
-                      'num_y' : 13,
+                      'num_y' : 9,
                       'num_x' : 2,
                       'span_cos_spacing' : 0,
                       'CL0' : 0.2,
@@ -153,7 +153,6 @@ root.add('eq_con',
 
 prob = Problem()
 prob.root = root
-prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
 # change file name to save data from each experiment separately
 prob.driver.add_recorder(SqliteRecorder('prob3ab.db'))
@@ -161,15 +160,17 @@ prob.driver.add_recorder(SqliteRecorder('prob3ab.db'))
 #############################################################
 # Comment out the following code to run analytic derivatives
 ##############################################################
-prob.root.deriv_options['type'] = 'fd'
-prob.root.deriv_options['step_type'] = 'relative'
-prob.root.deriv_options['form'] = 'forward'
-prob.root.deriv_options['step_size'] = 1e-6
+# prob.root.deriv_options['type'] = 'fd'
+# prob.root.deriv_options['step_type'] = 'relative'
+# prob.root.deriv_options['form'] = 'forward'
+# prob.root.deriv_options['step_size'] = 1e-6
 #####################################################
 
 prob.setup()
+prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
+
 # uncomment this to see an n2 diagram of your problem
-view_tree(prob, outfile="aerostruct_n2.html", show_browser=False)
+view_model(prob, outfile="aerostruct_n2.html", show_browser=False)
 
 st = time.time()
 prob.run_once()
@@ -178,7 +179,7 @@ print "------------------------------------------------"
 print "Solving for Derivatives"
 print "------------------------------------------------"
 st = time.time()
-jac = prob.calc_gradient(['twist','alpha','thickness'], ['fuelburn'], return_format="dict")
+jac = prob.calc_gradient(['twist','alpha','thickness'], ['fuelburn', 'vonmises'], return_format="dict")
 run_time = time.time() - st
 
 print "runtime: ", run_time
@@ -190,3 +191,6 @@ print "norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickne
 
 print "run time: {} secs".format(time.time() - st)
 print "fuelburn:", prob['fuelburn']
+
+# Uncomment this to print partial derivatives accuracy information
+# prob.check_partial_derivatives(compact_print=True)

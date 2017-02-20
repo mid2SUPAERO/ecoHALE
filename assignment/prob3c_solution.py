@@ -16,7 +16,7 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
-from openmdao.devtools.partition_tree_n2 import view_tree
+from openmdao.api import view_model
 from run_classes import OASProblem
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
@@ -181,7 +181,7 @@ prob.driver.add_constraint('eq_con', equals=0.0)
 
 
 prob.setup()
-# view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
+# view_model(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
 st = time.time()
 
