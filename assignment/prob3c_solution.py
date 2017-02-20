@@ -1,89 +1,98 @@
-""" Example runscript to perform aerostructural optimization. """
+""" Example runscript to perform aerostructural analysis. """
 
 from __future__ import division
 import numpy
 import sys
+import time
+
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder
-
-from openmdao.devtools.partition_tree_n2 import view_tree
-from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, get_inds
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh
 from transfer import TransferDisplacements, TransferLoads
-from vlm import VLMStates, VLMFunctionals
+from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
+from openmdao.devtools.partition_tree_n2 import view_tree
+from run_classes import OASProblem
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
 
-############################################################
-# Change mesh size here
-############################################################
-# Create the mesh with 2 inboard points and 3 outboard points
-mesh = gen_crm_mesh(n_points_inboard=2, n_points_outboard=3)
-num_x, num_y = mesh.shape[:2]
-num_twist = numpy.max([int((num_y - 1) / 5), 5])
+# Set problem type
+prob_dict = {'type' : 'aerostruct'}
 
-r = radii(mesh)
-mesh = mesh.reshape(-1, mesh.shape[-1])
-aero_ind = numpy.atleast_2d(numpy.array([num_x, num_y]))
-fem_ind = [num_y]
-aero_ind, fem_ind = get_inds(aero_ind, fem_ind)
-num_thickness = num_twist
-t = r/10
+# Instantiate problem and add default surface
+OAS_prob = OASProblem(prob_dict)
+OAS_prob.add_surface({'name' : '',
+                      'wing_type' : 'CRM',
+                      'num_y' : 9,
+                      'num_x' : 2,
+                      'span_cos_spacing' : 0,
+                      'CL0' : 0.2,
+                      'CD0' : 0.015})
 
-# Define the aircraft properties
-execfile('CRM.py')
+# Get the created surface
+surface = OAS_prob.surfaces[0]
+prob_dict = OAS_prob.prob_dict
+num_y = surface['num_y']
+r = radii(surface['mesh'])
+thickness = r / 10
+thickness[:] = numpy.max((thickness))
+num_twist = num_thickness = num_y
 
-# Define the material properties
-execfile('aluminum.py')
+span = surface['span']
+v = prob_dict['v']
+alpha = prob_dict['alpha']
+rho = prob_dict['rho']
+M = prob_dict['M']
+Re = prob_dict['Re']
 
 # Create the top-level system
 root = Group()
-tot_n_fem = numpy.sum(fem_ind[:, 0])
-num_surf = fem_ind.shape[0]
-jac_twist = get_bspline_mtx(num_twist, num_y)
-jac_thickness = get_bspline_mtx(num_thickness, tot_n_fem-num_surf)
 
 # Define the independent variables
 indep_vars = [
     ('span', span),
-    ('twist_cp', numpy.zeros(num_twist)),
-    ('thickness_cp', numpy.ones(num_thickness)*numpy.max(t)),
+    ('twist', numpy.zeros(num_twist)),
+    ('thickness', thickness),
     ('v', v),
     ('alpha', alpha),
     ('rho', rho),
     ('r', r),
-    ('t', t),
-    ('aero_ind', aero_ind)
+    ('M', M),
+    ('Re', Re),
 ]
 
+############################################################
+# These are your components, put them in the correct groups.
+# indep_vars_comp, tube_comp, and weiss_func_comp have been
+# done for you as examples
+############################################################
+
 indep_vars_comp = IndepVarComp(indep_vars)
-twist_comp = Bspline('twist_cp', 'twist', jac_twist)
-thickness_comp = Bspline('thickness_cp', 'thickness', jac_thickness)
-tube_comp = MaterialsTube(fem_ind)
+tube_comp = MaterialsTube(surface)
 
-mesh_comp = GeometryMesh(mesh, aero_ind)
-spatialbeamstates_comp = SpatialBeamStates(aero_ind, fem_ind, E, G)
-def_mesh_comp = TransferDisplacements(aero_ind, fem_ind)
-vlmstates_comp = VLMStates(aero_ind)
-loads_comp = TransferLoads(aero_ind, fem_ind)
+mesh_comp = GeometryMesh(surface)
+geom_comp = VLMGeometry(surface)
+spatialbeamstates_comp = SpatialBeamStates(surface)
+def_mesh_comp = TransferDisplacements(surface)
+vlmstates_comp = VLMStates(OAS_prob.surfaces, OAS_prob.prob_dict)
+loads_comp = TransferLoads(surface)
 
-vlmfuncs_comp = VLMFunctionals(aero_ind, CL0, CD0)
-spatialbeamfuncs_comp = SpatialBeamFunctionals(aero_ind, fem_ind, E, G, stress, mrho)
-fuelburn_comp = FunctionalBreguetRange(W0, CT, a, R, M, aero_ind)
-eq_con_comp = FunctionalEquilibrium(W0, aero_ind)
+vlmfuncs_comp = VLMFunctionals(surface)
+spatialbeamfuncs_comp = SpatialBeamFunctionals(surface)
+fuelburn_comp = FunctionalBreguetRange(OAS_prob.surfaces, OAS_prob.prob_dict)
+eq_con_comp = FunctionalEquilibrium(OAS_prob.surfaces, OAS_prob.prob_dict)
+
+############################################################
+############################################################
 
 root.add('indep_vars',
          indep_vars_comp,
-         promotes=['*'])
-root.add('twist_bsp',
-         twist_comp,
-         promotes=['*'])
-root.add('thickness_bsp',
-         thickness_comp,
          promotes=['*'])
 root.add('tube',
          tube_comp,
@@ -100,6 +109,9 @@ coupled.add('spatialbeamstates',
 coupled.add('def_mesh',
     def_mesh_comp,
     promotes=["*"])
+coupled.add('geom',
+    geom_comp,
+    promotes=["*"])
 coupled.add('vlmstates',
     vlmstates_comp,
     promotes=["*"])
@@ -107,14 +119,11 @@ coupled.add('loads',
     loads_comp,
     promotes=["*"])
 
-## Hybrid NLGS-Newton on the coupled group
-coupled.nl_solver = HybridGSNewton()
-coupled.nl_solver.nlgs.options['iprint'] = 1
-coupled.nl_solver.nlgs.options['maxiter'] = 5
-coupled.nl_solver.newton.options['atol'] = 1e-6
-coupled.nl_solver.newton.options['rtol'] = 1e-6
-coupled.nl_solver.newton.options['iprint'] = 1
-
+## Nonlinear Gauss Seidel on the coupled group
+coupled.nl_solver = NLGaussSeidel()
+coupled.nl_solver.options['iprint'] = 1
+coupled.nl_solver.options['atol'] = 1e-8
+coupled.nl_solver.options['rtol'] = 1e-12
 
 # Krylov Solver - LNGS preconditioning
 coupled.ln_solver = ScipyGMRES()
@@ -122,7 +131,6 @@ coupled.ln_solver.options['iprint'] = 1
 coupled.ln_solver.preconditioner = LinearGaussSeidel()
 coupled.vlmstates.ln_solver = LinearGaussSeidel()
 coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
-
 
 # adds the MDA to root (do not remove!)
 root.add('coupled',
@@ -146,31 +154,21 @@ root.add('eq_con',
 prob = Problem()
 prob.root = root
 
-# prob.root.deriv_options['type'] = 'cs'
-# prob.root.deriv_options['form'] = 'central'
-
-try:  # Use SNOPT optimizer if installed
-    from openmdao.api import pyOptSparseDriver
-    prob.driver = pyOptSparseDriver()
-    prob.driver.options['optimizer'] = "SNOPT"
-    prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-7,
-                                'Major feasibility tolerance': 1.0e-7}
-except:  # Use SLSQP optimizer if SNOPT not installed
-    prob.driver = ScipyOptimizer()
-    prob.driver.options['optimizer'] = 'SLSQP'
-    prob.driver.options['disp'] = True
-    prob.driver.options['tol'] = 1.0e-3
-    prob.driver.options['maxiter'] = 40
+prob.driver = ScipyOptimizer()
+prob.driver.options['optimizer'] = 'SLSQP'
+prob.driver.options['disp'] = True
+prob.driver.options['tol'] = 1.0e-6
+prob.driver.options['maxiter'] = 40
 
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
 
 ###############################################################
 # Add design vars
 ###############################################################
-prob.driver.add_desvar('twist_cp',lower= -10.,
+prob.driver.add_desvar('twist',lower= -10.,
                        upper=10., scaler=1e0)
 prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1e0)
-prob.driver.add_desvar('thickness_cp',
+prob.driver.add_desvar('thickness',
                        lower= 0.003,
                        upper= 0.25, scaler=1000)
 
@@ -181,12 +179,14 @@ prob.driver.add_objective('fuelburn')
 prob.driver.add_constraint('failure', upper=0.0)
 prob.driver.add_constraint('eq_con', equals=0.0)
 
+
 prob.setup()
 # view_tree(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
 
-# always need to run before you compute derivatives!
+st = time.time()
+
+# Actually run the optimization
 prob.run()
 
-print 'Optimized twist:', prob['twist']
-print 'Optimized alpha:', prob['alpha']
-print 'Optimized thicknesses:', prob['t']
+print "run time: {} secs".format(time.time() - st)
+print "fuelburn:", prob['fuelburn']

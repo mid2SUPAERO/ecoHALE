@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
         # Setup problem and add design variables, constraint, and objective
         OAS_prob.setup()
-        OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('wing.failure', upper=0.)
         OAS_prob.add_objective('wing.weight', scaler=1e-3)
 
@@ -51,13 +51,13 @@ if __name__ == "__main__":
         # Setup problem and add design variables, constraints, and objective
         OAS_prob.setup()
 
-        OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('wing.failure', upper=0.)
         OAS_prob.add_objective('wing.weight', scaler=1e-3)
 
         # Note that these tail variables have no effect on the wing and thus
         # have no need to be changed except to satisfy the failure constraint
-        OAS_prob.add_desvar('tail.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
+        OAS_prob.add_desvar('tail.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('tail.failure', upper=0.)
 
     # Actually run the problem

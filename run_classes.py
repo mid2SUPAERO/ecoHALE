@@ -236,7 +236,7 @@ class OASProblem():
             self.prob.driver = pyOptSparseDriver()
             self.prob.driver.options['optimizer'] = "SNOPT"
             self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
-                                        'Major feasibility tolerance': 1.0e-6}
+                                             'Major feasibility tolerance': 1.0e-6}
         except:  # Use SLSQP optimizer if SNOPT not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'

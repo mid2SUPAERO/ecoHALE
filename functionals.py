@@ -19,7 +19,7 @@ class FunctionalBreguetRange(Component):
 
             self.add_param(name+'CL', val=0.)
             self.add_param(name+'CD', val=0.)
-            self.add_param(name+'weight', val=0.)
+            self.add_param(name+'weight', val=1.)
 
         self.add_output('fuelburn', val=0.)
 
