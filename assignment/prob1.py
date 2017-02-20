@@ -19,9 +19,10 @@ prob_dict = {'type' : 'struct'}
 # Instantiate problem and add default surface
 OAS_prob = OASProblem(prob_dict)
 OAS_prob.add_surface({'name' : 'wing',
-                      'num_y' : 5,
+                      'num_y' : 13,
                       'span_cos_spacing' : 0,
                       'symmetry' : True})
+
 # Get the created surface
 surface = OAS_prob.surfaces[0]
 
@@ -32,8 +33,8 @@ thickness = r / 10
 
 # Define the loads
 loads = numpy.zeros((num_y, 6))
-# loads[0, 2] = loads[-1, 2] = 1e4 # tip load of 1 kN
-loads[:, 2] = 1e4 # load of 1 kN at each node
+loads[0, 2] = loads[-1, 2] = 1e3 # tip load of 1 kN
+# loads[:, 2] = 1e3 # load of 1 kN at each node
 
 root = Group()
 
@@ -70,14 +71,11 @@ prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
 # prob.driver.options['tol'] = 1.0e-12
 
-prob.driver.add_desvar('thickness',
-                       lower=numpy.ones((num_y)) * 0.001,
-                       upper=numpy.ones((num_y)) * 0.25)
-prob.driver.add_objective('energy')
-prob.driver.add_constraint('weight', upper=1e5)
+prob.driver.add_desvar('thickness', lower=0.001, upper=0.75, scaler=1e2)
+prob.driver.add_objective('weight', scaler=1e-3)
+prob.driver.add_constraint('failure', upper=0., scaler=1e-4)
 
-prob.root.deriv_options['type'] = 'cs' # Use this if you haven't compiled the Fortran
-# prob.root.deriv_options['type'] = 'fd' # Use this if you've compiled the Fortran
+prob.root.deriv_options['type'] = 'fd'
 #
 prob.root.deriv_options['form'] = 'central'
 prob.root.deriv_options['step_size'] = 1e-10
@@ -94,3 +92,4 @@ view_model(prob, outfile="prob1.html", show_browser=False)
 st = time.time()
 prob.run()
 print "run time: {} secs".format(time.time() - st)
+print 'thickness distribution:', prob['thickness']

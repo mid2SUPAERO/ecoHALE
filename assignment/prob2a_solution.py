@@ -33,7 +33,8 @@ OAS_prob.add_surface({'name' : '',
                       'num_x' : 2,
                       'span_cos_spacing' : 0,
                       'CL0' : 0.2,
-                      'CD0' : 0.015})
+                      'CD0' : 0.015,
+                      'symmetry' : True})
 
 # Get the created surface
 surface = OAS_prob.surfaces[0]

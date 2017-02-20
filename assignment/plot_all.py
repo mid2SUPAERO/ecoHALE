@@ -28,7 +28,6 @@ import matplotlib.animation as manimation
 import numpy
 import sqlitedict
 import traceback
-import aluminum
 
 #####################
 # User-set parameters
@@ -86,16 +85,15 @@ class Display(object):
             self.ax5 = plt.subplot2grid((4,8), (3,4), colspan=4)
 
     def load_db(self):
-        self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+        self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
         self.twist = []
         self.mesh = []
         self.def_mesh = []
         self.r = []
-        self.t = []
+        self.thickness = []
         sec_forces = []
         normals = []
         widths = []
-        cos_dih = []
         self.lift = []
         self.lift_ell = []
         self.vonmises = []
@@ -104,30 +102,29 @@ class Display(object):
         v = []
         self.obj = []
 
-        for tag in self.db['metadata']:
-            for item in self.db['metadata'][tag]:
-                for flag in self.db['metadata'][tag][item]:
-                    if 'is_objective' in flag:
-                        self.obj_key = item
+        meta_db = sqlitedict.SqliteDict(self.db_name, 'metadata')
+        for item in meta_db['Unknowns']:
+            if 'is_objective' in meta_db['Unknowns'][item].keys():
+                self.obj_key = item
+
         for case_name, case_data in self.db.iteritems():
             if "metadata" in case_name or "derivs" in case_name:
                 continue # don't plot these cases
-            try:
-                self.db[case_name + '/derivs']
-            except:
-                continue
+            # try:
+            #     self.db[case_name + '/derivs']
+            # except:
+            #     continue
 
             self.mesh.append(case_data['Unknowns']['mesh'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
                 self.r.append(case_data['Unknowns']['r'])
-                self.t.append(case_data['Unknowns']['thickness'])
+                self.thickness.append(case_data['Unknowns']['thickness'])
                 self.vonmises.append(
                     numpy.max(case_data['Unknowns']['vonmises'], axis=1))
                 self.show_tube = True
             except:
-                traceback.print_exc()
                 self.show_tube = False
                 pass
             try:
@@ -135,7 +132,6 @@ class Display(object):
                 self.twist.append(case_data['Unknowns']['twist'])
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
-                cos_dih.append(case_data['Unknowns']['cos_dih'])
                 sec_forces.append(case_data['Unknowns']['sec_forces'])
                 alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
                 rho.append(case_data['Unknowns']['rho'])
@@ -147,22 +143,83 @@ class Display(object):
 
         self.num_iters = numpy.max([len(self.mesh) - 1, 1])
 
+        # Assume symmetry until we find a mesh that straddles the xz-plane
+        self.symmetry = True
+        for mesh in self.mesh:
+            y_values = mesh[0, :, 1]
+            if not (numpy.all(y_values >= 0.) or numpy.all(y_values <= 0)):
+                self.symmetry = False
+
+        if self.symmetry:
+            
+            new_mesh = []
+            if self.show_tube:
+                new_r = []
+                new_thickness = []
+                new_vonmises = []
+            if self.show_wing:
+                new_twist = []
+                new_sec_forces = []
+                new_def_mesh = []
+                new_widths = []
+                new_normals = []
+
+            for i in range(self.num_iters + 1):
+                mirror_mesh = self.mesh[i].copy()
+                mirror_mesh[:, :, 1] *= -1.
+                mirror_mesh = mirror_mesh[:, ::-1, :][:, 1:, :]
+                new_mesh.append(numpy.hstack((self.mesh[i], mirror_mesh)))
+
+                if self.show_tube:
+                    thickness = self.thickness[i]
+                    new_thickness.append(numpy.hstack((thickness, thickness[::-1])))
+                    r = self.r[i]
+                    new_r.append(numpy.hstack((r, r[::-1])))
+                    vonmises = self.vonmises[i]
+                    new_vonmises.append(numpy.hstack((vonmises, vonmises[::-1])))
+
+                if self.show_wing:
+                    mirror_mesh = self.def_mesh[i].copy()
+                    mirror_mesh[:, :, 1] *= -1.
+                    mirror_mesh = mirror_mesh[:, ::-1, :][:, 1:, :]
+                    new_def_mesh.append(numpy.hstack((self.def_mesh[i], mirror_mesh)))
+
+                    mirror_normals = normals[i].copy()
+                    mirror_normals = mirror_normals[:, ::-1, :][:, 1:, :]
+                    new_normals.append(numpy.hstack((normals[i], mirror_normals)))
+
+                    mirror_forces = sec_forces[i].copy()
+                    mirror_forces = mirror_forces[:, ::-1, :]
+                    new_sec_forces.append(numpy.hstack((sec_forces[i], mirror_forces)))
+
+                    new_widths.append(numpy.hstack((widths[i], widths[i][::-1])))
+                    twist = self.twist[i]
+                    new_twist.append(numpy.hstack((twist, twist[::-1][1:])))
+
+            self.mesh = new_mesh
+            if self.show_tube:
+                self.thickness = new_thickness
+                self.r = new_r
+                self.vonmises = new_vonmises
+            if self.show_wing:
+                self.def_mesh = new_def_mesh
+                self.twist = new_twist
+                widths = new_widths
+                normals = new_normals
+                sec_forces = new_sec_forces
+
         if self.show_wing:
 
             for i in range(self.num_iters + 1):
-                cvec = self.mesh[i][0, :, :] - self.mesh[i][1, :, :]
-                chords = numpy.sqrt(numpy.sum(cvec**2, axis=1))
-                chords = 0.5 * (chords[1:] + chords[:-1])
-                #L = sec_forces[i][:, 2] / normals[i][:, 2]
-                #self.lift.append(L.T * cos_dih[i])
                 a = alpha[i]
                 cosa = numpy.cos(a)
                 sina = numpy.sin(a)
                 forces = sec_forces[i]
 
-                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/widths[i]/0.5/rho[i]/v[i]**2
-                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
-                #lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
+                forces = numpy.sum(sec_forces[i], axis=0)
+                widths_ = numpy.mean(widths[i], axis=0)
+
+                lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/widths_/0.5/rho[i]/v[i]**2
 
                 m_vals = self.mesh[i]
                 span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
@@ -197,7 +254,7 @@ class Display(object):
             self.min_l -= diff
             self.max_l += diff
         if self.show_tube:
-            self.min_t, self.max_t = numpy.min(self.t), numpy.max(self.t)
+            self.min_t, self.max_t = numpy.min(self.thickness), numpy.max(self.thickness)
             diff = (self.max_t - self.min_t) * 0.05
             self.min_t -= diff
             self.max_t += diff
@@ -238,7 +295,7 @@ class Display(object):
         if self.show_tube:
             self.ax4.cla()
             self.ax5.cla()
-            thick_vals = self.t[self.curr_pos]
+            thick_vals = self.thickness[self.curr_pos]
             vm_vals = self.vonmises[self.curr_pos]
 
             self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
@@ -255,7 +312,8 @@ class Display(object):
             self.ax5.set_ylim([0, 25e6])
             self.ax5.set_xlim([-1, 1])
             self.ax5.set_ylabel('von mises', rotation="horizontal", ha="right")
-            self.ax5.axhline(aluminum.stress, c='r', lw=2, ls='--')
+            # 20.e6 Pa stress limit hardcoded for aluminum
+            self.ax5.axhline(20.e6, c='r', lw=2, ls='--')
             self.ax5.text(0.05, 0.85, 'failure limit',
                 transform=self.ax5.transAxes, color='r')
 
@@ -293,7 +351,7 @@ class Display(object):
 
         if self.show_tube:
             r0 = self.r[self.curr_pos]
-            t0 = self.t[self.curr_pos]
+            t0 = self.thickness[self.curr_pos]
             colors = t0
             colors = colors / numpy.max(colors)
             num_circ = 12

@@ -33,7 +33,8 @@ OAS_prob.add_surface({'name' : '',
                       'num_x' : 2,
                       'span_cos_spacing' : 0,
                       'CL0' : 0.2,
-                      'CD0' : 0.015})
+                      'CD0' : 0.015,
+                      'symmetry' : True})
 
 # Get the created surface
 surface = OAS_prob.surfaces[0]
@@ -157,7 +158,7 @@ prob.root = root
 prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
-prob.driver.options['tol'] = 1.0e-3
+prob.driver.options['tol'] = 1.0e-5
 prob.driver.options['maxiter'] = 40
 
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
