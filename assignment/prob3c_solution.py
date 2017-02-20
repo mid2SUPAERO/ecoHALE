@@ -122,7 +122,7 @@ coupled.add('loads',
 ## Nonlinear Gauss Seidel on the coupled group
 coupled.nl_solver = NLGaussSeidel()
 coupled.nl_solver.options['iprint'] = 1
-coupled.nl_solver.options['atol'] = 1e-8
+coupled.nl_solver.options['atol'] = 1e-5
 coupled.nl_solver.options['rtol'] = 1e-12
 
 # Krylov Solver - LNGS preconditioning
@@ -157,7 +157,7 @@ prob.root = root
 prob.driver = ScipyOptimizer()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['disp'] = True
-prob.driver.options['tol'] = 1.0e-6
+prob.driver.options['tol'] = 1.0e-3
 prob.driver.options['maxiter'] = 40
 
 prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
