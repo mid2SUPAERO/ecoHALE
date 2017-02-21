@@ -35,6 +35,10 @@ from run_classes import OASProblem
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
+# Suppress warnings
+import warnings
+warnings.filterwarnings("ignore")
+
 # Parse the user-supplied command-line input and store it as input_arg
 try:
     input_arg = sys.argv[1]
@@ -114,8 +118,8 @@ if input_arg == 'prob1':
     # by commenting the lines as necessary.
     loads = numpy.zeros((num_y, 6))
     P = 1e4  # load of 10 kN
-    loads[0, 2] = P  # tip load
-    # loads[1:, 2] = P / (num_y - 1)  # load distributed across all nodes
+    # loads[0, 2] = P  # tip load
+    loads[1:, 2] = P / (num_y - 1)  # load distributed across all nodes
 
     # Instantiate the OpenMDAO group for the root problem.
     root = Group()
@@ -177,7 +181,10 @@ if input_arg == 'prob1':
     # Again, note the scaler on the weight measure.
     prob.driver.add_objective('weight', scaler=1e-3)
     # Add a failure constraint that none of the beam elements can go past
-    # yield stress.
+    # yield stress. Note that we use a Kreisselmeier-Steinhauser (KS)
+    # function to aggregate the constraints into a single constraint.
+    # Because this is a conservative aggregation, some of the structural
+    # elements may be well below the failure limit instead of right at it.
     prob.driver.add_constraint('failure', upper=0.)
 
     # Simply use finite-differencing over the entire model to get the
@@ -201,8 +208,8 @@ if input_arg == 'prob1':
     # Start timing and perform the optimization.
     st = time.time()
     prob.run()
-    print("run time: {} secs".format(time.time() - st))
-    print('thickness distribution:', prob['thickness'])
+    print("\nrun time: {} secs".format(time.time() - st))
+    print('thickness distribution:', prob['thickness'], "\n")
 
     # Uncomment the following line to check the partial derivatives of each
     # component and view their accuracy.
@@ -222,7 +229,11 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # then are overwritten with the settings here.
     surface  = {'name' : '',        # name of the surface
                 'num_x' : 2,            # number of chordwise points
-                'num_y' : 9,            # number of spanwise points
+                'num_y' : 9,            # number of spanwise points; must be odd
+                                        # for the CRM case, this is an approximation
+                                        # of the number of spanwise points;
+                                        # it may not produce a mesh with the
+                                        # exact requested value
                 'span_cos_spacing' : 0,   # 0 for uniform spanwise panels
                                         # 1 for cosine-spaced panels
                                         # any value between 0 and 1 for
@@ -250,6 +261,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # Here, `surface` is a dictionary that contains information relevant to
     # one surface within the analysis or optimization.
     surface = OAS_prob.surfaces[0]
+    print(surface['mesh'])
 
     # If you want to view the information contained within `surface`,
     # uncomment the following two lines of code.
@@ -327,14 +339,14 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     root.add('vlmfuncs',
             vlmfuncs_comp,
             promotes=['*'])
-    <add more components here>
+    "<-- add more components here -->"
 
     # Add components to the coupled MDA here
     coupled = Group()
     coupled.add('mesh',
-        <insert mesh_comp here>,
+        "<-- insert mesh_comp here -->",
         promotes=["*"])
-    <add more components here>
+    "<-- add more components here -->"
 
     ############################################################
     # Problem 2b:
@@ -374,6 +386,8 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     prob = Problem()
     prob.root = root
 
+
+
     #############################################################
     # Problem 3b:
     # Look at
@@ -383,7 +397,15 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     ##############################################################
 
     # Multidisciplinary analysis
-    if 'prob2' in input_arg:
+    if 'prob2' in input_arg or 'prob3ab' in input_arg:
+
+        # Record the optimization history in `aerostruct.db`. You can view
+        # this by running `python plot_all.py as` or `python OptView.py as`.
+        recorder = SqliteRecorder('aerostruct.db')
+        recorder.options['record_params'] = True
+        recorder.options['record_derivs'] = True
+        recorder.options['record_metadata'] = True
+        prob.driver.add_recorder(recorder)
 
         # Have OpenMDAO set up the problem that we have constructed.
         prob.setup()
@@ -398,34 +420,22 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         # Run analysis.
         prob.run_once()
 
-    # Multidisciplinary analysis derivatives
-    if 'prob3ab' in input_arg:
+        # Multidisciplinary analysis derivatives
+        if 'prob3ab' in input_arg:
 
-        # Have OpenMDAO set up the problem that we have constructed.
-        prob.setup()
+            print("------------------------------------------------")
+            print("Solving for Derivatives")
+            print("------------------------------------------------")
 
-        # Print OpenMDAO solver convergence data
-        prob.print_all_convergence()
+            # Calculate the gradients of fuelburn and vonmises (stress)
+            # wrt twist, alpha, and thickness
+            jac = prob.calc_gradient(['twist','alpha','thickness'], ['fuelburn', 'vonmises'], return_format="dict")
 
-        # Start timing to see how long the analysis and derivative
-        # computation takes.
-        st = time.time()
-
-        # Run analysis.
-        prob.run_once()
-
-        print("------------------------------------------------")
-        print("Solving for Derivatives")
-        print("------------------------------------------------")
-
-        # Calculate the gradients of fuelburn and vonmises (stress)
-        # wrt twist, alpha, and thickness
-        jac = prob.calc_gradient(['twist','alpha','thickness'], ['fuelburn', 'vonmises'], return_format="dict")
-
-        # Print the derivative results
-        print("d_fuelburn/d_alpha", jac['fuelburn']['alpha'])
-        print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist']))
-        print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness']))
+            # Print the derivative results.
+            # Note that we convert fuelburn from Newtosn to kg.
+            print("d_fuelburn/d_alpha", jac['fuelburn']['alpha'] / 9.8)
+            print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist'] / 9.8))
+            print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness'] / 9.8))
 
     # Multidisciplinary optimization
     if 'prob3c' in input_arg:
@@ -437,7 +447,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         prob.driver = ScipyOptimizer()
         prob.driver.options['optimizer'] = 'SLSQP'
         prob.driver.options['disp'] = True
-        prob.driver.options['tol'] = 1.0e-8
+        prob.driver.options['tol'] = 1.0e-5
         prob.driver.options['maxiter'] = 80
 
         ###############################################################
@@ -445,17 +455,17 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         # Add design variables here
         ###############################################################
         prob.driver.add_desvar('<--insert_var_name-->',
-                               lower=<--lower_bound-->,
-                               upper=<--upper_bound-->,
-                               scaler=<--scaler_val-->)
+                               lower='<-- lower_bound -->',
+                               upper='<-- upper_bound -->',
+                               scaler='<-- scaler_val -->')
 
         ###############################################################
         # Problem 3c:
         # Add constraints and objectives
         ###############################################################
-        prob.driver.add_objective('<--insert_var_name-->')
-        prob.driver.add_constraint('<--insert_var_name-->', upper=<--upper_bound-->)
-        prob.driver.add_constraint('<--insert_var_name-->', equals=<--eq_val-->)
+        prob.driver.add_objective('<-- insert_var_name -->')
+        prob.driver.add_constraint('<-- insert_var_name -->', upper='<-- upper_bound -->')
+        prob.driver.add_constraint('<-- insert_var_name -->', equals='<-- eq_val -->')
 
         # Record the optimization history in `aerostruct.db`. You can view
         # this by running `python plot_all.py as` or `python OptView.py as`.
@@ -485,5 +495,5 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # prob.check_partial_derivatives(compact_print=True)
 
     # Print the run time and current fuelburn
-    print("run time: {} secs".format(time.time() - st))
-    print("fuelburn:", prob['fuelburn'])
+    print("\nrun time: {} secs".format(time.time() - st))
+    print("fuelburn:", prob['fuelburn'] / 9.8, "kg\n")
