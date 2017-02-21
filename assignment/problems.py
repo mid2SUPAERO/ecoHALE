@@ -1,24 +1,41 @@
+"""
+This is the main script you need to change for the assignment.
+
+Call it as `python problems.py <-prob_name->` where <-prob_name-> is one of:
+
+prob1
+prob2
+prob3ab
+prob3c
+
+"""
+
+# Base imports
 from __future__ import division, print_function
 import numpy
 import sys
 import time
 
+# Append the parent directory to the system path so we can call those
+# Python files
 from os import sys, path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
+# Import OpenMDAO methods
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile, view_model
+
+# Import OpenAeroStruct methods
 from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
-
-from openmdao.api import view_model
 from run_classes import OASProblem
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
+# Parse the user-supplied command-line input and store it as input_arg
 try:
     input_arg = sys.argv[1]
 except IndexError:
@@ -28,41 +45,90 @@ except IndexError:
     print(' +--------------------------------------------------------+\n')
     raise
 
+# Check input_arg and run prob1 if selected
 if input_arg == 'prob1':
 
-    # Set problem type
+    # Set problem type. Any option not set here will be set in the method
+    # `get_default_prob_dict` within `run_classes.py`
     prob_dict = {'type' : 'struct'}
 
-    # Instantiate problem and add default surface
+    # Instantiate OpenAeroStruct (OAS) problem
     OAS_prob = OASProblem(prob_dict)
-    OAS_prob.add_surface({'name' : 'wing',
-                          'num_y' : 13,
-                          'span_cos_spacing' : 0,
-                          'symmetry' : True})
 
-    # Get the created surface
+    # We specify the necessary parameters here.
+    # Defaults are set in `get_default_surf_dict` within `run_classes.py` and
+    # then are overwritten with the settings here.
+    surface = {'name' : 'wing',        # name of the surface
+               'num_x' : 2,            # number of chordwise points
+               'num_y' : 13,            # number of spanwise points
+               'span' : 10.,           # full wingspan
+               'chord' : 1.,           # root chord
+               'span_cos_spacing' : 0,   # 0 for uniform spanwise panels
+                                        # 1 for cosine-spaced panels
+                                        # any value between 0 and 1 for
+                                        # a mixed spacing
+
+                # Structural values are based on aluminum
+                'E' : 70.e9,            # [Pa] Young's modulus of the spar
+                'G' : 30.e9,            # [Pa] shear modulus of the spar
+                'stress' : 20.e6,       # [Pa] yield stress
+                'mrho' : 3.e3,          # [kg/m^3] material density
+                'symmetry' : True,      # if true, model one half of wing
+                                        # reflected across the plane y = 0
+                'W0' : 0.5 * 2.5e6,     # [N] MTOW of B777 is 3e5 kg with fuel
+                }
+    # Add our defined surface to the OAS_prob object.
+    OAS_prob.add_surface(surface)
+
+    # Get the finalized surface, which includes the created mesh object.
+    # Here, `surface` is a dictionary that contains information relevant to
+    # one surface within the analysis or optimization.
     surface = OAS_prob.surfaces[0]
 
+    # If you want to view the information contained within `surface`,
+    # uncomment the following two lines of code.
+    # for key in surface.keys():
+    #     print(key, surface[key])
+
+    # Obtain the number of spanwise node points from the defined surface.
     num_y = surface['num_y']
 
+    # Create an array of radii for the spar elements.
     r = radii(surface['mesh'])
+
+    # Obtain the starting thickness for each of the spar elements based
+    # on the radii.
     thickness = r / 10
 
-    # Define the loads
+    # Define the loads here. Choose either a tip load or distributed load
+    # by commenting the lines as necessary.
     loads = numpy.zeros((num_y, 6))
-    loads[0, 2] = loads[-1, 2] = 1e3 # tip load of 1 kN
-    # loads[:, 2] = 1e3 # load of 1 kN at each node
+    P = 1e4  # load of 10 kN
+    loads[0, 2] = P  # tip load
+    # loads[1:, 2] = P / (num_y - 1)  # load distributed across all nodes
 
+    # Instantiate the OpenMDAO group for the root problem.
     root = Group()
 
+    # Create a list of tuples that contains the design variables.
+    # These will be used in the analysis and optimization and will connect
+    # to variables within the components.
+    # For example, here we set the loads, and SpatialBeamStates computes
+    # the displacements based off of these loads.
     des_vars = [
-        ('twist', numpy.zeros(num_y)),
+        ('twist', numpy.zeros(surface['num_y'])),
         ('span', surface['span']),
         ('r', r),
         ('thickness', thickness),
         ('loads', loads)
     ]
 
+    # Add components to the root problem. Note that each of the components
+    # is defined with `promotes=['*']`, which means that all parameters
+    # within that component are promoted to the root level so that all
+    # other components can access them. For example, GeometryMesh creates
+    # the mesh, and SpatialBeamStates uses this mesh information.
+    # The data passing happens behind-the-scenes in OpenMDAO.
     root.add('des_vars',
              IndepVarComp(des_vars),
              promotes=['*'])
@@ -79,92 +145,146 @@ if input_arg == 'prob1':
              SpatialBeamFunctionals(surface),
              promotes=['*'])
 
+    # Instantiate an OpenMDAO problem and all the root group that we just
+    # created to the problem.
     prob = Problem()
     prob.root = root
 
-
+    # Set a driver for the optimization problem. Without a driver, OpenMDAO
+    # doesn't know how to change the parameters to achieve an optimal solution.
+    # There are a few options, but ScipyOptimizer and SLSQP are generally
+    # the best options to use without installing additional packages.
     prob.driver = ScipyOptimizer()
     prob.driver.options['optimizer'] = 'SLSQP'
     prob.driver.options['disp'] = True
-    # prob.driver.options['tol'] = 1.0e-12
 
+    # Add design variables, objective, and a constraint.
+    # We set the design variable that the optimizer can control.
+    # Note the lower and upper bounds. We also scale this design variable
+    # so that it's on the same order of magnitude as the objective
+    # and constraints.
     prob.driver.add_desvar('thickness', lower=0.001, upper=0.25, scaler=1e2)
+    # Again, note the scaler on the weight measure.
     prob.driver.add_objective('weight', scaler=1e-3)
-    prob.driver.add_constraint('failure', upper=0., scaler=1e-4)
+    # Add a failure constraint that none of the beam elements can go past
+    # yield stress.
+    prob.driver.add_constraint('failure', upper=0.)
 
+    # Simply use finite-differencing over the entire model to get the
+    # derivatives used for optimization.
     prob.root.deriv_options['type'] = 'fd'
-    prob.root.deriv_options['form'] = 'central'
-    prob.root.deriv_options['step_size'] = 1e-10
 
-    prob.driver.add_recorder(SqliteRecorder('spatialbeam.db'))
+    # Record the optimization history in `spatialbeam.db`. You can view
+    # this by running `python plot_all.py s` or `python OptView.py spatialbeam.db`.
+    recorder = SqliteRecorder('spatialbeam.db')
+    recorder.options['record_params'] = True
+    recorder.options['record_derivs'] = True
+    prob.driver.add_recorder(recorder)
 
+    # Have OpenMDAO set up the problem that we have constructed.
     prob.setup()
 
+    # Create an html output file showing the problem formulation and data
+    # passing with an interactive chart. Open this in any web browser.
     view_model(prob, outfile="prob1.html", show_browser=False)
 
-    # prob.run_once()
-    # prob.check_partial_derivatives(compact_print=True)
-
+    # Start timing and perform the optimization.
     st = time.time()
     prob.run()
     print("run time: {} secs".format(time.time() - st))
     print('thickness distribution:', prob['thickness'])
 
+    # Uncomment the following line to check the partial derivatives of each
+    # component and view their accuracy.
+    # prob.check_partial_derivatives(compact_print=True)
+
 
 elif 'prob2' in input_arg or 'prob3' in input_arg:
 
-    # Set problem type
+    # Set problem type. Any option not set here will be set in the method
+    # `get_default_prob_dict` within `run_classes.py`
     prob_dict = {'type' : 'aerostruct'}
 
-    # Instantiate problem and add default surface
+    # Instantiate OpenAeroStruct (OAS) problem
     OAS_prob = OASProblem(prob_dict)
-    OAS_prob.add_surface({'name' : '',
-                          'wing_type' : 'CRM',
-                          'num_y' : 9,
-                          'num_x' : 2,
-                          'span_cos_spacing' : 0,
-                          'CL0' : 0.2,
-                          'CD0' : 0.015,
-                          'symmetry' : True})
 
-    # Get the created surface
+    # We specify the necessary parameters here.
+    # Defaults are set in `get_default_surf_dict` within `run_classes.py` and
+    # then are overwritten with the settings here.
+    surface  = {'name' : '',        # name of the surface
+                'num_x' : 2,            # number of chordwise points
+                'num_y' : 9,            # number of spanwise points
+                'span_cos_spacing' : 0,   # 0 for uniform spanwise panels
+                                        # 1 for cosine-spaced panels
+                                        # any value between 0 and 1 for
+                                        # a mixed spacing
+                'CL0' : 0.2,            # CL value at AoA (alpha) = 0
+                'CD0' : 0.015,            # CD value at AoA (alpha) = 0
+
+                # Structural values are based on aluminum
+                'E' : 70.e9,            # [Pa] Young's modulus of the spar
+                'G' : 30.e9,            # [Pa] shear modulus of the spar
+                'stress' : 20.e6,       # [Pa] yield stress
+                'mrho' : 3.e3,          # [kg/m^3] material density
+                'fem_origin' : 0.35,    # chordwise location of the spar
+                'symmetry' : True,     # if true, model one half of wing
+                                        # reflected across the plane y = 0
+                'W0' : 0.5 * 2.5e6,     # [N] MTOW of B777 is 3e5 kg with fuel
+                'wing_type' : 'CRM',   # initial shape of the wing
+                                        # either 'CRM' or 'rect'
+                }
+
+    # Add our defined surface to the OAS_prob object.
+    OAS_prob.add_surface(surface)
+
+    # Get the finalized surface, which includes the created mesh object.
+    # Here, `surface` is a dictionary that contains information relevant to
+    # one surface within the analysis or optimization.
     surface = OAS_prob.surfaces[0]
+
+    # If you want to view the information contained within `surface`,
+    # uncomment the following two lines of code.
+    # for key in surface.keys():
+    #     print(key, surface[key])
+
+    # Also get the created prob_dict, which contains information about the
+    # flow over the wing.
     prob_dict = OAS_prob.prob_dict
+
+    # Obtain the number of spanwise node points from the defined surface.
     num_y = surface['num_y']
+
+    # Create an array of radii for the spar elements.
     r = radii(surface['mesh'])
+
+    # Obtain the starting thickness for each of the spar elements based
+    # on the radii.
     thickness = r / 10
-    thickness[:] = numpy.max((thickness))
-    num_twist = num_thickness = num_y
 
-    span = surface['span']
-    v = prob_dict['v']
-    alpha = prob_dict['alpha']
-    rho = prob_dict['rho']
-    M = prob_dict['M']
-    Re = prob_dict['Re']
-
-    # Create the top-level system
+    # Instantiate the OpenMDAO group for the root problem.
     root = Group()
 
-    # Define the independent variables
+    # Create a list of tuples that contains the design variables.
+    # These will be used in the analysis and optimization and will connect
+    # to variables within the components.
+    # For example, here we set the twist, and VLMGeometry computes
+    # the new mesh based off of these twist values.
     indep_vars = [
-        ('span', span),
+        ('span', surface['span']),
         ('twist', numpy.zeros(num_twist)),
         ('thickness', thickness),
-        ('v', v),
-        ('alpha', alpha),
-        ('rho', rho),
+        ('v', prob_dict['v']),
+        ('alpha', prob_dict['alpha']),
+        ('rho', prob_dict['rho']),
         ('r', r),
-        ('M', M),
-        ('Re', Re),
+        ('M', prob_dict['M']),
+        ('Re', prob_dict['Re']),
     ]
 
-    ############################################################
+    ###############################################################
     # Problem 2a:
-    # These are your components, put them in the correct groups.
-    # indep_vars_comp, tube_comp, and weiss_func_comp have been
-    # done for you as examples
-    ############################################################
+    # These are your components. Here we simply create the objects.
+    ###############################################################
 
     indep_vars_comp = IndepVarComp(indep_vars)
     tube_comp = MaterialsTube(surface)
@@ -181,41 +301,38 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     fuelburn_comp = FunctionalBreguetRange(OAS_prob.surfaces, OAS_prob.prob_dict)
     eq_con_comp = FunctionalEquilibrium(OAS_prob.surfaces, OAS_prob.prob_dict)
 
-    ############################################################
-    ############################################################
+    #################################################################
+    # Problem 2a:
+    # Now add the components you created above to the correct groups.
+    # indep_vars_comp, tube_comp, and vlm_funcs have been
+    # done for you as examples.
+    #################################################################
 
+    # Add functional components here
     root.add('indep_vars',
              indep_vars_comp,
              promotes=['*'])
     root.add('tube',
              tube_comp,
              promotes=['*'])
+    root.add('vlmfuncs',
+            vlmfuncs_comp,
+            promotes=['*'])
+    <add more components here>
 
-    # Add components to the MDA here
+    # Add components to the coupled MDA here
     coupled = Group()
     coupled.add('mesh',
-        mesh_comp,
+        <insert mesh_comp here>,
         promotes=["*"])
-    coupled.add('spatialbeamstates',
-        spatialbeamstates_comp,
-        promotes=["*"])
-    coupled.add('def_mesh',
-        def_mesh_comp,
-        promotes=["*"])
-    coupled.add('geom',
-        geom_comp,
-        promotes=["*"])
-    coupled.add('vlmstates',
-        vlmstates_comp,
-        promotes=["*"])
-    coupled.add('loads',
-        loads_comp,
-        promotes=["*"])
+    <add more components here>
 
     ############################################################
     # Problem 2b:
-    # Comment/uncomment these solver blocks to try different
-    # nonlinear solver methods
+    # Try different nonlinear solvers on the coupled and root groups.
+    # Nonlinear Gauss Seidel is included as an example.
+    # Examine http://openmdao.readthedocs.io/en/latest/srcdocs/packages/openmdao.solvers.html
+    # to see syntax for other options.
     ############################################################
 
     ## Nonlinear Gauss Seidel on the coupled group
@@ -224,36 +341,12 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     coupled.nl_solver.options['atol'] = 1e-5
     coupled.nl_solver.options['rtol'] = 1e-12
 
-    ## Newton Solver on the coupled group
-    # coupled.nl_solver = Newton()
-    # coupled.nl_solver.options['iprint'] = 1
-
-
-    ## Hybrid NLGS-Newton on the coupled group
-    # coupled.nl_solver = HybridGSNewton()
-    # coupled.nl_solver.nlgs.options['iprint'] = 1
-    # coupled.nl_solver.nlgs.options['maxiter'] = 5
-    # coupled.nl_solver.newton.options['atol'] = 1e-7
-    # coupled.nl_solver.newton.options['rtol'] = 1e-7
-    # coupled.nl_solver.newton.options['iprint'] = 1
-
-    # Newton solver on the root group
-    # root.nl_solver = Newton()
-    # root.nl_solver.options['iprint'] = 1
-
     ############################################################
     # Problem 2c:
-    # Comment/uncomment these solver blocks to try different
-    # linear solvers
+    # Try different linear solvers for the coupled group.
+    # Again examine http://openmdao.readthedocs.io/en/latest/srcdocs/packages/openmdao.solvers.html
+    # for linear solver options.
     ############################################################
-
-    ## Linear Gauss Seidel Solver
-    # coupled.ln_solver = LinearGaussSeidel()
-    # coupled.ln_solver.options['maxiter'] = 100
-
-    ## Krylov Solver - No preconditioning
-    # coupled.ln_solver = ScipyGMRES()
-    # coupled.ln_solver.options['iprint'] = 1
 
     ## Krylov Solver - LNGS preconditioning
     coupled.ln_solver = ScipyGMRES()
@@ -262,104 +355,103 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     coupled.vlmstates.ln_solver = LinearGaussSeidel()
     coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
-    # adds the MDA to root (do not remove!)
+    # Add the MDA to root (do not remove!)
     root.add('coupled',
              coupled,
              promotes=['*'])
 
-    # Add functional components here
-    root.add('vlmfuncs',
-            vlmfuncs_comp,
-            promotes=['*'])
-    root.add('spatialbeamfuncs',
-            spatialbeamfuncs_comp,
-            promotes=['*'])
-    root.add('fuelburn',
-            fuelburn_comp,
-            promotes=['*'])
-    root.add('eq_con',
-            eq_con_comp,
-            promotes=['*'])
-
+    # Instantiate an OpenMDAO problem and all the root group that we just
+    # created to the problem.
     prob = Problem()
     prob.root = root
 
-    # change file name to save data from each experiment separately
-    prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
+    # Record the optimization history in `spatialbeam.db`. You can view
+    # this by running `python plot_all.py as` or `python OptView.py aerostruct.db`.
+    recorder = SqliteRecorder('aerostruct.db')
+    recorder.options['record_params'] = True
+    recorder.options['record_derivs'] = True
+    prob.driver.add_recorder(recorder)
 
     #############################################################
     # Problem 3b:
-    # Comment out the following code to run analytic derivatives
+    # Look at
+    # http://openmdao.readthedocs.io/en/latest/usr-guide/examples/example_fd.html
+    # to see how to force use of finite differencing or complex step.
+    # Try using finite differencing on the root problem here.
     ##############################################################
-    # prob.root.deriv_options['type'] = 'fd'
-    # prob.root.deriv_options['step_type'] = 'relative'
-    # prob.root.deriv_options['form'] = 'forward'
-    # prob.root.deriv_options['step_size'] = 1e-6
-    #####################################################
 
+    # Have OpenMDAO set up the problem that we have constructed.
     prob.setup()
-    prob.print_all_convergence() # makes OpenMDAO print out solver convergence data
 
-    # uncomment this to see an n2 diagram of your problem
-    view_model(prob, outfile="aerostruct_n2.html", show_browser=False)
+    # Print OpenMDAO solver convergence data
+    prob.print_all_convergence()
 
-    st = time.time()
-    prob.run_once()
+    # Create an html output file showing the problem formulation and data
+    # passing with an interactive chart. Open this in any web browser.
+    view_model(prob, outfile="my_aerostruct_n2.html", show_browser=False)
 
-    if 'prob3a' in input_arg:
+    # Multidisciplinary analysis
+    if 'prob3ab' in input_arg:
+
+        # Start timing to see how long the analysis and derivative
+        # computation takes.
+        st = time.time()
+
+        # Run analysis.
+        prob.run_once()
 
         print("------------------------------------------------")
         print("Solving for Derivatives")
         print("------------------------------------------------")
-        st = time.time()
-        profile.setup(prob)
-        profile.start()
-        jac = prob.calc_gradient(['twist','alpha','thickness'], ['fuelburn', 'vonmises'], return_format="dict")
-        run_time = time.time() - st
-        profile.stop()
 
+        # Calculate the gradients of fuelburn and vonmises (stress)
+        # wrt twist, alpha, and thickness
+        jac = prob.calc_gradient(['twist','alpha','thickness'], ['fuelburn', 'vonmises'], return_format="dict")
+
+        # Print the derivative results
         print("d_fuelburn/d_alpha", jac['fuelburn']['alpha'])
         print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist']))
         print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness']))
 
-    # Uncomment this to print partial derivatives accuracy information
-    prob.check_partial_derivatives(compact_print=True)
-
+    # Multidisciplinary optimization
     if 'prob3c' in input_arg:
 
+        # Set a driver for the optimization problem. Without a driver, OpenMDAO
+        # doesn't know how to change the parameters to achieve an optimal solution.
+        # There are a few options, but ScipyOptimizer and SLSQP are generally
+        # the best options to use without installing additional packages.
         prob.driver = ScipyOptimizer()
         prob.driver.options['optimizer'] = 'SLSQP'
         prob.driver.options['disp'] = True
         prob.driver.options['tol'] = 1.0e-5
         prob.driver.options['maxiter'] = 40
 
-        prob.driver.add_recorder(SqliteRecorder('aerostruct.db'))
+        ###############################################################
+        # Problem 3c:
+        # Add design variables here
+        ###############################################################
+        prob.driver.add_desvar('<--insert_var_name-->',
+                               lower=<--lower_bound-->,
+                               upper=<--upper_bound-->,
+                               scaler=<--scaler_val-->)
 
         ###############################################################
-        # Add design vars
+        # Problem 3c:
+        # Add constraints and objectives
         ###############################################################
-        prob.driver.add_desvar('twist',lower= -10.,
-                               upper=10., scaler=1e0)
-        prob.driver.add_desvar('alpha', lower=-10., upper=10., scaler=1e0)
-        prob.driver.add_desvar('thickness',
-                               lower= 0.003,
-                               upper= 0.25, scaler=1000)
+        prob.driver.add_objective('<--insert_var_name-->')
+        prob.driver.add_constraint('<--insert_var_name-->', upper=<--upper_bound-->)
+        prob.driver.add_constraint('<--insert_var_name-->', equals=<--eq_val-->)
 
-        ###############################################################
-        # Add constraints, and objectives
-        ###############################################################
-        prob.driver.add_objective('fuelburn')
-        prob.driver.add_constraint('failure', upper=0.0)
-        prob.driver.add_constraint('eq_con', equals=0.0)
+        # Start timing for the optimization
+        st = time.time()
 
+        # Actually run the optimization
+        prob.run()
 
-    prob.setup()
-    # view_model(prob, outfile="my_aerostruct_n2.html", show_browser=True) # generate the n2 diagram diagram
+    # Uncomment this to print partial derivatives accuracy information
+    prob.check_partial_derivatives(compact_print=True)
 
-    st = time.time()
-
-    # Actually run the optimization
-    prob.run()
-
+    # Print the run time and current fuelburn
     print("run time: {} secs".format(time.time() - st))
     print("fuelburn:", prob['fuelburn'])

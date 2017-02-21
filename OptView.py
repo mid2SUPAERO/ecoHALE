@@ -100,14 +100,14 @@ class Display(object):
                 db = shelve.open(histFileName, 'r')
                 OpenMDAO = False
             except: # bare except because error is not in standard Python
-                db = SqliteDict(histFileName, 'openmdao')
+                db = SqliteDict(histFileName, 'iterations')
                 OpenMDAO = True
                 if db.keys() == []:
                     OpenMDAO = False
                     db = SqliteDict(histFileName)
 
             if OpenMDAO:
-                string = db.keys()[-1].split('/')
+                string = db.keys()[-1].split('|')
                 if string[-1]=='derivs':
                     nkey = int(string[-2]) + 1 # OpenMDAO uses 1-indexing
                 else:
@@ -125,59 +125,20 @@ class Display(object):
                 pass
 
             if OpenMDAO:
-                key = 'Driver/1'
-                try:
-                    f = db[key]['Unknowns']
-                    for key in sorted(f):
-                        new_key = key + '{}'.format(histIndex)
-                        if new_key not in self.func_data_all:
-                            self.func_data_all[new_key] = []
-                        if numpy.isscalar(f[key]) or f[key].shape == (1,):
-                            self.func_data_all[new_key].append(f[key])
-                        try:
-                            if f[key].shape[0] > 1:
-                                self.func_data_all[new_key].append(f[key])
-                        except (IndexError, AttributeError):
-                            pass
-
-                except KeyError:
-                    pass
-
-                try:
-                    f = db[key]['Parameters']
-                    for key in sorted(f):
-                        new_key = key + '{}'.format(histIndex)
-                        if new_key not in self.var_data_all:
-                            self.var_data_all[new_key] = []
-                            if self.iter_type[i] == 1:
-                                self.var_data_major[new_key] = []
-                        if numpy.isscalar(f[key]) or f[key].shape == (1,):
-                            self.var_data_all[new_key].append(f[key])
-                            if self.iter_type[i] == 1:
-                                self.var_data_major[new_key].append(f[key])
-                        else:
-                            try:
-                                self.var_data_all[new_key].append(f[key].flatten())
-                                if self.iter_type[i] == 1:
-                                    self.var_data_major[new_key].append(f[key].flatten())
-                            except (IndexError, AttributeError):
-                                pass
-
-                except KeyError:
-                    pass
+                deriv_keys = SqliteDict(histFileName, 'derivs').keys()
+                deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
 
             for i in xrange(nkey):
                 if OpenMDAO:
-                    key = '{}/{}'.format(solver_name, i)
-                    keyp1 = '{}/{}/derivs'.format(solver_name, i)
+                    key = '{}|{}'.format(solver_name, i)
 
                     try:
                         f = db[key]['Unknowns']
-                        try:
-                            db[keyp1]
+                        if i in deriv_keys:
                             self.iter_type[i] = 1 # for 'major' iterations
-                        except KeyError:
+                        else:
                             self.iter_type[i] = 2 # for 'minor' iterations
+
                         for key in sorted(f):
                             new_key = key + '{}'.format(histIndex)
                             if new_key not in self.func_data_all:
@@ -193,6 +154,35 @@ class Display(object):
                                     self.func_data_all[new_key].append(f[key].flatten())
                                     if self.iter_type[i] == 1:
                                         self.func_data_major[new_key].append(f[key].flatten())
+                                except (IndexError, AttributeError):
+                                    pass
+
+                    except KeyError:
+                        pass
+
+                    key = '{}|{}'.format(solver_name, i)
+                    try:
+                        f = db[key]['Parameters']
+                        if i in deriv_keys:
+                            self.iter_type[i] = 1 # for 'major' iterations
+                        else:
+                            self.iter_type[i] = 2 # for 'minor' iterations
+
+                        for key in sorted(f):
+                            new_key = key + '{}'.format(histIndex)
+                            if new_key not in self.var_data_all:
+                                self.var_data_all[new_key] = []
+                                if self.iter_type[i] == 1:
+                                    self.var_data_major[new_key] = []
+                            if numpy.isscalar(f[key]) or f[key].shape == (1,):
+                                self.var_data_all[new_key].append(f[key])
+                                if self.iter_type[i] == 1:
+                                    self.var_data_major[new_key].append(f[key])
+                            else:
+                                try:
+                                    self.var_data_all[new_key].append(f[key].flatten())
+                                    if self.iter_type[i] == 1:
+                                        self.var_data_major[new_key].append(f[key].flatten())
                                 except (IndexError, AttributeError):
                                     pass
 

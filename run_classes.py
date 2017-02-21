@@ -272,7 +272,10 @@ class OASProblem():
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
-        self.prob.driver.add_recorder(SqliteRecorder(self.prob_dict['prob_name']+".db"))
+        recorder = SqliteRecorder(self.prob_dict['prob_name']+".db")
+        recorder.options['record_params'] = True
+        recorder.options['record_derivs'] = True
+        self.prob.driver.add_recorder(recorder)
 
         # Profile (time) the problem
         # profile.setup(self.prob)

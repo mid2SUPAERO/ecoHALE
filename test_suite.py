@@ -141,9 +141,6 @@ class TestStruct(unittest.TestCase):
 
         OAS_prob.run()
         prob = OAS_prob.prob
-        print prob['wing.weight']
-        print prob['wing.thickness_cp']
-        print prob['wing.failure']
 
         self.assertAlmostEqual(prob['wing.weight'], 2010.4792274, places=2)
 
@@ -281,9 +278,9 @@ class TestAeroStruct(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print
-    print '===================================================='
-    print '|             RUNNING FULL TEST SUITE              |'
-    print '===================================================='
-    print
+    print()
+    print('====================================================')
+    print('|             RUNNING FULL TEST SUITE              |')
+    print('====================================================')
+    print()
     unittest.main()

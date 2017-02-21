@@ -107,13 +107,12 @@ class Display(object):
             if 'is_objective' in meta_db['Unknowns'][item].keys():
                 self.obj_key = item
 
-        for case_name, case_data in self.db.iteritems():
-            if "metadata" in case_name or "derivs" in case_name:
+        deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
+        deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
+
+        for i, (case_name, case_data) in enumerate(self.db.iteritems()):
+            if i not in deriv_keys:
                 continue # don't plot these cases
-            # try:
-            #     self.db[case_name + '/derivs']
-            # except:
-            #     continue
 
             self.mesh.append(case_data['Unknowns']['mesh'])
             self.obj.append(case_data['Unknowns'][self.obj_key])
@@ -147,11 +146,12 @@ class Display(object):
         self.symmetry = True
         for mesh in self.mesh:
             y_values = mesh[0, :, 1]
-            if not (numpy.all(y_values >= 0.) or numpy.all(y_values <= 0)):
+            if not (numpy.all(y_values >= -1e-10) or numpy.all(y_values <= 1e-10)):
                 self.symmetry = False
 
         if self.symmetry:
-            
+            print('SYMMETRY!')
+
             new_mesh = []
             if self.show_tube:
                 new_r = []
