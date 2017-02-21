@@ -29,6 +29,10 @@ import numpy
 import sqlitedict
 import traceback
 
+# Suppress warnings
+import warnings
+warnings.filterwarnings("ignore")
+
 #####################
 # User-set parameters
 #####################
@@ -103,19 +107,25 @@ class Display(object):
         self.obj = []
 
         meta_db = sqlitedict.SqliteDict(self.db_name, 'metadata')
+        self.opt = False
         for item in meta_db['Unknowns']:
             if 'is_objective' in meta_db['Unknowns'][item].keys():
                 self.obj_key = item
+                self.opt = True
 
         deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
         deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
 
         for i, (case_name, case_data) in enumerate(self.db.iteritems()):
-            if i not in deriv_keys:
+
+            if i == 0:
+                pass
+            elif i not in deriv_keys:
                 continue # don't plot these cases
 
             self.mesh.append(case_data['Unknowns']['mesh'])
-            self.obj.append(case_data['Unknowns'][self.obj_key])
+            if self.opt:
+                self.obj.append(case_data['Unknowns'][self.obj_key])
 
             try:
                 self.r.append(case_data['Unknowns']['r'])
@@ -140,7 +150,10 @@ class Display(object):
                 self.show_wing = False
                 pass
 
-        self.num_iters = numpy.max([len(self.mesh) - 1, 1])
+        if self.opt:
+            self.num_iters = numpy.max([len(self.mesh) - 1, 1])
+        else:
+            self.num_iters = 0
 
         # Assume symmetry until we find a mesh that straddles the xz-plane
         self.symmetry = True
@@ -374,15 +387,23 @@ class Display(object):
                 Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
                 col = numpy.zeros(X.shape)
                 col[:] = colors[i]
-                self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                    facecolors=cm.viridis(col), linewidth=0)
+
+                try:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.viridis(col), linewidth=0)
+                except:
+                    self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        facecolors=cm.coolwarm(col), linewidth=0)
+
         lim = numpy.max(numpy.max(mesh0)) / 2.8
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
         round_to_n = lambda x, n: round(x, -int(numpy.floor(numpy.log10(abs(x)))) + (n - 1))
-        obj_val = round_to_n(self.obj[self.curr_pos], 7)
-        self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
-            transform=self.ax.transAxes, color='k')
+
+        if self.opt:
+            obj_val = round_to_n(self.obj[self.curr_pos], 7)
+            self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
+                transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az) #Reproduce view
         self.ax.dist = dist
