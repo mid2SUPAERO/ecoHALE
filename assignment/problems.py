@@ -45,6 +45,16 @@ except IndexError:
     print(' +--------------------------------------------------------+\n')
     raise
 
+# Make sure that the user-supplied input is one of the valid options
+input_options = ['prob1', 'prob2', 'prob3ab', 'prob3c']
+print_str = ''.join(str(e) + ', ' for e in input_options)
+if input_arg not in input_options:
+    print('\n +---------------------------------------------------------------+')
+    print(' | ERROR: Please supply a correct input argument to this script. |')
+    print(' | Possible options are ' + print_str[:-2] + '            |')
+    print(' +---------------------------------------------------------------+\n')
+    raise
+
 # Check input_arg and run prob1 if selected
 if input_arg == 'prob1':
 
@@ -175,7 +185,7 @@ if input_arg == 'prob1':
     prob.root.deriv_options['type'] = 'fd'
 
     # Record the optimization history in `spatialbeam.db`. You can view
-    # this by running `python plot_all.py s` or `python OptView.py spatialbeam.db`.
+    # this by running `python plot_all.py s` or `python OptView.py s`.
     recorder = SqliteRecorder('spatialbeam.db')
     recorder.options['record_params'] = True
     recorder.options['record_derivs'] = True
@@ -197,7 +207,6 @@ if input_arg == 'prob1':
     # Uncomment the following line to check the partial derivatives of each
     # component and view their accuracy.
     # prob.check_partial_derivatives(compact_print=True)
-
 
 elif 'prob2' in input_arg or 'prob3' in input_arg:
 
@@ -271,7 +280,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # the new mesh based off of these twist values.
     indep_vars = [
         ('span', surface['span']),
-        ('twist', numpy.zeros(num_twist)),
+        ('twist', numpy.zeros(num_y)),
         ('thickness', thickness),
         ('v', prob_dict['v']),
         ('alpha', prob_dict['alpha']),
@@ -355,7 +364,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     coupled.vlmstates.ln_solver = LinearGaussSeidel()
     coupled.spatialbeamstates.ln_solver = LinearGaussSeidel()
 
-    # Add the MDA to root (do not remove!)
+    # adds the MDA to root (do not remove!)
     root.add('coupled',
              coupled,
              promotes=['*'])
@@ -365,13 +374,6 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     prob = Problem()
     prob.root = root
 
-    # Record the optimization history in `spatialbeam.db`. You can view
-    # this by running `python plot_all.py as` or `python OptView.py aerostruct.db`.
-    recorder = SqliteRecorder('aerostruct.db')
-    recorder.options['record_params'] = True
-    recorder.options['record_derivs'] = True
-    prob.driver.add_recorder(recorder)
-
     #############################################################
     # Problem 3b:
     # Look at
@@ -380,18 +382,30 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # Try using finite differencing on the root problem here.
     ##############################################################
 
-    # Have OpenMDAO set up the problem that we have constructed.
-    prob.setup()
-
-    # Print OpenMDAO solver convergence data
-    prob.print_all_convergence()
-
-    # Create an html output file showing the problem formulation and data
-    # passing with an interactive chart. Open this in any web browser.
-    view_model(prob, outfile="my_aerostruct_n2.html", show_browser=False)
-
     # Multidisciplinary analysis
+    if 'prob2' in input_arg:
+
+        # Have OpenMDAO set up the problem that we have constructed.
+        prob.setup()
+
+        # Print OpenMDAO solver convergence data
+        prob.print_all_convergence()
+
+        # Start timing to see how long the analysis and derivative
+        # computation takes.
+        st = time.time()
+
+        # Run analysis.
+        prob.run_once()
+
+    # Multidisciplinary analysis derivatives
     if 'prob3ab' in input_arg:
+
+        # Have OpenMDAO set up the problem that we have constructed.
+        prob.setup()
+
+        # Print OpenMDAO solver convergence data
+        prob.print_all_convergence()
 
         # Start timing to see how long the analysis and derivative
         # computation takes.
@@ -423,8 +437,8 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         prob.driver = ScipyOptimizer()
         prob.driver.options['optimizer'] = 'SLSQP'
         prob.driver.options['disp'] = True
-        prob.driver.options['tol'] = 1.0e-5
-        prob.driver.options['maxiter'] = 40
+        prob.driver.options['tol'] = 1.0e-8
+        prob.driver.options['maxiter'] = 80
 
         ###############################################################
         # Problem 3c:
@@ -443,14 +457,32 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         prob.driver.add_constraint('<--insert_var_name-->', upper=<--upper_bound-->)
         prob.driver.add_constraint('<--insert_var_name-->', equals=<--eq_val-->)
 
+        # Record the optimization history in `aerostruct.db`. You can view
+        # this by running `python plot_all.py as` or `python OptView.py as`.
+        recorder = SqliteRecorder('aerostruct.db')
+        recorder.options['record_params'] = True
+        recorder.options['record_derivs'] = True
+        recorder.options['record_metadata'] = True
+        prob.driver.add_recorder(recorder)
+
+        # Have OpenMDAO set up the problem that we have constructed.
+        prob.setup()
+
+        # Print OpenMDAO solver convergence data
+        prob.print_all_convergence()
+
         # Start timing for the optimization
         st = time.time()
 
         # Actually run the optimization
         prob.run()
 
+    # Create an html output file showing the problem formulation and data
+    # passing with an interactive chart. Open this in any web browser.
+    view_model(prob, outfile="my_aerostruct_n2.html", show_browser=False)
+
     # Uncomment this to print partial derivatives accuracy information
-    prob.check_partial_derivatives(compact_print=True)
+    # prob.check_partial_derivatives(compact_print=True)
 
     # Print the run time and current fuelburn
     print("run time: {} secs".format(time.time() - st))

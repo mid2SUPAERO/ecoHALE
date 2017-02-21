@@ -36,7 +36,7 @@ import traceback
 if sys.argv[1] == 'as':
     filename = 'aerostruct'
 elif sys.argv[1] == 'a':
-    filename = 'weissinger'
+    filename = 'vlm'
 elif sys.argv[1] == 's':
     filename = 'spatialbeam'
 else:
@@ -150,7 +150,6 @@ class Display(object):
                 self.symmetry = False
 
         if self.symmetry:
-            print('SYMMETRY!')
 
             new_mesh = []
             if self.show_tube:
