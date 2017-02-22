@@ -191,12 +191,12 @@ class SpatialBeamFEM(Component):
 
         self.size = size = 6 * self.ny + 6
 
-        self.add_param('A', val=numpy.zeros((self.ny - 1)))
-        self.add_param('Iy', val=numpy.zeros((self.ny - 1)))
-        self.add_param('Iz', val=numpy.zeros((self.ny - 1)))
-        self.add_param('J', val=numpy.zeros((self.ny - 1)))
-        self.add_param('nodes', val=numpy.zeros((self.ny, 3)))
-        self.add_param('loads', val=numpy.zeros((self.ny, 6)))
+        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype="complex"))
+        self.add_param('Iy', val=numpy.zeros((self.ny - 1), dtype="complex"))
+        self.add_param('Iz', val=numpy.zeros((self.ny - 1), dtype="complex"))
+        self.add_param('J', val=numpy.zeros((self.ny - 1), dtype="complex"))
+        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype="complex"))
+        self.add_param('loads', val=numpy.zeros((self.ny, 6), dtype="complex"))
         self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
 
         # self.deriv_options['type'] = 'cs'
@@ -301,128 +301,23 @@ class SpatialBeamFEM(Component):
         disp_aug = unknowns['disp_aug']
         resids['disp_aug'] = self.K.dot(disp_aug) - self.rhs
 
-    # def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-    #     name = self.surface['name']
-    #     loads = params['loads']
-    #     num_elems = self.elem_IDs.shape[0]
-    #
-    #     ### DOT PRODUCT TEST ###
-    #     nodesd = numpy.random.random_sample(params['nodes'].shape)
-    #     Ad = numpy.random.random_sample(params['A'].shape)
-    #     Jd = numpy.random.random_sample(params['J'].shape)
-    #     Iyd = numpy.random.random_sample(params['Iy'].shape)
-    #     Izd = numpy.random.random_sample(params['Iz'].shape)
-    #     loadsd = numpy.random.random_sample(loads.shape)
-    #
-    #     nodesd_copy = nodesd.copy()
-    #     Ad_copy = Ad.copy()
-    #     Jd_copy = Jd.copy()
-    #     Iyd_copy = Iyd.copy()
-    #     Izd_copy = Izd.copy()
-    #     loadsd_copy = loadsd.copy()
-    #
-    #     self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params['nodes'], nodesd,
-    #                      params['A'], Ad, params['J'], Jd, params['Iy'], Iyd,
-    #                      params['Iz'], Izd,
-    #                                  self.K_a, self.K_t,
-    #                                  self.K_y, self.K_z, self.elem_IDs+1, self.cons,
-    #                                  self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
-    #                                  self.S_a, self.S_t, self.S_y, self.S_z,
-    #                                  self.T_elem, self.const2, self.const_y,
-    #                                  self.const_z, loads, loadsd)
-    #
-    #     Kb = numpy.random.random_sample(self.K.shape)
-    #     xb = numpy.random.random_sample(unknowns['disp_aug'].shape)
-    #     Kb_copy = Kb.copy()
-    #     xb_copy = xb.copy()
-    #
-    #     nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params['nodes'],
-    #                      params['A'], params['J'], params['Iy'],
-    #                      params['Iz'],
-    #                                  self.K_a, self.K_t,
-    #                                  self.K_y, self.K_z, self.elem_IDs+1, self.cons,
-    #                                  self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
-    #                                  self.S_a, self.S_t, self.S_y, self.S_z,
-    #                                  self.T_elem, self.const2, self.const_y,
-    #                                  self.const_z, loads, self.K, Kb, self.x, xb)
-    #
-    #
-    #     dotprod = 0.
-    #     dotprod += numpy.sum(nodesd_copy*nodesb)
-    #     dotprod += numpy.sum(Ad_copy*Ab)
-    #     dotprod += numpy.sum(Jd_copy*Jb)
-    #     dotprod += numpy.sum(Iyd_copy*Iyb)
-    #     dotprod += numpy.sum(Izd_copy*Izb)
-    #     dotprod += numpy.sum(loadsd_copy*loadsb)
-    #     dotprod -= numpy.sum(Kb_copy*Kd)
-    #     dotprod -= numpy.sum(xd*xb_copy)
-    #     # print
-    #     # print 'SHOULD BE ZERO:', dotprod
-    #     # print
-    #     # exit()
-    #
-    #
-    #     if mode == 'fwd':
-    #         self.K, Kd, self.x, xd = OAS_API.oas_api.assemblestructmtx_d(params['nodes'], dparams['nodes'],
-    #                          params['A'], dparams['A'], params['J'], dparams['J'], params['Iy'], dparams['Iy'],
-    #                          params['Iz'], dparams['Iz'],
-    #                                      self.K_a, self.K_t,
-    #                                      self.K_y, self.K_z, self.elem_IDs+1, self.cons,
-    #                                      self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
-    #                                      self.S_a, self.S_t, self.S_y, self.S_z,
-    #                                      self.T_elem, self.const2, self.const_y,
-    #                                      self.const_z, loads, dparams['loads'])
-    #
-    #         dresids['disp_aug'] += xd
-    #         # print '!!!!!!!!!!!!!!!!!!!'
-    #         # print dparams['nodes']
-    #         # print dparams['A']
-    #         # print dparams['J']
-    #         # print dparams['Iy']
-    #         # print dparams['Iz']
-    #         # print dparams['loads']
-    #         # print dresids['disp_aug']
-    #
-    #
-    #     else:
-    #         seeds = dresids['disp_aug'].copy()
-    #
-    #         nodesb, Ab, Jb, Iyb, Izb, loadsb = OAS_API.oas_api.assemblestructmtx_b(params['nodes'].copy(),
-    #                          params['A'].copy(), params['J'].copy(), params['Iy'].copy(),
-    #                          params['Iz'].copy(),
-    #                                      self.K_a, self.K_t,
-    #                                      self.K_y, self.K_z, self.elem_IDs+1, self.cons,
-    #                                      self.E*numpy.ones(num_elems), self.G*numpy.ones(num_elems), self.x_gl, self.T, self.K_elem,
-    #                                      self.S_a, self.S_t, self.S_y, self.S_z,
-    #                                      self.T_elem, self.const2, self.const_y,
-    #                                      self.const_z, loads, self.K, numpy.zeros(self.K.shape), unknowns['disp_aug'].copy(), seeds)
-    #
-    #         dparams['nodes'] += nodesb
-    #         dparams['A'] += Ab
-    #         dparams['J'] += Jb
-    #         dparams['Iy'] += Iyb
-    #         dparams['Iz'] += Izb
-    #         dparams['loads'] += loadsb
-    #
-    #         # print '@@@@@@@@@@@@@@@@@@@@'
-    #         # print dparams['nodes']
-    #         # print dparams['A']
-    #         # print dparams['J']
-    #         # print dparams['Iy']
-    #         # print dparams['Iz']
-    #         # print dparams['loads']
-    #         # print dresids['disp_aug']
-    #
     def linearize(self, params, unknowns, resids):
         """ Jacobian for disp."""
 
         name = self.surface['name']
         jac = self.alloc_jacobian()
-        fd_jac = self.fd_jacobian(params, unknowns, resids,
-                                            fd_params=['A', 'Iy', 'Iz', 'J',
-                                                       'nodes', 'loads'],
-                                            fd_states=[])
-        jac.update(fd_jac)
+        if fortran_flag:
+            fd_jac = self.fd_jacobian(params, unknowns, resids,
+                                                fd_params=['A', 'Iy', 'Iz', 'J',
+                                                           'nodes', 'loads'],
+                                                fd_states=[])
+            jac.update(fd_jac)
+        else:
+            cs_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                                fd_params=['A', 'Iy', 'Iz', 'J',
+                                                           'nodes', 'loads'],
+                                                fd_states=[])
+            jac.update(cs_jac)
         jac['disp_aug', 'disp_aug'] = self.K.real
 
         self.lup = lu_factor(self.K.real)
@@ -439,14 +334,8 @@ class SpatialBeamFEM(Component):
             t = 1
 
         for voi in vois:
-            if type(self.K) == numpy.ndarray:
-                sol_vec[voi].vec[:] = \
-                    lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
-            else:
-                if t == 0:
-                    sol_vec[voi].vec[:] = self.splu.solve(rhs_vec[voi].vec)
-                elif t == 1:
-                    sol_vec[voi].vec[:] = self.spluT.solve(rhs_vec[voi].vec)
+            sol_vec[voi].vec[:] = \
+                lu_solve(self.lup, rhs_vec[voi].vec, trans=t)
 
 
 class SpatialBeamDisp(Component):
@@ -543,11 +432,9 @@ class ComputeNodes(Component):
         unknowns['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
     def linearize(self, params, unknowns, resids):
-        jac = self.alloc_jacobian()
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+        jac = self.complex_step_jacobian(params, unknowns, resids,
                                             fd_params=['mesh'],
                                             fd_states=[])
-        jac.update(fd_jac)
         return jac
 
 

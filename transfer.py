@@ -54,7 +54,7 @@ class TransferDisplacements(Component):
         self.add_output('def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
 
         if not fortran_flag:
-            self.deriv_options['type'] = 'fd'
+            self.deriv_options['type'] = 'cs'
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']

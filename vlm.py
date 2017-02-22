@@ -527,12 +527,12 @@ class VLMGeometry(Component):
         jac = self.alloc_jacobian()
         name = self.surface['name']
 
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+        cs_jac = self.complex_step_jacobian(params, unknowns, resids,
                                             fd_params=['def_mesh'],
                                             fd_unknowns=['widths', 'normals',
                                                          'S_ref'],
                                             fd_states=[])
-        jac.update(fd_jac)
+        jac.update(cs_jac)
 
         nx = self.surface['num_x']
         ny = self.surface['num_y']
@@ -678,12 +678,12 @@ class VLMCirculations(Component):
         for surface in self.surfaces:
             name = surface['name']
 
-            fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+            cs_jac = self.complex_step_jacobian(params, unknowns, resids,
                                              fd_params=[name+'normals', 'alpha',
                                                         name+'def_mesh', name+'b_pts',
                                                         name+'c_pts'],
                                              fd_states=[])
-            jac.update(fd_jac)
+            jac.update(cs_jac)
 
         jac['circulations', 'circulations'] = self.mtx.real
 
@@ -761,9 +761,6 @@ class VLMForces(Component):
         self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
 
-        # self.deriv_options['type'] = 'fd'
-        # self.deriv_options['form'] = 'central'
-
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
         alpha = params['alpha'] * numpy.pi / 180.
@@ -813,21 +810,21 @@ class VLMForces(Component):
 
         jac = self.alloc_jacobian()
 
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+        cs_jac = self.complex_step_jacobian(params, unknowns, resids,
                                          fd_params=['alpha', 'circulations', 'v'],
                                          fd_states=[])
-        jac.update(fd_jac)
+        jac.update(cs_jac)
 
         rho = params['rho'].real
 
         for surface in self.surfaces:
             name = surface['name']
 
-            fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+            cs_jac = self.complex_step_jacobian(params, unknowns, resids,
                                              fd_params=[name+'b_pts',
                                                 name+'def_mesh'],
                                              fd_states=[])
-            jac.update(fd_jac)
+            jac.update(cs_jac)
 
             sec_forces = unknowns[name+'sec_forces'].real
             jac[name+'sec_forces', 'rho'] = sec_forces.flatten() / rho
