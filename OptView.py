@@ -96,6 +96,14 @@ class Display(object):
                 histIndex = ''
             else:
                 histIndex = '_' + chr(histIndex + ord('A'))
+
+            if histFileName == 'as':
+                histFileName = 'aerostruct.db'
+            elif histFileName == 'a':
+                histFileName = 'vlm.db'
+            elif histFileName == 's':
+                histFileName = 'spatialbeam.db'
+
             try:
                 db = shelve.open(histFileName, 'r')
                 OpenMDAO = False

@@ -229,7 +229,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # then are overwritten with the settings here.
     surface  = {'name' : '',        # name of the surface
                 'num_x' : 2,            # number of chordwise points
-                'num_y' : 9,            # number of spanwise points; must be odd
+                'num_y' : 13,            # number of spanwise points; must be odd
                                         # for the CRM case, this is an approximation
                                         # of the number of spanwise points;
                                         # it may not produce a mesh with the

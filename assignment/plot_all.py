@@ -204,7 +204,7 @@ class Display(object):
                     mirror_forces = mirror_forces[:, ::-1, :]
                     new_sec_forces.append(numpy.hstack((sec_forces[i], mirror_forces)))
 
-                    new_widths.append(numpy.hstack((widths[i], widths[i][::-1])))
+                    new_widths.append(numpy.hstack((widths[i], widths[i][:, ::-1])))
                     twist = self.twist[i]
                     new_twist.append(numpy.hstack((twist, twist[::-1][1:])))
 

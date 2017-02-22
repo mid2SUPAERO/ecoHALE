@@ -100,10 +100,7 @@ class Display(object):
             self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
-        # Change for future versions of OpenMDAO, still in progress
-        # self.db_metadata = sqlitedict.SqliteDict(self.db_name, 'metadata')
-        # self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
-        self.db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+        self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
 
         self.twist = []
         self.mesh = []
@@ -124,26 +121,25 @@ class Display(object):
         self.S_ref = []
         self.obj = []
 
-        # Change for future versions of OpenMDAO
-        # for tag in self.db_metadata:
-        #     try:
-        #         for item in self.db_metadata[tag]:
-        #             for flag in self.db_metadata[tag][item]:
-        #                 if 'is_objective' in flag:
-        #                     self.obj_key = item
-                #
-                # except:
-                #     pass
+        meta_db = sqlitedict.SqliteDict(self.db_name, 'metadata')
+        self.opt = False
+        for item in meta_db['Unknowns']:
+            if 'is_objective' in meta_db['Unknowns'][item].keys():
+                self.obj_key = item
+                self.opt = True
 
-        for tag in self.db['metadata']:
-            for item in self.db['metadata'][tag]:
-                for flag in self.db['metadata'][tag][item]:
-                    if 'is_objective' in flag:
-                        self.obj_key = item
+        deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
+        deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
 
-        for case_name, case_data in self.db.iteritems():
-            if "metadata" in case_name or "derivs" in case_name or "Driver" in case_name:
-                continue  # don't plot these cases
+        for i, (case_name, case_data) in enumerate(self.db.iteritems()):
+
+            if i == 0:
+                pass
+            elif i not in deriv_keys:
+                continue # don't plot these cases
+
+            if self.opt:
+                self.obj.append(case_data['Unknowns'][self.obj_key])
 
             names = []
             for key in case_data['Unknowns'].keys():
@@ -156,7 +152,6 @@ class Display(object):
 
             self.names = names
             n_names = len(names)
-            self.obj.append(case_data['Unknowns'][self.obj_key])
 
             # Loop through each of the surfaces
             for name in names:
@@ -206,7 +201,10 @@ class Display(object):
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
 
-        self.num_iters = numpy.max([int(len(self.mesh) / n_names) - 1, 1])
+        if self.opt:
+            self.num_iters = numpy.max([int(len(self.mesh) / n_names) - 1, 1])
+        else:
+            self.num_iters = 0
 
         symm_count = 0
         for mesh in self.mesh:
@@ -501,10 +499,11 @@ class Display(object):
 
     def check_length(self):
         # Load the current sqlitedict
-        db = sqlitedict.SqliteDict(self.db_name, 'openmdao')
+        db = sqlitedict.SqliteDict(self.db_name, 'iterations')
 
         # Get the number of current iterations
-        self.num_iters = max(db.keys()[-1].split('/'))
+        # Minus one because OpenMDAO uses 1-indexing
+        self.num_iters = int(db.keys()[-1].split('|')[-1])
 
     def get_list_limits(self, input_list):
         list_min = 1.e20
@@ -526,7 +525,7 @@ class Display(object):
         useful if examining a running optimization.
         """
         if self.var_ref.get():
-            self.root.after(800, self.auto_ref)
+            self.root.after(500, self.auto_ref)
             self.check_length()
             self.update_graphs()
 
@@ -559,7 +558,7 @@ class Display(object):
             command=self.update_graphs,
             length=200)
 
-        if self.curr_pos == self.num_iters - 1 or self.curr_pos == 0:
+        if self.curr_pos == self.num_iters - 1 or self.curr_pos == 0 or self.var_ref.get():
             self.curr_pos = self.num_iters
         self.w.set(self.curr_pos)
         self.w.grid(row=0, column=1, padx=5, sticky=Tk.W)
