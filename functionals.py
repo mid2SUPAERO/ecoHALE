@@ -35,7 +35,9 @@ class FunctionalBreguetRange(Component):
 
         for surface in self.surfaces:
             name = surface['name']
-            W0 = surface['W0']
+
+            # Convert W0 from kg to N
+            W0 = surface['W0'] * 9.80665
 
             CL = params[name+'CL']
             CD = params[name+'CD']
@@ -43,7 +45,8 @@ class FunctionalBreguetRange(Component):
 
             fuelburn += numpy.sum((W0 + Ws) * (numpy.exp(R * CT / a / M * CD / CL) - 1))
 
-        unknowns['fuelburn'] = fuelburn
+        # Convert fuelburn from N to kg
+        unknowns['fuelburn'] = fuelburn / 9.80665
 
 class FunctionalEquilibrium(Component):
     """ L = W constraint """
@@ -74,6 +77,6 @@ class FunctionalEquilibrium(Component):
             name = surface['name']
             weight += params[name+'weight']
             L += params[name+'L']
-            W0 += surface['W0']
+            W0 += (surface['W0'] * 9.80665)
 
-        unknowns['eq_con'] = (weight + params['fuelburn'] + W0 - L) / W0
+        unknowns['eq_con'] = (weight + params['fuelburn'] * 9.80665 + W0 - L) / W0

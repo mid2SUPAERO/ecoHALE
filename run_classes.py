@@ -134,7 +134,7 @@ class OASProblem():
                     'fem_origin' : 0.35,    # chordwise location of the spar
                     'symmetry' : False,     # if true, model one half of wing
                                             # reflected across the plane y = 0
-                    'W0' : 0.5 * 2.5e6,     # [N] MTOW of B777 is 3e5 kg with fuel
+                    'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
                     'wing_type' : 'rect',   # initial shape of the wing
                                             # either 'CRM' or 'rect'
                     'offset' : numpy.array([0., 0., 0.]) # coordinates to offset
@@ -151,7 +151,7 @@ class OASProblem():
         defaults = {'optimize' : False,     # flag for analysis or optimization
                     'Re' : 0.,              # Reynolds number
                     'alpha' : 5.,           # angle of attack
-                    'CT' : 9.81 * 17.e-6,   # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
+                    'CT' : 9.80665 * 17.e-6,   # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
                     'R' : 14.3e6,           # [m] maximum range
                     'M' : 0.84,             # Mach number at cruise
                     'rho' : 0.38,           # [kg/m^3] air density at 35,000 ft
@@ -277,6 +277,7 @@ class OASProblem():
             self.prob.driver.options['optimizer'] = "SNOPT"
             self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
                                              'Major feasibility tolerance': 1.0e-6}
+
         except:  # Use SLSQP optimizer if SNOPT not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'

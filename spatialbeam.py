@@ -531,12 +531,6 @@ class SpatialBeamWeight(Component):
 
         unknowns['weight'] = weight
 
-    def linearize(self, params, unknowns, resids):
-        jac = self.alloc_jacobian()
-        jac['weight', 't'][0, :] = 1.0
-        return jac
-
-
 class SpatialBeamVonMisesTube(Component):
     """ Compute the max von Mises stress in each element.
 

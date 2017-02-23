@@ -433,9 +433,9 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
 
             # Print the derivative results.
             # Note that we convert fuelburn from Newtosn to kg.
-            print("d_fuelburn/d_alpha", jac['fuelburn']['alpha'] / 9.8)
-            print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist'] / 9.8))
-            print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness'] / 9.8))
+            print("d_fuelburn/d_alpha", jac['fuelburn']['alpha'] / 9.80665)
+            print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist'] / 9.80665))
+            print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness'] / 9.80665))
 
     # Multidisciplinary optimization
     if 'prob3c' in input_arg:
@@ -496,4 +496,4 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
 
     # Print the run time and current fuelburn
     print("\nrun time: {} secs".format(time.time() - st))
-    print("fuelburn:", prob['fuelburn'] / 9.8, "kg\n")
+    print("fuelburn:", prob['fuelburn'] / 9.80665, "kg\n")
