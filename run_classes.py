@@ -29,6 +29,42 @@ from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
+class Error(Exception):
+    """
+    Format the error message in a box to make it clear this
+    was a expliclty raised exception.
+    """
+    def __init__(self, message):
+        msg = '\n+'+'-'*78+'+'+'\n' + '| OpenAeroStruct Error: '
+        i = 23
+        for word in message.split():
+            if len(word) + i + 1 > 78: # Finish line and start new one
+                msg += ' '*(78-i)+'|\n| ' + word + ' '
+                i = 1 + len(word)+1
+            else:
+                msg += word + ' '
+                i += len(word)+1
+        msg += ' '*(78-i) + '|\n' + '+'+'-'*78+'+'+'\n'
+        print(msg)
+        Exception.__init__(self)
+
+class OASWarning(object):
+    """
+    Format a warning message
+    """
+    def __init__(self, message):
+        msg = '\n+'+'-'*78+'+'+'\n' + '| OpenAeroStruct Warning: '
+        i = 25
+        for word in message.split():
+            if len(word) + i + 1 > 78: # Finish line and start new one
+                msg += ' '*(78-i)+'|\n| ' + word + ' '
+                i = 1 + len(word)+1
+            else:
+                msg += word + ' '
+                i += len(word)+1
+        msg += ' '*(78-i) + '|\n' + '+'+'-'*78+'+'+'\n'
+        print(msg)
+
 
 class OASProblem():
     """
@@ -158,6 +194,10 @@ class OASProblem():
             span_cos_spacing = surf_dict['span_cos_spacing']
             chord_cos_spacing = surf_dict['chord_cos_spacing']
 
+            # Check to make sure that an odd number of spanwise points (num_y) was provided
+            if not num_y % 2:
+                Error('num_y must be an odd number.')
+
             # Generate rectangular mesh
             if surf_dict['wing_type'] == 'rect':
                 mesh = gen_rect_mesh(num_x, num_y, span, chord,
@@ -165,13 +205,13 @@ class OASProblem():
 
             # Generate CRM mesh
             elif surf_dict['wing_type'] == 'CRM':
-                npi = int(((num_y - 1) / 2) * .6)
-                npo = int(npi * 5 / 3)
+                npi = int(numpy.ceil(((num_y - 1) / 2) * .4))
+                npo = (num_y - 1) // 2 + 2 - npi
                 mesh = gen_crm_mesh(n_points_inboard=npi, n_points_outboard=npo, num_x=num_x)
                 num_x, num_y = mesh.shape[:2]
 
             else:
-                print('Error: wing_type option not understood. Must be either "CRM" or "rectangular".')
+                Error('wing_type option not understood. Must be either "CRM" or "rect".')
 
             # Chop the mesh in half if using symmetry during analysis.
             # Note that this means that the provided mesh should be the full mesh
@@ -180,7 +220,7 @@ class OASProblem():
                 mesh = mesh[:, :num_y, :]
 
         else:
-            print("Error: Please either provide a mesh or a valid set of parameters.")
+            Error("Please either provide a mesh or a valid set of parameters.")
 
         # Apply the user-provided coordinate offset to position the mesh
         mesh = mesh + surf_dict['offset']
@@ -268,7 +308,7 @@ class OASProblem():
         """
 
         # Uncomment this to use finite differences over the entire model
-        # self.prob.root.deriv_options['type'] = 'fd'
+        # self.prob.root.deriv_options['type'] = 'cs'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`

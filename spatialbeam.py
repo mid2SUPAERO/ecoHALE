@@ -344,7 +344,7 @@ class SpatialBeamDisp(Component):
 
     The solution to the linear system has additional results due to the
     constraints on the FEM model. The displacements from this portion of
-    the linear system is not needed, so we select only the relevant
+    the linear system are not needed, so we select only the relevant
     portion of the displacements for further calculations.
 
     Parameters
@@ -363,25 +363,16 @@ class SpatialBeamDisp(Component):
     def __init__(self, surface):
         super(SpatialBeamDisp, self).__init__()
 
-        self.surface = surface
         self.ny = surface['num_y']
-        self.nx = surface['num_x']
-        self.n = self.nx * self.ny
-        self.mesh = surface['mesh']
-        name = surface['name']
 
         self.add_param('disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype='complex'))
         self.add_output('disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
-        self.arange = numpy.arange(6*self.ny)
 
         # self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        # Obtain the relevant portions of disp_aug and store the displacements
-        # in disp
-        name = self.surface['name']
-
+        # Obtain the relevant portions of disp_aug and store the reshaped
+        # displacements in disp
         unknowns['disp'] = params['disp_aug'][:-6].reshape((self.ny, 6))
 
     def linearize(self, params, unknowns, resids):
@@ -421,8 +412,8 @@ class ComputeNodes(Component):
         name = surface['name']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3)))
-        self.add_output('nodes', val=numpy.zeros((self.ny, 3)))
+        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=complex))
+        self.add_output('nodes', val=numpy.zeros((self.ny, 3), dtype=complex))
 
     def solve_nonlinear(self, params, unknowns, resids):
         w = self.fem_origin
@@ -466,8 +457,8 @@ class SpatialBeamEnergy(Component):
         self.n = self.nx * self.ny
         self.mesh = surface['mesh']
 
-        self.add_param('disp', val=numpy.zeros((self.ny, 6)))
-        self.add_param('loads', val=numpy.zeros((self.ny, 6)))
+        self.add_param('disp', val=numpy.zeros((self.ny, 6), dtype=complex))
+        self.add_param('loads', val=numpy.zeros((self.ny, 6), dtype=complex))
         self.add_output('energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -506,8 +497,8 @@ class SpatialBeamWeight(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param('A', val=numpy.zeros((self.ny - 1)))
-        self.add_param('nodes', val=numpy.zeros((self.ny, 3)))
+        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype=complex))
+        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=complex))
         self.add_output('weight', val=0.)
 
         self.deriv_options['type'] = 'fd'
@@ -734,7 +725,7 @@ class SpatialBeamFailureKS(Component):
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2)))
+        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=complex))
         self.add_output('failure', val=0.)
 
         self.deriv_options['type'] = 'cs'

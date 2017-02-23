@@ -18,6 +18,23 @@ from run_classes import OASProblem
 
 if __name__ == "__main__":
 
+    # Make sure that the user-supplied input is one of the valid options
+    input_options = ['0', '0m', '1', '1m']
+    print_str = ''.join(str(e) + ', ' for e in input_options)
+
+    # Parse the user-supplied command-line input and store it as input_arg
+    try:
+        input_arg = sys.argv[1]
+        if input_arg not in input_options:
+            raise(IndexError)
+    except IndexError:
+        print('\n +---------------------------------------------------------------+')
+        print(' | ERROR: Please supply a correct input argument to this script. |')
+        print(' | Possible options are ' + print_str[:-2] + '                             |')
+        print(' | See the docstring at the top of this file for more info.      |')
+        print(' +---------------------------------------------------------------+\n')
+        raise
+
     # Set problem type
     prob_dict = {'type' : 'struct'}
 
@@ -64,3 +81,5 @@ if __name__ == "__main__":
     OAS_prob.run()
 
     print("\nWing weight:", OAS_prob.prob['wing.weight'])
+    # jac = OAS_prob.prob.calc_gradient(['wing.disp_aug'], ['wing.disp'], return_format="dict")
+    # print(jac['wing.disp']['wing.disp_aug'])
