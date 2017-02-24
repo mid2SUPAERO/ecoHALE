@@ -50,12 +50,13 @@ if __name__ == "__main__":
 
     # Create a dictionary to store options about the surface
     surf_dict = {'name' : 'wing',
-                 'symmetry' : False,
-                 'num_y' : 9,
+                 'symmetry' : True,
+                 'num_y' : 7,
                  'num_x' : 2,
                  'wing_type' : 'CRM',
                  'CL0' : 0.2,
-                 'CD0' : 0.015}
+                 'CD0' : 0.015,
+                 'span_cos_spacing' : 0.}
 
     # Add the specified wing surface to the problem
     OAS_prob.add_surface(surf_dict)
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     # Add design variables, constraint, and objective on the problem
     OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
     OAS_prob.add_constraint('eq_con', equals=0.)
-    OAS_prob.add_objective('fuelburn', scaler=1e-5)
+    OAS_prob.add_objective('fuelburn', scaler=1e-4)
 
     st = time()
     # Actually run the problem

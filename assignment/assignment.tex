@@ -19,6 +19,7 @@
 	problem to run.
 	For example, \code{python problems.py prob1} runs the code for problem 1.
 	Available options are \code{prob1, prob2, prob3ab, prob3c}.
+	Sections to be modified for each problem are labeled with a comment block.
 
 	\be
 
@@ -47,6 +48,7 @@
 			that can be useful for studying the problem structure. You can
 			open this file in any web browser.
 			What is the physical interpretation of this problem?
+			Examine the code to find what is actually being optimized.
 			That is, what are we minimizing and subject to what constraint?
 		\ee
 
@@ -56,6 +58,9 @@
 			\item Open \code{aerostruct.html} to use a guide.
 			Assemble the aerostructural analysis group following the layout presented
 			there. For this problem run with \code{python problems.py prob2}.
+			A few components have been placed for you, but you must add the remaining
+			components to the correct groups.
+
 			\item Now that you have assembled the analysis groups correctly in part (a),
 			we will try different nonlinear solvers.
 			Look at \href{http://openmdao.readthedocs.io/en/latest/srcdocs/packages/openmdao.solvers.html}
@@ -64,17 +69,20 @@
 			Note that we are focusing on nonlinear solvers here and will examine linear
 			solvers in part (c).
 
-			Try NLGS, Newton, and hybrid NLGS/Newton for
-			\code{num\_y = 9} and \code{num\_y = 13} then compare run times with these different solvers.
-			Then try to run the problem with the Newton solver in the \code{root} group
+			Try \code{nl\_gauss\_seidel}, \code{newton}, and \code{hybrid gs\_newton} for
+			different \code{num\_y} values and then compare run times with these different solvers.
+			Note that the hybrid solver is defined within the OpenAeroStruct directory, not in
+			the OpenMDAO solvers page.
+			Examine the file \code{gs\_newton.py} for its details.
+			Now try to run the problem with the Newton solver in the \code{root} group
 			instead of the \code{coupled} group.
 			Why do we normally put the nonlinear solver on the \code{coupled} group
 			instead of the \code{root} group?
 
 			\item Again visit the OpenMDAO documentation page to see what linear solvers
 			are available.
-			Try LNGS, Krylov, Krylov-PC-GS, and direct linear solvers while
-			using the Newton nonlinear solver.
+			Try \code{ln\_gauss\_seidel}, \code{scipy\_gmres}, \code{scipy\_gmres} with a preconditioner,
+			and \code{ln\_direct} solvers while	using the Newton nonlinear solver.
 			Which ones can successfully converge the linear problem?
 			Which one gives the fastest convergence for the Newton solver?
 			Why should we not we use the \code{DirectSolver} with high-fidelity problems?
@@ -84,15 +92,18 @@
 		the aerostructural analysis, you're ready to try aerostructural	optimization.
 		\be
 			\setlength\itemsep{1em}
-			\item Compute the analytic derivatives of the multidisciplinary system
+			\item Compute the semi-analytic derivatives of the multidisciplinary system
 			by running \code{python problems.py prob3ab}.
 			Take note of the run times and derivatives values output by the run script.
-			You can visualize the system by running \code{python plot\_all.py as}.
+			You can visualize the aerostructural system by running
+			\code{python plot\_all.py as}.
+			Do the derivative values physically make sense?
 
 			\item Compute the same derivatives using finite differences
 			and compare the timings for different \code{num\_y} values.
 			Use the same code, but add a few lines to force the system to use
 			finite-differencing to compute the derivatives.
+			Try different step sizes to see how the results change.
 			Examine \href{http://openmdao.readthedocs.io/en/latest/usr-guide/examples/example_fd.html}
 			{this OpenMDAO documentation page} to see how to use finite-differencing.
 
@@ -101,11 +112,11 @@
 			\begin{itemize}
 				\item `twist', lower = -10, upper = 10
 				\item `alpha', lower = -10, upper = 10
-				\item `thickness', lower = 0.003, upper = 0.025, scaler = 1000
+				\item `thickness', lower = 0.003, upper = 0.25, scaler = 1000
 			\end{itemize}
 			and the follow objective and two constraints respectively:
 			\begin{itemize}
-				\item `fuelburn'
+				\item `fuelburn', scaler=1e-3
 				\item `failure', upper = 0
 				\item `eq\_con', equals = 0
 			\end{itemize}
@@ -116,8 +127,8 @@
 			\code{python OptView.py as}.
 
 			You can change the settings to adjust what variables you're plotting and you can check the
-			\code{Automatically refresh} option to have OptView update the plots
-			as new iterations are saved.
+			\code{Automatically refresh} option at the bottom of the checkbox list
+			to have OptView update the plots as new iterations are saved.
 
 			You can also open a 3D visualization of your wing by typing the command:
 
@@ -125,19 +136,69 @@
 
 			\item Now that you've run the aerostructural optimization case,
 			experiment with different solver parameters and design variable options
-			to find the optimum in the fewest number of function evaluations.
+			to find the optimum in the shortest run time.
 			You must keep the same design variables, objective, and constraints as in part (c), but
 			you are free to vary the solver setup, parameter scaling, and optimizer settings.
 			Refer to the previous OpenMDAO documentation pages for more information about possible options.
 
-			Your final fuelburn measure must be below 94477 kg for the optimization to be considered
-			successful.
+			You must use \code{num\_y = 11} and your final fuelburn measure must be below 67384 kg for the optimization to be considered	successful.
 			The top five groups who use the fewest function evaluations will receive extra credit.
 			10 points for number 1, 8 points for number 2, and so on.
 
 		\ee
-
-
 	\ee
+
+	\clearpage
+
+	\textbf{Notes}
+	\begin{itemize}
+		\item We use a Kreisselmeier-Steinhauser (KS)
+	    function to aggregate the multiple stress constraints into a single constraint.
+	    Because this is a conservative aggregation, some of the structural
+	    elements may be well below the failure limit instead of right at the limit.
+
+		\item When visualizing results using \code{OptView.py}, use the
+		\code{Show `major' iterations} checkbox to filter out the linesearch
+		results to only view the major iterations.
+
+		\item The color scheme of the spar in the \code{plot\_all.py} script
+		corresponds to the thickness of the spar.
+
+		\item For the twist and thickness design variables, we directly
+		control the twist angle of each mesh point and the thickness of
+		individual FEM elements.
+		In a full-scale optimization we would create a smoothing parameter
+		so individual elements or panels could not vary greatly compared
+		to their neighbors.
+		You may notice the optimizer exploiting the ability to control individual
+		panels as you use larger \code{num\_y} values.
+
+		\item OpenAeroStruct has analytic derivatives computed for most components,
+		but not all of them.
+		The following components \textbf{do not} have analytic derivatives:
+
+		\begin{itemize}
+			\item \code{SpatialBeamFailureKS}
+			\item \code{SpatialBeamFEM}
+			\item \code{SpatialBeamWeight}
+			\item \code{SpatialBeamVonMisesTube}
+			\item \code{VLMGeometry}
+			\item \code{VLMCirculations}
+		\end{itemize}
+
+		Because we use complex-step over these internal components, it may be less computationally expensive to use finite-differencing over
+		the entire system instead of this semi-analytic method.
+		While the entire model has relatively few inputs and outputs, internal
+		components are passing larger arrays (e.g. mesh objects, section forces),
+		which necessitate more computations to obtain their partial derivatives.
+		In general for larger systems, analytic derivatives are the only
+		proper way to perform optimization because they scale much better than finite-differencing and are more accurate.
+
+		\item If your optimization is taking too long to run, try using a smaller
+		\code{num\_y} value to test different ideas.
+		Note that works well for some values of \code{num\_y} may not work well for others.
+
+	\end{itemize}
+
 
 \end{document}

@@ -375,6 +375,12 @@ class SpatialBeamDisp(Component):
         # displacements in disp
         unknowns['disp'] = params['disp_aug'][:-6].reshape((self.ny, 6))
 
+        # # Kludge because OpenMDAO isn't returning cs derivatives correctly here
+        # for i, val in enumerate(params['disp_aug'][:-6]):
+        #     k = i%6
+        #     j = (i-k) / 6
+        #     unknowns['disp'][j, k] = val
+
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         n = self.ny * 6
@@ -501,7 +507,7 @@ class SpatialBeamWeight(Component):
         self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=complex))
         self.add_output('weight', val=0.)
 
-        self.deriv_options['type'] = 'fd'
+        self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
 
         elem_IDs = numpy.zeros((self.ny - 1, 2), int)

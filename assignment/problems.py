@@ -15,6 +15,7 @@ from __future__ import division, print_function
 import numpy
 import sys
 import time
+from pprint import pprint as pp
 
 # Append the parent directory to the system path so we can call those
 # Python files
@@ -74,7 +75,7 @@ if input_arg == 'prob1':
     # then are overwritten with the settings here.
     surface = {'name' : 'wing',        # name of the surface
                'num_x' : 2,            # number of chordwise points
-               'num_y' : 13,            # number of spanwise points
+               'num_y' : 15,            # number of spanwise points
                'span' : 10.,           # full wingspan
                'chord' : 1.,           # root chord
                'span_cos_spacing' : 0,   # 0 for uniform spanwise panels
@@ -89,7 +90,6 @@ if input_arg == 'prob1':
                 'mrho' : 3.e3,          # [kg/m^3] material density
                 'symmetry' : True,      # if true, model one half of wing
                                         # reflected across the plane y = 0
-                'W0' : 0.5 * 2.5e6,     # [N] MTOW of B777 is 3e5 kg with fuel
                 }
     # Add our defined surface to the OAS_prob object.
     OAS_prob.add_surface(surface)
@@ -100,9 +100,8 @@ if input_arg == 'prob1':
     surface = OAS_prob.surfaces[0]
 
     # If you want to view the information contained within `surface`,
-    # uncomment the following two lines of code.
-    # for key in surface.keys():
-    #     print(key, surface[key])
+    # uncomment the following line of code.
+    # pp(surface)
 
     # Obtain the number of spanwise node points from the defined surface.
     num_y = surface['num_y']
@@ -112,7 +111,7 @@ if input_arg == 'prob1':
 
     # Obtain the starting thickness for each of the spar elements based
     # on the radii.
-    thickness = r / 10
+    thickness = r / 5
 
     # Define the loads here. Choose either a tip load or distributed load
     # by commenting the lines as necessary.
@@ -209,6 +208,7 @@ if input_arg == 'prob1':
     st = time.time()
     prob.run()
     print("\nrun time: {} secs".format(time.time() - st))
+    print('                         tip')
     print('thickness distribution:', prob['thickness'], "\n")
 
     # Uncomment the following line to check the partial derivatives of each
@@ -229,17 +229,9 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # then are overwritten with the settings here.
     surface  = {'name' : '',        # name of the surface
                 'num_x' : 2,            # number of chordwise points
-                'num_y' : 13,            # number of spanwise points; must be odd
-                                        # for the CRM case, this is an approximation
-                                        # of the number of spanwise points;
-                                        # it may not produce a mesh with the
-                                        # exact requested value
-                'span_cos_spacing' : 0,   # 0 for uniform spanwise panels
-                                        # 1 for cosine-spaced panels
-                                        # any value between 0 and 1 for
-                                        # a mixed spacing
+                'num_y' : 7,            # number of spanwise points; must be odd
                 'CL0' : 0.2,            # CL value at AoA (alpha) = 0
-                'CD0' : 0.015,            # CD value at AoA (alpha) = 0
+                'CD0' : 0.015,          # CD value at AoA (alpha) = 0
 
                 # Structural values are based on aluminum
                 'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -249,7 +241,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
                 'fem_origin' : 0.35,    # chordwise location of the spar
                 'symmetry' : True,     # if true, model one half of wing
                                         # reflected across the plane y = 0
-                'W0' : 0.5 * 2.5e6,     # [N] MTOW of B777 is 3e5 kg with fuel
+                'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
                 'wing_type' : 'CRM',   # initial shape of the wing
                                         # either 'CRM' or 'rect'
                 }
@@ -261,12 +253,10 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # Here, `surface` is a dictionary that contains information relevant to
     # one surface within the analysis or optimization.
     surface = OAS_prob.surfaces[0]
-    print(surface['mesh'])
 
     # If you want to view the information contained within `surface`,
-    # uncomment the following two lines of code.
-    # for key in surface.keys():
-    #     print(key, surface[key])
+    # uncomment the following line of code.
+    # pp(surface)
 
     # Also get the created prob_dict, which contains information about the
     # flow over the wing.
@@ -339,14 +329,12 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     root.add('vlmfuncs',
             vlmfuncs_comp,
             promotes=['*'])
-    "<-- add more components here -->"
 
     # Add components to the coupled MDA here
     coupled = Group()
     coupled.add('mesh',
-        "<-- insert mesh_comp here -->",
+        mesh_comp,
         promotes=["*"])
-    "<-- add more components here -->"
 
     ############################################################
     # Problem 2b:
@@ -386,7 +374,9 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     prob = Problem()
     prob.root = root
 
-
+    # Print OpenMDAO solver convergence data.
+    # Uncomment this output more solver info during optimization.
+    # prob.print_all_convergence()
 
     #############################################################
     # Problem 3b:
@@ -410,9 +400,6 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         # Have OpenMDAO set up the problem that we have constructed.
         prob.setup()
 
-        # Print OpenMDAO solver convergence data
-        prob.print_all_convergence()
-
         # Start timing to see how long the analysis and derivative
         # computation takes.
         st = time.time()
@@ -432,10 +419,10 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
             jac = prob.calc_gradient(['twist','alpha','thickness'], ['fuelburn', 'vonmises'], return_format="dict")
 
             # Print the derivative results.
-            # Note that we convert fuelburn from Newtosn to kg.
-            print("d_fuelburn/d_alpha", jac['fuelburn']['alpha'] / 9.80665)
-            print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist'] / 9.80665))
-            print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness'] / 9.80665))
+            # Note that we convert fuelburn from Newtons to kg.
+            print("\nd_fuelburn/d_alpha", jac['fuelburn']['alpha'])
+            print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist']))
+            print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness']))
 
     # Multidisciplinary optimization
     if 'prob3c' in input_arg:
@@ -447,25 +434,26 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
         prob.driver = ScipyOptimizer()
         prob.driver.options['optimizer'] = 'SLSQP'
         prob.driver.options['disp'] = True
-        prob.driver.options['tol'] = 1.0e-5
-        prob.driver.options['maxiter'] = 80
+        prob.driver.options['tol'] = 1.0e-6
+        prob.driver.options['maxiter'] = 200
 
         ###############################################################
         # Problem 3c:
         # Add design variables here
         ###############################################################
-        prob.driver.add_desvar('<--insert_var_name-->',
-                               lower='<-- lower_bound -->',
-                               upper='<-- upper_bound -->',
-                               scaler='<-- scaler_val -->')
+        prob.driver.add_desvar('twist',lower= -10., upper=10.)
+        prob.driver.add_desvar('alpha', lower=-10., upper=10.)
+        prob.driver.add_desvar('thickness',
+                               lower= 0.003,
+                               upper= 0.25, scaler=1000)
 
         ###############################################################
         # Problem 3c:
         # Add constraints and objectives
         ###############################################################
-        prob.driver.add_objective('<-- insert_var_name -->')
-        prob.driver.add_constraint('<-- insert_var_name -->', upper='<-- upper_bound -->')
-        prob.driver.add_constraint('<-- insert_var_name -->', equals='<-- eq_val -->')
+        prob.driver.add_objective('fuelburn', scaler=1e-3)
+        prob.driver.add_constraint('failure', upper=0.0)
+        prob.driver.add_constraint('eq_con', equals=0.0)
 
         # Record the optimization history in `aerostruct.db`. You can view
         # this by running `python plot_all.py as` or `python OptView.py as`.
@@ -477,9 +465,6 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
 
         # Have OpenMDAO set up the problem that we have constructed.
         prob.setup()
-
-        # Print OpenMDAO solver convergence data
-        prob.print_all_convergence()
 
         # Start timing for the optimization
         st = time.time()
@@ -494,6 +479,11 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # Uncomment this to print partial derivatives accuracy information
     # prob.check_partial_derivatives(compact_print=True)
 
-    # Print the run time and current fuelburn
+    # Print the run time, current fuelburn, and constraints
     print("\nrun time: {} secs".format(time.time() - st))
-    print("fuelburn:", prob['fuelburn'] / 9.80665, "kg\n")
+    print("fuelburn:", prob['fuelburn'], "kg")
+
+    if "prob3c" in input_arg:
+        print("eq con (needs to be ~= 0):", prob['eq_con'])
+        print("failure (needs to be ~<= 0):", prob['failure'])
+    print()
