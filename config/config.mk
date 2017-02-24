@@ -6,7 +6,7 @@
 PMAKE = make -j 4
 
 # ------- Define the MPI Compilers--------------------------------------
-FF90 = gfortran
+FF90 = gcc
 CC   = cc
 
 # ------- Define Compiler Flags ----------------------------------------
