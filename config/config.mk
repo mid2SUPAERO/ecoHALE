@@ -6,12 +6,8 @@
 PMAKE = make -j 4
 
 # ------- Define the MPI Compilers--------------------------------------
-FF90 = mpif90
-CC   = mpicc
-
-# ------- Define CGNS Inlcude and linker flags -------------------------
-CGNS_INCLUDE_FLAGS=-I$(HOME)/packages/cgnslib_3.2.1/src
-CGNS_LINKER_FLAGS=-L$(HOME)/packages/cgnslib_3.2.1/src -lcgns
+FF90 = gfortran
+CC   = cc
 
 # ------- Define Compiler Flags ----------------------------------------
 FF90_GEN_FLAGS = -fPIC -g -fbounds-check

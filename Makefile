@@ -8,7 +8,7 @@
 #      *                                                                *
 #      ******************************************************************
 
-SUBDIR_SRC    = src/common \
+SUBDIR_SRC    =	src/common \
 		src/adjoint \
 		src/OAS \
 

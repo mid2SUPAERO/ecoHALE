@@ -14,7 +14,7 @@ from scipy.linalg import lu_factor, lu_solve
 
 try:
     import OAS_API
-    a
+    # a
     # Make sure we don't use Fortran here; temporary for assignment
     fortran_flag = True
 except:
@@ -581,6 +581,9 @@ class SpatialBeamVonMisesTube(Component):
 
         if not fortran_flag:
             self.deriv_options['type'] = 'cs'
+            self.deriv_options['form'] = 'central'
+        else:
+            self.deriv_options['type'] = 'fd'
             self.deriv_options['form'] = 'central'
 
         elem_IDs = numpy.zeros((self.ny - 1, 2), int)
