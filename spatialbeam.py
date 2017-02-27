@@ -14,7 +14,7 @@ from scipy.linalg import lu_factor, lu_solve
 
 try:
     import OAS_API
-    # a
+    a
     # Make sure we don't use Fortran here; temporary for assignment
     fortran_flag = True
 except:
