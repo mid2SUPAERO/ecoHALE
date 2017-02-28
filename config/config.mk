@@ -6,7 +6,7 @@
 PMAKE = make -j 4
 
 # ------- Define the MPI Compilers--------------------------------------
-FF90 = gcc
+FF90 = gfortran
 CC   = cc
 
 # ------- Define Compiler Flags ----------------------------------------
@@ -22,6 +22,9 @@ AR_FLAGS = -rvs
 
 # ------- Define Linker Flags ------------------------------------------
 LINKER_FLAGS =
+
+# Use the following line for Mac install
+# LINKER_FLAGS = -undefined dynamic_lookup
 
 # ------- Define Petsc Info --- Should not need to modify this -----
 include ${PETSC_DIR}/lib/petsc/conf/variables # PETSc 3.6

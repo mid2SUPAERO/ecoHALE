@@ -35,7 +35,7 @@ from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 try:
     import OAS_API
-    a
+    # a
     # Make sure we don't use Fortran here; temporary for assignment
     fortran_flag = True
 except:
@@ -479,7 +479,7 @@ class VLMGeometry(Component):
         self.add_output('b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
                         dtype="complex"))
         self.add_output('c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
-        self.add_output('widths', val=numpy.zeros((self.nx-1, self.ny-1)))
+        self.add_output('widths', val=numpy.zeros((self.ny-1)))
         self.add_output('normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=0.)
 
@@ -501,7 +501,7 @@ class VLMGeometry(Component):
                 0.5 * 0.75 * mesh[1:,  1:, :]
 
         # Compute the widths of each panel
-        widths = self._get_lengths(b_pts[:, 1:, :], b_pts[:, :-1, :], 2)
+        widths = mesh[0, 1:, 1] - mesh[0, :-1, 1]
 
         # Compute the normal of each panel by taking the cross-product of
         # its diagonals. Note that this could be a nonplanar surface
@@ -530,8 +530,7 @@ class VLMGeometry(Component):
 
         cs_jac = self.complex_step_jacobian(params, unknowns, resids,
                                             fd_params=['def_mesh'],
-                                            fd_unknowns=['widths', 'normals',
-                                                         'S_ref'],
+                                            fd_unknowns=['normals', 'S_ref'],
                                             fd_states=[])
         jac.update(cs_jac)
 
@@ -541,12 +540,15 @@ class VLMGeometry(Component):
         for iz, v in zip((0, ny*3), (.75, .25)):
             numpy.fill_diagonal(jac['b_pts', 'def_mesh'][:, iz:], v)
 
-
         for iz, v in zip((0, 3, ny*3, (ny+1)*3),
                          (.125, .125, .375, .375)):
             for ix in range(nx-1):
                 numpy.fill_diagonal(jac['c_pts', 'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
+
+        for i in range(ny-1):
+            jac['widths', 'def_mesh'][i, 3*i+1] = -1
+            jac['widths', 'def_mesh'][i, 3*i+4] =  1
 
         return jac
 

@@ -226,10 +226,9 @@ class Display(object):
                     cosa = numpy.cos(a)
                     sina = numpy.sin(a)
                     forces = numpy.sum(sec_forces[i*n_names+j], axis=0)
-                    widths_ = numpy.mean(widths[i*n_names+j], axis=0)
 
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                        widths_/0.5/rho[i]/v[i]**2
+                        widths[i*n_names+j]/0.5/rho[i]/v[i]**2
                     # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
                     # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
 

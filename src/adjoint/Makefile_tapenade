@@ -59,7 +59,6 @@ ad_forward:
 	$(TAPENADE_HOME)/bin/tapenade -d \
 	-head "assemblestructmtx_main(A, Iy, Iz, J, nodes, loads) > (K, x) \
 	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx) \
-	mult_main \
 	calc_vonmises_main(nodes, r, disp) > vonmises \
 	transferdisplacements_main(mesh, disp) > def_mesh" ../OAS/OAS_main.F90 \
 	-forward $(TAPENADE_PRECISION) \
@@ -85,7 +84,6 @@ ad_reverse:
 	$(TAPENADE_HOME)/bin/tapenade -b \
 	-head "assemblestructmtx_main(A, Iy, Iz, J, nodes, loads) > (K, x) \
 	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx) \
-	mult_main \
 	calc_vonmises_main(nodes, r, disp) > vonmises \
 	transferdisplacements_main(mesh, disp) > def_mesh" ../OAS/OAS_main.F90 \
 	-reverse $(TAPENADE_PRECISION) \

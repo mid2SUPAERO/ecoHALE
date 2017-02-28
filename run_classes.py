@@ -319,8 +319,8 @@ class OASProblem():
         self.prob.driver.add_recorder(recorder)
 
         # Profile (time) the problem
-        # profile.setup(self.prob)
-        # profile.start()
+        profile.setup(self.prob)
+        profile.start()
 
         # Set up the problem
         self.prob.setup()
@@ -342,7 +342,7 @@ class OASProblem():
             self.prob.run()
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivatives(compact_print=True)
+        self.prob.check_partial_derivatives(compact_print=True)
 
 
     def setup_struct(self):

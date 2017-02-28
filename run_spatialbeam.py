@@ -46,7 +46,8 @@ if __name__ == "__main__":
     # Instantiate problem and add default surface
     OAS_prob = OASProblem(prob_dict)
     OAS_prob.add_surface({'name' : 'wing',
-                          'num_y' : 5})
+                          'num_y' : 21,
+                          'symmetry' : True})
 
     # Single lifting surface
     if not sys.argv[1].endswith('m'):
@@ -77,9 +78,10 @@ if __name__ == "__main__":
         OAS_prob.add_desvar('tail.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('tail.failure', upper=0.)
 
+    st = time()
     # Actually run the problem
     OAS_prob.run()
-
+    print('\n', time() - st)
     print("\nWing weight:", OAS_prob.prob['wing.weight'])
     # jac = OAS_prob.prob.calc_gradient(['wing.disp_aug'], ['wing.disp'], return_format="dict")
     # print(jac['wing.disp']['wing.disp_aug'])

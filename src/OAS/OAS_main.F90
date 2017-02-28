@@ -4,56 +4,34 @@ module oas_main
 
 contains
 
-  subroutine mult_main(nx, ny, x, y)
-
-    implicit none
-
-    integer, intent(in) :: nx, ny
-    real*8, intent(in) :: x(nx)
-    real*8, intent(out) :: y(ny)
-
-    integer :: i, j
-
-    y(:) = 0.
-
-    do j=1,ny
-      do i=1,nx
-        y(j) = y(j) + x(i)**2 + j
-      end do
-    end do
-
-  end subroutine mult_main
-
-  subroutine calc_vonmises_main(elem_IDs, nodes, r, disp, E, G, x_gl, num_elems, n, vonmises)
+  subroutine calc_vonmises_main(nodes, r, disp, E, G, x_gl, n, vonmises)
 
     implicit none
 
     ! Input
-    integer, intent(in) :: elem_IDs(num_elems, 2), num_elems, n
-    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    integer, intent(in) :: n
+    real(kind=8), intent(in) :: nodes(n, 3), r(n-1), disp(n, 6)
     real(kind=8), intent(in) :: E, G, x_gl(3)
 
     ! Output
-    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+    real(kind=8), intent(out) :: vonmises(n-1, 2)
 
     ! Working
-    integer :: ielem, in0, in1
+    integer :: ielem
     real(kind=8) :: P0(3), P1(3), L, x_loc(3), y_loc(3), z_loc(3), T(3, 3)
     real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
     real(kind=8) :: y_raw(3), z_raw(3), r1r0(3), t1(3), t2(3), t3(3), t4(3)
-    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
+    real(kind=8) :: nodes2(n, 3), r2(n-1), disp2(n, 6), p1p0(3)
 
     vonmises(:, :) = 0.
     nodes2 = nodes
     r2 = r
     disp2 = disp
 
-    do ielem=1, num_elems
-      in0 = elem_IDs(ielem, 1)
-      in1 = elem_IDs(ielem, 2)
+    do ielem=1, n-1
 
-      P0 = nodes2(in0, :)
-      P1 = nodes2(in1, :)
+      P0 = nodes2(ielem, :)
+      P1 = nodes2(ielem+1, :)
       p1p0 = P1 - P0
       call norm(p1p0, L)
 
@@ -67,10 +45,10 @@ contains
       T(2, :) = y_loc
       T(3, :) = z_loc
 
-      t1 = disp2(in0, 1:3)
-      t2 = disp2(in0, 4:6)
-      t3 = disp2(in1, 1:3)
-      t4 = disp2(in1, 4:6)
+      t1 = disp2(ielem, 1:3)
+      t2 = disp2(ielem, 4:6)
+      t3 = disp2(ielem+1, 1:3)
+      t4 = disp2(ielem+1, 4:6)
 
       call matmul2(3, 3, 1, T, t1, u0)
       call matmul2(3, 3, 1, T, t2, r0)
@@ -153,54 +131,43 @@ contains
   end subroutine
 
 
-  subroutine assemblestructmtx_main(n, tot_n_fem, nodes, A, J, Iy, Iz, & ! 6
-    K_a, K_t, K_y, K_z, & ! 4
-    elem_IDs, cons, & ! 3
-    E, G, x_gl, T, & ! 3
-    K_elem, Pelem_a, Pelem_t, Pelem_y, Pelem_z, T_elem, & ! 6
-    const2, const_y, const_z, loads, K, x) ! 7
+  subroutine assemblestructmtx_main(n, tot_n_fem, nodes, A, J, Iy, Iz, &
+    K_a, K_t, K_y, K_z, &
+    cons, E, G, x_gl, T, &
+    K_elem, Pelem_a, Pelem_t, Pelem_y, Pelem_z, T_elem, &
+    const2, const_y, const_z, K)
 
-    use solveRoutines, only: solve
     implicit none
 
     ! Input
     integer, intent(in) :: n, cons, tot_n_fem
-    integer, intent(inout) :: elem_IDs(n-1, 2)
     real(kind=8), intent(in) :: nodes(tot_n_fem, 3), A(n-1), J(n-1), Iy(n-1), Iz(n-1)
-    real(kind=8), intent(in) :: E(n-1), G(n-1), x_gl(3)
+    real(kind=8), intent(in) :: E, G, x_gl(3)
     real(kind=8), intent(inout) :: K_a(2, 2), K_t(2, 2), K_y(4, 4), K_z(4, 4)
     real(kind=8), intent(inout) :: T(3, 3), K_elem(12, 12), T_elem(12, 12)
     real(kind=8), intent(in) :: Pelem_a(2, 12), Pelem_t(2, 12), Pelem_y(4, 12), Pelem_z(4, 12)
-    real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, 4), loads(n, 6)
+    real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, 4)
 
     ! Output
-    real(kind=8), intent(out) :: x(6*n+6), K(6*n+6, 6*n+6)
+    real(kind=8), intent(out) :: K(6*n+6, 6*n+6)
 
     ! Working
     real(kind=8) :: P0(3), P1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(3), y_cross(3)
     real(kind=8) :: L, EA_L, GJ_L, EIy_L3, EIz_L3, res(12, 12)
     real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2)
     integer ::  num_elems, num_nodes, num_cons, ielem, in0, in1, ind, i
-    real(kind=8) :: Pelem_a_T(12, 2), Pelem_t_T(12, 2), K_(6*n+6, 6*n+6), rhs(6*n+6)
-    real(kind=8) :: Pelem_y_T(12, 4), Pelem_z_T(12, 4), T_elem_T(12, 12), b(6*n+6)
-    integer :: ipiv(6*n+6), n_solve
+    real(kind=8) :: Pelem_a_T(12, 2), Pelem_t_T(12, 2), K_(6*n+6, 6*n+6)
+    real(kind=8) :: Pelem_y_T(12, 4), Pelem_z_T(12, 4), T_elem_T(12, 12)
 
 
     num_elems = n - 1
     num_nodes = n
     num_cons = 1 ! only 1 con in current spatialbeam code
 
-    rhs(:) = 0.
-    do ind=1,n
-      do i=1,6
-        rhs((ind-1)*6+i) = loads(ind, i)
-      end do
-    end do
-
     K(:, :) = 0.
     do ielem = 1, num_elems ! loop over num elements
-      P0 = nodes(elem_IDs(ielem, 1), :)
-      P1 = nodes(elem_IDs(ielem, 2), :)
+      P0 = nodes(ielem, :)
+      P1 = nodes(ielem+1, :)
 
       call unit(P1 - P0, x_loc)
       call cross(x_loc, x_gl, x_cross)
@@ -217,10 +184,10 @@ contains
       end do
 
       call norm(P1 - P0, L)
-      EA_L = E(ielem) * A(ielem) / L
-      GJ_L = G(ielem) * J(ielem) / L
-      EIy_L3 = E(ielem) * Iy(ielem) / L**3
-      EIz_L3 = E(ielem) * Iz(ielem) / L**3
+      EA_L = E * A(ielem) / L
+      GJ_L = G * J(ielem) / L
+      EIy_L3 = E * Iy(ielem) / L**3
+      EIz_L3 = E * Iz(ielem) / L**3
 
       K_a(:, :) = EA_L * const2
       K_t(:, :) = GJ_L * const2
@@ -262,8 +229,8 @@ contains
       call matmul2(12, 12, 12, T_elem_T, K_elem, mat12x12)
       call matmul2(12, 12, 12, mat12x12, T_elem, res)
 
-      in0 = elem_IDs(ielem, 1)
-      in1 = elem_IDs(ielem, 2)
+      in0 = ielem
+      in1 = ielem + 1
 
       K(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = &
       K(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(:6, :6)
@@ -283,12 +250,6 @@ contains
       K(6*num_nodes+i, 6*cons+i) = 10**9.
       K(6*cons+i, 6*num_nodes+i) = 10**9.
     end do
-
-    n_solve = 6*n+6
-    b = rhs
-    K_ = K
-
-    call solve(K_, x, b, n_solve, ipiv)
 
   end subroutine assemblestructmtx_main
 

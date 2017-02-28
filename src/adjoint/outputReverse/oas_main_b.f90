@@ -5,57 +5,25 @@ module oas_main_b
   implicit none
 
 contains
-!  differentiation of mult_main in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: x y
-!   with respect to varying inputs: x y
-!   rw status of diff variables: x:incr y:in-zero
-  subroutine mult_main_b(nx, ny, x, xb, y, yb)
-    implicit none
-    integer, intent(in) :: nx, ny
-    real*8, intent(in) :: x(nx)
-    real*8 :: xb(nx)
-    real*8 :: y(ny)
-    real*8 :: yb(ny)
-    integer :: i, j
-    do j=ny,1,-1
-      do i=nx,1,-1
-        xb(i) = xb(i) + 2*x(i)*yb(j)
-      end do
-    end do
-    yb = 0.0_8
-  end subroutine mult_main_b
-  subroutine mult_main(nx, ny, x, y)
-    implicit none
-    integer, intent(in) :: nx, ny
-    real*8, intent(in) :: x(nx)
-    real*8, intent(out) :: y(ny)
-    integer :: i, j
-    y(:) = 0.
-    do j=1,ny
-      do i=1,nx
-        y(j) = y(j) + x(i)**2 + j
-      end do
-    end do
-  end subroutine mult_main
 !  differentiation of calc_vonmises_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: r vonmises nodes disp
 !   with respect to varying inputs: r vonmises nodes disp
 !   rw status of diff variables: r:incr vonmises:in-zero nodes:incr
 !                disp:incr
-  subroutine calc_vonmises_main_b(elem_ids, nodes, nodesb, r, rb, disp, &
-&   dispb, e, g, x_gl, num_elems, n, vonmises, vonmisesb)
+  subroutine calc_vonmises_main_b(nodes, nodesb, r, rb, disp, dispb, e, &
+&   g, x_gl, n, vonmises, vonmisesb)
     implicit none
 ! input
-    integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
-    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
-    real(kind=8) :: nodesb(n, 3), rb(num_elems), dispb(n, 6)
+    integer, intent(in) :: n
+    real(kind=8), intent(in) :: nodes(n, 3), r(n-1), disp(n, 6)
+    real(kind=8) :: nodesb(n, 3), rb(n-1), dispb(n, 6)
     real(kind=8), intent(in) :: e, g, x_gl(3)
     real(kind=8) :: x_glb(3)
 ! output
-    real(kind=8) :: vonmises(num_elems, 2)
-    real(kind=8) :: vonmisesb(num_elems, 2)
+    real(kind=8) :: vonmises(n-1, 2)
+    real(kind=8) :: vonmisesb(n-1, 2)
 ! working
-    integer :: ielem, in0, in1
+    integer :: ielem
     real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
 &   3)
     real(kind=8) :: p0b(3), p1b(3), lb, x_locb(3), y_locb(3), z_locb(3)&
@@ -67,9 +35,8 @@ contains
 &   (3)
     real(kind=8) :: y_rawb(3), z_rawb(3), r1r0b(3), t1b(3), t2b(3), t3b(&
 &   3), t4b(3)
-    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
-    real(kind=8) :: nodes2b(n, 3), r2b(num_elems), disp2b(n, 6), p1p0b(3&
-&   )
+    real(kind=8) :: nodes2(n, 3), r2(n-1), disp2(n, 6), p1p0(3)
+    real(kind=8) :: nodes2b(n, 3), r2b(n-1), disp2b(n, 6), p1p0b(3)
     real(kind=8) :: tempb6
     real(kind=8) :: tempb5
     real(kind=8) :: tempb4
@@ -82,11 +49,9 @@ contains
     nodes2 = nodes
     r2 = r
     disp2 = disp
-    do ielem=1,num_elems
-      in0 = elem_ids(ielem, 1)
-      in1 = elem_ids(ielem, 2)
-      p0 = nodes2(in0, :)
-      p1 = nodes2(in1, :)
+    do ielem=1,n-1
+      p0 = nodes2(ielem, :)
+      p1 = nodes2(ielem+1, :)
       p1p0 = p1 - p0
       call pushreal8(l)
       call norm(p1p0, l)
@@ -105,10 +70,10 @@ contains
       t(2, :) = y_loc
       call pushreal8array(t(3, :), 3)
       t(3, :) = z_loc
-      t1 = disp2(in0, 1:3)
-      t2 = disp2(in0, 4:6)
-      t3 = disp2(in1, 1:3)
-      t4 = disp2(in1, 4:6)
+      t1 = disp2(ielem, 1:3)
+      t2 = disp2(ielem, 4:6)
+      t3 = disp2(ielem+1, 1:3)
+      t4 = disp2(ielem+1, 4:6)
       call pushreal8array(u0, 3)
       call matmul2(3, 3, 1, t, t1, u0)
       call matmul2(3, 3, 1, t, t2, r0)
@@ -127,7 +92,7 @@ contains
     z_rawb = 0.0_8
     disp2b = 0.0_8
     x_locb = 0.0_8
-    do ielem=num_elems,1,-1
+    do ielem=n-1,1,-1
       sxt = g*r2(ielem)*r1r0(1)/l
       tmp = (r1r0(2)**2+r1r0(3)**2)**.5
       sxx1 = e*(u0(1)-u1(1))/l + e*r2(ielem)/l*tmp
@@ -164,26 +129,24 @@ contains
       call popreal8array(r1r0, 3)
       r1b = r1r0b
       r0b = -r1r0b
-      in1 = elem_ids(ielem, 2)
-      t4 = disp2(in1, 4:6)
+      t4 = disp2(ielem+1, 4:6)
       t4b = 0.0_8
       call matmul2_b(3, 3, 1, t, tb, t4, t4b, r1, r1b)
-      t3 = disp2(in1, 1:3)
+      t3 = disp2(ielem+1, 1:3)
       call popreal8array(u1, 3)
       t3b = 0.0_8
       call matmul2_b(3, 3, 1, t, tb, t3, t3b, u1, u1b)
-      in0 = elem_ids(ielem, 1)
-      t2 = disp2(in0, 4:6)
+      t2 = disp2(ielem, 4:6)
       t2b = 0.0_8
       call matmul2_b(3, 3, 1, t, tb, t2, t2b, r0, r0b)
-      t1 = disp2(in0, 1:3)
+      t1 = disp2(ielem, 1:3)
       call popreal8array(u0, 3)
       t1b = 0.0_8
       call matmul2_b(3, 3, 1, t, tb, t1, t1b, u0, u0b)
-      disp2b(in1, 4:6) = disp2b(in1, 4:6) + t4b
-      disp2b(in1, 1:3) = disp2b(in1, 1:3) + t3b
-      disp2b(in0, 4:6) = disp2b(in0, 4:6) + t2b
-      disp2b(in0, 1:3) = disp2b(in0, 1:3) + t1b
+      disp2b(ielem+1, 4:6) = disp2b(ielem+1, 4:6) + t4b
+      disp2b(ielem+1, 1:3) = disp2b(ielem+1, 1:3) + t3b
+      disp2b(ielem, 4:6) = disp2b(ielem, 4:6) + t2b
+      disp2b(ielem, 1:3) = disp2b(ielem, 1:3) + t1b
       call popreal8array(t(3, :), 3)
       z_locb = z_locb + tb(3, :)
       tb(3, :) = 0.0_8
@@ -201,8 +164,8 @@ contains
       call popreal8array(y_raw, 3)
       x_glb = 0.0_8
       call cross_b(x_loc, x_locb, x_gl, x_glb, y_raw, y_rawb)
-      p0 = nodes2(in0, :)
-      p1 = nodes2(in1, :)
+      p0 = nodes2(ielem, :)
+      p1 = nodes2(ielem+1, :)
       p1p0 = p1 - p0
       call popreal8array(x_loc, 3)
       p1p0b = 0.0_8
@@ -213,40 +176,37 @@ contains
       p1b = 0.0_8
       p1b = p1p0b
       p0b = -p1p0b
-      nodes2b(in1, :) = nodes2b(in1, :) + p1b
-      nodes2b(in0, :) = nodes2b(in0, :) + p0b
+      nodes2b(ielem+1, :) = nodes2b(ielem+1, :) + p1b
+      nodes2b(ielem, :) = nodes2b(ielem, :) + p0b
     end do
     dispb = dispb + disp2b
     rb = rb + r2b
     nodesb = nodesb + nodes2b
     vonmisesb = 0.0_8
   end subroutine calc_vonmises_main_b
-  subroutine calc_vonmises_main(elem_ids, nodes, r, disp, e, g, x_gl, &
-&   num_elems, n, vonmises)
+  subroutine calc_vonmises_main(nodes, r, disp, e, g, x_gl, n, vonmises)
     implicit none
 ! input
-    integer, intent(in) :: elem_ids(num_elems, 2), num_elems, n
-    real(kind=8), intent(in) :: nodes(n, 3), r(num_elems), disp(n, 6)
+    integer, intent(in) :: n
+    real(kind=8), intent(in) :: nodes(n, 3), r(n-1), disp(n, 6)
     real(kind=8), intent(in) :: e, g, x_gl(3)
 ! output
-    real(kind=8), intent(out) :: vonmises(num_elems, 2)
+    real(kind=8), intent(out) :: vonmises(n-1, 2)
 ! working
-    integer :: ielem, in0, in1
+    integer :: ielem
     real(kind=8) :: p0(3), p1(3), l, x_loc(3), y_loc(3), z_loc(3), t(3, &
 &   3)
     real(kind=8) :: u0(3), r0(3), u1(3), r1(3), sxx0, sxx1, sxt, tmp
     real(kind=8) :: y_raw(3), z_raw(3), r1r0(3), t1(3), t2(3), t3(3), t4&
 &   (3)
-    real(kind=8) :: nodes2(n, 3), r2(num_elems), disp2(n, 6), p1p0(3)
+    real(kind=8) :: nodes2(n, 3), r2(n-1), disp2(n, 6), p1p0(3)
     vonmises(:, :) = 0.
     nodes2 = nodes
     r2 = r
     disp2 = disp
-    do ielem=1,num_elems
-      in0 = elem_ids(ielem, 1)
-      in1 = elem_ids(ielem, 2)
-      p0 = nodes2(in0, :)
-      p1 = nodes2(in1, :)
+    do ielem=1,n-1
+      p0 = nodes2(ielem, :)
+      p1 = nodes2(ielem+1, :)
       p1p0 = p1 - p0
       call norm(p1p0, l)
       call unit(p1p0, x_loc)
@@ -257,10 +217,10 @@ contains
       t(1, :) = x_loc
       t(2, :) = y_loc
       t(3, :) = z_loc
-      t1 = disp2(in0, 1:3)
-      t2 = disp2(in0, 4:6)
-      t3 = disp2(in1, 1:3)
-      t4 = disp2(in1, 4:6)
+      t1 = disp2(ielem, 1:3)
+      t2 = disp2(ielem, 4:6)
+      t3 = disp2(ielem+1, 1:3)
+      t4 = disp2(ielem+1, 4:6)
       call matmul2(3, 3, 1, t, t1, u0)
       call matmul2(3, 3, 1, t, t2, r0)
       call matmul2(3, 3, 1, t, t3, u1)
@@ -420,30 +380,22 @@ contains
     def_mesh = def_mesh + mesh
   end subroutine transferdisplacements_main
 !  differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: k x
-!   with respect to varying inputs: loads j k x nodes iy iz a
-!   rw status of diff variables: loads:out j:out k:in-zero x:in-out
-!                nodes:out iy:out iz:out a:out
-! 6
-! 4
-! 3
-! 3
-! 6
+!   gradient     of useful results: k
+!   with respect to varying inputs: j k nodes iy iz a
+!   rw status of diff variables: j:out k:in-zero nodes:out iy:out
+!                iz:out a:out
   subroutine assemblestructmtx_main_b(n, tot_n_fem, nodes, nodesb, a, ab&
-&   , j, jb, iy, iyb, iz, izb, k_a, k_t, k_y, k_z, elem_ids, cons, e, g&
-&   , x_gl, t, k_elem, pelem_a, pelem_t, pelem_y, pelem_z, t_elem, &
-&   const2, const_y, const_z, loads, loadsb, k, kb, x, xb)
-! 7
-    use solveroutines, only : solve_b
+&   , j, jb, iy, iyb, iz, izb, k_a, k_t, k_y, k_z, cons, e, g, x_gl, t, &
+&   k_elem, pelem_a, pelem_t, pelem_y, pelem_z, t_elem, const2, const_y&
+&   , const_z, k, kb)
     implicit none
 ! input
     integer, intent(in) :: n, cons, tot_n_fem
-    integer, intent(inout) :: elem_ids(n-1, 2)
     real(kind=8), intent(in) :: nodes(tot_n_fem, 3), a(n-1), j(n-1), iy(&
 &   n-1), iz(n-1)
     real(kind=8) :: nodesb(tot_n_fem, 3), ab(n-1), jb(n-1), iyb(n-1), &
 &   izb(n-1)
-    real(kind=8), intent(in) :: e(n-1), g(n-1), x_gl(3)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
     real(kind=8) :: x_glb(3)
     real(kind=8), intent(inout) :: k_a(2, 2), k_t(2, 2), k_y(4, 4), k_z(&
 &   4, 4)
@@ -454,11 +406,10 @@ contains
     real(kind=8) :: pelem_ab(2, 12), pelem_tb(2, 12), pelem_yb(4, 12), &
 &   pelem_zb(4, 12)
     real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, &
-&   4), loads(n, 6)
-    real(kind=8) :: loadsb(n, 6)
+&   4)
 ! output
-    real(kind=8) :: x(6*n+6), k(6*n+6, 6*n+6)
-    real(kind=8) :: xb(6*n+6), kb(6*n+6, 6*n+6)
+    real(kind=8) :: k(6*n+6, 6*n+6)
+    real(kind=8) :: kb(6*n+6, 6*n+6)
 ! working
     real(kind=8) :: p0(3), p1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(&
 &   3), y_cross(3)
@@ -469,15 +420,11 @@ contains
     real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2)
     real(kind=8) :: mat12x12b(12, 12), mat12x4b(12, 4), mat12x2b(12, 2)
     integer :: num_elems, num_nodes, num_cons, ielem, in0, in1, ind, i
-    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(6*n+6, 6*n+6)&
-&   , rhs(6*n+6)
-    real(kind=8) :: pelem_a_tb(12, 2), pelem_t_tb(12, 2), k_b(6*n+6, 6*n&
-&   +6), rhsb(6*n+6)
-    real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)&
-&   , b(6*n+6)
+    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(6*n+6, 6*n+6)
+    real(kind=8) :: pelem_a_tb(12, 2), pelem_t_tb(12, 2)
+    real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)
     real(kind=8) :: pelem_y_tb(12, 4), pelem_z_tb(12, 4), t_elem_tb(12, &
-&   12), bb(6*n+6)
-    integer :: ipiv(6*n+6), n_solve
+&   12)
     real(kind=8), dimension(3) :: arg1
     real(kind=8), dimension(3) :: arg1b
     real(kind=8) :: temp0
@@ -496,17 +443,10 @@ contains
     num_elems = n - 1
     num_nodes = n
 ! only 1 con in current spatialbeam code
-    rhs(:) = 0.
-    do ind=1,n
-      do i=1,6
-        rhs((ind-1)*6+i) = loads(ind, i)
-      end do
-    end do
-    k(:, :) = 0.
 ! loop over num elements
     do ielem=1,num_elems
-      p0 = nodes(elem_ids(ielem, 1), :)
-      p1 = nodes(elem_ids(ielem, 2), :)
+      p0 = nodes(ielem, :)
+      p1 = nodes(ielem+1, :)
       arg1(:) = p1 - p0
       call pushreal8array(x_loc, 3)
       call unit(arg1(:), x_loc)
@@ -528,10 +468,10 @@ contains
       arg1(:) = p1 - p0
       call pushreal8(l)
       call norm(arg1(:), l)
-      ea_l = e(ielem)*a(ielem)/l
-      gj_l = g(ielem)*j(ielem)/l
-      eiy_l3 = e(ielem)*iy(ielem)/l**3
-      eiz_l3 = e(ielem)*iz(ielem)/l**3
+      ea_l = e*a(ielem)/l
+      gj_l = g*j(ielem)/l
+      eiy_l3 = e*iy(ielem)/l**3
+      eiz_l3 = e*iz(ielem)/l**3
       k_a(:, :) = ea_l*const2
       k_t(:, :) = gj_l*const2
       call pushreal8array(k_y, 4**2)
@@ -584,31 +524,7 @@ contains
       call transpose2(12, 12, t_elem, t_elem_t)
       call pushreal8array(mat12x12, 12**2)
       call matmul2(12, 12, 12, t_elem_t, k_elem, mat12x12)
-      call matmul2(12, 12, 12, mat12x12, t_elem, res)
-      in0 = elem_ids(ielem, 1)
-      in1 = elem_ids(ielem, 2)
-      k(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = k(6*(in0-1)+&
-&       1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(:6, :6)
-      k(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = k(6*(in1-1)+&
-&       1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(7:, :6)
-      k(6*(in0-1)+1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = k(6*(in0-1)+&
-&       1:6*(in0-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(:6, 7:)
-      k(6*(in1-1)+1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) = k(6*(in1-1)+&
-&       1:6*(in1-1)+6, 6*(in1-1)+1:6*(in1-1)+6) + res(7:, 7:)
     end do
-    do i=1,6
-      k(6*num_nodes+i, 6*cons+i) = 10**9.
-      k(6*cons+i, 6*num_nodes+i) = 10**9.
-    end do
-    n_solve = 6*n + 6
-    b = rhs
-    k_ = k
-    k_b = 0.0_8
-    bb = 0.0_8
-    call solve_b(k_, k_b, x, xb, b, bb, n_solve, ipiv)
-    kb = kb + k_b
-    rhsb = 0.0_8
-    rhsb = bb
     do i=6,1,-1
       kb(6*cons+i, 6*num_nodes+i) = 0.0_8
       kb(6*num_nodes+i, 6*cons+i) = 0.0_8
@@ -627,11 +543,11 @@ contains
     x_crossb = 0.0_8
     x_locb = 0.0_8
     do ielem=num_elems,1,-1
-      in1 = elem_ids(ielem, 2)
+      in1 = ielem + 1
       resb = 0.0_8
       resb(7:12, 7:12) = resb(7:12, 7:12) + kb(6*(in1-1)+1:6*(in1-1)+6, &
 &       6*(in1-1)+1:6*(in1-1)+6)
-      in0 = elem_ids(ielem, 1)
+      in0 = ielem
       resb(1:6, 7:12) = resb(1:6, 7:12) + kb(6*(in0-1)+1:6*(in0-1)+6, 6*&
 &       (in1-1)+1:6*(in1-1)+6)
       resb(7:12, 1:6) = resb(7:12, 1:6) + kb(6*(in1-1)+1:6*(in1-1)+6, 6*&
@@ -677,7 +593,7 @@ contains
       pelem_tb = 0.0_8
       call matmul2_b(12, 2, 12, mat12x2, mat12x2b, pelem_t, pelem_tb, &
 &              res, resb)
-      gj_l = g(ielem)*j(ielem)/l
+      gj_l = g*j(ielem)/l
       k_t(:, :) = gj_l*const2
       call popreal8array(mat12x2, 12*2)
       pelem_t_tb = 0.0_8
@@ -691,7 +607,7 @@ contains
       pelem_ab = 0.0_8
       call matmul2_b(12, 2, 12, mat12x2, mat12x2b, pelem_a, pelem_ab, &
 &              res, resb)
-      ea_l = e(ielem)*a(ielem)/l
+      ea_l = e*a(ielem)/l
       k_a(:, :) = ea_l*const2
       call popreal8array(mat12x2, 12*2)
       pelem_a_tb = 0.0_8
@@ -731,19 +647,19 @@ contains
       gj_lb = sum(const2*k_tb(:, :))
       ea_lb = sum(const2*k_ab(:, :))
       temp0 = l**3
-      tempb = e(ielem)*eiz_l3b/temp0
+      tempb = e*eiz_l3b/temp0
       izb(ielem) = izb(ielem) + tempb
       temp = l**3
-      tempb0 = e(ielem)*eiy_l3b/temp
+      tempb0 = e*eiy_l3b/temp
       iyb(ielem) = iyb(ielem) + tempb0
-      tempb2 = g(ielem)*gj_lb/l
+      tempb2 = g*gj_lb/l
       jb(ielem) = jb(ielem) + tempb2
-      tempb1 = e(ielem)*ea_lb/l
+      tempb1 = e*ea_lb/l
       lb = lb - iy(ielem)*3*l**2*tempb0/temp - a(ielem)*tempb1/l - j(&
 &       ielem)*tempb2/l - iz(ielem)*3*l**2*tempb/temp0
       ab(ielem) = ab(ielem) + tempb1
-      p0 = nodes(elem_ids(ielem, 1), :)
-      p1 = nodes(elem_ids(ielem, 2), :)
+      p0 = nodes(ielem, :)
+      p1 = nodes(ielem+1, :)
       arg1(:) = p1 - p0
       call popreal8(l)
       arg1b = 0.0_8
@@ -780,38 +696,20 @@ contains
       call unit_b(arg1(:), arg1b(:), x_loc, x_locb)
       p1b = p1b + arg1b
       p0b = p0b - arg1b
-      nodesb(elem_ids(ielem, 2), :) = nodesb(elem_ids(ielem, 2), :) + &
-&       p1b
-      nodesb(elem_ids(ielem, 1), :) = nodesb(elem_ids(ielem, 1), :) + &
-&       p0b
-    end do
-    loadsb = 0.0_8
-    do ind=n,1,-1
-      do i=6,1,-1
-        loadsb(ind, i) = loadsb(ind, i) + rhsb((ind-1)*6+i)
-        rhsb((ind-1)*6+i) = 0.0_8
-      end do
+      nodesb(ielem+1, :) = nodesb(ielem+1, :) + p1b
+      nodesb(ielem, :) = nodesb(ielem, :) + p0b
     end do
     kb = 0.0_8
   end subroutine assemblestructmtx_main_b
-! 6
-! 4
-! 3
-! 3
-! 6
   subroutine assemblestructmtx_main(n, tot_n_fem, nodes, a, j, iy, iz, &
-&   k_a, k_t, k_y, k_z, elem_ids, cons, e, g, x_gl, t, k_elem, pelem_a, &
-&   pelem_t, pelem_y, pelem_z, t_elem, const2, const_y, const_z, loads, &
-&   k, x)
-! 7
-    use solveroutines, only : solve
+&   k_a, k_t, k_y, k_z, cons, e, g, x_gl, t, k_elem, pelem_a, pelem_t, &
+&   pelem_y, pelem_z, t_elem, const2, const_y, const_z, k)
     implicit none
 ! input
     integer, intent(in) :: n, cons, tot_n_fem
-    integer, intent(inout) :: elem_ids(n-1, 2)
     real(kind=8), intent(in) :: nodes(tot_n_fem, 3), a(n-1), j(n-1), iy(&
 &   n-1), iz(n-1)
-    real(kind=8), intent(in) :: e(n-1), g(n-1), x_gl(3)
+    real(kind=8), intent(in) :: e, g, x_gl(3)
     real(kind=8), intent(inout) :: k_a(2, 2), k_t(2, 2), k_y(4, 4), k_z(&
 &   4, 4)
     real(kind=8), intent(inout) :: t(3, 3), k_elem(12, 12), t_elem(12, &
@@ -819,36 +717,27 @@ contains
     real(kind=8), intent(in) :: pelem_a(2, 12), pelem_t(2, 12), pelem_y(&
 &   4, 12), pelem_z(4, 12)
     real(kind=8), intent(in) :: const2(2, 2), const_y(4, 4), const_z(4, &
-&   4), loads(n, 6)
+&   4)
 ! output
-    real(kind=8), intent(out) :: x(6*n+6), k(6*n+6, 6*n+6)
+    real(kind=8), intent(out) :: k(6*n+6, 6*n+6)
 ! working
     real(kind=8) :: p0(3), p1(3), x_loc(3), y_loc(3), z_loc(3), x_cross(&
 &   3), y_cross(3)
     real(kind=8) :: l, ea_l, gj_l, eiy_l3, eiz_l3, res(12, 12)
     real(kind=8) :: mat12x12(12, 12), mat12x4(12, 4), mat12x2(12, 2)
     integer :: num_elems, num_nodes, num_cons, ielem, in0, in1, ind, i
-    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(6*n+6, 6*n+6)&
-&   , rhs(6*n+6)
-    real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)&
-&   , b(6*n+6)
-    integer :: ipiv(6*n+6), n_solve
+    real(kind=8) :: pelem_a_t(12, 2), pelem_t_t(12, 2), k_(6*n+6, 6*n+6)
+    real(kind=8) :: pelem_y_t(12, 4), pelem_z_t(12, 4), t_elem_t(12, 12)
     real(kind=8), dimension(3) :: arg1
     num_elems = n - 1
     num_nodes = n
 ! only 1 con in current spatialbeam code
     num_cons = 1
-    rhs(:) = 0.
-    do ind=1,n
-      do i=1,6
-        rhs((ind-1)*6+i) = loads(ind, i)
-      end do
-    end do
     k(:, :) = 0.
 ! loop over num elements
     do ielem=1,num_elems
-      p0 = nodes(elem_ids(ielem, 1), :)
-      p1 = nodes(elem_ids(ielem, 2), :)
+      p0 = nodes(ielem, :)
+      p1 = nodes(ielem+1, :)
       arg1(:) = p1 - p0
       call unit(arg1(:), x_loc)
       call cross(x_loc, x_gl, x_cross)
@@ -863,10 +752,10 @@ contains
       end do
       arg1(:) = p1 - p0
       call norm(arg1(:), l)
-      ea_l = e(ielem)*a(ielem)/l
-      gj_l = g(ielem)*j(ielem)/l
-      eiy_l3 = e(ielem)*iy(ielem)/l**3
-      eiz_l3 = e(ielem)*iz(ielem)/l**3
+      ea_l = e*a(ielem)/l
+      gj_l = g*j(ielem)/l
+      eiy_l3 = e*iy(ielem)/l**3
+      eiz_l3 = e*iz(ielem)/l**3
       k_a(:, :) = ea_l*const2
       k_t(:, :) = gj_l*const2
       k_y(:, :) = eiy_l3*const_y
@@ -899,8 +788,8 @@ contains
       call transpose2(12, 12, t_elem, t_elem_t)
       call matmul2(12, 12, 12, t_elem_t, k_elem, mat12x12)
       call matmul2(12, 12, 12, mat12x12, t_elem, res)
-      in0 = elem_ids(ielem, 1)
-      in1 = elem_ids(ielem, 2)
+      in0 = ielem
+      in1 = ielem + 1
       k(6*(in0-1)+1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = k(6*(in0-1)+&
 &       1:6*(in0-1)+6, 6*(in0-1)+1:6*(in0-1)+6) + res(:6, :6)
       k(6*(in1-1)+1:6*(in1-1)+6, 6*(in0-1)+1:6*(in0-1)+6) = k(6*(in1-1)+&
@@ -914,10 +803,6 @@ contains
       k(6*num_nodes+i, 6*cons+i) = 10**9.
       k(6*cons+i, 6*num_nodes+i) = 10**9.
     end do
-    n_solve = 6*n + 6
-    b = rhs
-    k_ = k
-    call solve(k_, x, b, n_solve, ipiv)
   end subroutine assemblestructmtx_main
 !  differentiation of transpose2 in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: new_mtx mtx

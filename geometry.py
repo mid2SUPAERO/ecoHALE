@@ -9,6 +9,15 @@ from openmdao.api import Component
 from b_spline import get_bspline_mtx
 from crm_data import crm_base_mesh
 
+def view_mat(mat):
+    """ Helper function used to visually examine matrices. """
+    import matplotlib.pyplot as plt
+    if len(mat.shape) > 2:
+        mat = numpy.sum(mat, axis=2)
+    im = plt.imshow(mat.real, interpolation='none')
+    plt.colorbar(im, orientation='horizontal')
+    plt.show()
+
 def rotate(mesh, thetas):
     """ Compute rotation matrices given mesh and rotation angles in degrees.
 
@@ -465,16 +474,19 @@ class GeometryMesh(Component):
         unknowns['mesh'] = mesh
 
     def linearize(self, params, unknowns, resids):
-        name = self.surface['name']
 
         jac = self.alloc_jacobian()
 
+        # This fails for some reason when running structures only cases,
+        # maybe because we don't actually have these design variables
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['span', 'sweep',
-                                                       'dihedral', 'twist',
-                                                       'taper'],
+                                            fd_params=['span', 'sweep', 'dihedral', 'twist', 'taper'],
                                             fd_states=[])
         jac.update(fd_jac)
+
+        # view_mat(jac['taper', 'mesh'])
+        # exit()
+
         return jac
 
 
