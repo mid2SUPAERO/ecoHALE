@@ -267,28 +267,6 @@ class AssembleK(Component):
         unknowns['K'] = self.K
         unknowns['rhs'] = self.rhs
 
-    # def linearize(self, params, unknowns, resids):
-    #     jac = self.alloc_jacobian()
-    #
-    #     if fortran_flag:
-    #         fd_jac = self.fd_jacobian(params, unknowns, resids,
-    #                                             fd_params=['A', 'Iy', 'Iz', 'J', 'nodes'],
-    #                                             fd_states=[])
-    #         jac.update(fd_jac)
-    #
-    #     else:
-    #         cs_jac = self.complex_step_jacobian(params, unknowns, resids,
-    #                                             fd_params=['A', 'Iy', 'Iz', 'J', 'nodes'],
-    #                                             fd_states=[])
-    #         jac.update(cs_jac)
-    #
-    #
-    #     size = self.size
-    #
-    #     jac['rhs', 'loads'][:size-6, :size-6] = numpy.eye(size - 6)
-    #
-    #     return jac
-
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
         # Find constrained nodes based on closeness to specified cg point
@@ -305,7 +283,6 @@ class AssembleK(Component):
         Iz = params['Iz']
 
         if mode == 'fwd':
-            print('FORWARD')
             K, Kd = OAS_API.oas_api.assemblestructmtx_d(nodes, dparams['nodes'], A, dparams['A'],
                                          J, dparams['J'], Iy, dparams['Iy'],
                                          Iz, dparams['Iz'],
@@ -459,24 +436,21 @@ class SpatialBeamDisp(Component):
     def __init__(self, surface):
         super(SpatialBeamDisp, self).__init__()
 
-        ny = surface['num_y']
+        self.ny = surface['num_y']
 
-        self.add_param('disp_aug', val=numpy.zeros(((ny+1)*6), dtype='complex'))
-        self.add_output('disp', val=numpy.zeros((ny, 6), dtype='complex'))
+        self.add_param('disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype='complex'))
+        self.add_output('disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Obtain the relevant portions of disp_aug and store the reshaped
         # displacements in disp
         unknowns['disp'] = params['disp_aug'][:-6].reshape((-1, 6))
 
-    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-
-        if mode == 'fwd':
-            dresids['disp'] += dparams['disp_aug'][:-6].reshape((-1, 6))
-
-        if mode == 'rev':
-
-            dparams['disp_aug'][:-6] += dresids['disp'].reshape((-1))
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        n = self.ny * 6
+        jac['disp', 'disp_aug'][:n, :n] = numpy.eye((n))
+        return jac
 
 
 class ComputeNodes(Component):
@@ -513,16 +487,15 @@ class ComputeNodes(Component):
 
         unknowns['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
-    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
         w = self.fem_origin
 
-        if mode == 'fwd':
-            dresids['nodes'] += (1-w) * dparams['mesh'][0, :, :] + w * dparams['mesh'][-1, :, :]
+        n = self.ny * 3
+        jac['nodes', 'mesh'][:n, :n] = numpy.eye(n) * (1-w)
+        jac['nodes', 'mesh'][:n, -n:] = numpy.eye(n) * w
 
-        if mode == 'rev':
-            dparams['mesh'][0, :, :] += dresids['nodes'] * (1-w)
-            dparams['mesh'][-1, :, :] += dresids['nodes'] * w
+        return jac
 
 
 class SpatialBeamEnergy(Component):
@@ -546,10 +519,10 @@ class SpatialBeamEnergy(Component):
     def __init__(self, surface):
         super(SpatialBeamEnergy, self).__init__()
 
-        self.ny = surface['num_y']
+        ny = surface['num_y']
 
-        self.add_param('disp', val=numpy.zeros((self.ny, 6), dtype=complex))
-        self.add_param('loads', val=numpy.zeros((self.ny, 6), dtype=complex))
+        self.add_param('disp', val=numpy.zeros((ny, 6), dtype=complex))
+        self.add_param('loads', val=numpy.zeros((ny, 6), dtype=complex))
         self.add_output('energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -560,7 +533,6 @@ class SpatialBeamEnergy(Component):
         jac['energy', 'disp'][0, :] = params['loads'].real.flatten()
         jac['energy', 'loads'][0, :] = params['disp'].real.flatten()
         return jac
-
 
 class SpatialBeamWeight(Component):
     """ Compute total weight.
@@ -588,21 +560,19 @@ class SpatialBeamWeight(Component):
         self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=complex))
         self.add_output('weight', val=0.)
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
-
     def solve_nonlinear(self, params, unknowns, resids):
         A = params['A']
         nodes = params['nodes']
-        num_elems = self.ny - 1
 
         # Calculate the volume and weight of the total structure
+        volume = numpy.sum(numpy.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A)
+
         volume = 0.
-        for ielem in xrange(num_elems):
-            P0 = nodes[ielem, :]
-            P1 = nodes[ielem+1, :]
-            L = norm(P1 - P0)
-            volume += L * A[ielem]
+        for i in range(self.ny-1):
+            diff = (nodes[i+1, :] - nodes[i, :])**2
+            diff_sum = numpy.sum(diff)
+            diff_norm = numpy.sqrt(diff_sum) * A[i]
+            volume = volume + diff_norm
 
         weight = volume * self.surface['mrho'] * 9.81
 
@@ -611,8 +581,53 @@ class SpatialBeamWeight(Component):
 
         unknowns['weight'] = weight
 
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        A = params['A']
+        nodes = params['nodes']
+
+        # First we will solve for dweight_dA
+        # Calculate the volume and weight of the total structure
+        elem_lengths = numpy.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
+
+        # Multiply by the material density and force of gravity
+        dweight_dA = elem_lengths * self.surface['mrho'] * 9.81
+
+        # Account for symmetry
+        if self.surface['symmetry']:
+            dweight_dA *= 2.
+
+        # Save the result to the jacobian dictionary
+        jac['weight', 'A'] = dweight_dA
+
+        # Next, we will compute the derivative of weight wrt nodes.
+        # Here we're using results from AD to compute the derivative
+        # Initialize the reverse seeds.
+        nodesb = numpy.zeros(nodes.shape)
+        volumeb = 1.
+
+        # Compute the norms and other backwards seeds
+        norms = numpy.linalg.norm(nodes[1:, :] - nodes[:1, :], axis=1)
+        diff_sumb = (A * 0.5 * norms * volumeb).reshape(-1, 1)
+        tempb = 2*(nodes[1:, :] - nodes[:-1, :]) * diff_sumb
+
+        # Sum these results to the nodesb seeds
+        nodesb[1:, :] += tempb
+        nodesb[:-1, :] -= tempb
+
+        # Apply the multipliers for material properties and symmetry
+        nodesb *= self.surface['mrho'] * 9.81
+
+        if self.surface['symmetry']:
+            nodesb *= 2.
+
+        # Store the flattened array in the jacobian dictionary
+        jac['weight', 'nodes'] = nodesb.reshape(1, -1)
+
+        return jac
+
 class SpatialBeamVonMisesTube(Component):
-    """ Compute the max von Mises stress in each element.
+    """ Compute the von Mises stress in each element.
 
     Parameters
     ----------
@@ -754,9 +769,6 @@ class SpatialBeamFailureKS(Component):
         self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=complex))
         self.add_output('failure', val=0.)
 
-        # self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
-
         self.sigma = surface['stress']
         self.rho = rho
 
@@ -788,10 +800,8 @@ class SpatialBeamFailureKS(Component):
 
             arg1d = rho*(vonmisesd/sigma-fmaxd)
             arg1 = rho*(vonmises/sigma-1-fmax)
-            arg2d = arg1d * numpy.exp(arg1)
-            arg2 = numpy.exp(arg1)
-            arg3d = numpy.sum(arg2d)
-            arg3 = numpy.sum(arg2)
+            arg3d = numpy.sum(arg1d * numpy.exp(arg1))
+            arg3 = numpy.sum(numpy.exp(arg1))
 
             ksd = arg3d/(rho*arg3)
             ks = 1/rho*numpy.log(arg3)
