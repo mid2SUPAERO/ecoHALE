@@ -5,11 +5,10 @@ import numpy
 from time import time
 try:
     import OAS_API
-    # a
-    # Make sure we don't use Fortran here; temporary for assignment
     fortran_flag = True
 except:
     fortran_flag = False
+
 print('Fortran = ', fortran_flag)
 
 from openmdao.api import Component
@@ -46,9 +45,6 @@ class TransferDisplacements(Component):
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
-        self.n = self.nx * self.ny
-        self.mesh = surface['mesh']
-        name = surface['name']
         self.fem_origin = surface['fem_origin']
 
         self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
@@ -59,12 +55,10 @@ class TransferDisplacements(Component):
             self.deriv_options['type'] = 'cs'
 
     def solve_nonlinear(self, params, unknowns, resids):
-        name = self.surface['name']
         mesh = params['mesh']
         disp = params['disp']
 
         w = self.surface['fem_origin']
-        st = time()
 
         if fortran_flag:
             def_mesh = OAS_API.oas_api.transferdisplacements(mesh, disp, w)
@@ -97,12 +91,10 @@ class TransferDisplacements(Component):
         unknowns['def_mesh'] = def_mesh
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-        name = self.surface['name']
         mesh = params['mesh']
         disp = params['disp']
 
         w = self.surface['fem_origin']
-        st = time()
 
         if mode == 'fwd':
             a, b = OAS_API.oas_api.transferdisplacements_d(mesh, dparams['mesh'], disp, dparams['disp'], w)
@@ -112,32 +104,6 @@ class TransferDisplacements(Component):
             a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, unknowns['def_mesh'], dresids['def_mesh'])
             dparams['mesh'] += a.real
             dparams['disp'] += b.real
-
-        # ### DOT PRODUCT TEST ###
-        # meshd = numpy.random.random_sample(mesh.shape)
-        # dispd = numpy.random.random_sample(disp.shape)
-        #
-        # meshd_copy = meshd.copy()
-        # dispd_copy = dispd.copy()
-        #
-        # def_mesh, def_meshd = OAS_API.oas_api.transferdisplacements_d(mesh, meshd, disp, dispd, w)
-        #
-        # def_meshb = numpy.random.random_sample(mesh.shape)
-        # def_meshb_copy = def_meshb.copy()
-        #
-        # meshb, dispb = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, def_mesh, def_meshb)
-        #
-        # dotprod = 0.
-        # dotprod += numpy.sum(meshd_copy*meshb)
-        # dotprod += numpy.sum(dispd_copy*dispb)
-        # dotprod -= numpy.sum(def_meshd*def_meshb_copy)
-        #
-        # print 'Should be zero:', dotprod
-        # print def_meshd
-        # print meshb
-        # print dispb
-        # exit()
-
 
 class TransferLoads(Component):
     """
@@ -170,9 +136,6 @@ class TransferLoads(Component):
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
-        self.n = self.nx * self.ny
-        self.mesh = surface['mesh']
-        name = surface['name']
         self.fem_origin = surface['fem_origin']
 
         self.add_param('def_mesh', val=numpy.zeros((self.nx, self.ny, 3)))
@@ -183,15 +146,11 @@ class TransferLoads(Component):
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
 
     def solve_nonlinear(self, params, unknowns, resids):
-        name = self.surface['name']
         mesh = params['def_mesh']
 
         sec_forces = params['sec_forces']
-        sec_forces = numpy.sum(sec_forces, axis=0)
-
 
         w = 0.25
         a_pts = 0.5 * (1-w) * mesh[:-1, :-1, :] + \
@@ -200,20 +159,20 @@ class TransferLoads(Component):
                 0.5 *   w   * mesh[1:,  1:, :]
 
         w = self.fem_origin
-        s_pts = 0.5 * (1-w) * mesh[:-1, :-1, :] + \
-                0.5 *   w   * mesh[1:, :-1, :] + \
-                0.5 * (1-w) * mesh[:-1,  1:, :] + \
-                0.5 *   w   * mesh[1:,  1:, :]
+        s_pts = 0.5 * (1-w) * mesh[0, :-1, :] + \
+                0.5 *   w   * mesh[-1, :-1, :] + \
+                0.5 * (1-w) * mesh[0,  1:, :] + \
+                0.5 *   w   * mesh[-1:,  1:, :]
 
+        diff = a_pts - s_pts
         moment = numpy.zeros((self.ny - 1, 3), dtype="complex")
-        for ind in xrange(self.ny - 1):
-            r = a_pts[0, ind, :] - s_pts[0, ind, :]
-            F = sec_forces[ind, :]
-            moment[ind, :] = numpy.cross(r, F)
+        for ind in range(self.nx-1):
+            moment += numpy.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
         loads = numpy.zeros((self.ny, 6), dtype="complex")
-        loads[:-1, :3] += 0.5 * sec_forces[:, :]
-        loads[ 1:, :3] += 0.5 * sec_forces[:, :]
+        sec_forces_sum = numpy.sum(sec_forces, axis=0)
+        loads[:-1, :3] += 0.5 * sec_forces_sum[:, :]
+        loads[ 1:, :3] += 0.5 * sec_forces_sum[:, :]
         loads[:-1, 3:] += 0.5 * moment
         loads[ 1:, 3:] += 0.5 * moment
 

@@ -14,8 +14,6 @@ from scipy.linalg import lu_factor, lu_solve
 
 try:
     import OAS_API
-    # a
-    # Make sure we don't use Fortran here; temporary for assignment
     fortran_flag = True
 except:
     fortran_flag = False
@@ -588,10 +586,10 @@ class SpatialBeamWeight(Component):
 
         # First we will solve for dweight_dA
         # Calculate the volume and weight of the total structure
-        elem_lengths = numpy.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
+        norms = numpy.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
 
         # Multiply by the material density and force of gravity
-        dweight_dA = elem_lengths * self.surface['mrho'] * 9.81
+        dweight_dA = norms * self.surface['mrho'] * 9.81
 
         # Account for symmetry
         if self.surface['symmetry']:
@@ -604,14 +602,7 @@ class SpatialBeamWeight(Component):
         # Here we're using results from AD to compute the derivative
         # Initialize the reverse seeds.
         nodesb = numpy.zeros(nodes.shape)
-        volumeb = 1.
-
-        # Compute the norms and other backwards seeds
-        norms = numpy.linalg.norm(nodes[1:, :] - nodes[:1, :], axis=1)
-        diff_sumb = (A * 0.5 * norms * volumeb).reshape(-1, 1)
-        tempb = 2*(nodes[1:, :] - nodes[:-1, :]) * diff_sumb
-
-        # Sum these results to the nodesb seeds
+        tempb = (nodes[1:, :] - nodes[:-1, :]) * (A / norms).reshape(-1, 1)
         nodesb[1:, :] += tempb
         nodesb[:-1, :] -= tempb
 
@@ -783,46 +774,33 @@ class SpatialBeamFailureKS(Component):
         ks = 1 / rho * nlog(nsum(nexp(rho * (vonmises/sigma - 1 - fmax))))
         unknowns['failure'] = fmax + ks
 
-    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
         vonmises = params['vonmises']
         sigma = self.sigma
         rho = self.rho
 
-        if mode == 'fwd':
+        # Find the location of the max stress constraint
+        fmax = numpy.max(vonmises / sigma - 1)
+        i, j = numpy.where((vonmises/sigma - 1)==fmax)
+        i, j = i[0], j[0]
 
-            vonmisesd = dparams['vonmises']
+        # Set incoming seed as 1 so we simply get the jacobian entries
+        ksb = 1.
 
-            fmax = numpy.max(vonmises / sigma - 1)
-            i, j = numpy.where((vonmises/sigma - 1)==fmax)
-            i, j = i[0], j[0]
-            fmaxd = vonmisesd[i, j] / sigma
+        # Use results from the AD code to compute the jacobian entries
+        tempb0 = ksb / (rho * numpy.sum(numpy.exp(rho * (vonmises/sigma - fmax - 1))))
+        tempb = numpy.exp(rho*(vonmises/sigma-fmax-1))*rho*tempb0
+        fmaxb = ksb - numpy.sum(tempb)
 
-            arg1d = rho*(vonmisesd/sigma-fmaxd)
-            arg1 = rho*(vonmises/sigma-1-fmax)
-            arg3d = numpy.sum(arg1d * numpy.exp(arg1))
-            arg3 = numpy.sum(numpy.exp(arg1))
+        # Populate the entries
+        derivs = tempb / sigma
+        derivs[i, j] += fmaxb / sigma
 
-            ksd = arg3d/(rho*arg3)
-            ks = 1/rho*numpy.log(arg3)
+        # Reshape and save them to the jac dict
+        jac['failure', 'vonmises'] = derivs.reshape(1, -1)
 
-            dresids['failure'] += fmaxd + ksd
-            failure = fmax + ks
-
-        if mode == 'rev':
-
-            fmax = numpy.max(vonmises / sigma - 1)
-            i, j = numpy.where((vonmises/sigma - 1)==fmax)
-            i, j = i[0], j[0]
-
-            ksb = dresids['failure']
-
-            tempb0 = ksb / (rho * numpy.sum(numpy.exp(rho * (vonmises/sigma - fmax - 1))))
-            tempb = numpy.exp(rho*(vonmises/sigma-fmax-1))*rho*tempb0
-            fmaxb = ksb - numpy.sum(tempb)
-
-            dparams['vonmises'] = tempb / sigma
-            dparams['vonmises'][i, j] += fmaxb / sigma
+        return jac
 
 
 class SpatialBeamStates(Group):

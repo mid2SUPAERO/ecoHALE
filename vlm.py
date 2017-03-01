@@ -35,8 +35,6 @@ from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 try:
     import OAS_API
-    # a
-    # Make sure we don't use Fortran here; temporary for assignment
     fortran_flag = True
 except:
     fortran_flag = False
@@ -325,118 +323,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     mtx /= 4 * numpy.pi
 
-def _assemble_AIC_mtx_d(mtx, params, surfaces, skip=False):
-    """
-    Compute the aerodynamic influence coefficient matrix
-    for either solving the linear system or solving for the drag.
-
-    We use a nested for loop structure to loop through the lifting surfaces to
-    obtain the corresponding mesh, then for each mesh we again loop through
-    the lifting surfaces to obtain the collocation points used to compute
-    the horseshoe vortex influence coefficients.
-
-    This creates mtx with blocks corresponding to each lifting surface's
-    effects on other lifting surfaces. The block diagonal portions
-    correspond to each lifting surface's influencen on itself. For a single
-    lifting surface, this is the entire mtx.
-
-    Parameters
-    ----------
-    mtx[num_y-1, num_y-1, 3] : array_like
-        Aerodynamic influence coefficient (AIC) matrix, or the
-        derivative of v w.r.t. circulations.
-    params : dictionary
-        OpenMDAO params dictionary for a given aero problem
-    surfaces : dictionary
-        Dictionary containing all surfaces in an aero problem.
-    skip : boolean
-        If false, the bound vortex contributions on the collocation point
-        corresponding to the same panel are not included. Used for the drag
-        computation.
-
-    Returns
-    -------
-    mtx[tot_panels, tot_panels, 3] : array_like
-        Aerodynamic influence coefficient (AIC) matrix, or the
-        derivative of v w.r.t. circulations.
-    """
-
-    alpha = params['alpha']
-    mtx[:, :, :] = 0.0
-    cosa = numpy.cos(alpha * numpy.pi / 180.)
-    sina = numpy.sin(alpha * numpy.pi / 180.)
-    u = numpy.array([cosa, 0, sina])
-
-    i_ = 0
-    i_bpts_ = 0
-    i_panels_ = 0
-
-    # Loop over the lifting surfaces to compute their influence on the flow
-    # velocity at the collocation points
-    for surface_ in surfaces:
-
-        # Variable names with a trailing underscore correspond to the lifting
-        # surface being examined, not the collocation point
-        name_ = surface_['name']
-        nx_ = surface_['num_x']
-        ny_ = surface_['num_y']
-        n_ = nx_ * ny_
-        n_bpts_ = (nx_ - 1) * ny_
-        n_panels_ = (nx_ - 1) * (ny_ - 1)
-
-        # Obtain the lifting surface mesh in the form expected by the solver,
-        # with shape [nx_, ny_, 3]
-        mesh = params['def_mesh']
-        bpts = params['b_pts']
-
-        # Set counters to know where to index the sub-matrix within the full mtx
-        i = 0
-        i_bpts = 0
-        i_panels = 0
-
-        for surface in surfaces:
-            # These variables correspond to the collocation points
-            name = surface['name']
-            nx = surface['num_x']
-            ny = surface['num_y']
-            n = nx * ny
-            n_bpts = (nx - 1) * ny
-            n_panels = (nx - 1) * (ny - 1)
-            symmetry = surface['symmetry']
-
-            # Obtain the collocation points used to compute the AIC mtx.
-            # If setting up the AIC mtx, we use the collocation points (c_pts),
-            # but if setting up the matrix to solve for drag, we use the
-            # midpoints of the bound vortices.
-            if skip:
-                # Find the midpoints of the bound points, used in drag computations
-                pts = (params['b_pts'][:, 1:, :] + \
-                    params['b_pts'][:, :-1, :]) / 2
-            else:
-                pts = params['c_pts']
-
-            # Initialize sub-matrix to populate within full mtx
-            small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype='complex')
-
-            # Dense fortran assembly for the AIC matrix
-            if fortran_flag:
-                small_mat[:, :, :] = OAS_API.oas_api.assembleaeromtx(alpha, pts, bpts,
-                                                         mesh, skip, symmetry)
-
-            # Populate the full-size matrix with these surface-surface AICs
-            mtx[i_panels:i_panels+n_panels,
-                i_panels_:i_panels_+n_panels_, :] = small_mat
-
-            i += n
-            i_bpts += n_bpts
-            i_panels += n_panels
-
-        i_ += n_
-        i_bpts_ += n_bpts_
-        i_panels_ += n_panels_
-
-    mtx /= 4 * numpy.pi
-
 
 class VLMGeometry(Component):
     """ Compute various geometric properties for VLM analysis.
@@ -468,26 +354,24 @@ class VLMGeometry(Component):
 
         self.surface = surface
 
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
-        self.n = self.nx * self.ny
-        name = surface['name']
+        ny = surface['num_y']
+        nx = surface['num_x']
+        self.n = nx * ny
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('def_mesh', val=numpy.zeros((self.nx, self.ny, 3),
+        self.add_param('def_mesh', val=numpy.zeros((nx, ny, 3),
                        dtype="complex"))
-        self.add_output('b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
+        self.add_output('b_pts', val=numpy.zeros((nx-1, ny, 3),
                         dtype="complex"))
-        self.add_output('c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
-        self.add_output('widths', val=numpy.zeros((self.ny-1)))
-        self.add_output('normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output('c_pts', val=numpy.zeros((nx-1, ny-1, 3)))
+        self.add_output('widths', val=numpy.zeros((ny-1)))
+        self.add_output('normals', val=numpy.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=0.)
 
     def _get_lengths(self, A, B, axis):
         return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        name = self.surface['name']
         mesh = params['def_mesh']
 
         # Compute the bound points at 1/4 chord
@@ -589,30 +473,28 @@ class VLMCirculations(Component):
 
         self.surfaces = surfaces
 
+        tot_panels = 0
         for surface in surfaces:
             self.surface = surface
-            self.ny = surface['num_y']
-            self.nx = surface['num_x']
-            self.n = self.nx * self.ny
+            ny = surface['num_y']
+            nx = surface['num_x']
             name = surface['name']
 
-            self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3),
+            self.add_param(name+'def_mesh', val=numpy.zeros((nx, ny, 3),
                            dtype="complex"))
-            self.add_param(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3),
+            self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3),
                            dtype="complex"))
-            self.add_param(name+'c_pts', val=numpy.zeros((self.nx-1, self.ny-1, 3),
+            self.add_param(name+'c_pts', val=numpy.zeros((nx-1, ny-1, 3),
                            dtype="complex"))
-            self.add_param(name+'normals', val=numpy.zeros((self.nx-1, self.ny-1, 3)))
+            self.add_param(name+'normals', val=numpy.zeros((nx-1, ny-1, 3)))
+            tot_panels += (nx - 1) * (ny - 1)
+
+        self.tot_panels = tot_panels
 
         self.add_param('v', val=prob_dict['v'])
         self.add_param('alpha', val=prob_dict['alpha'])
 
         self.deriv_options['linearize'] = True  # only for circulations
-
-        tot_panels = 0
-        for surface in surfaces:
-            tot_panels += (surface['num_x'] - 1) * (surface['num_y'] - 1)
-        self.tot_panels = tot_panels
 
         self.add_state('circulations', val=numpy.zeros((tot_panels),
                        dtype="complex"))
@@ -745,15 +627,14 @@ class VLMForces(Component):
         tot_panels = 0
         for surface in surfaces:
             name = surface['name']
-            tot_panels += (surface['num_x'] - 1) * (surface['num_y'] - 1)
-            self.ny = surface['num_y']
-            self.nx = surface['num_x']
+            ny = surface['num_y']
+            nx = surface['num_x']
+            tot_panels += (nx - 1) * (ny - 1)
 
-            self.add_param(name+'def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
-            self.add_param(name+'b_pts', val=numpy.zeros((self.nx-1, self.ny, 3), dtype='complex'))
-            self.add_output(name+'sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3), dtype='complex'))
+            self.add_param(name+'def_mesh', val=numpy.zeros((nx, ny, 3), dtype='complex'))
+            self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3), dtype='complex'))
+            self.add_output(name+'sec_forces', val=numpy.zeros((nx-1, ny-1, 3), dtype='complex'))
 
-        self.tot_panels = tot_panels
         self.add_param('circulations', val=numpy.zeros((tot_panels)))
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
@@ -787,7 +668,10 @@ class VLMForces(Component):
         i = 0
         for surface in self.surfaces:
             name = surface['name']
-            num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
+            nx = surface['num_x']
+            ny = surface['num_y']
+
+            num_panels = (nx - 1) * (ny - 1)
 
             b_pts = params[name+'b_pts']
 
@@ -798,12 +682,12 @@ class VLMForces(Component):
             cross = numpy.cross(self.v[i:i+num_panels],
                                 bound.reshape(-1, bound.shape[-1], order='F'))
 
-            sec_forces = numpy.zeros(((surface['num_x']-1)*(surface['num_y']-1), 3), dtype='complex')
+            sec_forces = numpy.zeros(((nx-1)*(ny-1), 3), dtype='complex')
             # Compute the sectional forces acting on each panel
             for ind in xrange(3):
                 sec_forces[:, ind] = \
                     (params['rho'] * circ[i:i+num_panels] * cross[:, ind])
-            unknowns[name+'sec_forces'] = sec_forces.reshape((surface['num_x']-1, surface['num_y']-1, 3), order='F')
+            unknowns[name+'sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
 
             i += num_panels
 
@@ -875,12 +759,11 @@ class VLMLiftDrag(Component):
         super(VLMLiftDrag, self).__init__()
 
         self.surface = surface
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
-        self.n = self.nx * self.ny
-        name = surface['name']
+        ny = surface['num_y']
+        nx = surface['num_x']
+        self.num_panels = (nx -1) * (ny - 1)
 
-        self.add_param('sec_forces', val=numpy.zeros((self.nx - 1, self.ny - 1, 3)))
+        self.add_param('sec_forces', val=numpy.zeros((nx - 1, ny - 1, 3)))
         self.add_param('alpha', val=3.)
         self.add_param('Re', val=5.e6)
         self.add_param('M', val=.84)
@@ -891,7 +774,6 @@ class VLMLiftDrag(Component):
         self.add_output('D', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
-        name = self.surface['name']
         alpha = params['alpha'] * numpy.pi / 180.
         forces = params['sec_forces'].reshape(-1, 3)
         cosa = numpy.cos(alpha)
@@ -906,23 +788,20 @@ class VLMLiftDrag(Component):
         # Compute the skin friction coefficient
         # Use eq. 12.27 of Raymer for turbulent Cf
         # Avoid divide by zero warning if Re == 0
-        # TODO: correctly compute these derivatives
         if Re == 0:
             Cf = 0.
         else:
             Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
 
         # Compute the induced lift force on each lifting surface
-        unknowns['L'] = \
-            numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
+        unknowns['L'] = numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
 
         # Compute the induced drag force on each lifting surface
-        unknowns['D'] = \
-            numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
+        unknowns['D'] = numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
 
         # Compute the drag contribution from skin friction
-        D_f = Cf * rho * v**2 / 2. * S_ref
-        unknowns['D'] += D_f
+        self.D_f = Cf * rho * v**2 / 2. * S_ref
+        unknowns['D'] += self.D_f
 
         if self.surface['symmetry']:
             unknowns['D'] *= 2
@@ -932,8 +811,6 @@ class VLMLiftDrag(Component):
         """ Jacobian for lift and drag."""
 
         jac = self.alloc_jacobian()
-
-        n_panels = (self.nx - 1) * (self.ny - 1)
 
         # Analytic derivatives for sec_forces
         alpha = params['alpha'] * numpy.pi / 180.
@@ -949,16 +826,32 @@ class VLMLiftDrag(Component):
 
         tmp = numpy.array([-sina, 0, cosa])
         jac['L', 'sec_forces'] = \
-            numpy.atleast_2d(numpy.tile(tmp, n_panels)) * symmetry_factor
+            numpy.atleast_2d(numpy.tile(tmp, self.num_panels)) * symmetry_factor
         tmp = numpy.array([cosa, 0, sina])
         jac['D', 'sec_forces'] = \
-            numpy.atleast_2d(numpy.tile(tmp, n_panels)) * symmetry_factor
+            numpy.atleast_2d(numpy.tile(tmp, self.num_panels)) * symmetry_factor
 
         p180 = numpy.pi / 180.
         jac['L', 'alpha'] = p180 * symmetry_factor * \
             numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
         jac['D', 'alpha'] = p180 * symmetry_factor * \
             numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
+
+        Re = params['Re']
+        if Re > 0:
+
+            M = params['M']
+            v = params['v']
+            rho = params['rho']
+            S_ref = params['S_ref']
+
+            D_f = self.D_f * symmetry_factor
+
+            jac['D', 'rho'] = D_f / rho
+            jac['D', 'v'] = 2 * D_f / v
+            jac['D', 'S_ref'] = D_f / S_ref
+            jac['D', 'M'] = D_f * -.65 / (1 + .144 * M**2) * .288 * M
+            jac['D', 'Re'] = D_f * -2.58 / (numpy.log10(Re)) * (1 / (Re * numpy.log(10)))
 
         return jac
 
@@ -984,9 +877,7 @@ class VLMCoeffs(Component):
         Induced coefficient of lift (CL) for the lifting surface.
     CDi : float
         Induced coefficient of drag (CD) for the lifting surface.
-
     """
-
 
     def __init__(self, surface):
         super(VLMCoeffs, self).__init__()
@@ -1044,7 +935,6 @@ class VLMCoeffs(Component):
 
         jac['CL1', 'D'] = 0.
         jac['CDi', 'L'] = 0.
-
 
         return jac
 
@@ -1126,7 +1016,6 @@ class VLMStates(Group):
         self.add('forces',
                  VLMForces(surfaces, prob_dict),
                  promotes=['*'])
-
 
 
 class VLMFunctionals(Group):
