@@ -241,6 +241,10 @@ class AssembleK(Component):
         self.S_z = numpy.zeros((4, 12), dtype='complex')
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
+        if not fortran_flag:
+            self.deriv_options['type'] = 'cs'
+            self.deriv_options['form'] = 'central'
+
     def solve_nonlinear(self, params, unknowns, resids):
 
         # Find constrained nodes based on closeness to specified cg point
@@ -266,7 +270,7 @@ class AssembleK(Component):
         unknowns['rhs'] = self.rhs
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-
+        
         # Find constrained nodes based on closeness to specified cg point
         nodes = params['nodes']
         dist = nodes - numpy.array([self.cg_x, 0, 0])
@@ -325,9 +329,6 @@ class SpatialBeamFEM(Component):
         Polar moment of inertia for each FEM element.
     nodes[ny, 3] : array_like
         Flattened array with coordinates for each FEM node.
-    loads[ny, 6] : array_like
-        Flattened array containing the loads applied on the FEM component,
-        computed from the sectional forces.
 
     Returns
     -------

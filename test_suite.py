@@ -174,9 +174,9 @@ class TestAeroStruct(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_perf.CL'], .58245256)
-        self.assertAlmostEqual(prob['wing_perf.failure'], -.431801158, places=5)
-        self.assertAlmostEqual(prob['fuelburn'], 139970.19140120025, places=2)
+        self.assertAlmostEqual(prob['wing_perf.CL'], 0.73065749603248542)
+        self.assertAlmostEqual(prob['wing_perf.failure'], -0.38665788799597389, places=5)
+        self.assertAlmostEqual(prob['fuelburn'], 126201.90559473804, places=2)
 
     def test_aerostruct_analysis_symmetry(self):
         OAS_prob = OASProblem({'type' : 'aerostruct',
@@ -191,9 +191,9 @@ class TestAeroStruct(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_perf.CL'], .58245256)
-        self.assertAlmostEqual(prob['wing_perf.failure'], -.5011158763, places=5)
-        self.assertAlmostEqual(prob['fuelburn'], 139970.19140120025, places=2)
+        self.assertAlmostEqual(prob['wing_perf.CL'], 0.76727243345999141)
+        self.assertAlmostEqual(prob['wing_perf.failure'], -0.47269928542059592, places=5)
+        self.assertAlmostEqual(prob['fuelburn'], 136257.17861685093, places=2)
 
     def test_aerostruct_optimization(self):
         OAS_prob = OASProblem({'type' : 'aerostruct',
@@ -215,7 +215,7 @@ class TestAeroStruct(unittest.TestCase):
 
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['fuelburn'], 85972.044306541327, places=0)
+        self.assertAlmostEqual(prob['fuelburn'], 83793.582025039475, places=0)
         self.assertAlmostEqual(prob['wing_perf.failure'], 0., places=4)
 
     def test_aerostruct_optimization_symmetry(self):
@@ -239,7 +239,7 @@ class TestAeroStruct(unittest.TestCase):
 
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['fuelburn'], 84283.6062476814, places=0)
+        self.assertAlmostEqual(prob['fuelburn'], 76320.669873529463, places=0)
         self.assertAlmostEqual(prob['wing_perf.failure'], 0, places=5)
 
     def test_aerostruct_optimization_symmetry_multiple(self):
@@ -272,15 +272,45 @@ class TestAeroStruct(unittest.TestCase):
 
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['fuelburn'], 160496.22753448418, places=0)
+        self.assertAlmostEqual(prob['fuelburn'], 152641.66686755526, places=0)
         self.assertAlmostEqual(prob['wing_perf.failure'], 0, places=5)
         self.assertAlmostEqual(numpy.linalg.norm(prob['wing.twist_cp']), numpy.linalg.norm(prob['tail.twist_cp']), places=2)
 
 
 if __name__ == "__main__":
-    print()
-    print('====================================================')
-    print('|             RUNNING FULL TEST SUITE              |')
-    print('====================================================')
-    print()
-    unittest.main()
+
+    # Get user-inputted argument if provided
+    try:
+        arg = sys.argv[1]
+        arg_provided = True
+    except:
+        arg_provided = False
+
+    # Based on user input, run one subgroup of tests
+    if arg_provided:
+        if 'aero' == arg:
+            test_class = TestAero
+        elif 'struct' == arg:
+            test_class = TestStruct
+        elif 'aerostruct' == arg:
+            test_class = TestAeroStruct
+
+        print()
+        print('+==================================================+')
+        print('             Running ' + arg + ' test suite')
+        print('+==================================================+')
+        print()
+
+        # Set up the test suite and run the tests corresponding to this subgroup
+        suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
+        unittest.TextTestRunner().run(suite)
+
+    # If the user did not provide any arguments, run all tests
+    else:
+        print()
+        print('+==================================================+')
+        print('|             Running full test suite              |')
+        print('+==================================================+')
+        print()
+
+        unittest.main()

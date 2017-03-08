@@ -137,8 +137,9 @@ class OASProblem():
                     'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
                     'wing_type' : 'rect',   # initial shape of the wing
                                             # either 'CRM' or 'rect'
-                    'offset' : numpy.array([0., 0., 0.]) # coordinates to offset
+                    'offset' : numpy.array([0., 0., 0.]), # coordinates to offset
                                     # the surface from its default location
+                    'twist' : None,
                     }
         return defaults
 
@@ -170,11 +171,11 @@ class OASProblem():
         ----------
         input_dict : dictionary
             Surface definition. Note that there are default values defined by
-            `get_default_surf_dict` that are overwritten based on the
+            `get_default_surface` that are overwritten based on the
             user-provided input_dict.
         """
 
-        # Get defaults and update surf_dict with the user-provided input
+        # Get defaults and update surface with the user-provided input
         surf_dict = self.get_default_surf_dict()
         surf_dict.update(input_dict)
 
@@ -184,7 +185,7 @@ class OASProblem():
             mesh = surf_dict['mesh']
             num_x, num_y = mesh.shape
 
-        # If the user doesn't provide a mesh, obtain the values from surf_dict
+        # If the user doesn't provide a mesh, obtain the values from surface
         # to create the mesh
         elif 'num_x' in surf_dict.keys():
             num_x = surf_dict['num_x']
@@ -203,12 +204,14 @@ class OASProblem():
                 mesh = gen_rect_mesh(num_x, num_y, span, chord,
                     span_cos_spacing, chord_cos_spacing)
 
-            # Generate CRM mesh
+            # Generate CRM mesh. Note that this outputs twist information
+            # based on the data from the CRM definition paper, so we save
+            # this twist information to the surf_dict.
             elif surf_dict['wing_type'] == 'CRM':
-                npi = int(numpy.ceil(((num_y - 1) / 2) * .4))
-                npo = (num_y - 1) // 2 + 2 - npi
-                mesh = gen_crm_mesh(n_points_inboard=npi, n_points_outboard=npo, num_x=num_x)
+                mesh, eta, twist = gen_crm_mesh(num_x, num_y, span, chord,
+                    span_cos_spacing, chord_cos_spacing)
                 num_x, num_y = mesh.shape[:2]
+                surf_dict['twist'] = twist
 
             else:
                 Error('wing_type option not understood. Must be either "CRM" or "rect".')
@@ -236,6 +239,36 @@ class OASProblem():
         if 'num_thickness' not in input_dict.keys():
             surf_dict['num_thickness'] = numpy.max([int((num_y - 1) / 5), 5])
 
+        # If the mesh generation provided an initial twist, set this within
+        # the surf_dict object
+        if surf_dict['twist'] is not None:
+            num_twist = surf_dict['num_twist']
+
+            # If the surface is symmetric, simply interpolate the initial
+            # twist_cp values based on the mesh data
+            if surf_dict['symmetry']:
+                twist = numpy.interp(numpy.linspace(0, 1, num_twist), eta, surf_dict['twist'])
+            else:
+
+                # If num_twist is odd, create the twist vector and mirror it
+                # then stack the two together, but remove the duplicated twist
+                # value.
+                if num_twist % 2:
+                    twist = numpy.interp(numpy.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['twist'])
+                    twist = numpy.hstack((twist[:-1], twist[::-1]))
+
+                # If num_twist is even, mirror the twist vector and stack
+                # them together
+                else:
+                    twist = numpy.interp(numpy.linspace(0, 1, num_twist/2), eta, surf_dict['twist'])
+                    twist = numpy.hstack((twist, twist[::-1]))
+
+            surf_dict['twist'] = twist
+
+        # If not initial twist information is provided, simply use zero twist
+        else:
+            surf_dict['twist'] = numpy.zeros((surf_dict['num_twist']))
+
         # Store updated values
         surf_dict['num_x'] = num_x
         surf_dict['num_y'] = num_y
@@ -254,7 +287,7 @@ class OASProblem():
         name = surf_dict['name']
         for surface in self.surfaces:
             if name == surface['name']:
-                print("Warning: Two surfaces have the same name.")
+                OASWarning("Two surfaces have the same name.")
 
         # Append '_' to each repeated surface name
         if not name:
@@ -309,7 +342,7 @@ class OASProblem():
         """
 
         # Uncomment this to use finite differences over the entire model
-        # self.prob.root.deriv_options['type'] = 'cs'
+        # self.prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -448,7 +481,7 @@ class OASProblem():
 
             # Add independent variables that do not belong to a specific component
             indep_vars = [
-                ('twist_cp', numpy.zeros(surface['num_twist'])),
+                ('twist_cp', surface['twist']),
                 ('dihedral', surface['dihedral']),
                 ('sweep', surface['sweep']),
                 ('span', surface['span']),
@@ -559,7 +592,7 @@ class OASProblem():
 
             # Add independent variables that do not belong to a specific component
             indep_vars = [
-                ('twist_cp', numpy.zeros(surface['num_twist'])),
+                ('twist_cp', surface['twist']),
                 ('thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
                 ('r', surface['r']),
                 ('dihedral', surface['dihedral']),

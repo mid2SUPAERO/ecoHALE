@@ -7,7 +7,6 @@ from numpy import cos, sin, tan
 from openmdao.api import Component
 
 from b_spline import get_bspline_mtx
-from crm_data import crm_base_mesh
 
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
@@ -223,117 +222,117 @@ def taper(mesh, taper_ratio, symmetry):
     return mesh
 
 
-def mirror(mesh, right_side=True):
-    """
-    Take a half geometry and mirror it across the symmetry plane.
+def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
+    """ Generate simple rectangular wing mesh.
 
     Parameters
     ----------
-    mesh : array_like
-        Nodal mesh defining half the initial aerodynamic surface.
-    right_side : boolean
-        If right_side==True, it mirrors from right to left,
-        assuming that the first point is on the symmetry plane. Else
-        it mirrors from left to right, assuming the last point is on the
-        symmetry plane.
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+    num_y : float
+        Desired number of chordwise node points for the final mesh.
+    span : float
+        Total wingspan.
+    chord : float
+        Root chord.
+    span_cos_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the spanwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        spanwise node points near the wingtips.
+    chord_cos_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the chordwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        chordwise node points near the wingtips.
 
     Returns
     -------
     mesh : array_like
-        Nodal mesh defining the mirrored aerodynamic surface.
+        Rectangular nodal mesh defining the final aerodynamic surface with the
+        specified parameters.
 
     """
 
-    num_x, num_y, _ = mesh.shape
+    # eta, xle, yle, zle, twist, chord
+    # Info taken from AIAA paper 2008-6919 by Vassberg
+    raw_crm_points = numpy.array([
+     [0., 904.294, 0.0, 174.126, 6.7166, 536.181], # 0
+     [.1, 989.505, 115.675, 175.722, 4.4402, 468.511],
+     [.15, 1032.133, 173.513, 176.834, 3.6063, 434.764],
+     [.2, 1076.030, 231.351, 177.912, 2.2419, 400.835],
+     [.25, 1120.128, 289.188, 177.912, 2.2419, 366.996],
+     [.3, 1164.153, 347.026, 178.886, 1.5252, 333.157],
+     [.35, 1208.203, 404.864, 180.359, .9379, 299.317], # 6 yehudi break
+     [.4, 1252.246, 462.701, 182.289, .4285, 277.288],
+     [.45, 1296.289, 520.539, 184.904, -.2621, 263],
+     [.5, 1340.329, 578.377, 188.389, -.6782, 248.973],
+     [.55, 1384.375, 636.214, 192.736, -.9436, 234.816],
+     [.60, 1428.416, 694.052, 197.689, -1.2067, 220.658],
+     [.65, 1472.458, 751.890, 203.294, -1.4526, 206.501],
+     [.7, 1516.504, 809.727, 209.794, -1.6350, 192.344],
+     [.75, 1560.544, 867.565, 217.084, -1.8158, 178.186],
+     [.8, 1604.576, 925.402, 225.188, -2.0301, 164.029],
+     [.85, 1648.616, 983.240, 234.082, -2.2772, 149.872],
+     [.9, 1692.659, 1041.078, 243.625, -2.5773, 135.714],
+     [.95, 1736.710, 1098.915, 253.691, -3.1248, 121.557],
+     [1., 1780.737, 1156.753, 263.827, -3.75, 107.4] # 19
+    ])
 
-    new_mesh = numpy.empty((num_x, 2 * num_y - 1, 3), dtype='complex')
+    le = numpy.vstack((raw_crm_points[:,1],
+                    raw_crm_points[:,2],
+                    raw_crm_points[:,3]))
 
-    mirror_y = numpy.ones(mesh.shape, dtype='complex')
-    mirror_y[:, :, 1] *= -1.0
+    chord = raw_crm_points[:, 5]
+    twist = raw_crm_points[:, 4][::-1]
+    eta = raw_crm_points[:, 0]
 
-    if right_side:
-        new_mesh[:, :num_y, :] = mesh[:, ::-1, :] * mirror_y
-        new_mesh[:, num_y:, :] = mesh[:,   1:, :]
-    else:
-        new_mesh[:, :num_y, :] = mesh[:, ::-1, :]
-        new_mesh[:, num_y:, :] = mesh[:,   1:, :] * mirror_y[:, 1:, :]
+    te = numpy.vstack((raw_crm_points[:,1] + chord,
+                       raw_crm_points[:,2],
+                       raw_crm_points[:,3]))
 
-    # shift so 0 is at the left wing tip (structures wants it that way)
-    y0 = new_mesh[0, 0, 1]
-    new_mesh[:, :, 1] -= y0
+    mesh = numpy.empty((2, 20, 3), dtype='complex')
+    mesh[0, :, :] = le.T
+    mesh[1, :, :] = te.T
 
-    return new_mesh
+    full_mesh = mesh * 0.0254 # convert to meters
+
+    ny2 = (num_y + 1) / 2
 
 
-def gen_crm_mesh(n_points_inboard=2, n_points_outboard=2,
-                 num_x=2, mesh=crm_base_mesh):
-    """
-    Build the right hand side of the CRM wing with specified number
-    of inboard and outboard panels, mirror it, add a specified number
-    of chordwise nodes, and output a final full CRM mesh.
+    # mixed spacing with span_cos_spacing as a weighting factor
+    # this is for the spanwise spacing
+    beta = numpy.linspace(0, numpy.pi/2, ny2)
+    cosine = numpy.cos(beta)  # cosine spacing
+    uniform = numpy.linspace(0, 1., ny2)[::-1]  # uniform spacing
+    lins = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
 
-    Parameters
-    ----------
-    n_points_inboard : int
-        Number of spanwise points between the wing root and yehudi break per
-        wing side.
-    n_points_outboard : int
-        Number of spanwise points between the yehudi break and wingtip per
-        wing side.
-    num_x : int
-        Number of chordwise points.
-    mesh : array_like
-        Base mesh with the leading and trailing edges defined that we use
-        to populate the final mesh
+    mesh = numpy.empty((2, ny2, 3), dtype='complex')
+    for j in range(2):
+        for i in range(3):
+            mesh[j, :, i] = numpy.interp(lins[::-1], eta, full_mesh[j, :, i].real)
 
-    Returns
-    -------
-    full_mesh : array_like
-        Final aerodynamic mesh representing the CRM wing.
+    left_half = mesh.copy()
+    left_half[:, :, 1] *= -1.
+    mesh = numpy.hstack((left_half[:, ::-1, :], mesh[:, 1:, :]))
 
-    """
 
-    # LE pre-yehudi
-    s1 = (mesh[0, 1, 0] - mesh[0, 0, 0]) / (mesh[0, 1, 1] - mesh[0, 0, 1])
-    o1 = mesh[0, 0, 0]
+    # # mixed spacing with span_cos_spacing as a weighting factor
+    # # this is for the chordwise spacing
+    # cosine = .5 * numpy.cos(beta)  # cosine spacing
+    # uniform = numpy.linspace(0, .5, nx2)[::-1]  # uniform spacing
+    # half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
+    # full_wing_x = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * chord
+    #
+    # # Special case if there are only 2 chordwise nodes
+    # if num_x <= 2:
+    #     full_wing_x = numpy.array([0., chord])
+    #
+    # for ind_x in xrange(num_x):
+    #     for ind_y in xrange(num_y):
+    #         mesh[ind_x, ind_y, :] = [full_wing_x[ind_x], full_wing[ind_y], 0]
 
-    # TE pre-yehudi
-    s2 = (mesh[1, 1, 0] - mesh[1, 0, 0]) / (mesh[1, 1, 1] - mesh[1, 0, 1])
-    o2 = mesh[1, 0, 0]
-
-    # LE post-yehudi
-    s3 = (mesh[0, 2, 0] - mesh[0, 1, 0]) / (mesh[0, 2, 1] - mesh[0, 1, 1])
-    o3 = mesh[0, 2, 0] - s3 * mesh[0, 2, 1]
-
-    # TE post-yehudi
-    s4 = (mesh[1, 2, 0] - mesh[1, 1, 0]) / (mesh[1, 2, 1] - mesh[1, 1, 1])
-    o4 = mesh[1, 2, 0] - s4 * mesh[1, 2, 1]
-
-    n_points_total = n_points_inboard + n_points_outboard - 1
-    half_mesh = numpy.zeros((2, n_points_total, 3), dtype='complex')
-
-    # generate inboard points
-    dy = (mesh[0, 1, 1] - mesh[0, 0, 1]) / (n_points_inboard - 1)
-    for i in xrange(n_points_inboard):
-        y = half_mesh[0, i, 1] = i * dy
-        half_mesh[0, i, 0] = s1 * y + o1  # le point
-        half_mesh[1, i, 1] = y
-        half_mesh[1, i, 0] = s2 * y + o2  # te point
-
-    yehudi_break = mesh[0, 1, 1]
-    # generate outboard points
-    dy = (mesh[0, 2, 1] - mesh[0, 1, 1]) / (n_points_outboard - 1)
-    for j in xrange(n_points_outboard):
-        i = j + n_points_inboard - 1
-        y = half_mesh[0, i, 1] = j * dy + yehudi_break
-        half_mesh[0, i, 0] = s3 * y + o3  # le point
-        half_mesh[1, i, 1] = y
-        half_mesh[1, i, 0] = s4 * y + o4  # te point
-
-    full_mesh = mirror(half_mesh)
-    full_mesh = add_chordwise_panels(full_mesh, num_x)
-    full_mesh[:, :, 1] -= numpy.mean(full_mesh[:, :, 1])
-    return full_mesh
+    return mesh, eta, twist
 
 
 def add_chordwise_panels(mesh, num_x):
