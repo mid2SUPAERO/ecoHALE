@@ -618,6 +618,9 @@ class OASProblem():
             tmp_group.add('tube',
                      MaterialsTube(surface),
                      promotes=['*'])
+            tmp_group.add('mesh',
+                     GeometryMesh(surface),
+                     promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name
@@ -629,9 +632,6 @@ class OASProblem():
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
             tmp_group = Group()
-            tmp_group.add('mesh',
-                     GeometryMesh(surface),
-                     promotes=['*'])
             tmp_group.add('def_mesh',
                      TransferDisplacements(surface),
                      promotes=['*'])
@@ -696,12 +696,8 @@ class OASProblem():
             # group that necessitates the subgroup solver.
             root.connect('coupled.' + name + 'loads.loads', 'coupled.' + name[:-1] + '.loads')
 
-            # Connect aerodyamic design variables
-            root.connect(name[:-1] + '.dihedral', 'coupled.' + name[:-1] + '.dihedral')
-            root.connect(name[:-1] + '.span', 'coupled.' + name[:-1] + '.span')
-            root.connect(name[:-1] + '.sweep', 'coupled.' + name[:-1] + '.sweep')
-            root.connect(name[:-1] + '.taper', 'coupled.' + name[:-1] + '.taper')
-            root.connect(name[:-1] + '.twist', 'coupled.' + name[:-1] + '.twist')
+            # Connect aerodyamic mesh to coupled group mesh
+            root.connect(name[:-1] + '.mesh', 'coupled.' + name[:-1] + '.mesh')
 
             # Connect structural design variables
             root.connect(name[:-1] + '.A', 'coupled.' + name[:-1] + '.A')
