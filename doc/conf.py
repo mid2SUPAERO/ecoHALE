@@ -85,7 +85,7 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', 'doc']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -116,7 +116,7 @@ todo_include_todos = True
 
 from mock import Mock
 MOCK_MODULES = ['openmdao.solvers.solver_base', 'openmdao', 'pyoptsparse', 'openmdao.api', 'matplotlib']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+sys.modules.update((mod_name, Mock(Component=object)) for mod_name in MOCK_MODULES)
 
 
 # -- Options for HTML output ---------------------------------------------------

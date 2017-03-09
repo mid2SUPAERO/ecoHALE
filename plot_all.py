@@ -23,20 +23,25 @@ import tkFont
 import Tkinter as Tk
 import sys
 
-import matplotlib
-matplotlib.use('TkAgg')
-matplotlib.rcParams['lines.linewidth'] = 2
-matplotlib.rcParams['axes.edgecolor'] = 'gray'
-matplotlib.rcParams['axes.linewidth'] = 0.5
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
-    NavigationToolbar2TkAgg
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
-import matplotlib.animation as manimation
-
 import numpy
-import sqlitedict
+
+try:
+    import matplotlib
+    matplotlib.use('TkAgg')
+    matplotlib.rcParams['lines.linewidth'] = 2
+    matplotlib.rcParams['axes.edgecolor'] = 'gray'
+    matplotlib.rcParams['axes.linewidth'] = 0.5
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
+        NavigationToolbar2TkAgg
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import matplotlib.animation as manimation
+    import sqlitedict
+except:
+    print()
+    print("Correct plotting modules not available; please consult import list")
+    print()
 
 #####################
 # User-set parameters
@@ -146,7 +151,7 @@ class Display(object):
                 if 'coupled' in key and 'loads' in key:
                     self.aerostruct = True
                     names.append(key.split('_')[:-1][0])
-                elif 'mesh' in key and 'def_mesh' not in key and 'coupled' not in key:
+                elif 'def_mesh' in key and 'coupled' not in key:
                     self.aerostruct = False
                     names.append(key.split('.')[0])
 
@@ -156,12 +161,13 @@ class Display(object):
             # Loop through each of the surfaces
             for name in names:
 
-                # A mesh exists for all types of cases
-                self.mesh.append(case_data['Unknowns'][name+'.mesh'])
-
                 # Check if this is an aerostructual case; treat differently
                 # due to the way the problem is organized
                 if not self.aerostruct:
+
+                    # A mesh exists for all types of cases
+                    self.mesh.append(case_data['Unknowns'][name+'.mesh'])
+
                     try:
                         self.r.append(case_data['Unknowns'][name+'.r'])
                         self.t.append(case_data['Unknowns'][name+'.thickness'])
@@ -184,6 +190,8 @@ class Display(object):
                 else:
                     self.show_wing, self.show_tube = True, True
                     short_name = name.split('.')[1:][0]
+
+                    self.mesh.append(case_data['Unknowns'][short_name+'.mesh'])
                     self.r.append(case_data['Unknowns'][short_name+'.r'])
                     self.t.append(case_data['Unknowns'][short_name+'.thickness'])
                     self.vonmises.append(

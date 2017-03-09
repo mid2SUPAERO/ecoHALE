@@ -24,17 +24,22 @@ import warnings
 # ======================================================================
 # External Python modules
 # ======================================================================
-import matplotlib
-matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
-    NavigationToolbar2TkAgg
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import host_subplot
-import mpl_toolkits.axisartist as AA
-warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
-warnings.filterwarnings("ignore",category=UserWarning)
-import numpy
-from sqlitedict import SqliteDict
+try:
+    import matplotlib
+    matplotlib.use('TkAgg')
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
+        NavigationToolbar2TkAgg
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import host_subplot
+    import mpl_toolkits.axisartist as AA
+    warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+    warnings.filterwarnings("ignore",category=UserWarning)
+    import numpy
+    from sqlitedict import SqliteDict
+except:
+    print()
+    print("Correct plotting modules not available; please consult import list")
+    print()
 
 class Display(object):
 
