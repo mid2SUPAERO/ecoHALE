@@ -26,7 +26,6 @@ from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
-from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
 class Error(Exception):

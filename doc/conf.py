@@ -114,6 +114,10 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+from mock import Mock
+MOCK_MODULES = ['openmdao.solvers.solver_base', 'openmdao', 'pyoptsparse', 'openmdao.api', 'matplotlib']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 
 # -- Options for HTML output ---------------------------------------------------
 
