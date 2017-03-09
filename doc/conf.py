@@ -305,6 +305,17 @@ texinfo_documents = [
 
 # Add the 'copybutton' javascript, to hide/show the prompt in code
 # examples, originally taken from scikit-learn's doc/conf.py
+def run_apidoc(_):
+    from sphinx.apidoc import main
+    import os
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    module = '.'
+    output_path = os.path.join(cur_dir, 'source')
+    # main(['-e', '-o', output_path, module, '--force'])
+
 def setup(app):
+    app.connect('builder-inited', run_apidoc)
     app.add_javascript('copybutton.js')
     app.add_stylesheet('style.css')
