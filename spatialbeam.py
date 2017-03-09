@@ -1,4 +1,5 @@
-""" Define the structural analysis component using spatial beam theory.
+"""
+Define the structural analysis component using spatial beam theory.
 
 Each FEM element has 6-DOF; translation in the x, y, and z direction and
 rotation about the x, y, and z-axes.
@@ -270,7 +271,7 @@ class AssembleK(Component):
         unknowns['rhs'] = self.rhs
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-        
+
         # Find constrained nodes based on closeness to specified cg point
         nodes = params['nodes']
         dist = nodes - numpy.array([self.cg_x, 0, 0])
