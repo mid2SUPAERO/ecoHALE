@@ -14,8 +14,7 @@ RULES_FILE  = $(HOME_DIR)/rulesSources.mk
 include ${COMMON_FILE}
 include ${RULES_FILE}
 
-LINKER_ALL_FLAGS = -L$(LIBDIR) -loas $(CGNS_LINKER_FLAGS) \
-		    $(PETSC_LINKER_FLAGS) $(LINKER_FLAGS) $(CGNS_LINKER_FLAGS)
+LINKER_ALL_FLAGS = -L$(LIBDIR) -loas $(LINKER_FLAGS)
 
 OAS_API_OBJECTS = fortranobject.o \
 	          OAS_APImodule.o \

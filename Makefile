@@ -8,8 +8,7 @@
 #      *                                                                *
 #      ******************************************************************
 
-SUBDIR_SRC    =	src/common \
-		src/adjoint \
+SUBDIR_SRC    =	src/adjoint \
 		src/OAS \
 
 default:
