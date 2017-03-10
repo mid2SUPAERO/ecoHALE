@@ -111,7 +111,7 @@ class Display(object):
         self.mesh = []
         self.def_mesh = []
         self.r = []
-        self.t = []
+        self.thickness = []
         sec_forces = []
         normals = []
         widths = []
@@ -131,7 +131,8 @@ class Display(object):
         for item in meta_db['Unknowns']:
             if 'is_objective' in meta_db['Unknowns'][item].keys():
                 self.obj_key = item
-                self.opt = True
+                if len(self.db.keys()) > 2:
+                    self.opt = True
 
         deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
         deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
@@ -170,7 +171,7 @@ class Display(object):
 
                     try:
                         self.r.append(case_data['Unknowns'][name+'.r'])
-                        self.t.append(case_data['Unknowns'][name+'.thickness'])
+                        self.thickness.append(case_data['Unknowns'][name+'.thickness'])
                         self.vonmises.append(
                             numpy.max(case_data['Unknowns'][name+'.vonmises'], axis=1))
                         self.show_tube = True
@@ -193,7 +194,7 @@ class Display(object):
 
                     self.mesh.append(case_data['Unknowns'][short_name+'.mesh'])
                     self.r.append(case_data['Unknowns'][short_name+'.r'])
-                    self.t.append(case_data['Unknowns'][short_name+'.thickness'])
+                    self.thickness.append(case_data['Unknowns'][short_name+'.thickness'])
                     self.vonmises.append(
                         numpy.max(case_data['Unknowns'][short_name+'_perf.vonmises'], axis=1))
                     self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
@@ -223,6 +224,65 @@ class Display(object):
         else:
             self.symmetry = False
 
+        if self.symmetry:
+
+            new_mesh = []
+            if self.show_tube:
+                new_r = []
+                new_thickness = []
+                new_vonmises = []
+            if self.show_wing:
+                new_twist = []
+                new_sec_forces = []
+                new_def_mesh = []
+                new_widths = []
+                new_normals = []
+
+            for i in range(self.num_iters + 1):
+                for j, name in enumerate(names):
+                    mirror_mesh = self.mesh[i*n_names+j].copy()
+                    mirror_mesh[:, :, 1] *= -1.
+                    mirror_mesh = mirror_mesh[:, ::-1, :][:, 1:, :]
+                    new_mesh.append(numpy.hstack((self.mesh[i*n_names+j], mirror_mesh)))
+
+                    if self.show_tube:
+                        thickness = self.thickness[i*n_names+j]
+                        new_thickness.append(numpy.hstack((thickness, thickness[::-1])))
+                        r = self.r[i*n_names+j]
+                        new_r.append(numpy.hstack((r, r[::-1])))
+                        vonmises = self.vonmises[i*n_names+j]
+                        new_vonmises.append(numpy.hstack((vonmises, vonmises[::-1])))
+
+                    if self.show_wing:
+                        mirror_mesh = self.def_mesh[i*n_names+j].copy()
+                        mirror_mesh[:, :, 1] *= -1.
+                        mirror_mesh = mirror_mesh[:, ::-1, :][:, 1:, :]
+                        new_def_mesh.append(numpy.hstack((self.def_mesh[i*n_names+j], mirror_mesh)))
+
+                        mirror_normals = normals[i*n_names+j].copy()
+                        mirror_normals = mirror_normals[:, ::-1, :][:, 1:, :]
+                        new_normals.append(numpy.hstack((normals[i*n_names+j], mirror_normals)))
+
+                        mirror_forces = sec_forces[i*n_names+j].copy()
+                        mirror_forces = mirror_forces[:, ::-1, :]
+                        new_sec_forces.append(numpy.hstack((sec_forces[i*n_names+j], mirror_forces)))
+
+                        new_widths.append(numpy.hstack((widths[i*n_names+j], widths[i*n_names+j][::-1])))
+                        twist = self.twist[i*n_names+j]
+                        new_twist.append(numpy.hstack((twist, twist[::-1][1:])))
+
+            self.mesh = new_mesh
+            if self.show_tube:
+                self.thickness = new_thickness
+                self.r = new_r
+                self.vonmises = new_vonmises
+            if self.show_wing:
+                self.def_mesh = new_def_mesh
+                self.twist = new_twist
+                widths = new_widths
+                normals = new_normals
+                sec_forces = new_sec_forces
+
         if self.show_wing:
             for i in range(self.num_iters + 1):
                 for j, name in enumerate(names):
@@ -233,32 +293,20 @@ class Display(object):
                     a = alpha[i]
                     cosa = numpy.cos(a)
                     sina = numpy.sin(a)
+
                     forces = numpy.sum(sec_forces[i*n_names+j], axis=0)
+                    widths_ = numpy.mean(widths[i*n_names+j], axis=0)
 
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                        widths[i*n_names+j]/0.5/rho[i]/v[i]**2
-                    # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/chords/0.5/rho[i]/v[i]**2
-                    # lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)*chords/0.5/rho[i]/v[i]**2
+                        widths_/0.5/rho[i]/v[i]**2
 
-                    if self.symmetry:
-                        span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
-                        span = numpy.hstack((span[:-1], -span[::-1]))
+                    span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
+                    span = span - (span[0] + .5)
 
-                        lift = numpy.hstack((lift, lift[::-1]))
+                    lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
 
-                        lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
-
-                        lift_ell = 2 * lift_area / numpy.pi * \
-                            numpy.sqrt(1 - span**2)
-
-                    else:
-                        span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
-                        span = span - (span[0] + .5)
-
-                        lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
-
-                        lift_ell = 4 * lift_area / numpy.pi * \
-                            numpy.sqrt(1 - (2*span)**2)
+                    lift_ell = 4 * lift_area / numpy.pi * \
+                        numpy.sqrt(1 - (2*span)**2)
 
                     self.lift.append(lift)
                     self.lift_ell.append(lift_ell)
@@ -294,7 +342,7 @@ class Display(object):
             self.min_l -= diff
             self.max_l += diff
         if self.show_tube:
-            self.min_t, self.max_t = self.get_list_limits(self.t)
+            self.min_t, self.max_t = self.get_list_limits(self.thickness)
             diff = (self.max_t - self.min_t) * 0.05
             self.min_t -= diff
             self.max_t += diff
@@ -347,34 +395,21 @@ class Display(object):
         for j, name in enumerate(self.names):
             m_vals = self.mesh[self.curr_pos+j].copy()
             span = m_vals[0, -1, 1] - m_vals[0, 0, 1]
-            if self.symmetry:
-                rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) / span - 1
-                rel_span = numpy.hstack((rel_span[:-1], -rel_span[::-1]))
-                span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) / span - 1
-                span_diff = numpy.hstack((span_diff, -span_diff[::-1]))
-            else:
-                rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) * 2 / span - 1
-                span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
+            rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) * 2 / span - 1
+            span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
 
             if self.show_wing:
                 t_vals = self.twist[self.curr_pos+j]
                 l_vals = self.lift[self.curr_pos+j]
                 le_vals = self.lift_ell[self.curr_pos+j]
 
-                if self.symmetry:
-                    t_vals = numpy.hstack((t_vals[:-1], t_vals[::-1]))
-
                 self.ax2.plot(rel_span, t_vals, lw=2, c='b')
                 self.ax3.plot(rel_span, le_vals, '--', lw=2, c='g')
                 self.ax3.plot(span_diff, l_vals, lw=2, c='b')
 
             if self.show_tube:
-                thick_vals = self.t[self.curr_pos+j]
+                thick_vals = self.thickness[self.curr_pos+j]
                 vm_vals = self.vonmises[self.curr_pos+j]
-
-                if self.symmetry:
-                    thick_vals = numpy.hstack((thick_vals, thick_vals[::-1]))
-                    vm_vals = numpy.hstack((vm_vals, vm_vals[::-1]))
 
                 self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
                 self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
@@ -420,7 +455,7 @@ class Display(object):
 
             if self.show_tube:
                 r0 = self.r[self.curr_pos+j]
-                t0 = self.t[self.curr_pos+j]
+                t0 = self.thickness[self.curr_pos+j]
                 colors = t0
                 colors = colors / numpy.max(colors)
                 num_circ = 12
@@ -461,9 +496,10 @@ class Display(object):
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
 
         round_to_n = lambda x, n: round(x, -int(numpy.floor(numpy.log10(abs(x)))) + (n - 1))
-        obj_val = round_to_n(self.obj[self.curr_pos], 7)
-        self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
-            transform=self.ax.transAxes, color='k')
+        if self.opt:
+            obj_val = round_to_n(self.obj[self.curr_pos], 7)
+            self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
+                transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view
         self.ax.dist = dist

@@ -112,7 +112,7 @@ class OASProblem():
                                             # 1 for cosine-spaced panels
                                             # any value between 0 and 1 for
                                             # a mixed spacing
-                    'chord_cos_spacing' : 0,   # 0 for uniform chordwise panels
+                    'chord_cos_spacing' : 0.,   # 0 for uniform chordwise panels
                                             # 1 for cosine-spaced panels
                                             # any value between 0 and 1 for
                                             # a mixed spacing
@@ -136,6 +136,9 @@ class OASProblem():
                     'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
                     'wing_type' : 'rect',   # initial shape of the wing
                                             # either 'CRM' or 'rect'
+                                            # 'CRM' can have different options
+                                            # after it, such as 'CRM:alpha_2.75'
+                                            # for the CRM shape at alpha=2.75
                     'offset' : numpy.array([0., 0., 0.]), # coordinates to offset
                                     # the surface from its default location
                     'twist' : None,
@@ -206,9 +209,9 @@ class OASProblem():
             # Generate CRM mesh. Note that this outputs twist information
             # based on the data from the CRM definition paper, so we save
             # this twist information to the surf_dict.
-            elif surf_dict['wing_type'] == 'CRM':
+            elif 'CRM' in surf_dict['wing_type']:
                 mesh, eta, twist = gen_crm_mesh(num_x, num_y, span, chord,
-                    span_cos_spacing, chord_cos_spacing)
+                    span_cos_spacing, chord_cos_spacing, surf_dict['wing_type'])
                 num_x, num_y = mesh.shape[:2]
                 surf_dict['twist'] = twist
 

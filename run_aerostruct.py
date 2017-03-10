@@ -56,7 +56,8 @@ if __name__ == "__main__":
                  'wing_type' : 'CRM',
                  'CL0' : 0.2,
                  'CD0' : 0.015,
-                 'span_cos_spacing' : .8}
+                 'span_cos_spacing' : .8,
+                 'chord_cos_spacing' : .8}
 
     # Add the specified wing surface to the problem
     OAS_prob.add_surface(surf_dict)

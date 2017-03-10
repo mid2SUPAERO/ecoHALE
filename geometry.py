@@ -222,7 +222,7 @@ def taper(mesh, taper_ratio, symmetry):
     return mesh
 
 
-def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
+def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
     """ Generate simple rectangular wing mesh.
 
     Parameters
@@ -254,30 +254,67 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
     """
 
-    # eta, xle, yle, zle, twist, chord
-    # Info taken from AIAA paper 2008-6919 by Vassberg
-    raw_crm_points = numpy.array([
-     [0., 904.294, 0.0, 174.126, 6.7166, 536.181], # 0
-     [.1, 989.505, 115.675, 175.722, 4.4402, 468.511],
-     [.15, 1032.133, 173.513, 176.834, 3.6063, 434.764],
-     [.2, 1076.030, 231.351, 177.912, 2.2419, 400.835],
-     [.25, 1120.128, 289.188, 177.912, 2.2419, 366.996],
-     [.3, 1164.153, 347.026, 178.886, 1.5252, 333.157],
-     [.35, 1208.203, 404.864, 180.359, .9379, 299.317], # 6 yehudi break
-     [.4, 1252.246, 462.701, 182.289, .4285, 277.288],
-     [.45, 1296.289, 520.539, 184.904, -.2621, 263],
-     [.5, 1340.329, 578.377, 188.389, -.6782, 248.973],
-     [.55, 1384.375, 636.214, 192.736, -.9436, 234.816],
-     [.60, 1428.416, 694.052, 197.689, -1.2067, 220.658],
-     [.65, 1472.458, 751.890, 203.294, -1.4526, 206.501],
-     [.7, 1516.504, 809.727, 209.794, -1.6350, 192.344],
-     [.75, 1560.544, 867.565, 217.084, -1.8158, 178.186],
-     [.8, 1604.576, 925.402, 225.188, -2.0301, 164.029],
-     [.85, 1648.616, 983.240, 234.082, -2.2772, 149.872],
-     [.9, 1692.659, 1041.078, 243.625, -2.5773, 135.714],
-     [.95, 1736.710, 1098.915, 253.691, -3.1248, 121.557],
-     [1., 1780.737, 1156.753, 263.827, -3.75, 107.4] # 19
-    ])
+    # First we check if the user requested a deformed CRM wing
+    if "alpha_2.75" in wing_type:
+        # eta, xle, yle, zle, twist, chord
+        # Info taken from DPW6_wb_medium.cgns by taking slices in TecPlot
+        # Processed using `process_crm_slices.py`.
+        # This corresponds to the CRM shape in the wind tunnel when alpha is set to 2.75.
+        #
+        # Note that the first line is copied from the jig shape because we do not
+        # have information about the wing section inside of the fuselage
+        # because the cgns file has the wing-body together with cut meshes.
+        raw_crm_points = numpy.array([
+[0.,            904.294,           0.0,          174.126,         6.7166,       536.181], # 0
+[0.1049403748,  993.7138118110,  121.2598425197, 175.8828985433,  4.3064288580, 466.4631457464],
+[0.1475622617, 1030.0125685039,  170.5099362598, 176.8216161417,  3.5899506711, 437.2201981238],
+[0.1901841486, 1067.3502531496,  219.7600300000, 177.1741468504,  3.0704027125, 408.1221709540],
+[0.2328060355, 1104.8785736220,  269.0101237402, 177.6574524409,  2.4218173307, 379.0574671904],
+[0.2754279225, 1142.4137122047,  318.2602174803, 178.3693226772,  1.7348508885, 350.0486268673],
+[0.3180498094, 1179.9041996063,  367.5103112205, 179.5740685039,  1.1260783099, 321.1282460136],
+[0.3606716964, 1217.4135641732,  416.7604051181, 181.3039487402,  0.6320326304, 292.2667642082],
+[0.4032935833, 1254.9198700787,  466.0104988189, 183.4083569685,  0.1001945603, 276.4326600724],
+[0.4459154702, 1292.4185027559,  515.2605925197, 186.2613112205, -0.4313792294, 264.3934743324],
+[0.4885373571, 1329.9177011811,  564.5106862205, 189.7670859055, -0.8832854545, 252.3697629697],
+[0.5311592440, 1367.4235448819,  613.7607799213, 194.1769490157, -1.2064052719, 240.3458791762],
+[0.5737811308, 1404.9283440945,  663.0108736220, 199.1855426378, -1.4882476942, 228.3242182875],
+[0.6164030177, 1442.4362011811,  712.2609673228, 204.8247526772, -1.7694295897, 216.3000209815],
+[0.6590249046, 1479.9483543307,  761.5110610236, 211.1363005512, -2.0434689434, 204.2772529463],
+[0.7016467915, 1517.4654637795,  810.7611547244, 218.1652856693, -2.2699133205, 192.2467756712],
+[0.7442686784, 1554.9898948819,  860.0112484252, 226.0318298031, -2.4841677570, 180.2040428725],
+[0.7868905656, 1592.4996003937,  909.2613425197, 234.5204538976, -2.7327835422, 168.1745654077],
+[0.8295124525, 1630.0325484252,  958.5114362205, 243.7741411811, -2.9822838340, 156.1260647832],
+[0.8721343394, 1667.5602492126, 1007.7615299213, 253.6186485827, -3.2409127562, 144.0854789941],
+[0.9147562262, 1705.0931177165, 1057.0116236220, 263.9955130315, -3.6316327683, 132.0598826266],
+[0.9573781131, 1742.6251350394, 1106.2617173228, 274.7061785039, -4.1417911628, 120.0493724390],
+[1.0000000000, 1780.1757874016, 1155.5118110236, 285.5045883858, -4.6778406881, 108.0150257616]])
+
+    # If no special wing was requested, we'll use the jig shape
+    else:
+        # eta, xle, yle, zle, twist, chord
+        # Info taken from AIAA paper 2008-6919 by Vassberg
+        raw_crm_points = numpy.array([
+         [0.,   904.294,    0.0,   174.126, 6.7166,  536.181], # 0
+         [.1,   989.505,  115.675, 175.722, 4.4402,  468.511],
+         [.15, 1032.133,  173.513, 176.834, 3.6063,  434.764],
+         [.2,  1076.030,  231.351, 177.912, 2.2419,  400.835],
+         [.25, 1120.128,  289.188, 177.912, 2.2419,  366.996],
+         [.3,  1164.153,  347.026, 178.886, 1.5252,  333.157],
+         [.35, 1208.203,  404.864, 180.359,  .9379,  299.317], # 6 yehudi break
+         [.4,  1252.246,  462.701, 182.289,  .4285,  277.288],
+         [.45, 1296.289,  520.539, 184.904, -.2621,  263],
+         [.5,  1340.329,  578.377, 188.389, -.6782,  248.973],
+         [.55, 1384.375,  636.214, 192.736, -.9436,  234.816],
+         [.60, 1428.416,  694.052, 197.689, -1.2067, 220.658],
+         [.65, 1472.458,  751.890, 203.294, -1.4526, 206.501],
+         [.7,  1516.504,  809.727, 209.794, -1.6350, 192.344],
+         [.75, 1560.544,  867.565, 217.084, -1.8158, 178.186],
+         [.8,  1604.576,  925.402, 225.188, -2.0301, 164.029],
+         [.85, 1648.616,  983.240, 234.082, -2.2772, 149.872],
+         [.9,  1692.659, 1041.078, 243.625, -2.5773, 135.714],
+         [.95, 1736.710, 1098.915, 253.691, -3.1248, 121.557],
+         [1.,  1780.737, 1156.753, 263.827, -3.75,   107.4] # 19
+        ])
 
     le = numpy.vstack((raw_crm_points[:,1],
                     raw_crm_points[:,2],
@@ -291,14 +328,14 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
                        raw_crm_points[:,2],
                        raw_crm_points[:,3]))
 
-    mesh = numpy.empty((2, 20, 3), dtype='complex')
+    n_raw_points = raw_crm_points.shape[0]
+    mesh = numpy.empty((2, n_raw_points, 3), dtype='complex')
     mesh[0, :, :] = le.T
     mesh[1, :, :] = te.T
 
     full_mesh = mesh * 0.0254 # convert to meters
 
     ny2 = (num_y + 1) / 2
-
 
     # mixed spacing with span_cos_spacing as a weighting factor
     # this is for the spanwise spacing
@@ -316,26 +353,14 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
     left_half[:, :, 1] *= -1.
     mesh = numpy.hstack((left_half[:, ::-1, :], mesh[:, 1:, :]))
 
-
-    # # mixed spacing with span_cos_spacing as a weighting factor
-    # # this is for the chordwise spacing
-    # cosine = .5 * numpy.cos(beta)  # cosine spacing
-    # uniform = numpy.linspace(0, .5, nx2)[::-1]  # uniform spacing
-    # half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
-    # full_wing_x = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * chord
-    #
-    # # Special case if there are only 2 chordwise nodes
-    # if num_x <= 2:
-    #     full_wing_x = numpy.array([0., chord])
-    #
-    # for ind_x in xrange(num_x):
-    #     for ind_y in xrange(num_y):
-    #         mesh[ind_x, ind_y, :] = [full_wing_x[ind_x], full_wing[ind_y], 0]
+    # If we need to add chordwise panels, do so
+    if num_x > 2:
+        mesh = add_chordwise_panels(mesh, num_x, chord_cos_spacing)
 
     return mesh, eta, twist
 
 
-def add_chordwise_panels(mesh, num_x):
+def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
     """ Divide the wing into multiple chordwise panels.
 
     Parameters
@@ -345,6 +370,12 @@ def add_chordwise_panels(mesh, num_x):
         the leading and trailing edges defined.
     num_x : float
         Desired number of chordwise node points for the final mesh.
+    chord_cos_spacing : float
+        Blending ratio of uniform and cosine spacing in the chordwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        chordwise node points near the wingtips.
+
 
     Returns
     -------
@@ -354,15 +385,35 @@ def add_chordwise_panels(mesh, num_x):
 
     """
 
+    # Obtain mesh and num properties
+    num_y = mesh.shape[1]
+    ny2 = (num_y + 1) / 2
+    nx2 = (num_x + 1) / 2
+
+    # Create beta, an array of linear sampling points to pi/2
+    beta = numpy.linspace(0, numpy.pi/2, nx2)
+
+    # Obtain the two spacings that we will use to blend
+    cosine = .5 * numpy.cos(beta)  # cosine spacing
+    uniform = numpy.linspace(0, .5, nx2)[::-1]  # uniform spacing
+
+    # Create half of the wing in the chordwise direction
+    half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
+
+    # Mirror this half wing into a full wing; offset by 0.5 so it goes 0 to 1
+    full_wing_x = numpy.hstack((-half_wing[:-1], half_wing[::-1])) + .5
+
+    # Obtain the leading and trailing edges
     le = mesh[ 0, :, :]
     te = mesh[-1, :, :]
 
-    new_mesh = numpy.zeros((num_x, mesh.shape[1], 3), dtype='complex')
+    # Create a new mesh with the desired num_x and set the leading and trailing edge values
+    new_mesh = numpy.zeros((num_x, num_y, 3), dtype='complex')
     new_mesh[ 0, :, :] = le
     new_mesh[-1, :, :] = te
 
     for i in xrange(1, num_x-1):
-        w = float(i) / (num_x - 1)
+        w = full_wing_x[i]
         new_mesh[i, :, :] = (1 - w) * le + w * te
 
     return new_mesh
