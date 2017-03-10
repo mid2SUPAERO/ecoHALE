@@ -35,8 +35,6 @@ from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 try:
     import OAS_API
-    a
-    # Make sure we don't use Fortran here; temporary for assignment
     fortran_flag = True
 except:
     fortran_flag = False
