@@ -18,7 +18,7 @@ Ex: `python plot_all.py a 1` a wider view than `python plot_all.py a 5`.
 """
 
 
-from __future__ import division, print_function
+from __future__ import division
 import tkFont
 import Tkinter as Tk
 import sys
@@ -295,18 +295,16 @@ class Display(object):
                     sina = numpy.sin(a)
 
                     forces = numpy.sum(sec_forces[i*n_names+j], axis=0)
-                    widths_ = numpy.mean(widths[i*n_names+j], axis=0)
 
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                        widths_/0.5/rho[i]/v[i]**2
+                        widths[i*n_names+j]/0.5/rho[i]/v[i]**2
 
                     span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                     span = span - (span[0] + .5)
 
                     lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
 
-                    lift_ell = 4 * lift_area / numpy.pi * \
-                        numpy.sqrt(1 - (2*span)**2)
+                    lift_ell = 4 * lift_area / numpy.pi * numpy.sqrt(1 - (2*span)**2)
 
                     self.lift.append(lift)
                     self.lift_ell.append(lift_ell)
