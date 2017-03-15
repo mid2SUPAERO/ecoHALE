@@ -5,8 +5,8 @@ We input a nodal mesh and properties of the airflow to calculate the
 circulations of the horseshoe vortices. We then compute the forces, lift,
 and drag acting on the lifting surfaces.
 
-Note that some of the parameters and unknowns has the surface name
-prepended on it. E.g., 'def_mesh' on a surface called 'wing' would be
+Note that some of the parameters and unknowns have the surface name
+prepended on them. E.g., 'def_mesh' on a surface called 'wing' would be
 'wing_def_mesh', etc. Please see an N2 diagram (the .html file produced by
 this code) for more information about which parameters are renamed.
 
@@ -23,7 +23,7 @@ Depiction of wing:
 The '+' symbols represent the bound points on the 1/4 chord line, which are
 used to compute drag.
 The 'o' symbols represent the collocation points on the 3/4 chord line, where
-the flow tangency condition is inforced.
+the flow tangency condition is enforced.
 
 For this depiction, num_x = 2 and num_y = 5.
 """
@@ -323,7 +323,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     mtx /= 4 * numpy.pi
 
-
 class VLMGeometry(Component):
     """ Compute various geometric properties for VLM analysis.
 
@@ -365,6 +364,7 @@ class VLMGeometry(Component):
                         dtype="complex"))
         self.add_output('c_pts', val=numpy.zeros((nx-1, ny-1, 3)))
         self.add_output('widths', val=numpy.zeros((ny-1)))
+        self.add_output('lengths', val=numpy.zeros((ny)))
         self.add_output('normals', val=numpy.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=0.)
 
@@ -387,6 +387,14 @@ class VLMGeometry(Component):
         # Compute the widths of each panel
         widths = mesh[0, 1:, 1] - mesh[0, :-1, 1]
 
+        # Compute the cambered length of each chordwise set of mesh points
+        nx, ny, ndim = mesh.shape
+        lengths = numpy.zeros(ny)
+        for i in range(ny):
+            dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
+            dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
+            lengths[i] = numpy.sum(numpy.sqrt(dx**2 + dz**2))
+
         # Compute the normal of each panel by taking the cross-product of
         # its diagonals. Note that this could be a nonplanar surface
         normals = numpy.cross(
@@ -403,6 +411,7 @@ class VLMGeometry(Component):
         unknowns['b_pts'] = b_pts
         unknowns['c_pts'] = c_pts
         unknowns['widths'] = widths
+        unknowns['lengths'] = lengths
         unknowns['normals'] = normals
         unknowns['S_ref'] = 0.5 * numpy.sum(norms)
 
@@ -411,6 +420,7 @@ class VLMGeometry(Component):
 
         jac = self.alloc_jacobian()
         name = self.surface['name']
+        mesh = params['def_mesh']
 
         cs_jac = self.complex_step_jacobian(params, unknowns, resids,
                                             fd_params=['def_mesh'],
@@ -433,6 +443,17 @@ class VLMGeometry(Component):
         for i in range(ny-1):
             jac['widths', 'def_mesh'][i, 3*i+1] = -1
             jac['widths', 'def_mesh'][i, 3*i+4] =  1
+
+        jac['lengths', 'def_mesh'] = numpy.zeros_like(jac['lengths', 'def_mesh'])
+        for i in range(ny):
+            dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
+            dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
+            for j in range(nx-1):
+                l = numpy.sqrt(dx[j]**2 + dz[j]**2)
+                jac['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
+                jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
+                jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
+                jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] += dz[j] / l
 
         return jac
 
@@ -717,15 +738,175 @@ class VLMForces(Component):
 
         return jac
 
-
-class VLMLiftDrag(Component):
+class ViscousDrag(Component):
     """
-    Calculate total lift and drag in force units based on section forces.
-
     If the simulation is given a non-zero Reynolds number, it is used to
     compute the skin friction drag. If Reynolds number == 0, then there is
     no skin friction drag dependence. Currently, the Reynolds number
     must be set by the user in the run script and used as in IndepVarComp.
+
+    Parameters
+    ----------
+    re : float
+        Dimensionalized (1/length) Reynolds number. This is used to compute the
+        local Reynolds number based on the local chord length.
+    M : float
+        Mach number.
+    S_ref : float
+        The reference area of the lifting surface.
+    sweep : float
+        The angle (in degrees) of the wing sweep. This is used in the form
+        factor calculation.
+    widths : [1, ny-1] array
+        The spanwise width of each panel.
+    lengths : [1, ny] array
+        The sum of the lengths of each line segment along a chord section.
+
+    Returns
+    -------
+    CDv : float
+        Viscous drag coefficient for the lifting surface computed using flat
+        plate skin friction coefficient and a form factor to account for wing
+        shape.
+    """
+
+    def __init__(self, surface):
+        super(ViscousDrag, self).__init__()
+
+        # Percentage of chord with laminar flow
+        self.klam = 0.05
+        self.toc = 0.12
+        self.cmaxt = 0.303
+
+        self.surface = surface
+        ny = surface['num_y']
+        nx = surface['num_x']
+        self.num_panels = (nx -1) * (ny - 1)
+
+        self.add_param('re', val=5.e6)
+        self.add_param('M', val=.84)
+        self.add_param('S_ref', val=0.)
+        self.add_param('sweep', val=0.0)
+        self.add_param('widths', val=numpy.zeros((ny-1)))
+        self.add_param('lengths', val=numpy.zeros((ny)))
+        self.add_output('CDv', val=0.)
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        re = params['re']
+        M = params['M']
+        S_ref = params['S_ref']
+        sweep = params['sweep'] * numpy.pi / 180.
+        widths = params['widths']
+        lengths = params['lengths']
+
+        nSections = len(widths)
+        D_over_q = 0.0
+
+        if re > 0:
+            for i in range(nSections):
+                chord = (lengths[i] + lengths[i+1]) / 2.0
+                Re_c = re*chord
+
+                cdlam_tr = 0.0
+                cdturb_tr = 0.0
+                cdturb_total = 0.0
+
+                # Use eq. 12.27 of Raymer for turbulent Cf
+                if self.klam == 0:
+                    cdturb_total = 0.455 / (numpy.log10(Re_c))**2.58 / \
+                        (1.0 + 0.144*M**2)**0.65
+                elif self.klam < 1.0:
+                    cdlam_tr = 1.328 / numpy.sqrt(Re_c * self.klam)
+                    cdturb_tr = 0.455 / (numpy.log10(Re_c*self.klam))**2.58 / \
+                        (1.0 + 0.144*M**2)**0.65
+                    cdturb_total = 0.455 / (numpy.log10(Re_c))**2.58 / \
+                        (1.0 + 0.144*M**2)**0.65
+                else:
+                    cdlam_tr = 1.328 / numpy.sqrt(Re_c * self.klam)
+
+                cd = (cdlam_tr - cdturb_tr)*self.klam + cdturb_total
+
+                # Normalized drag per unit section width (multiply by 2 for both sides)
+                # d_over_q = D / 0.5 / rho / v**2 / span
+                d_over_q = 2 * cd * chord
+
+                # Multiply by section width to get total normalized drag for section
+                # D_over_q = D / 0.5 / rho / v**2
+                D_over_q += d_over_q*widths[i]
+
+        FF = 1.34 * M**0.18 * numpy.cos(sweep)**0.28 * \
+                    (1.0 + 0.6*self.toc/self.cmaxt + 100*self.toc**4)
+        unknowns['CDv'] = FF * D_over_q / S_ref
+
+    def linearize(self, params, unknowns, resids):
+        """ Jacobian for viscous drag."""
+
+        jac = self.alloc_jacobian()
+        jac['CDv', 'lengths'] = numpy.zeros_like(jac['CDv', 'lengths'])
+        re = params['re']
+        if re > 0:
+            p180 = numpy.pi / 180.
+            M = params['M']
+            S_ref = params['S_ref']
+            sweep = params['sweep'] * p180
+            widths = params['widths']
+            lengths = params['lengths']
+            nSections = len(widths)
+
+            FF = 1.34 * M**0.18 * numpy.cos(sweep)**0.28 * \
+                        (1.0 + 0.6*self.toc/self.cmaxt + 100*self.toc**4)
+            FF_M = FF * 0.18 / M
+            D_over_q = 0.0
+            for i in range(nSections):
+                chord = (lengths[i] + lengths[i+1]) / 2.0
+                Re_c = re*chord
+
+                cdlam_tr = 0.0
+                cdturb_tr = 0.0
+                cdturb_total = 0.0
+
+                cdl_Re = 0.0
+                cdt_Re = 0.0
+                cdT_Re = 0.0
+
+                if self.klam == 0:
+                    cdturb_total = 0.455/(numpy.log10(Re_c))**2.58/(1.0 + 0.144*M**2)**0.65
+                    cdT_Re = 0.455/(numpy.log10(Re_c))**3.58/(1.0 + 0.144*M**2)**0.65 * \
+                                -2.58 / numpy.log(10) / Re_c
+                elif self.klam < 1.0:
+                    cdlam_tr = 1.328/numpy.sqrt(Re_c*self.klam)
+                    cdturb_tr = 0.455/(numpy.log10(Re_c*self.klam))**2.58/(1.0 + 0.144*M**2)**0.65
+                    cdturb_total = 0.455/(numpy.log10(Re_c))**2.58/(1.0 + 0.144*M**2)**0.65
+
+                    cdl_Re = 1.328 / (Re_c*self.klam)**1.5 * -0.5 * self.klam
+                    cdt_Re = 0.455/(numpy.log10(Re_c*self.klam))**3.58/(1.0 + 0.144*M**2)**0.65 * \
+                                -2.58 / numpy.log(10) / Re_c
+                    cdT_Re = 0.455/(numpy.log10(Re_c))**3.58/(1.0 + 0.144*M**2)**0.65 * \
+                                -2.58 / numpy.log(10) / Re_c
+                else:
+                    cdlam_tr = 1.328 / numpy.sqrt(Re_c * self.klam)
+                    cdl_Re = 1.328 / (Re_c*self.klam)**1.5 * -0.5 * self.klam
+
+                cd = (cdlam_tr - cdturb_tr)*self.klam + cdturb_total
+                cd_Re = (cdl_Re - cdt_Re)*self.klam + cdT_Re
+                d_over_q = 2 * cd * chord
+                D_over_q += d_over_q*widths[i]
+
+                jac['CDv', 'widths'][0, i] = d_over_q * FF / S_ref
+                jac['CDv', 'lengths'][0, i] += 2 * widths[i] * FF / S_ref * \
+                    (cd / 2. + chord * cd_Re * re / 2.)
+                jac['CDv', 'lengths'][0, i+1] += 2 * widths[i] * FF / S_ref * \
+                    (cd / 2. + chord * cd_Re * re / 2.)
+
+            jac['CDv', 'S_ref'] = - D_over_q * FF / S_ref**2
+            jac['CDv', 'sweep'] = - D_over_q * FF / S_ref * \
+                0.28 * numpy.sin(sweep) / numpy.cos(sweep) * p180
+
+        return jac
+
+class VLMLiftDrag(Component):
+    """
+    Calculate total lift and drag in force units based on section forces.
 
     Parameters
     ----------
@@ -735,16 +916,6 @@ class VLMLiftDrag(Component):
         panel).
     alpha : float
         Angle of attack in degrees.
-    Re : float
-        Reynolds number.
-    M : float
-        Mach number.
-    v : float
-        Freestream air velocity in m/s.
-    rho : float
-        Air density in kg/m^3.
-    S_ref : float
-        The reference area of the lifting surface.
 
     Returns
     -------
@@ -765,11 +936,6 @@ class VLMLiftDrag(Component):
 
         self.add_param('sec_forces', val=numpy.zeros((nx - 1, ny - 1, 3)))
         self.add_param('alpha', val=3.)
-        self.add_param('Re', val=5.e6)
-        self.add_param('M', val=.84)
-        self.add_param('v', val=10.)
-        self.add_param('rho', val=3.)
-        self.add_param('S_ref', val=0.)
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
 
@@ -779,29 +945,11 @@ class VLMLiftDrag(Component):
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
-        Re = params['Re']
-        M = params['M']
-        v = params['v']
-        rho = params['rho']
-        S_ref = params['S_ref']
-
-        # Compute the skin friction coefficient
-        # Use eq. 12.27 of Raymer for turbulent Cf
-        # Avoid divide by zero warning if Re == 0
-        if Re == 0:
-            Cf = 0.
-        else:
-            Cf = 0.455 / (numpy.log10(Re)**2.58 * (1 + .144 * M**2)**.65)
-
         # Compute the induced lift force on each lifting surface
         unknowns['L'] = numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
 
         # Compute the induced drag force on each lifting surface
         unknowns['D'] = numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
-
-        # Compute the drag contribution from skin friction
-        self.D_f = Cf * rho * v**2 / 2. * S_ref
-        unknowns['D'] += self.D_f
 
         if self.surface['symmetry']:
             unknowns['D'] *= 2
@@ -836,22 +984,6 @@ class VLMLiftDrag(Component):
             numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
         jac['D', 'alpha'] = p180 * symmetry_factor * \
             numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
-
-        Re = params['Re']
-        if Re > 0:
-
-            M = params['M']
-            v = params['v']
-            rho = params['rho']
-            S_ref = params['S_ref']
-
-            D_f = self.D_f * symmetry_factor
-
-            jac['D', 'rho'] = D_f / rho
-            jac['D', 'v'] = 2 * D_f / v
-            jac['D', 'S_ref'] = D_f / S_ref
-            jac['D', 'M'] = D_f * -.65 / (1 + .144 * M**2) * .288 * M
-            jac['D', 'Re'] = D_f * -2.58 / (numpy.log10(Re)) * (1 / (Re * numpy.log(10)))
 
         return jac
 
@@ -992,15 +1124,18 @@ class TotalDrag(Component):
         super(TotalDrag, self).__init__()
 
         self.add_param('CDi', val=0.)
+        self.add_param('CDv', val=0.)
         self.add_output('CD', val=0.)
         self.CD0 = surface['CD0']
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['CD'] = params['CDi'] + self.CD0
+        # unknowns['CD'] = params['CDi'] + self.CD0
+        unknowns['CD'] = params['CDi'] + params['CDv']
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         jac['CD', 'CDi'] = 1.
+        jac['CD', 'CDv'] = 1.
         return jac
 
 
@@ -1036,4 +1171,7 @@ class VLMFunctionals(Group):
                  promotes=['*'])
         self.add('CD',
                  TotalDrag(surface),
+                 promotes=['*'])
+        self.add('viscousdrag',
+                 ViscousDrag(surface),
                  promotes=['*'])

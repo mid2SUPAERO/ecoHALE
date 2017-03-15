@@ -142,6 +142,7 @@ class OASProblem():
                     'offset' : numpy.array([0., 0., 0.]), # coordinates to offset
                                     # the surface from its default location
                     'twist' : None,
+                    'chord_dist' : None
                     }
         return defaults
 
@@ -153,6 +154,7 @@ class OASProblem():
 
         defaults = {'optimize' : False,     # flag for analysis or optimization
                     'Re' : 0.,              # Reynolds number
+                    'reynoldslength' : 1.0, # Reynolds characteristic length
                     'alpha' : 5.,           # angle of attack
                     'CT' : 9.80665 * 17.e-6,   # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
                     'R' : 14.3e6,           # [m] maximum range
@@ -240,6 +242,8 @@ class OASProblem():
             surf_dict['num_twist'] = numpy.max([int((num_y - 1) / 5), 5])
         if 'num_thickness' not in input_dict.keys():
             surf_dict['num_thickness'] = numpy.max([int((num_y - 1) / 5), 5])
+        if 'num_chord_dist' not in input_dict.keys():
+            surf_dict['num_chord_dist'] = numpy.max([int((num_y - 1) / 5), 5])
 
         # If the mesh generation provided an initial twist, set this within
         # the surf_dict object
@@ -271,6 +275,13 @@ class OASProblem():
         else:
             surf_dict['twist'] = numpy.zeros((surf_dict['num_twist']))
 
+        if surf_dict['chord_dist'] is None:
+            surf_dict['chord_dist'] = numpy.ones((surf_dict['num_chord_dist']))
+        elif surf_dict['chord_dist'] == 'random':
+            surf_dict['chord_dist'] = numpy.random.random((surf_dict['num_chord_dist']))
+        elif surf_dict['chord_dist'] == 'taper':
+            surf_dict['chord_dist'] = numpy.linspace(0.5, 1.5, (surf_dict['num_chord_dist']))
+            
         # Store updated values
         surf_dict['num_x'] = num_x
         surf_dict['num_y'] = num_y
@@ -311,7 +322,11 @@ class OASProblem():
             self.prob.driver = pyOptSparseDriver()
             self.prob.driver.options['optimizer'] = "SNOPT"
             self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
-                                             'Major feasibility tolerance': 1.0e-6}
+                                             'Major feasibility tolerance': 1.0e-6,
+                                             'Major iterations limit':50,
+                                             'Minor iterations limit':1000,
+                                             'Iterations limit':1000
+                                             }
 
         except:  # Use SLSQP optimizer if SNOPT not installed
             self.prob.driver = ScipyOptimizer()
@@ -344,7 +359,7 @@ class OASProblem():
         """
 
         # Uncomment this to use finite differences over the entire model
-        # self.prob.root.deriv_options['type'] = 'fd'
+        self.prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -484,6 +499,7 @@ class OASProblem():
             # Add independent variables that do not belong to a specific component
             indep_vars = [
                 ('twist_cp', surface['twist']),
+                ('chord_dist_cp', surface['chord_dist']),
                 ('dihedral', surface['dihedral']),
                 ('sweep', surface['sweep']),
                 ('span', surface['span']),
@@ -493,6 +509,7 @@ class OASProblem():
             # Obtain the Jacobian to interpolate the data from the b-spline
             # control points
             jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
+            jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'])
 
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',
@@ -500,6 +517,9 @@ class OASProblem():
                      promotes=['*'])
             tmp_group.add('twist_bsp',
                      Bspline('twist_cp', 'twist', jac_twist),
+                     promotes=['*'])
+            tmp_group.add('chord_dist_bsp',
+                     Bspline('chord_dist_cp', 'chord_dist', jac_chord_dist),
                      promotes=['*'])
             tmp_group.add('mesh',
                      GeometryMesh(surface),
@@ -521,13 +541,13 @@ class OASProblem():
 
             # Add a performance group for each surface
             name = name_orig + '_perf'
-            exec('root.add("' + name + '", ' + 'VLMFunctionals(surface)' + ', promotes=["v", "alpha", "M", "Re", "rho"])')
+            exec('root.add("' + name + '", ' + 'VLMFunctionals(surface)' + ', promotes=["v", "alpha", "M", "re", "rho"])')
 
         # Add problem information as an independent variables component
         prob_vars = [('v', self.prob_dict['v']),
             ('alpha', self.prob_dict['alpha']),
             ('M', self.prob_dict['M']),
-            ('Re', self.prob_dict['Re']),
+            ('re', self.prob_dict['Re']/self.prob_dict['reynoldslength']),
             ('rho', self.prob_dict['rho'])]
         root.add('prob_vars',
                  IndepVarComp(prob_vars),
@@ -562,6 +582,9 @@ class OASProblem():
 
             # Connect S_ref for performance calcs
             root.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
+            root.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
+            root.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
+            root.connect(name[:-1] + '.sweep', name + 'perf' + '.sweep')
 
         # Actually set up the problem
         self.setup_prob()
@@ -665,7 +688,7 @@ class OASProblem():
 
             name = name_orig + 'perf'
             exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["rho", "v", "alpha", "Re", "M"])')
+            exec('root.add("' + name + '", ' + name + ', promotes=["rho", "v", "alpha", "re", "M"])')
 
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
@@ -750,7 +773,7 @@ class OASProblem():
         prob_vars = [('v', self.prob_dict['v']),
             ('alpha', self.prob_dict['alpha']),
             ('M', self.prob_dict['M']),
-            ('Re', self.prob_dict['Re']),
+            ('re', self.prob_dict['Re']/self.prob_dict['reynoldslength']),
             ('rho', self.prob_dict['rho'])]
         root.add('prob_vars',
                  IndepVarComp(prob_vars),

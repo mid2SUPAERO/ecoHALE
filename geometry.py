@@ -55,6 +55,20 @@ def rotate(mesh, thetas):
         row += quarter_chord
     return mesh
 
+def scale_x(mesh, chord_dist):
+    te = mesh[-1]
+    le = mesh[ 0]
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    ny = mesh.shape[1]
+    nx = mesh.shape[0]
+
+    for i in range(ny):
+        mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0])*chord_dist[i] + \
+            quarter_chord[i, 0]
+
+    return mesh
+
 
 def sweep(mesh, angle, symmetry):
     """ Apply shearing sweep. Positive sweeps back.
@@ -504,6 +518,7 @@ class GeometryMesh(Component):
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(self.ny), dtype='complex')
+        self.add_param('chord_dist', val=numpy.zeros(self.ny), dtype='complex')
         self.add_param('taper', val=1.)
         self.add_output('mesh', val=self.mesh)
 
@@ -520,6 +535,7 @@ class GeometryMesh(Component):
         rotate(mesh, params['twist'])
         dihedral(mesh, params['dihedral'], self.symmetry)
         taper(mesh, params['taper'], self.symmetry)
+        scale_x(mesh, params['chord_dist'])
 
         unknowns['mesh'] = mesh
 
@@ -530,7 +546,8 @@ class GeometryMesh(Component):
         # This fails for some reason when running structures only cases,
         # maybe because we don't actually have these design variables
         fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['span', 'sweep', 'dihedral', 'twist', 'taper'],
+                                            fd_params=['span', 'sweep', 'dihedral',
+                                            'twist', 'taper', 'scale'],
                                             fd_states=[])
         jac.update(fd_jac)
 
