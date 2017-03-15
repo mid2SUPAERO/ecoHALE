@@ -153,7 +153,6 @@ def dihedral(mesh, angle, symmetry):
     return mesh
 
 
-
 def stretch(mesh, length):
     """ Stretch mesh in spanwise direction to reach specified length.
 
@@ -259,12 +258,24 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
         A value of 0. corresponds to uniform spacing and a value of 1.
         corresponds to regular cosine spacing. This increases the number of
         chordwise node points near the wingtips.
+    wing_type : string (optional)
+        Describes the desired CRM shape. Current options are:
+        "CRM:jig" (undeformed jig shape),
+        "CRM:alpha_2.75" (shape from wind tunnel testing at a=2.75 from DPW6)
 
     Returns
     -------
     mesh : array_like
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
+    eta : array_like
+        Spanwise locations of the airfoil slices. Later used in the
+        interpolation function to obtain correct twist values during at
+        points along the span that are not aligned with these slices.
+    twist : array_like
+        Twist along the span at the spanwise eta locations. We use these twists
+        as training points for interpolation to obtain twist values at
+        arbitrary points along the span.
 
     """
 
@@ -330,39 +341,59 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
          [1.,  1780.737, 1156.753, 263.827, -3.75,   107.4] # 19
         ])
 
+    # Get the leading edge of the raw crm points
     le = numpy.vstack((raw_crm_points[:,1],
                     raw_crm_points[:,2],
                     raw_crm_points[:,3]))
 
+    # Get the chord, twist(in correct order), and eta values from the points
     chord = raw_crm_points[:, 5]
     twist = raw_crm_points[:, 4][::-1]
     eta = raw_crm_points[:, 0]
 
+    # Get the trailing edge of the crm points, based on the chord + le distance.
+    # Note that we do not account for twist here; instead we set that using
+    # the twist design variable later in run_classes.py.
     te = numpy.vstack((raw_crm_points[:,1] + chord,
                        raw_crm_points[:,2],
                        raw_crm_points[:,3]))
 
+    # Get the number of points that define this CRM shape and create a mesh
+    # array based on this size
     n_raw_points = raw_crm_points.shape[0]
     mesh = numpy.empty((2, n_raw_points, 3), dtype='complex')
+
+    # Set the leading and trailing edges of the mesh matrix
     mesh[0, :, :] = le.T
     mesh[1, :, :] = te.T
 
-    full_mesh = mesh * 0.0254 # convert to meters
+    # Convert the mesh points to meters from inches.
+    raw_mesh = mesh * 0.0254
 
+    # Create the blended spacing using the user input for span_cos_spacing
     ny2 = (num_y + 1) / 2
-
-    # mixed spacing with span_cos_spacing as a weighting factor
-    # this is for the spanwise spacing
     beta = numpy.linspace(0, numpy.pi/2, ny2)
-    cosine = numpy.cos(beta)  # cosine spacing
-    uniform = numpy.linspace(0, 1., ny2)[::-1]  # uniform spacing
+
+    # Distribution for cosine spacing
+    cosine = numpy.cos(beta)
+
+    # Distribution for uniform spacing
+    uniform = numpy.linspace(0, 1., ny2)[::-1]
+
+    # Combine the two distrubtions using span_cos_spacing as the weighting factor.
+    # span_cos_spacing == 1. is for fully cosine, 0. for uniform
     lins = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
 
+    # Populate a mesh object with the desired num_y dimension based on
+    # interpolated values from the raw CRM points.
     mesh = numpy.empty((2, ny2, 3), dtype='complex')
     for j in range(2):
         for i in range(3):
-            mesh[j, :, i] = numpy.interp(lins[::-1], eta, full_mesh[j, :, i].real)
+            mesh[j, :, i] = numpy.interp(lins[::-1], eta, raw_mesh[j, :, i].real)
 
+    # That is just one half of the mesh and we later expect the full mesh,
+    # even if we're using symmetry == True.
+    # So here we mirror and stack the two halves of the wing.
     left_half = mesh.copy()
     left_half[:, :, 1] *= -1.
     mesh = numpy.hstack((left_half[:, ::-1, :], mesh[:, 1:, :]))

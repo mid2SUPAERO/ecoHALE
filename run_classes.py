@@ -65,7 +65,7 @@ class OASWarning(object):
         print(msg)
 
 
-class OASProblem():
+class OASProblem(object):
     """
     Contain surface and problem information for aerostructural optimization.
 
