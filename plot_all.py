@@ -18,7 +18,7 @@ Ex: `python plot_all.py a 1` a wider view than `python plot_all.py a 5`.
 """
 
 
-from __future__ import division
+from __future__ import division, print_function
 import tkFont
 import Tkinter as Tk
 import sys

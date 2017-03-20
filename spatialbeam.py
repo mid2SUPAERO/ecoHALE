@@ -10,7 +10,7 @@ from __future__ import division, print_function
 import numpy
 numpy.random.seed(123)
 
-from openmdao.api import Component, Group, LinearSystem
+from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 
 try:

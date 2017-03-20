@@ -64,7 +64,7 @@ def scale_x(mesh, chord_dist):
     nx = mesh.shape[0]
 
     for i in range(ny):
-        mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0])*chord_dist[i] + \
+        mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_dist[i] + \
             quarter_chord[i, 0]
 
     return mesh

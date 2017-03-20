@@ -142,7 +142,12 @@ class OASProblem(object):
                     'offset' : numpy.array([0., 0., 0.]), # coordinates to offset
                                     # the surface from its default location
                     'twist' : None,
-                    'chord_dist' : None
+                    'chord_dist' : None,
+                    'k_lam' : 0.05,         # percentage of chord with laminar
+                                            # flow, used for viscous drag
+                    't_over_c' : 0.12,      # thickness over chord ratio
+                    'c_max_t' : .303,       # chordwise location of maximum
+                                            # thickness
                     }
         return defaults
 
@@ -154,7 +159,7 @@ class OASProblem(object):
 
         defaults = {'optimize' : False,     # flag for analysis or optimization
                     'Re' : 0.,              # Reynolds number
-                    'reynoldslength' : 1.0, # Reynolds characteristic length
+                    'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,           # angle of attack
                     'CT' : 9.80665 * 17.e-6,   # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
                     'R' : 14.3e6,           # [m] maximum range
@@ -275,13 +280,16 @@ class OASProblem(object):
         else:
             surf_dict['twist'] = numpy.zeros((surf_dict['num_twist']))
 
+        # If the user did not provide chord distribution information, set
+        # scalars for each chord to 1. so the planform is unchanged
         if surf_dict['chord_dist'] is None:
             surf_dict['chord_dist'] = numpy.ones((surf_dict['num_chord_dist']))
+
+        # If the user chose a random chord distribution, set a random array
+        # of scalars
         elif surf_dict['chord_dist'] == 'random':
             surf_dict['chord_dist'] = numpy.random.random((surf_dict['num_chord_dist']))
-        elif surf_dict['chord_dist'] == 'taper':
-            surf_dict['chord_dist'] = numpy.linspace(0.5, 1.5, (surf_dict['num_chord_dist']))
-            
+
         # Store updated values
         surf_dict['num_x'] = num_x
         surf_dict['num_y'] = num_y
@@ -359,7 +367,7 @@ class OASProblem(object):
         """
 
         # Uncomment this to use finite differences over the entire model
-        self.prob.root.deriv_options['type'] = 'fd'
+        # self.prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -507,7 +515,7 @@ class OASProblem(object):
                 ('disp', numpy.zeros((surface['num_y'], 6)))]
 
             # Obtain the Jacobian to interpolate the data from the b-spline
-            # control points
+            # control points for both twist and chord
             jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
             jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'])
 
@@ -547,7 +555,7 @@ class OASProblem(object):
         prob_vars = [('v', self.prob_dict['v']),
             ('alpha', self.prob_dict['alpha']),
             ('M', self.prob_dict['M']),
-            ('re', self.prob_dict['Re']/self.prob_dict['reynoldslength']),
+            ('re', self.prob_dict['Re']/self.prob_dict['reynolds_length']),
             ('rho', self.prob_dict['rho'])]
         root.add('prob_vars',
                  IndepVarComp(prob_vars),
@@ -559,7 +567,7 @@ class OASProblem(object):
         # this component requires information from all surfaces because
         # each surface interacts with the others.
         root.add('aero_states',
-                 VLMStates(self.surfaces, self.prob_dict),
+                 VLMStates(self.surfaces),
                  promotes=['circulations', 'v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
@@ -619,6 +627,7 @@ class OASProblem(object):
             indep_vars = [
                 ('twist_cp', surface['twist']),
                 ('thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
+                ('chord_dist_cp', surface['chord_dist']),
                 ('r', surface['r']),
                 ('dihedral', surface['dihedral']),
                 ('sweep', surface['sweep']),
@@ -629,6 +638,7 @@ class OASProblem(object):
             # control points
             jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
             jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1)
+            jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'])
 
             # Add components to include in the surface's group
             tmp_group.add('indep_vars',
@@ -639,6 +649,9 @@ class OASProblem(object):
                      promotes=['*'])
             tmp_group.add('thickness_bsp',
                      Bspline('thickness_cp', 'thickness', jac_thickness),
+                     promotes=['*'])
+            tmp_group.add('chord_dist_bsp',
+                     Bspline('chord_dist_cp', 'chord_dist', jac_chord_dist),
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),
@@ -693,7 +706,7 @@ class OASProblem(object):
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
         coupled.add('aero_states',
-                 VLMStates(self.surfaces, self.prob_dict),
+                 VLMStates(self.surfaces),
                  promotes=['v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
@@ -773,7 +786,7 @@ class OASProblem(object):
         prob_vars = [('v', self.prob_dict['v']),
             ('alpha', self.prob_dict['alpha']),
             ('M', self.prob_dict['M']),
-            ('re', self.prob_dict['Re']/self.prob_dict['reynoldslength']),
+            ('re', self.prob_dict['Re']/self.prob_dict['reynolds_length']),
             ('rho', self.prob_dict['rho'])]
         root.add('prob_vars',
                  IndepVarComp(prob_vars),
