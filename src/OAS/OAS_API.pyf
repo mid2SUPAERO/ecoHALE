@@ -108,14 +108,52 @@ python module OAS_API ! in
                 integer, optional,intent(in),check((shape(points,0)+1)==nx),depend(points) :: nx=(shape(points,0)+1)
                 integer, optional,intent(in),check(shape(bpts,1)==ny_),depend(bpts) :: ny_=shape(bpts,1)
                 integer, optional,intent(in),check((shape(bpts,0)+1)==nx_),depend(bpts) :: nx_=(shape(bpts,0)+1)
-                complex(kind=8) intent(in) :: alpha
-                complex(kind=8) dimension(nx - 1,ny - 1,3),intent(in) :: points
-                complex(kind=8) dimension(nx_ - 1,ny_,3),intent(in) :: bpts
-                complex(kind=8) dimension(nx_,ny_,3),intent(in),depend(nx_,ny_) :: mesh
+                real(kind=8) intent(in) :: alpha
+                real(kind=8) dimension(nx - 1,ny - 1,3),intent(in) :: points
+                real(kind=8) dimension(nx_ - 1,ny_,3),intent(in) :: bpts
+                real(kind=8) dimension(nx_,ny_,3),intent(in),depend(nx_,ny_) :: mesh
                 logical intent(in) :: skip
                 logical intent(in) :: symmetry
-                complex(kind=8) dimension((nx-1)*(ny-1),(nx_-1)*(ny_-1),3),intent(out),depend(ny,nx,ny_,nx_) :: mtx
+                real(kind=8) dimension((nx-1)*(ny-1),(nx_-1)*(ny_-1),3),intent(out),depend(ny,nx,ny_,nx_) :: mtx
             end subroutine assembleaeromtx
+            subroutine assembleaeromtx_d(ny,nx,ny_,nx_,alpha,alphad,points,pointsd,bpts,bptsd,mesh,meshd,skip,symmetry,mtx,mtxd) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_d, only: assembleaeromtx_main_d
+                integer, optional,intent(in),check((shape(points,1)+1)==ny),depend(points) :: ny=(shape(points,1)+1)
+                integer, optional,intent(in),check((shape(points,0)+1)==nx),depend(points) :: nx=(shape(points,0)+1)
+                integer, optional,intent(in),check(shape(bpts,1)==ny_),depend(bpts) :: ny_=shape(bpts,1)
+                integer, optional,intent(in),check((shape(bpts,0)+1)==nx_),depend(bpts) :: nx_=(shape(bpts,0)+1)
+                real(kind=8) intent(in) :: alpha
+                real(kind=8) intent(in) :: alphad
+                real(kind=8) dimension(nx - 1,ny - 1,3),intent(in) :: points
+                real(kind=8) dimension(nx - 1,ny - 1,3),intent(in),depend(nx,ny) :: pointsd
+                real(kind=8) dimension(nx_ - 1,ny_,3),intent(in) :: bpts
+                real(kind=8) dimension(nx_ - 1,ny_,3),intent(in),depend(nx_,ny_) :: bptsd
+                real(kind=8) dimension(nx_,ny_,3),intent(in),depend(nx_,ny_) :: mesh
+                real(kind=8) dimension(nx_,ny_,3),intent(in),depend(nx_,ny_) :: meshd
+                logical intent(in) :: skip
+                logical intent(in) :: symmetry
+                real(kind=8) dimension((nx-1)*(ny-1),(nx_-1)*(ny_-1),3),intent(out),depend(ny,nx,ny_,nx_) :: mtx
+                real(kind=8) dimension((nx-1)*(ny-1),(nx_-1)*(ny_-1),3),intent(out),depend(ny,nx,ny_,nx_) :: mtxd
+            end subroutine assembleaeromtx_d
+            subroutine assembleaeromtx_b(ny,nx,ny_,nx_,alpha,alphab,points,pointsb,bpts,bptsb,mesh,meshb,skip,symmetry,mtx,mtxb) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_b, only: assembleaeromtx_main_b
+                integer, optional,intent(in),check((shape(points,1)+1)==ny),depend(points) :: ny=(shape(points,1)+1)
+                integer, optional,intent(in),check((shape(points,0)+1)==nx),depend(points) :: nx=(shape(points,0)+1)
+                integer, optional,intent(in),check(shape(bpts,1)==ny_),depend(bpts) :: ny_=shape(bpts,1)
+                integer, optional,intent(in),check((shape(bpts,0)+1)==nx_),depend(bpts) :: nx_=(shape(bpts,0)+1)
+                real(kind=8) intent(in) :: alpha
+                real(kind=8) intent(out) :: alphab
+                real(kind=8) dimension(nx - 1,ny - 1,3),intent(in) :: points
+                real(kind=8) dimension(nx - 1,ny - 1,3),intent(out),depend(nx,ny) :: pointsb
+                real(kind=8) dimension(nx_ - 1,ny_,3),intent(in) :: bpts
+                real(kind=8) dimension(nx_ - 1,ny_,3),intent(out),depend(nx_,ny_) :: bptsb
+                real(kind=8) dimension(nx_,ny_,3),intent(in),depend(nx_,ny_) :: mesh
+                real(kind=8) dimension(nx_,ny_,3),intent(out),depend(nx_,ny_) :: meshb
+                logical intent(in) :: skip
+                logical intent(in) :: symmetry
+                real(kind=8) dimension((nx-1)*(ny-1),(nx_-1)*(ny_-1),3),intent(out),depend(ny,nx,ny_,nx_) :: mtx
+                real(kind=8) dimension((nx-1)*(ny-1),(nx_-1)*(ny_-1),3),intent(in),depend(ny,nx,ny_,nx_) :: mtxb
+            end subroutine assembleaeromtx_b
             subroutine calc_vonmises(nodes,r,disp,e,g,x_gl,n,vonmises) ! in :OAS_API:OAS_API.F90:oas_api
                 real(kind=8) dimension(n,3),intent(in) :: nodes
                 real(kind=8) dimension(n - 1),intent(in),depend(n) :: r

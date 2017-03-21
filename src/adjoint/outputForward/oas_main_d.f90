@@ -651,21 +651,6 @@ contains
       end do
     end do
   end subroutine matmul2
-  subroutine matmul2c(m, n, p, a, b, c)
-    implicit none
-    integer, intent(in) :: m, n, p
-    complex(kind=8), intent(in) :: a(m, n), b(n, p)
-    complex(kind=8), intent(out) :: c(m, p)
-    integer :: i, j, k
-    c(:, :) = 0.
-    do i=1,m
-      do j=1,p
-        do k=1,n
-          c(i, j) = c(i, j) + a(i, k)*b(k, j)
-        end do
-      end do
-    end do
-  end subroutine matmul2c
 !  differentiation of assembleaeromtx_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: mtx
 !   with respect to varying inputs: alpha points mesh bpts
@@ -677,39 +662,36 @@ contains
     implicit none
 ! input
     integer, intent(in) :: ny, nx, ny_, nx_
-    complex(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    complex(kind=8), intent(in) :: alphad, meshd(nx_, ny_, 3)
-    complex(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, &
-&   ny_, 3)
-    complex(kind=8), intent(in) :: pointsd(nx-1, ny-1, 3), bptsd(nx_-1, &
-&   ny_, 3)
+    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
+    real(kind=8), intent(in) :: alphad, meshd(nx_, ny_, 3)
+    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, &
+&   3)
+    real(kind=8), intent(in) :: pointsd(nx-1, ny-1, 3), bptsd(nx_-1, ny_&
+&   , 3)
     logical, intent(in) :: skip, symmetry
 ! output
-    complex(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), &
-&   3)
-    complex(kind=8), intent(out) :: mtxd((nx-1)*(ny-1), (nx_-1)*(ny_-1)&
-&   , 3)
+    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
+    real(kind=8), intent(out) :: mtxd((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
 ! working
     integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, &
 &   cp_loc
-    complex(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
-    complex(kind=8) :: pd(3), ad(3), bd(3), ud(3), cd(3), dd(3)
-    complex(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
-    complex(kind=8) :: a_symd(3), b_symd(3), c_symd(3), d_symd(3)
-    complex(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
-    complex(kind=8) :: ur2d(3), r1d(3), r2d(3), r1_magd, r2_magd
-    complex(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
-    complex(kind=8) :: ur1d(3), boundd(3), dot_ur2d, dot_ur1d
-    complex(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym&
-&   (3)
-    complex(kind=8) :: edgesd(3), c_ted(3), d_ted(3), c_te_symd(3), &
+    real(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
+    real(kind=8) :: pd(3), ad(3), bd(3), ud(3), cd(3), dd(3)
+    real(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
+    real(kind=8) :: a_symd(3), b_symd(3), c_symd(3), d_symd(3)
+    real(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
+    real(kind=8) :: ur2d(3), r1d(3), r2d(3), r1_magd, r2_magd
+    real(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
+    real(kind=8) :: ur1d(3), boundd(3), dot_ur2d, dot_ur1d
+    real(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym(3)
+    real(kind=8) :: edgesd(3), c_ted(3), d_ted(3), c_te_symd(3), &
 &   d_te_symd(3)
     intrinsic atan
     intrinsic cos
     intrinsic sin
     pi = 4.d0*atan(1.d0)
 ! trailing vortices in avl follow the x-axis; no cos or sin
-    ud = (0.0_4,0.0_4)
+    ud = 0.0_8
     ud(1) = -(pi*alphad*sin(alpha*pi/180.)/180.)
     u(1) = cos(alpha*pi/180.)
     ud(2) = 0.0_8
@@ -717,13 +699,11 @@ contains
     ud(3) = pi*alphad*cos(alpha*pi/180.)/180.
     u(3) = sin(alpha*pi/180.)
     mtx(:, :, :) = 0.
-    mtxd = (0.0_4,0.0_4)
-    ur1d = (0.0_4,0.0_4)
-    ur2d = (0.0_4,0.0_4)
-    a_symd = (0.0_4,0.0_4)
-    c_te_symd = (0.0_4,0.0_4)
-    b_symd = (0.0_4,0.0_4)
-    d_te_symd = (0.0_4,0.0_4)
+    mtxd = 0.0_8
+    ur1d = 0.0_8
+    ur2d = 0.0_8
+    c_te_symd = 0.0_8
+    d_te_symd = 0.0_8
 ! spanwise loop through horseshoe elements
     do el_j=1,ny_-1
       el_loc_j = (el_j-1)*(nx_-1)
@@ -753,13 +733,13 @@ contains
           r1 = p - d_te
           r2d = pd - c_ted
           r2 = p - c_te
-          call normc_d(r1, r1d, r1_mag, r1_magd)
-          call normc_d(r2, r2d, r2_mag, r2_magd)
-          call crossc_d(u, ud, r2, r2d, ur2, ur2d)
-          call crossc_d(u, ud, r1, r1d, ur1, ur1d)
+          call norm_d(r1, r1d, r1_mag, r1_magd)
+          call norm_d(r2, r2d, r2_mag, r2_magd)
+          call cross_d(u, ud, r2, r2d, ur2, ur2d)
+          call cross_d(u, ud, r1, r1d, ur1, ur1d)
           edges(:) = 0.
-          call dotc_d(u, ud, r2, r2d, dot_ur2, dot_ur2d)
-          call dotc_d(u, ud, r1, r1d, dot_ur1, dot_ur1d)
+          call dot_d(u, ud, r2, r2d, dot_ur2, dot_ur2d)
+          call dot_d(u, ud, r1, r1d, dot_ur1, dot_ur1d)
           edgesd = (ur2d*r2_mag*(r2_mag-dot_ur2)-ur2*(r2_magd*(r2_mag-&
 &           dot_ur2)+r2_mag*(r2_magd-dot_ur2d)))/(r2_mag*(r2_mag-dot_ur2&
 &           ))**2
@@ -773,12 +753,12 @@ contains
             r1 = p - d_te_sym
             r2d = pd - c_te_symd
             r2 = p - c_te_sym
-            call normc_d(r1, r1d, r1_mag, r1_magd)
-            call normc_d(r2, r2d, r2_mag, r2_magd)
-            call crossc_d(u, ud, r2, r2d, ur2, ur2d)
-            call crossc_d(u, ud, r1, r1d, ur1, ur1d)
-            call dotc_d(u, ud, r2, r2d, dot_ur2, dot_ur2d)
-            call dotc_d(u, ud, r1, r1d, dot_ur1, dot_ur1d)
+            call norm_d(r1, r1d, r1_mag, r1_magd)
+            call norm_d(r2, r2d, r2_mag, r2_magd)
+            call cross_d(u, ud, r2, r2d, ur2, ur2d)
+            call cross_d(u, ud, r1, r1d, ur1, ur1d)
+            call dot_d(u, ud, r2, r2d, dot_ur2, dot_ur2d)
+            call dot_d(u, ud, r1, r1d, dot_ur1, dot_ur1d)
             edgesd = edgesd - (ur2d*r2_mag*(r2_mag-dot_ur2)-ur2*(r2_magd&
 &             *(r2_mag-dot_ur2)+r2_mag*(r2_magd-dot_ur2d)))/(r2_mag*(&
 &             r2_mag-dot_ur2))**2
@@ -808,6 +788,7 @@ contains
             end if
             call calc_vorticity_d(b, bd, c, cd, p, pd, edges, edgesd)
             call calc_vorticity_d(d, dd, a, ad, p, pd, edges, edgesd)
+            bound(:) = 0.
             if (symmetry) then
               a_symd = ad
               a_sym = a
@@ -829,28 +810,16 @@ contains
 &                             , edges, edgesd)
               call calc_vorticity_d(a_sym, a_symd, d_sym, d_symd, p, pd&
 &                             , edges, edgesd)
-            end if
-            if (skip .and. cp_loc .eq. el_loc) then
-              bound(:) = 0.
-              if (symmetry) then
-                boundd = (0.0_4,0.0_4)
-                call calc_vorticity_d(b_sym, b_symd, a_sym, a_symd, p, &
-&                               pd, bound, boundd)
-              else
-                boundd = (0.0_4,0.0_4)
-              end if
-              mtxd(cp_loc, el_loc, :) = edgesd + boundd
-              mtx(cp_loc, el_loc, :) = edges + bound
+              boundd = 0.0_8
+              call calc_vorticity_d(b_sym, b_symd, a_sym, a_symd, p, pd&
+&                             , bound, boundd)
             else
-              bound(:) = 0.
-              boundd = (0.0_4,0.0_4)
-              call calc_vorticity_d(a, ad, b, bd, p, pd, bound, boundd)
-              if (symmetry) call calc_vorticity_d(b_sym, b_symd, a_sym, &
-&                                           a_symd, p, pd, bound, boundd&
-&                                          )
-              mtxd(cp_loc, el_loc, :) = edgesd + boundd
-              mtx(cp_loc, el_loc, :) = edges + bound
+              boundd = 0.0_8
             end if
+            if (.not.(skip .and. cp_loc .eq. el_loc)) call &
+&             calc_vorticity_d(a, ad, b, bd, p, pd, bound, boundd)
+            mtxd(cp_loc, el_loc, :) = edgesd + boundd
+            mtx(cp_loc, el_loc, :) = edges + bound
           end do
         end do
       end do
@@ -861,22 +830,20 @@ contains
     implicit none
 ! input
     integer, intent(in) :: ny, nx, ny_, nx_
-    complex(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    complex(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, &
-&   ny_, 3)
+    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
+    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, &
+&   3)
     logical, intent(in) :: skip, symmetry
 ! output
-    complex(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), &
-&   3)
+    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
 ! working
     integer :: el_j, el_i, cp_j, cp_i, el_loc_j, el_loc, cp_loc_j, &
 &   cp_loc
-    complex(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
-    complex(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
-    complex(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
-    complex(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
-    complex(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym&
-&   (3)
+    real(kind=8) :: pi, p(3), a(3), b(3), u(3), c(3), d(3)
+    real(kind=8) :: a_sym(3), b_sym(3), c_sym(3), d_sym(3)
+    real(kind=8) :: ur2(3), r1(3), r2(3), r1_mag, r2_mag
+    real(kind=8) :: ur1(3), bound(3), dot_ur2, dot_ur1
+    real(kind=8) :: edges(3), c_te(3), d_te(3), c_te_sym(3), d_te_sym(3)
     intrinsic atan
     intrinsic cos
     intrinsic sin
@@ -906,24 +873,24 @@ contains
           p = points(cp_i, cp_j, :)
           r1 = p - d_te
           r2 = p - c_te
-          call normc(r1, r1_mag)
-          call normc(r2, r2_mag)
-          call crossc(u, r2, ur2)
-          call crossc(u, r1, ur1)
+          call norm(r1, r1_mag)
+          call norm(r2, r2_mag)
+          call cross(u, r2, ur2)
+          call cross(u, r1, ur1)
           edges(:) = 0.
-          call dotc(u, r2, dot_ur2)
-          call dotc(u, r1, dot_ur1)
+          call dot(u, r2, dot_ur2)
+          call dot(u, r1, dot_ur1)
           edges = ur2/(r2_mag*(r2_mag-dot_ur2))
           edges = edges - ur1/(r1_mag*(r1_mag-dot_ur1))
           if (symmetry) then
             r1 = p - d_te_sym
             r2 = p - c_te_sym
-            call normc(r1, r1_mag)
-            call normc(r2, r2_mag)
-            call crossc(u, r2, ur2)
-            call crossc(u, r1, ur1)
-            call dotc(u, r2, dot_ur2)
-            call dotc(u, r1, dot_ur1)
+            call norm(r1, r1_mag)
+            call norm(r2, r2_mag)
+            call cross(u, r2, ur2)
+            call cross(u, r1, ur1)
+            call dot(u, r2, dot_ur2)
+            call dot(u, r1, dot_ur1)
             edges = edges - ur2/(r2_mag*(r2_mag-dot_ur2))
             edges = edges + ur1/(r1_mag*(r1_mag-dot_ur1))
           end if
@@ -941,6 +908,7 @@ contains
             end if
             call calc_vorticity(b, c, p, edges)
             call calc_vorticity(d, a, p, edges)
+            bound(:) = 0.
             if (symmetry) then
               a_sym = a
               b_sym = b
@@ -952,17 +920,11 @@ contains
               d_sym(2) = -d_sym(2)
               call calc_vorticity(c_sym, b_sym, p, edges)
               call calc_vorticity(a_sym, d_sym, p, edges)
+              call calc_vorticity(b_sym, a_sym, p, bound)
             end if
-            if (skip .and. cp_loc .eq. el_loc) then
-              bound(:) = 0.
-              if (symmetry) call calc_vorticity(b_sym, a_sym, p, bound)
-              mtx(cp_loc, el_loc, :) = edges + bound
-            else
-              bound(:) = 0.
-              call calc_vorticity(a, b, p, bound)
-              if (symmetry) call calc_vorticity(b_sym, a_sym, p, bound)
-              mtx(cp_loc, el_loc, :) = edges + bound
-            end if
+            if (.not.(skip .and. cp_loc .eq. el_loc)) call &
+&             calc_vorticity(a, b, p, bound)
+            mtx(cp_loc, el_loc, :) = edges + bound
           end do
         end do
       end do
@@ -974,27 +936,27 @@ contains
   subroutine calc_vorticity_d(a, ad, b, bd, p, pd, out, outd)
     implicit none
 ! input
-    complex(kind=8), intent(in) :: a(3), b(3), p(3)
-    complex(kind=8), intent(in) :: ad(3), bd(3), pd(3)
+    real(kind=8), intent(in) :: a(3), b(3), p(3)
+    real(kind=8), intent(in) :: ad(3), bd(3), pd(3)
 ! output
-    complex(kind=8), intent(inout) :: out(3)
-    complex(kind=8), intent(inout) :: outd(3)
+    real(kind=8), intent(inout) :: out(3)
+    real(kind=8), intent(inout) :: outd(3)
 ! working
-    complex(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
+    real(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
 &   dot_r1r2
-    complex(kind=8) :: r1d(3), r2d(3), r1_magd, r2_magd, r1r2d(3), &
+    real(kind=8) :: r1d(3), r2d(3), r1_magd, r2_magd, r1r2d(3), &
 &   mag_multd, dot_r1r2d
     r1d = pd - ad
     r1 = p - a
     r2d = pd - bd
     r2 = p - b
-    call normc_d(r1, r1d, r1_mag, r1_magd)
-    call normc_d(r2, r2d, r2_mag, r2_magd)
-    r1r2d = (0.0_4,0.0_4)
-    call crossc_d(r1, r1d, r2, r2d, r1r2, r1r2d)
+    call norm_d(r1, r1d, r1_mag, r1_magd)
+    call norm_d(r2, r2d, r2_mag, r2_magd)
+    r1r2d = 0.0_8
+    call cross_d(r1, r1d, r2, r2d, r1r2, r1r2d)
     mag_multd = r1_magd*r2_mag + r1_mag*r2_magd
     mag_mult = r1_mag*r2_mag
-    call dotc_d(r1, r1d, r2, r2d, dot_r1r2, dot_r1r2d)
+    call dot_d(r1, r1d, r2, r2d, dot_r1r2, dot_r1r2d)
     outd = outd + (((r1_magd+r2_magd)*r1r2+(r1_mag+r2_mag)*r1r2d)*&
 &     mag_mult*(mag_mult+dot_r1r2)-(r1_mag+r2_mag)*r1r2*(mag_multd*(&
 &     mag_mult+dot_r1r2)+mag_mult*(mag_multd+dot_r1r2d)))/(mag_mult*(&
@@ -1004,45 +966,45 @@ contains
   subroutine calc_vorticity(a, b, p, out)
     implicit none
 ! input
-    complex(kind=8), intent(in) :: a(3), b(3), p(3)
+    real(kind=8), intent(in) :: a(3), b(3), p(3)
 ! output
-    complex(kind=8), intent(inout) :: out(3)
+    real(kind=8), intent(inout) :: out(3)
 ! working
-    complex(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
+    real(kind=8) :: r1(3), r2(3), r1_mag, r2_mag, r1r2(3), mag_mult, &
 &   dot_r1r2
     r1 = p - a
     r2 = p - b
-    call normc(r1, r1_mag)
-    call normc(r2, r2_mag)
-    call crossc(r1, r2, r1r2)
+    call norm(r1, r1_mag)
+    call norm(r2, r2_mag)
+    call cross(r1, r2, r1r2)
     mag_mult = r1_mag*r2_mag
-    call dotc(r1, r2, dot_r1r2)
+    call dot(r1, r2, dot_r1r2)
     out = out + (r1_mag+r2_mag)*r1r2/(mag_mult*(mag_mult+dot_r1r2))
   end subroutine calc_vorticity
   subroutine biotsavart(a, b, p, inf, rev, out)
     implicit none
 ! input
-    complex(kind=8), intent(in) :: a(3), b(3), p(3)
+    real(kind=8), intent(in) :: a(3), b(3), p(3)
     logical, intent(in) :: inf, rev
 ! output
-    complex(kind=8), intent(inout) :: out(3)
+    real(kind=8), intent(inout) :: out(3)
 ! working
-    complex(kind=8) :: rpa, rpb, rab, rh
-    complex(kind=8) :: cosa, cosb, c(3)
-    complex(kind=8) :: eps, tmp(3), dot_bapa, dot_baba, dot_pbab
+    real(kind=8) :: rpa, rpb, rab, rh
+    real(kind=8) :: cosa, cosb, c(3)
+    real(kind=8) :: eps, tmp(3), dot_bapa, dot_baba, dot_pbab
     eps = 1e-5
-    call normc(a - p, rpa)
-    call normc(b - p, rpb)
-    call normc(b - a, rab)
-    call dotc(b - a, p - a, dot_bapa)
-    call dotc(b - a, b - a, dot_baba)
-    call dotc(p - b, a - b, dot_pbab)
-    call normc(p - a - dot_bapa/dot_baba*(b-a), rh)
+    call norm(a - p, rpa)
+    call norm(b - p, rpb)
+    call norm(b - a, rab)
+    call dot(b - a, p - a, dot_bapa)
+    call dot(b - a, b - a, dot_baba)
+    call dot(p - b, a - b, dot_pbab)
+    call norm(p - a - dot_bapa/dot_baba*(b-a), rh)
     rh = rh + eps
     cosa = dot_bapa/(rpa*rab)
     cosb = dot_pbab/(rpb*rab)
-    call crossc(b - p, a - p, c)
-    call unitc(c, c)
+    call cross(b - p, a - p, c)
+    call unit(c, c)
     if (inf) then
       tmp = -(c/rh*(cosa+1))
     else
@@ -1051,85 +1013,6 @@ contains
     if (rev) tmp = -tmp
     out = out + tmp
   end subroutine biotsavart
-! complex functions
-  subroutine unitc(v, u)
-    implicit none
-    complex(kind=8), intent(in) :: v(3)
-    complex(kind=8), intent(out) :: u(3)
-    complex(kind=8) :: nm
-    call normc(v, nm)
-    u(1) = v(1)/nm
-    u(2) = v(2)/nm
-    u(3) = v(3)/nm
-  end subroutine unitc
-!  differentiation of normc in forward (tangent) mode (with options i4 dr8 r8):
-!   variations   of useful results: norm_output
-!   with respect to varying inputs: v
-  subroutine normc_d(v, vd, norm_output, norm_outputd)
-    implicit none
-    complex(kind=8), intent(in) :: v(3)
-    complex(kind=8), intent(in) :: vd(3)
-    complex(kind=8), intent(out) :: norm_output
-    complex(kind=8), intent(out) :: norm_outputd
-    complex(kind=8) :: dot_prod
-    complex(kind=8) :: dot_prodd
-!norm = sqrt(dot_product(v, v))
-    call dotc_d(v, vd, v, vd, dot_prod, dot_prodd)
-    norm_outputd = 0.5*dot_prod**(-0.5)*dot_prodd
-    norm_output = dot_prod**0.5
-  end subroutine normc_d
-  subroutine normc(v, norm_output)
-    implicit none
-    complex(kind=8), intent(in) :: v(3)
-    complex(kind=8), intent(out) :: norm_output
-    complex(kind=8) :: dot_prod
-!norm = sqrt(dot_product(v, v))
-    call dotc(v, v, dot_prod)
-    norm_output = dot_prod**0.5
-  end subroutine normc
-!  differentiation of dotc in forward (tangent) mode (with options i4 dr8 r8):
-!   variations   of useful results: dot_prod
-!   with respect to varying inputs: a b
-  subroutine dotc_d(a, ad, b, bd, dot_prod, dot_prodd)
-    implicit none
-    complex(kind=8), intent(in) :: a(3), b(3)
-    complex(kind=8), intent(in) :: ad(3), bd(3)
-    complex(kind=8), intent(out) :: dot_prod
-    complex(kind=8), intent(out) :: dot_prodd
-    dot_prodd = ad(1)*b(1) + a(1)*bd(1) + ad(2)*b(2) + a(2)*bd(2) + ad(3&
-&     )*b(3) + a(3)*bd(3)
-    dot_prod = a(1)*b(1) + a(2)*b(2) + a(3)*b(3)
-  end subroutine dotc_d
-  subroutine dotc(a, b, dot_prod)
-    implicit none
-    complex(kind=8), intent(in) :: a(3), b(3)
-    complex(kind=8), intent(out) :: dot_prod
-    dot_prod = a(1)*b(1) + a(2)*b(2) + a(3)*b(3)
-  end subroutine dotc
-!  differentiation of crossc in forward (tangent) mode (with options i4 dr8 r8):
-!   variations   of useful results: c
-!   with respect to varying inputs: a b c
-  subroutine crossc_d(a, ad, b, bd, c, cd)
-    implicit none
-    complex(kind=8), intent(in) :: a(3), b(3)
-    complex(kind=8), intent(in) :: ad(3), bd(3)
-    complex(kind=8), intent(out) :: c(3)
-    complex(kind=8), intent(out) :: cd(3)
-    cd(1) = ad(2)*b(3) + a(2)*bd(3) - ad(3)*b(2) - a(3)*bd(2)
-    c(1) = a(2)*b(3) - a(3)*b(2)
-    cd(2) = ad(3)*b(1) + a(3)*bd(1) - ad(1)*b(3) - a(1)*bd(3)
-    c(2) = a(3)*b(1) - a(1)*b(3)
-    cd(3) = ad(1)*b(2) + a(1)*bd(2) - ad(2)*b(1) - a(2)*bd(1)
-    c(3) = a(1)*b(2) - a(2)*b(1)
-  end subroutine crossc_d
-  subroutine crossc(a, b, c)
-    implicit none
-    complex(kind=8), intent(in) :: a(3), b(3)
-    complex(kind=8), intent(out) :: c(3)
-    c(1) = a(2)*b(3) - a(3)*b(2)
-    c(2) = a(3)*b(1) - a(1)*b(3)
-    c(3) = a(1)*b(2) - a(2)*b(1)
-  end subroutine crossc
 !  differentiation of unit in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: u
 !   with respect to varying inputs: u v
@@ -1170,10 +1053,13 @@ contains
     real(kind=8), intent(in) :: vd(3)
     real(kind=8), intent(out) :: norm_output
     real(kind=8), intent(out) :: norm_outputd
-    real(kind=8) :: dot_prod
-    real(kind=8) :: dot_prodd
+    real(kind=8) :: dot_prod, v1(3)
+    real(kind=8) :: dot_prodd, v1d(3)
+! need to create a copy of v here so the reverse mode ad works correctly
+    v1d = vd
+    v1 = v
 !norm = sqrt(dot_product(v, v))
-    call dot_d(v, vd, v, vd, dot_prod, dot_prodd)
+    call dot_d(v, vd, v1, v1d, dot_prod, dot_prodd)
     if (dot_prod .gt. 0.0_8) then
       norm_outputd = 0.5*dot_prod**(-0.5)*dot_prodd
     else
@@ -1185,9 +1071,11 @@ contains
     implicit none
     real(kind=8), intent(in) :: v(3)
     real(kind=8), intent(out) :: norm_output
-    real(kind=8) :: dot_prod
+    real(kind=8) :: dot_prod, v1(3)
+! need to create a copy of v here so the reverse mode ad works correctly
+    v1 = v
 !norm = sqrt(dot_product(v, v))
-    call dot(v, v, dot_prod)
+    call dot(v, v1, dot_prod)
     norm_output = dot_prod**0.5
   end subroutine norm
 !  differentiation of dot in forward (tangent) mode (with options i4 dr8 r8):

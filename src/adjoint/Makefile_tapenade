@@ -27,8 +27,7 @@ SRC = ..
 # Integer, double and real precision (bytes)
 TAPENADE_PRECISION = -i4 -dr8 -r8
 
-ALL_FILES =	$(SRC)/common/solveRoutines.F90\
-	$(SRC)/OAS/OAS_main.F90\
+ALL_FILES =	$(SRC)/OAS/OAS_main.F90\
 
 
 # intermediate residual files.
@@ -60,7 +59,8 @@ ad_forward:
 	-head "assemblestructmtx_main(A, Iy, Iz, J, nodes, loads) > (K, x) \
 	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx) \
 	calc_vonmises_main(nodes, r, disp) > vonmises \
-	transferdisplacements_main(mesh, disp) > def_mesh" ../OAS/OAS_main.F90 \
+	transferdisplacements_main(mesh, disp) > def_mesh \
+	multmatrices_main(AIC_mtx, flattened_normals) > mtx" ../OAS/OAS_main.F90 \
 	-forward $(TAPENADE_PRECISION) \
 	-O temp_forward $(I_RES_FILES)
 
@@ -85,7 +85,8 @@ ad_reverse:
 	-head "assemblestructmtx_main(A, Iy, Iz, J, nodes, loads) > (K, x) \
 	assembleaeromtx_main(alpha, points, bpts, mesh) > (mtx) \
 	calc_vonmises_main(nodes, r, disp) > vonmises \
-	transferdisplacements_main(mesh, disp) > def_mesh" ../OAS/OAS_main.F90 \
+	transferdisplacements_main(mesh, disp) > def_mesh \
+	multmatrices_main(AIC_mtx, flattened_normals) > mtx" ../OAS/OAS_main.F90 \
 	-reverse $(TAPENADE_PRECISION) \
 	-O temp_reverse $(I_RES_FILES)
 

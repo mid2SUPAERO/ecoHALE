@@ -102,7 +102,7 @@ class TestAero(unittest.TestCase):
 
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_perf.CL'], .41543435621928004, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CL'], .41543435621928004, places=4)
         self.assertAlmostEqual(prob['tail_perf.CL'], .5, places=5)
         self.assertAlmostEqual(prob['wing_perf.CD'], .0075400306289957033, places=5)
         self.assertAlmostEqual(prob['tail_perf.CD'], .00791118243006308, places=5)

@@ -323,13 +323,90 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     mtx /= 4 * numpy.pi
 
-def _assemble_AIC_mtx_d(mtx, params, surfaces, skip=False):
+def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, skip=False):
 
     alpha = params['alpha']
-    mtx[:, :, :] = 0.0
-    cosa = numpy.cos(alpha * numpy.pi / 180.)
-    sina = numpy.sin(alpha * numpy.pi / 180.)
-    u = numpy.array([cosa, 0, sina])
+    alphad = dparams['alpha']
+
+    i_ = 0
+    i_bpts_ = 0
+    i_panels_ = 0
+
+    # Loop over the lifting surfaces to compute their influence on the flow
+    # velocity at the collocation points
+    for surface_ in surfaces:
+
+        # Variable names with a trailing underscore correspond to the lifting
+        # surface being examined, not the collocation point
+        name_ = surface_['name']
+        nx_ = surface_['num_x']
+        ny_ = surface_['num_y']
+        n_ = nx_ * ny_
+        n_bpts_ = (nx_ - 1) * ny_
+        n_panels_ = (nx_ - 1) * (ny_ - 1)
+
+        # Obtain the lifting surface mesh in the form expected by the solver,
+        # with shape [nx_, ny_, 3]
+        mesh = params[name_+'def_mesh']
+        bpts = params[name_+'b_pts']
+
+        meshd = dparams[name_+'def_mesh']
+        bptsd = dparams[name_+'b_pts']
+
+        # Set counters to know where to index the sub-matrix within the full mtx
+        i = 0
+        i_bpts = 0
+        i_panels = 0
+
+        for surface in surfaces:
+            # These variables correspond to the collocation points
+            name = surface['name']
+            nx = surface['num_x']
+            ny = surface['num_y']
+            n = nx * ny
+            n_bpts = (nx - 1) * ny
+            n_panels = (nx - 1) * (ny - 1)
+            symmetry = surface['symmetry']
+
+            # Obtain the collocation points used to compute the AIC mtx.
+            # If setting up the AIC mtx, we use the collocation points (c_pts),
+            # but if setting up the matrix to solve for drag, we use the
+            # midpoints of the bound vortices.
+            if skip:
+                # Find the midpoints of the bound points, used in drag computations
+                pts = (params[name+'b_pts'][:, 1:, :] + \
+                    params[name+'b_pts'][:, :-1, :]) / 2
+                ptsd = (dparams[name+'b_pts'][:, 1:, :] + \
+                    dparams[name+'b_pts'][:, :-1, :]) / 2
+            else:
+                pts = params[name+'c_pts']
+                ptsd = dparams[name+'c_pts']
+
+            _, small_mat = OAS_API.oas_api.assembleaeromtx_d(alpha, alphad, pts, ptsd,
+                                                          bpts, bptsd, mesh, meshd,
+                                                          skip, symmetry)
+
+            # Populate the full-size matrix with these surface-surface AICs
+            mtxd[i_panels:i_panels+n_panels,
+                 i_panels_:i_panels_+n_panels_, :] = small_mat
+
+            i += n
+            i_bpts += n_bpts
+            i_panels += n_panels
+
+        i_ += n_
+        i_bpts_ += n_bpts_
+        i_panels_ += n_panels_
+
+    mtxd /= 4 * numpy.pi
+    # if mtxd.any():
+    #     view_mat(mtxd)
+
+def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, skip=False):
+
+    alpha = params['alpha']
+
+    mtxb /= 4 * numpy.pi
 
     i_ = 0
     i_bpts_ = 0
@@ -379,85 +456,19 @@ def _assemble_AIC_mtx_d(mtx, params, surfaces, skip=False):
             else:
                 pts = params[name+'c_pts']
 
-            small_mat = OAS_API.oas_api.assembleaeromtx(alpha, pts, bpts,
-                                                     mesh, skip, symmetry)
+            small_mtxb = mtxb[i_panels:i_panels+n_panels, i_panels_:i_panels_+n_panels_, :]
 
-            # Populate the full-size matrix with these surface-surface AICs
-            mtx[i_panels:i_panels+n_panels,
-                i_panels_:i_panels_+n_panels_, :] = small_mat
+            alphab, ptsb, bptsb, meshb, mtx = OAS_API.oas_api.assembleaeromtx_b(alpha, pts, bpts,
+                                                     mesh, skip, symmetry, small_mtxb)
 
-            i += n
-            i_bpts += n_bpts
-            i_panels += n_panels
+            dparams[name_+'def_mesh'] += meshb.real
+            dparams[name_+'b_pts'] += bptsb.real
 
-        i_ += n_
-        i_bpts_ += n_bpts_
-        i_panels_ += n_panels_
-
-    mtx /= 4 * numpy.pi
-
-def _assemble_AIC_mtx_b(mtx, params, surfaces, skip=False):
-
-    alpha = params['alpha']
-    mtx[:, :, :] = 0.0
-    cosa = numpy.cos(alpha * numpy.pi / 180.)
-    sina = numpy.sin(alpha * numpy.pi / 180.)
-    u = numpy.array([cosa, 0, sina])
-
-    i_ = 0
-    i_bpts_ = 0
-    i_panels_ = 0
-
-    # Loop over the lifting surfaces to compute their influence on the flow
-    # velocity at the collocation points
-    for surface_ in surfaces:
-
-        # Variable names with a trailing underscore correspond to the lifting
-        # surface being examined, not the collocation point
-        name_ = surface_['name']
-        nx_ = surface_['num_x']
-        ny_ = surface_['num_y']
-        n_ = nx_ * ny_
-        n_bpts_ = (nx_ - 1) * ny_
-        n_panels_ = (nx_ - 1) * (ny_ - 1)
-
-        # Obtain the lifting surface mesh in the form expected by the solver,
-        # with shape [nx_, ny_, 3]
-        mesh = params[name_+'def_mesh']
-        bpts = params[name_+'b_pts']
-
-        # Set counters to know where to index the sub-matrix within the full mtx
-        i = 0
-        i_bpts = 0
-        i_panels = 0
-
-        for surface in surfaces:
-            # These variables correspond to the collocation points
-            name = surface['name']
-            nx = surface['num_x']
-            ny = surface['num_y']
-            n = nx * ny
-            n_bpts = (nx - 1) * ny
-            n_panels = (nx - 1) * (ny - 1)
-            symmetry = surface['symmetry']
-
-            # Obtain the collocation points used to compute the AIC mtx.
-            # If setting up the AIC mtx, we use the collocation points (c_pts),
-            # but if setting up the matrix to solve for drag, we use the
-            # midpoints of the bound vortices.
             if skip:
-                # Find the midpoints of the bound points, used in drag computations
-                pts = (params[name+'b_pts'][:, 1:, :] + \
-                    params[name+'b_pts'][:, :-1, :]) / 2
+                dparams[name+'b_pts'] += ptsb.real
             else:
-                pts = params[name+'c_pts']
-
-            small_mat = OAS_API.oas_api.assembleaeromtx(alpha, pts, bpts,
-                                                     mesh, skip, symmetry)
-
-            # Populate the full-size matrix with these surface-surface AICs
-            mtx[i_panels:i_panels+n_panels,
-                i_panels_:i_panels_+n_panels_, :] = small_mat
+                dparams[name+'c_pts'] += ptsb.real
+            dparams['alpha'] += alphab
 
             i += n
             i_bpts += n_bpts
@@ -467,7 +478,7 @@ def _assemble_AIC_mtx_b(mtx, params, surfaces, skip=False):
         i_bpts_ += n_bpts_
         i_panels_ += n_panels_
 
-    mtx /= 4 * numpy.pi
+
 
 class VLMGeometry(Component):
     """ Compute various geometric properties for VLM analysis.
@@ -666,8 +677,8 @@ class AssembleAIC(Component):
         self.mtx = numpy.zeros((tot_panels, tot_panels),
                                    dtype="complex")
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['type'] = 'cs'
+        # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Actually assemble the AIC matrix
@@ -705,6 +716,116 @@ class AssembleAIC(Component):
 
         unknowns['AIC'] = self.mtx
 
+    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
+
+        if mode == 'fwd':
+
+            AIC_mtxd = numpy.zeros(self.AIC_mtx.shape)
+
+            # Actually assemble the AIC matrix
+            _assemble_AIC_mtx_d(AIC_mtxd, params, dparams, dunknowns, dresids, self.surfaces)
+
+            # Construct an flattened array with the normals of each surface in order
+            # so we can do the normals with velocities to set up the right-hand-side
+            # of the system.
+            flattened_normals = numpy.zeros((self.tot_panels, 3))
+            flattened_normalsd = numpy.zeros((self.tot_panels, 3))
+            i = 0
+            for surface in self.surfaces:
+                name = surface['name']
+                num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
+                flattened_normals[i:i+num_panels, :] = params[name+'normals'].reshape(-1, 3, order='F')
+                flattened_normalsd[i:i+num_panels, :] = dparams[name+'normals'].reshape(-1, 3, order='F')
+                i += num_panels
+
+            # Construct a matrix that is the AIC_mtx dotted by the normals at each
+            # collocation point. This is used to compute the circulations
+            self.mtx[:, :] = 0.
+            for ind in xrange(3):
+                self.mtx[:, :] += (AIC_mtxd[:, :, ind].T *
+                    flattened_normals[:, ind]).T
+                self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
+                    flattened_normalsd[:, ind]).T
+
+            # Obtain the freestream velocity direction and magnitude by taking
+            # alpha into account
+            alpha = params['alpha'] * numpy.pi / 180.
+            alphad = dparams['alpha'] * numpy.pi / 180.
+            cosa = numpy.cos(alpha)
+            sina = numpy.sin(alpha)
+            cosad = -sina * alphad
+            sinad = cosa * alphad
+
+            freestream_direction = numpy.array([cosa, 0., sina])
+            v_inf = params['v'] * freestream_direction
+            v_infd = dparams['v'] * freestream_direction
+            v_infd += params['v'] * numpy.array([cosad, 0., sinad])
+
+            # Populate the right-hand side of the linear system with the
+            # expected velocities at each collocation point
+            dresids['rhs'] = -flattened_normalsd.\
+                reshape(-1, 3, order='F').dot(v_inf)
+            dresids['rhs'] += -flattened_normals.\
+                reshape(-1, 3, order='F').dot(v_infd)
+
+            dresids['AIC'] = self.mtx
+
+        if mode == 'rev':
+
+            # Construct an flattened array with the normals of each surface in order
+            # so we can do the normals with velocities to set up the right-hand-side
+            # of the system.
+            flattened_normals = numpy.zeros((self.tot_panels, 3))
+            i = 0
+            for surface in self.surfaces:
+                name = surface['name']
+                num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
+                flattened_normals[i:i+num_panels, :] = params[name+'normals'].reshape(-1, 3, order='F')
+                i += num_panels
+
+            AIC_mtxb = numpy.zeros((self.tot_panels, self.tot_panels, 3))
+            flattened_normalsb = numpy.zeros(flattened_normals.shape)
+            for ind in xrange(3):
+                AIC_mtxb[:, :, ind] = (dresids['AIC'].T * flattened_normals[:, ind]).T
+                flattened_normalsb[:, ind] += numpy.sum(self.AIC_mtx[:, :, ind].real * dresids['AIC'], axis=1).T
+
+            # Actually assemble the AIC matrix
+            _assemble_AIC_mtx_b(AIC_mtxb, params, dparams, dunknowns, dresids, self.surfaces)
+
+            # Obtain the freestream velocity direction and magnitude by taking
+            # alpha into account
+            alpha = params['alpha'] * numpy.pi / 180.
+            cosa = numpy.cos(alpha)
+            sina = numpy.sin(alpha)
+            arr = numpy.array([cosa, 0., sina])
+            v_inf = params['v'] * arr
+
+            fn = flattened_normals
+            fnb = numpy.zeros(fn.shape)
+            rhsb = dresids['rhs']
+
+            v_infb = 0.
+            for ind in reversed(range(self.tot_panels)):
+                fnb[ind, :] -= v_inf * rhsb[ind]
+                v_infb -= fn[ind, :] * rhsb[ind]
+
+            dparams['v'] += sum(arr * v_infb)
+            arrb = params['v'] * v_infb
+            alphab = numpy.cos(alpha) * arrb[2]
+            alphab -= numpy.sin(alpha) * arrb[0]
+            alphab *= numpy.pi / 180.
+
+            dparams['alpha'] += alphab
+
+            i = 0
+            for surface in self.surfaces:
+                name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+                num_panels = (nx - 1) * (ny - 1)
+                dparams[name+'normals'] += flattened_normalsb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
+                dparams[name+'normals'] += fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
+                i += num_panels
 
 class AeroCirculations(Component):
     """
@@ -750,6 +871,7 @@ class AeroCirculations(Component):
         self.lup = lu_factor(params['AIC'])
 
         unknowns['circulations'] = lu_solve(self.lup, params['rhs'])
+
         resids['circulations'] = params['AIC'].dot(unknowns['circulations']) - params['rhs']
 
     def apply_nonlinear(self, params, unknowns, resids):
@@ -909,7 +1031,7 @@ class VLMForces(Component):
 
         jac = self.alloc_jacobian()
 
-        cs_jac = self.complex_step_jacobian(params, unknowns, resids,
+        cs_jac = self.fd_jacobian(params, unknowns, resids,
                                          fd_params=['alpha', 'circulations', 'v'],
                                          fd_states=[])
         jac.update(cs_jac)
@@ -919,7 +1041,7 @@ class VLMForces(Component):
         for surface in self.surfaces:
             name = surface['name']
 
-            cs_jac = self.complex_step_jacobian(params, unknowns, resids,
+            cs_jac = self.fd_jacobian(params, unknowns, resids,
                                              fd_params=[name+'b_pts',
                                                 name+'def_mesh'],
                                              fd_states=[])

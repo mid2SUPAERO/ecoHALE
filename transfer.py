@@ -9,7 +9,7 @@ try:
 except:
     fortran_flag = False
 
-print('Fortran = ', fortran_flag)
+print('Fortran =', fortran_flag)
 
 from openmdao.api import Component
 
