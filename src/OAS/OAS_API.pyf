@@ -5,6 +5,48 @@ python module OAS_API ! in
     interface  ! in :OAS_API
         module oas_api ! in :OAS_API:OAS_API.F90
             use oas_main
+            subroutine forcecalc(v,circ,rho,bpts,nx,ny,num_panels,sec_forces) ! in :OAS_API:OAS_API.F90:oas_api
+                real(kind=8) dimension(num_panels,3),intent(in) :: v
+                real(kind=8) dimension(num_panels),intent(in),depend(num_panels) :: circ
+                real(kind=8) intent(in) :: rho
+                real(kind=8) dimension(nx - 1,ny,3),intent(in) :: bpts
+                integer, optional,intent(in),check((shape(bpts,0)+1)==nx),depend(bpts) :: nx=(shape(bpts,0)+1)
+                integer, optional,intent(in),check(shape(bpts,1)==ny),depend(bpts) :: ny=shape(bpts,1)
+                integer, optional,intent(in),check(shape(v,0)==num_panels),depend(v) :: num_panels=shape(v,0)
+                real(kind=8) dimension(num_panels,3),intent(out),depend(num_panels) :: sec_forces
+            end subroutine forcecalc
+            subroutine forcecalc_d(v,vd,circ,circd,rho,rhod,bpts,bptsd,nx,ny,num_panels,sec_forces,sec_forcesd) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_d, only: forcecalc_main_d
+                real(kind=8) dimension(num_panels,3),intent(in) :: v
+                real(kind=8) dimension(num_panels,3),intent(in),depend(num_panels) :: vd
+                real(kind=8) dimension(num_panels),intent(in),depend(num_panels) :: circ
+                real(kind=8) dimension(num_panels),intent(in),depend(num_panels) :: circd
+                real(kind=8) intent(in) :: rho
+                real(kind=8) intent(in) :: rhod
+                real(kind=8) dimension(nx - 1,ny,3),intent(in) :: bpts
+                real(kind=8) dimension(nx - 1,ny,3),intent(in),depend(nx,ny) :: bptsd
+                integer, optional,intent(in),check((shape(bpts,0)+1)==nx),depend(bpts) :: nx=(shape(bpts,0)+1)
+                integer, optional,intent(in),check(shape(bpts,1)==ny),depend(bpts) :: ny=shape(bpts,1)
+                integer, optional,intent(in),check(shape(v,0)==num_panels),depend(v) :: num_panels=shape(v,0)
+                real(kind=8) dimension(num_panels,3),intent(out),depend(num_panels) :: sec_forces
+                real(kind=8) dimension(num_panels,3),intent(out),depend(num_panels) :: sec_forcesd
+            end subroutine forcecalc_d
+            subroutine forcecalc_b(v,vb,circ,circb,rho,rhob,bpts,bptsb,nx,ny,num_panels,sec_forces,sec_forcesb) ! in :OAS_API:OAS_API.F90:oas_api
+                use oas_main_b, only: forcecalc_main_b
+                real(kind=8) dimension(num_panels,3),intent(in) :: v
+                real(kind=8) dimension(num_panels,3),intent(out),depend(num_panels) :: vb
+                real(kind=8) dimension(num_panels),intent(in),depend(num_panels) :: circ
+                real(kind=8) dimension(num_panels),intent(out),depend(num_panels) :: circb
+                real(kind=8) intent(in) :: rho
+                real(kind=8) intent(out) :: rhob
+                real(kind=8) dimension(nx - 1,ny,3),intent(in) :: bpts
+                real(kind=8) dimension(nx - 1,ny,3),intent(out),depend(nx,ny) :: bptsb
+                integer, optional,intent(in),check((shape(bpts,0)+1)==nx),depend(bpts) :: nx=(shape(bpts,0)+1)
+                integer, optional,intent(in),check(shape(bpts,1)==ny),depend(bpts) :: ny=shape(bpts,1)
+                integer, optional,intent(in),check(shape(v,0)==num_panels),depend(v) :: num_panels=shape(v,0)
+                real(kind=8) dimension(num_panels,3),intent(out),depend(num_panels) :: sec_forces
+                real(kind=8) dimension(num_panels,3),intent(in),depend(num_panels) :: sec_forcesb
+            end subroutine forcecalc_b
             subroutine assemblestructmtx(n,tot_n_fem,nodes,a,j,iy,iz,k_a,k_t,k_y,k_z,cons,e,g,x_gl,t,k_elem,pelem_a,pelem_t,pelem_y,pelem_z,t_elem,const2,const_y,const_z,k) ! in :OAS_API:OAS_API.F90:oas_api
                 integer, optional,intent(in),check((len(a)+1)>=n),depend(a) :: n=(len(a)+1)
                 integer, optional,intent(in),check(shape(nodes,0)==tot_n_fem),depend(nodes) :: tot_n_fem=shape(nodes,0)

@@ -5,6 +5,54 @@ module oas_api
 
 contains
 
+  subroutine forcecalc(v, circ, rho, bpts, nx, ny, num_panels, sec_forces)
+
+    implicit none
+
+    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho, bpts(nx-1, ny, 3)
+    integer, intent(in) :: nx, ny, num_panels
+
+    real(kind=8), intent(out) :: sec_forces(num_panels, 3)
+
+    call forcecalc_main(v, circ, rho, bpts, nx, ny, num_panels, sec_forces)
+
+  end subroutine
+
+  subroutine forcecalc_d(v, vd, circ, circd, rho, rhod, bpts, bptsd, &
+    nx, ny, num_panels, sec_forces, sec_forcesd)
+
+    use oas_main_d, only: forcecalc_main_d
+    implicit none
+
+    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho, bpts(nx-1, ny, 3)
+    real(kind=8), intent(in) :: vd(num_panels, 3), circd(num_panels), rhod, bptsd(nx-1, ny, 3)
+    integer, intent(in) :: nx, ny, num_panels
+
+    real(kind=8), intent(out) :: sec_forces(num_panels, 3), sec_forcesd(num_panels, 3)
+
+    call forcecalc_main_d(v, vd, circ, circd, rho, rhod, bpts, bptsd, &
+      nx, ny, num_panels, sec_forces, sec_forcesd)
+
+  end subroutine
+
+  subroutine forcecalc_b(v, vb, circ, circb, rho, rhob, bpts, bptsb, &
+    nx, ny, num_panels, sec_forces, sec_forcesb)
+
+    use oas_main_b, only: forcecalc_main_b
+    implicit none
+
+    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho, bpts(nx-1, ny, 3)
+    real(kind=8), intent(in) :: sec_forcesb(num_panels, 3)
+    integer, intent(in) :: nx, ny, num_panels
+
+    real(kind=8), intent(out) :: sec_forces(num_panels, 3)
+    real(kind=8), intent(out) :: vb(num_panels, 3), circb(num_panels), rhob, bptsb(nx-1, ny, 3)
+
+    call forcecalc_main_b(v, vb, circ, circb, rho, rhob, bpts, bptsb, &
+      nx, ny, num_panels, sec_forces, sec_forcesb)
+
+  end subroutine
+
   subroutine assemblestructmtx(n, tot_n_fem, nodes, A, J, Iy, Iz, &
     K_a, K_t, K_y, K_z, &
     cons, E, G, x_gl, T, &

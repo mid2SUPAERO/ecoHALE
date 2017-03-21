@@ -1013,6 +1013,71 @@ contains
     if (rev) tmp = -tmp
     out = out + tmp
   end subroutine biotsavart
+!  differentiation of forcecalc_main in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: sec_forces
+!   with respect to varying inputs: v circ bpts rho
+!   rw status of diff variables: v:in circ:in bpts:in sec_forces:out
+!                rho:in
+  subroutine forcecalc_main_d(v, vd, circ, circd, rho, rhod, bpts, bptsd&
+&   , nx, ny, num_panels, sec_forces, sec_forcesd)
+    implicit none
+    integer, intent(in) :: nx, ny, num_panels
+    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho&
+&   , bpts(nx-1, ny, 3)
+    real(kind=8), intent(in) :: vd(num_panels, 3), circd(num_panels), &
+&   rhod, bptsd(nx-1, ny, 3)
+    real(kind=8), intent(out) :: sec_forces(num_panels, 3)
+    real(kind=8), intent(out) :: sec_forcesd(num_panels, 3)
+    real(kind=8) :: bound(num_panels, 3), v_cross_bound(num_panels, 3), &
+&   tmp(3)
+    real(kind=8) :: boundd(num_panels, 3), v_cross_boundd(num_panels, 3)&
+&   , tmpd(3)
+    integer :: i, j, k
+    boundd = 0.0_8
+    do j=1,ny-1
+      do i=1,nx-1
+        boundd((j-1)*(nx-1)+i, :) = bptsd(i, j+1, :) - bptsd(i, j, :)
+        bound((j-1)*(nx-1)+i, :) = bpts(i, j+1, :) - bpts(i, j, :)
+      end do
+    end do
+    v_cross_boundd = 0.0_8
+    tmpd = 0.0_8
+    do i=1,num_panels
+      call cross_d(v(i, :), vd(i, :), bound(i, :), boundd(i, :), tmp, &
+&            tmpd)
+      v_cross_boundd(i, :) = tmpd
+      v_cross_bound(i, :) = tmp
+    end do
+    sec_forcesd = 0.0_8
+    do i=1,3
+      sec_forcesd(:, i) = (rhod*circ+rho*circd)*v_cross_bound(:, i) + &
+&       rho*circ*v_cross_boundd(:, i)
+      sec_forces(:, i) = rho*circ*v_cross_bound(:, i)
+    end do
+  end subroutine forcecalc_main_d
+  subroutine forcecalc_main(v, circ, rho, bpts, nx, ny, num_panels, &
+&   sec_forces)
+    implicit none
+    integer, intent(in) :: nx, ny, num_panels
+    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho&
+&   , bpts(nx-1, ny, 3)
+    real(kind=8), intent(out) :: sec_forces(num_panels, 3)
+    real(kind=8) :: bound(num_panels, 3), v_cross_bound(num_panels, 3), &
+&   tmp(3)
+    integer :: i, j, k
+    do j=1,ny-1
+      do i=1,nx-1
+        bound((j-1)*(nx-1)+i, :) = bpts(i, j+1, :) - bpts(i, j, :)
+      end do
+    end do
+    do i=1,num_panels
+      call cross(v(i, :), bound(i, :), tmp)
+      v_cross_bound(i, :) = tmp
+    end do
+    do i=1,3
+      sec_forces(:, i) = rho*circ*v_cross_bound(:, i)
+    end do
+  end subroutine forcecalc_main
 !  differentiation of unit in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: u
 !   with respect to varying inputs: u v

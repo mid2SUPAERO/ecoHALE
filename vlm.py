@@ -465,7 +465,8 @@ def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, ski
             dparams[name_+'b_pts'] += bptsb.real
 
             if skip:
-                dparams[name+'b_pts'] += ptsb.real
+                dparams[name+'b_pts'][:, 1:, :] += ptsb.real / 2
+                dparams[name+'b_pts'][:, :-1, :] += ptsb.real / 2
             else:
                 dparams[name+'c_pts'] += ptsb.real
             dparams['alpha'] += alphab
@@ -970,6 +971,8 @@ class VLMForces(Component):
             self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3), dtype='complex'))
             self.add_output(name+'sec_forces', val=numpy.zeros((nx-1, ny-1, 3), dtype='complex'))
 
+        self.tot_panels = tot_panels
+
         self.add_param('circulations', val=numpy.zeros((tot_panels)))
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
@@ -982,6 +985,7 @@ class VLMForces(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
         alpha = params['alpha'] * numpy.pi / 180.
+        rho = params['rho']
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
 
@@ -1010,47 +1014,111 @@ class VLMForces(Component):
 
             b_pts = params[name+'b_pts']
 
-            bound = b_pts[:, 1:, :] - b_pts[:, :-1, :]
+            sec_forces = OAS_API.oas_api.forcecalc(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
 
-            # Cross the obtained velocities with the bound vortex filament
-            # vectors
-            cross = numpy.cross(self.v[i:i+num_panels],
-                                bound.reshape(-1, bound.shape[-1], order='F'))
-
-            sec_forces = numpy.zeros(((nx-1)*(ny-1), 3), dtype='complex')
-            # Compute the sectional forces acting on each panel
-            for ind in xrange(3):
-                sec_forces[:, ind] = \
-                    (params['rho'] * circ[i:i+num_panels] * cross[:, ind])
             unknowns[name+'sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
 
             i += num_panels
 
-    def linearize(self, params, unknowns, resids):
-        """ Jacobian for forces."""
+    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
-        jac = self.alloc_jacobian()
+        if mode == 'fwd':
 
-        cs_jac = self.fd_jacobian(params, unknowns, resids,
-                                         fd_params=['alpha', 'circulations', 'v'],
-                                         fd_states=[])
-        jac.update(cs_jac)
+            circ = params['circulations']
+            alpha = params['alpha'] * numpy.pi / 180.
+            alphad = dparams['alpha'] * numpy.pi / 180.
+            cosa = numpy.cos(alpha)
+            sina = numpy.sin(alpha)
+            cosad = -sina * alphad
+            sinad = cosa * alphad
+            rho = params['rho']
 
-        rho = params['rho'].real
+            mtxd = numpy.zeros(self.mtx.shape)
 
-        for surface in self.surfaces:
-            name = surface['name']
+            # Actually assemble the AIC matrix
+            _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, self.surfaces, skip=True)
 
-            cs_jac = self.fd_jacobian(params, unknowns, resids,
-                                             fd_params=[name+'b_pts',
-                                                name+'def_mesh'],
-                                             fd_states=[])
-            jac.update(cs_jac)
+            vd = numpy.zeros(self.v.shape)
 
-            sec_forces = unknowns[name+'sec_forces'].real
-            jac[name+'sec_forces', 'rho'] = sec_forces.flatten() / rho
+            # Compute the induced velocities at the midpoints of the
+            # bound vortex filaments
+            for ind in xrange(3):
+                vd[:, ind] += mtxd[:, :, ind].dot(circ)
+                vd[:, ind] += self.mtx[:, :, ind].real.dot(dparams['circulations'])
 
-        return jac
+            # Add the freestream velocity to the induced velocity so that
+            # self.v is the total velocity seen at the point
+            vd[:, 0] += cosa * dparams['v']
+            vd[:, 2] += sina * dparams['v']
+            vd[:, 0] += cosad * params['v']
+            vd[:, 2] += sinad * params['v']
+
+            i = 0
+            rho = params['rho'].real
+            for surface in self.surfaces:
+                name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+
+                num_panels = (nx - 1) * (ny - 1)
+
+                b_pts = params[name+'b_pts']
+
+                sec_forces = unknowns[name+'sec_forces'].real
+
+                sec_forces, sec_forcesd = OAS_API.oas_api.forcecalc_d(self.v[i:i+num_panels, :], vd[i:i+num_panels], circ[i:i+num_panels], dparams['circulations'][i:i+num_panels], rho, dparams['rho'], b_pts, dparams[name+'b_pts'])
+
+                dresids[name+'sec_forces'] += sec_forcesd.reshape((nx-1, ny-1, 3), order='F')
+
+                i += num_panels
+
+        if mode == 'rev':
+
+            circ = params['circulations']
+            alpha = params['alpha'] * numpy.pi / 180.
+            cosa = numpy.cos(alpha)
+            sina = numpy.sin(alpha)
+
+            i = 0
+            rho = params['rho'].real
+            vb = numpy.zeros(self.v.shape)
+            for surface in self.surfaces:
+                name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+                num_panels = (nx - 1) * (ny - 1)
+
+                b_pts = params[name+'b_pts']
+                sec_forcesb = dresids[name+'sec_forces'].reshape((num_panels, 3), order='F')
+
+                sec_forces = unknowns[name+'sec_forces'].real
+
+                v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts, sec_forcesb)
+
+                dparams['circulations'][i:i+num_panels] += circb
+                vb[i:i+num_panels] = v_b
+                dparams['rho'] += rhob
+                dparams[name+'b_pts'] += bptsb
+
+                i += num_panels
+
+            sinab = params['v'] * numpy.sum(vb[:, 2])
+            dparams['v'] += cosa * numpy.sum(vb[:, 0]) + sina * numpy.sum(vb[:, 2])
+            cosab = params['v'] * numpy.sum(vb[:, 0])
+            ab = numpy.cos(alpha) * sinab - numpy.sin(alpha) * cosab
+            dparams['alpha'] += numpy.pi * ab / 180.
+
+            mtxb = numpy.zeros(self.mtx.shape)
+            circb = numpy.zeros(circ.shape)
+            for i in range(3):
+                for j in range(self.tot_panels):
+                    mtxb[j, :, i] += circ * vb[j, i]
+                    circb += self.mtx[j, :, i].real * vb[j, i]
+
+            dparams['circulations'] += circb
+
+            _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, self.surfaces, skip=True)
+
 
 class VLMLiftDrag(Component):
     """

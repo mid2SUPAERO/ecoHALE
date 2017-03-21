@@ -497,6 +497,35 @@ contains
 
   end subroutine biotsavart
 
+  subroutine forcecalc_main(v, circ, rho, bpts, nx, ny, num_panels, sec_forces)
+
+    implicit none
+
+    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho, bpts(nx-1, ny, 3)
+    integer, intent(in) :: nx, ny, num_panels
+
+    real(kind=8), intent(out) :: sec_forces(num_panels, 3)
+
+    real(kind=8) :: bound(num_panels, 3), v_cross_bound(num_panels, 3), tmp(3)
+    integer :: i, j, k
+
+    do j=1,ny-1
+      do i=1,nx-1
+        bound((j-1)*(nx-1) + i, :) = bpts(i, j+1, :) - bpts(i, j, :)
+      end do
+    end do
+
+    do i=1,num_panels
+      call cross(v(i, :), bound(i, :), tmp)
+      v_cross_bound(i, :) = tmp
+    end do
+
+    do i=1,3
+      sec_forces(:, i) = rho * circ * v_cross_bound(:, i)
+    end do
+
+  end subroutine
+
 
 ! REAL FUNCTIONS
 

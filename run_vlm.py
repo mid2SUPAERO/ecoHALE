@@ -47,7 +47,7 @@ if __name__ == "__main__":
     OAS_prob = OASProblem(prob_dict)
     OAS_prob.add_surface({'name' : 'wing',
                           'symmetry' : True,
-                          'num_y' : 11,
+                          'num_y' : 5,
                           'num_x' : 3})
 
     # Single lifting surface

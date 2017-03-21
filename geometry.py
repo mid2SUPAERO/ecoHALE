@@ -53,7 +53,7 @@ def rotate(mesh, thetas):
         row = mesh[ix]
         row[:] = numpy.einsum("ikj, ij -> ik", mats, row - quarter_chord)
         row += quarter_chord
-    return mesh
+
 
 def scale_x(mesh, chord_dist):
     te = mesh[-1]
@@ -66,8 +66,6 @@ def scale_x(mesh, chord_dist):
     for i in range(ny):
         mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_dist[i] + \
             quarter_chord[i, 0]
-
-    return mesh
 
 
 def sweep(mesh, angle, symmetry):
@@ -109,9 +107,6 @@ def sweep(mesh, angle, symmetry):
     for i in xrange(num_x):
         mesh[i, :, 0] += dx
 
-    return mesh
-
-
 def dihedral(mesh, angle, symmetry):
     """ Apply dihedral angle. Positive angles up.
 
@@ -150,8 +145,6 @@ def dihedral(mesh, angle, symmetry):
     for i in xrange(num_x):
         mesh[i, :, 2] += dx
 
-    return mesh
-
 
 def stretch(mesh, length):
     """ Stretch mesh in spanwise direction to reach specified length.
@@ -179,8 +172,6 @@ def stretch(mesh, length):
 
     for i in xrange(num_x):
         mesh[i, 1:, 1] += dy
-
-    return mesh
 
 
 def taper(mesh, taper_ratio, symmetry):
@@ -232,7 +223,61 @@ def taper(mesh, taper_ratio, symmetry):
                 mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
                     dx + center_chord[:, ind]
 
-    return mesh
+
+class GeometryMesh(Component):
+    """
+    OpenMDAO component that performs mesh manipulation functions.
+
+    """
+
+    def __init__(self, surface):
+        super(GeometryMesh, self).__init__()
+
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
+        self.n = self.nx * self.ny
+        self.mesh = surface['mesh']
+
+        self.add_param('span', val=58.7630524)
+        self.add_param('sweep', val=0.)
+        self.add_param('dihedral', val=0.)
+        self.add_param('twist', val=numpy.zeros(self.ny), dtype='complex')
+        self.add_param('chord_dist', val=numpy.zeros(self.ny), dtype='complex')
+        self.add_param('taper', val=1.)
+        self.add_output('mesh', val=self.mesh)
+
+        self.symmetry = surface['symmetry']
+
+        self.deriv_options['type'] = 'cs'
+        # self.deriv_options['form'] = 'central'
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        mesh = self.mesh.copy()
+        # stretch(mesh, params['span'])
+        sweep(mesh, params['sweep'], self.symmetry)
+        scale_x(mesh, params['chord_dist'])
+        rotate(mesh, params['twist'])
+        dihedral(mesh, params['dihedral'], self.symmetry)
+        taper(mesh, params['taper'], self.symmetry)
+
+        unknowns['mesh'] = mesh
+
+    def linearize(self, params, unknowns, resids):
+
+        jac = self.alloc_jacobian()
+
+        # This fails for some reason when running structures only cases,
+        # maybe because we don't actually have these design variables
+        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                            fd_params=['span', 'sweep', 'dihedral',
+                                            'twist', 'taper', 'chord_dist'],
+                                            fd_states=[])
+        jac.update(fd_jac)
+
+        # view_mat(jac['mesh', 'taper'])
+        # exit()
+
+        return jac
 
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
@@ -526,66 +571,6 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
             mesh[ind_x, ind_y, :] = [full_wing_x[ind_x], full_wing[ind_y], 0]
 
     return mesh
-
-
-class GeometryMesh(Component):
-    """
-    OpenMDAO component that performs mesh manipulation functions.
-
-    """
-
-    def __init__(self, surface):
-        super(GeometryMesh, self).__init__()
-
-        self.surface = surface
-
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
-        self.n = self.nx * self.ny
-        self.mesh = surface['mesh']
-        name = surface['name']
-
-        self.add_param('span', val=58.7630524)
-        self.add_param('sweep', val=0.)
-        self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=numpy.zeros(self.ny), dtype='complex')
-        self.add_param('chord_dist', val=numpy.zeros(self.ny), dtype='complex')
-        self.add_param('taper', val=1.)
-        self.add_output('mesh', val=self.mesh)
-
-        self.symmetry = surface['symmetry']
-
-        self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        name = self.surface['name']
-        mesh = self.mesh.copy()
-        # stretch(mesh, params['span'])
-        sweep(mesh, params['sweep'], self.symmetry)
-        rotate(mesh, params['twist'])
-        dihedral(mesh, params['dihedral'], self.symmetry)
-        taper(mesh, params['taper'], self.symmetry)
-        scale_x(mesh, params['chord_dist'])
-
-        unknowns['mesh'] = mesh
-
-    def linearize(self, params, unknowns, resids):
-
-        jac = self.alloc_jacobian()
-
-        # This fails for some reason when running structures only cases,
-        # maybe because we don't actually have these design variables
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['span', 'sweep', 'dihedral',
-                                            'twist', 'taper', 'scale'],
-                                            fd_states=[])
-        jac.update(fd_jac)
-
-        # view_mat(jac['taper', 'mesh'])
-        # exit()
-
-        return jac
 
 
 class Bspline(Component):
