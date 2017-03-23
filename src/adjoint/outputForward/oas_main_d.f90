@@ -5,6 +5,343 @@ module oas_main_d
   implicit none
 
 contains
+!  differentiation of manipulate_mesh_main in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: mesh
+!   with respect to varying inputs: chord_dist taper sweep dihedral
+!                twist
+!   rw status of diff variables: chord_dist:in taper:in sweep:in
+!                mesh:out dihedral:in twist:in
+  subroutine manipulate_mesh_main_d(nx, ny, input_mesh, sweep, sweepd, &
+&   twist, twistd, chord_dist, chord_distd, dihedral, dihedrald, taper, &
+&   taperd, symmetry, mesh, meshd)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8), intent(in) :: sweepd, twistd(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    real(kind=8), intent(in) :: dihedrald, taperd, chord_distd(ny)
+    logical, intent(in) :: symmetry
+    real(kind=8), intent(out) :: mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: meshd(nx, ny, 3)
+    real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, &
+&   tan_theta
+    real(kind=8) :: led(ny, 3), ted(ny, 3), quarter_chordd(ny, 3), &
+&   tan_thetad
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: dxd(ny), y0d, rad_twistd(ny), rotation_matrixd(ny, 3&
+&   , 3)
+    real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
+&   ny+1)/2)
+    real(kind=8) :: rowd(ny, 3), outd(3), taper_linsd(ny), &
+&   taper_lins_symd((ny+1)/2)
+    real(kind=8) :: center_chord(ny, 3), one
+    real(kind=8) :: center_chordd(ny, 3)
+    integer :: ny2, ix, iy, ind
+    intrinsic tan
+    intrinsic cos
+    intrinsic sin
+    p180 = 3.14159265358979323846264338/180.
+    mesh = input_mesh
+    one = 1.
+! sweep first
+    le = mesh(1, :, :)
+    tan_thetad = p180*sweepd*(1.0+tan(p180*sweep)**2)
+    tan_theta = tan(p180*sweep)
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dxd = -((le(:, 2)-y0)*tan_thetad)
+      dx = -((le(:, 2)-y0)*tan_theta)
+      meshd = 0.0_8
+    else
+      ny2 = (ny-1)/2
+      y0 = le(ny2+1, 2)
+      dxd = 0.0_8
+      dxd(:ny2) = -((le(:ny2, 2)-y0)*tan_thetad)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dxd(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_thetad
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+      meshd = 0.0_8
+    end if
+    do ix=1,nx
+      meshd(ix, :, 1) = meshd(ix, :, 1) + dxd
+      mesh(ix, :, 1) = mesh(ix, :, 1) + dx
+    end do
+! rotate
+    led = meshd(1, :, :)
+    le = mesh(1, :, :)
+    ted = meshd(nx, :, :)
+    te = mesh(nx, :, :)
+    quarter_chordd = 0.25*ted + 0.75*led
+    quarter_chord = 0.25*te + 0.75*le
+    rad_twistd = p180*twistd
+    rad_twist = twist*p180
+    rotation_matrix(:, :, :) = 0.
+    rotation_matrixd = 0.0_8
+    rotation_matrixd(:, 1, 1) = -(rad_twistd*sin(rad_twist))
+    rotation_matrix(:, 1, 1) = cos(rad_twist)
+    rotation_matrixd(:, 1, 3) = rad_twistd*cos(rad_twist)
+    rotation_matrix(:, 1, 3) = sin(rad_twist)
+    rotation_matrixd(:, 2, 2) = 0.0_8
+    rotation_matrix(:, 2, 2) = 1.
+    rotation_matrixd(:, 3, 1) = -(rad_twistd*cos(rad_twist))
+    rotation_matrix(:, 3, 1) = -sin(rad_twist)
+    rotation_matrixd(:, 3, 3) = -(rad_twistd*sin(rad_twist))
+    rotation_matrix(:, 3, 3) = cos(rad_twist)
+    do ix=1,nx
+      rowd = meshd(ix, :, :)
+      row = mesh(ix, :, :)
+      do iy=1,ny
+        call matmul2_d(3, 3, 1, rotation_matrix(iy, :, :), &
+&                rotation_matrixd(iy, :, :), row(iy, :) - quarter_chord(&
+&                iy, :), rowd(iy, :) - quarter_chordd(iy, :), out, outd)
+        meshd(ix, iy, :) = outd
+        mesh(ix, iy, :) = out
+      end do
+      meshd(ix, :, :) = meshd(ix, :, :) + quarter_chordd
+      mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
+    end do
+! scale x
+    led = meshd(1, :, :)
+    le = mesh(1, :, :)
+    ted = meshd(nx, :, :)
+    te = mesh(nx, :, :)
+    quarter_chordd = 0.25*ted + 0.75*led
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      meshd(:, iy, 1) = (meshd(:, iy, 1)-quarter_chordd(iy, 1))*&
+&       chord_dist(iy) + (mesh(:, iy, 1)-quarter_chord(iy, 1))*&
+&       chord_distd(iy) + quarter_chordd(iy, 1)
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
+! dihedral
+    led = meshd(1, :, :)
+    le = mesh(1, :, :)
+    tan_thetad = p180*dihedrald*(1.0+tan(p180*dihedral)**2)
+    tan_theta = tan(p180*dihedral)
+    if (symmetry) then
+      y0d = led(ny, 2)
+      y0 = le(ny, 2)
+      dxd = -((led(:, 2)-y0d)*tan_theta+(le(:, 2)-y0)*tan_thetad)
+      dx = -((le(:, 2)-y0)*tan_theta)
+    else
+      ny2 = (ny-1)/2
+      y0d = led(ny2+1, 2)
+      y0 = le(ny2+1, 2)
+      dxd(:ny2) = -((led(:ny2, 2)-y0d)*tan_theta+(le(:ny2, 2)-y0)*&
+&       tan_thetad)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dxd(ny2+1:) = (led(ny2+1:, 2)-y0d)*tan_theta + (le(ny2+1:, 2)-y0)*&
+&       tan_thetad
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+    end if
+    do ix=1,nx
+      meshd(ix, :, 3) = meshd(ix, :, 3) + dxd
+      mesh(ix, :, 3) = mesh(ix, :, 3) + dx
+    end do
+! taper
+    led = meshd(1, :, :)
+    le = mesh(1, :, :)
+    ted = meshd(nx, :, :)
+    te = mesh(nx, :, :)
+    center_chordd = 0.5*ted + 0.5*led
+    center_chord = 0.5*te + 0.5*le
+    if (symmetry) then
+      call linspace_d(one, taper, taperd, ny, taper_lins, taper_linsd)
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            meshd(ix, iy, ind) = (meshd(ix, iy, ind)-center_chordd(iy, &
+&             ind))*taper_lins(ny-iy+1) + (mesh(ix, iy, ind)-&
+&             center_chord(iy, ind))*taper_linsd(ny-iy+1) + &
+&             center_chordd(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
+&             )*taper_lins(ny-iy+1) + center_chord(iy, ind)
+          end do
+        end do
+      end do
+    else
+      ny2 = (ny+1)/2
+      call linspace_d(one, taper, taperd, ny2, taper_lins_sym, &
+&               taper_lins_symd)
+      dxd(ny2:) = taper_lins_symd
+      dx(ny2:) = taper_lins_sym
+      do iy=1,ny2
+        dxd(iy) = taper_lins_symd(ny2-iy+1)
+        dx(iy) = taper_lins_sym(ny2-iy+1)
+      end do
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            meshd(ix, iy, ind) = (meshd(ix, iy, ind)-center_chordd(iy, &
+&             ind))*dx(ny-iy+1) + (mesh(ix, iy, ind)-center_chord(iy, &
+&             ind))*dxd(ny-iy+1) + center_chordd(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
+&             )*dx(ny-iy+1) + center_chord(iy, ind)
+          end do
+        end do
+      end do
+    end if
+  end subroutine manipulate_mesh_main_d
+  subroutine manipulate_mesh_main(nx, ny, input_mesh, sweep, twist, &
+&   chord_dist, dihedral, taper, symmetry, mesh)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    logical, intent(in) :: symmetry
+    real(kind=8), intent(out) :: mesh(nx, ny, 3)
+    real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, &
+&   tan_theta
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
+&   ny+1)/2)
+    real(kind=8) :: center_chord(ny, 3), one
+    integer :: ny2, ix, iy, ind
+    intrinsic tan
+    intrinsic cos
+    intrinsic sin
+    p180 = 3.14159265358979323846264338/180.
+    mesh = input_mesh
+    one = 1.
+! sweep first
+    le = mesh(1, :, :)
+    tan_theta = tan(p180*sweep)
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -((le(:, 2)-y0)*tan_theta)
+    else
+      ny2 = (ny-1)/2
+      y0 = le(ny2+1, 2)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+    end if
+    do ix=1,nx
+      mesh(ix, :, 1) = mesh(ix, :, 1) + dx
+    end do
+! rotate
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    rad_twist = twist*p180
+    rotation_matrix(:, :, :) = 0.
+    rotation_matrix(:, 1, 1) = cos(rad_twist)
+    rotation_matrix(:, 1, 3) = sin(rad_twist)
+    rotation_matrix(:, 2, 2) = 1.
+    rotation_matrix(:, 3, 1) = -sin(rad_twist)
+    rotation_matrix(:, 3, 3) = cos(rad_twist)
+    do ix=1,nx
+      row = mesh(ix, :, :)
+      do iy=1,ny
+        call matmul2(3, 3, 1, rotation_matrix(iy, :, :), row(iy, :) - &
+&              quarter_chord(iy, :), out)
+        mesh(ix, iy, :) = out
+      end do
+      mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
+    end do
+! scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
+! dihedral
+    le = mesh(1, :, :)
+    tan_theta = tan(p180*dihedral)
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -((le(:, 2)-y0)*tan_theta)
+    else
+      ny2 = (ny-1)/2
+      y0 = le(ny2+1, 2)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+    end if
+    do ix=1,nx
+      mesh(ix, :, 3) = mesh(ix, :, 3) + dx
+    end do
+! taper
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    center_chord = 0.5*te + 0.5*le
+    if (symmetry) then
+      call linspace(one, taper, ny, taper_lins)
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
+&             )*taper_lins(ny-iy+1) + center_chord(iy, ind)
+          end do
+        end do
+      end do
+    else
+      ny2 = (ny+1)/2
+      call linspace(one, taper, ny2, taper_lins_sym)
+      dx(ny2:) = taper_lins_sym
+      do iy=1,ny2
+        dx(iy) = taper_lins_sym(ny2-iy+1)
+      end do
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
+&             )*dx(ny-iy+1) + center_chord(iy, ind)
+          end do
+        end do
+      end do
+    end if
+  end subroutine manipulate_mesh_main
+!  differentiation of linspace in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: z
+!   with respect to varying inputs: k
+  subroutine linspace_d(l, k, kd, n, z, zd)
+    implicit none
+!// argument declarations
+    integer, intent(in) :: n
+    real(kind=8), dimension(n), intent(out) :: z
+    real(kind=8), dimension(n), intent(out) :: zd
+    real(kind=8), intent(in) :: l
+    real(kind=8), intent(in) :: k
+    real(kind=8), intent(in) :: kd
+!// local variables
+    integer :: i
+    real(kind=8) :: d
+    real(kind=8) :: dd
+    dd = kd/(n-1)
+    d = (k-l)/(n-1)
+    z(1) = l
+    zd = 0.0_8
+    do i=2,n-1
+      zd(i) = zd(i-1) + dd
+      z(i) = z(i-1) + d
+    end do
+    zd(1) = 0.0_8
+    z(1) = l
+    zd(n) = kd
+    z(n) = k
+    return
+  end subroutine linspace_d
+  subroutine linspace(l, k, n, z)
+    implicit none
+!// argument declarations
+    integer, intent(in) :: n
+    real(kind=8), dimension(n), intent(out) :: z
+    real(kind=8), intent(in) :: l
+    real(kind=8), intent(in) :: k
+!// local variables
+    integer :: i
+    real(kind=8) :: d
+    d = (k-l)/(n-1)
+    z(1) = l
+    do i=2,n-1
+      z(i) = z(i-1) + d
+    end do
+    z(1) = l
+    z(n) = k
+    return
+  end subroutine linspace
 !  differentiation of calc_vonmises_main in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: vonmises
 !   with respect to varying inputs: r nodes disp
@@ -1078,6 +1415,79 @@ contains
       sec_forces(:, i) = rho*circ*v_cross_bound(:, i)
     end do
   end subroutine forcecalc_main
+!  differentiation of compute_normals_main in forward (tangent) mode (with options i4 dr8 r8):
+!   variations   of useful results: s_ref normals
+!   with respect to varying inputs: mesh
+!   rw status of diff variables: s_ref:out mesh:in normals:out
+  subroutine compute_normals_main_d(nx, ny, mesh, meshd, normals, &
+&   normalsd, s_ref, s_refd)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3)
+    real(kind=8), intent(in) :: meshd(nx, ny, 3)
+    real(kind=8), intent(out) :: normals(nx-1, ny-1, 3), s_ref
+    real(kind=8), intent(out) :: normalsd(nx-1, ny-1, 3), s_refd
+    integer :: i, j
+    real(kind=8) :: norms(nx, ny), out(3)
+    real(kind=8) :: normsd(nx, ny), outd(3)
+    intrinsic sum
+    intrinsic sqrt
+    real(kind=8), dimension(3) :: arg1
+    real(kind=8), dimension(3) :: arg1d
+    real(kind=8) :: arg2
+    real(kind=8) :: arg2d
+    normalsd = 0.0_8
+    outd = 0.0_8
+    normsd = 0.0_8
+    do i=1,nx-1
+      do j=1,ny-1
+        call cross_d(mesh(i, j+1, :) - mesh(i+1, j, :), meshd(i, j+1, :)&
+&              - meshd(i+1, j, :), mesh(i, j, :) - mesh(i+1, j+1, :), &
+&              meshd(i, j, :) - meshd(i+1, j+1, :), out, outd)
+        normalsd(i, j, :) = outd
+        normals(i, j, :) = out
+        arg1d(:) = 2*normals(i, j, :)*normalsd(i, j, :)
+        arg1(:) = normals(i, j, :)**2
+        arg2d = sum(arg1d(:))
+        arg2 = sum(arg1(:))
+        if (arg2 .eq. 0.0_8) then
+          normsd(i, j) = 0.0_8
+        else
+          normsd(i, j) = arg2d/(2.0*sqrt(arg2))
+        end if
+        norms(i, j) = sqrt(arg2)
+        normalsd(i, j, :) = (normalsd(i, j, :)*norms(i, j)-normals(i, j&
+&         , :)*normsd(i, j))/norms(i, j)**2
+        normals(i, j, :) = normals(i, j, :)/norms(i, j)
+      end do
+    end do
+    s_refd = 0.5*sum(normsd)
+    s_ref = 0.5*sum(norms)
+  end subroutine compute_normals_main_d
+  subroutine compute_normals_main(nx, ny, mesh, normals, s_ref)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: normals(nx-1, ny-1, 3), s_ref
+    integer :: i, j
+    real(kind=8) :: norms(nx, ny), out(3)
+    intrinsic sum
+    intrinsic sqrt
+    real(kind=8), dimension(3) :: arg1
+    real(kind=8) :: arg2
+    do i=1,nx-1
+      do j=1,ny-1
+        call cross(mesh(i, j+1, :) - mesh(i+1, j, :), mesh(i, j, :) - &
+&            mesh(i+1, j+1, :), out)
+        normals(i, j, :) = out
+        arg1(:) = normals(i, j, :)**2
+        arg2 = sum(arg1(:))
+        norms(i, j) = sqrt(arg2)
+        normals(i, j, :) = normals(i, j, :)/norms(i, j)
+      end do
+    end do
+    s_ref = 0.5*sum(norms)
+  end subroutine compute_normals_main
 !  differentiation of unit in forward (tangent) mode (with options i4 dr8 r8):
 !   variations   of useful results: u
 !   with respect to varying inputs: u v

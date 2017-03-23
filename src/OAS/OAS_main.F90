@@ -4,6 +4,166 @@ module oas_main
 
 contains
 
+  subroutine manipulate_mesh_main(nx, ny, input_mesh, sweep, twist,&
+    chord_dist, dihedral, taper, symmetry, mesh)
+
+    implicit none
+
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    logical, intent(in) :: symmetry
+
+    real(kind=8), intent(out) :: mesh(nx, ny, 3)
+
+    real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, tan_theta
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((ny+1)/2)
+    real(kind=8) :: center_chord(ny, 3), one
+    integer :: ny2, ix, iy, ind
+
+    p180 = 3.14159265358979323846264338 / 180.
+    mesh = input_mesh
+    one = 1.
+
+    ! Sweep first
+    le = mesh(1, :, :)
+    tan_theta = tan(p180 * sweep)
+
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -(le(:, 2) - y0) * tan_theta
+    else
+      ny2 = (ny - 1) / 2
+      y0 = le(ny2+1, 2)
+
+      dx(:ny2) = -(le(:ny2, 2) - y0) * tan_theta
+      dx(ny2+1:) = (le(ny2+1:, 2) - y0) * tan_theta
+    end if
+
+    do ix=1,nx
+      mesh(ix, :, 1) = mesh(ix, :, 1) + dx
+    end do
+
+
+    ! Rotate
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    rad_twist = twist * p180
+    rotation_matrix(:, :, :) = 0.
+    rotation_matrix(:, 1, 1) = cos(rad_twist)
+    rotation_matrix(:, 1, 3) = sin(rad_twist)
+    rotation_matrix(:, 2, 2) = 1.
+    rotation_matrix(:, 3, 1) = -sin(rad_twist)
+    rotation_matrix(:, 3, 3) = cos(rad_twist)
+
+    do ix=1,nx
+      row = mesh(ix, :, :)
+      do iy=1,ny
+        call matmul2(3, 3, 1, rotation_matrix(iy, :, :), row(iy, :) - quarter_chord(iy, :), out)
+        mesh(ix, iy, :) = out
+      end do
+      mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
+    end do
+
+
+    ! Scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    do iy=1,ny
+      mesh(:, iy, 1) = (mesh(:, iy, 1) - quarter_chord(iy, 1)) * chord_dist(iy) + &
+        quarter_chord(iy, 1)
+    end do
+
+
+    ! Dihedral
+    le = mesh(1, :, :)
+    tan_theta = tan(p180 * dihedral)
+
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -(le(:, 2) - y0) * tan_theta
+    else
+      ny2 = (ny - 1) / 2
+      y0 = le(ny2+1, 2)
+
+      dx(:ny2) = -(le(:ny2, 2) - y0) * tan_theta
+      dx(ny2+1:) = (le(ny2+1:, 2) - y0) * tan_theta
+    end if
+
+    do ix=1,nx
+      mesh(ix, :, 3) = mesh(ix, :, 3) + dx
+    end do
+
+
+    ! Taper
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    center_chord = 0.5 * te + 0.5 * le
+
+    if (symmetry) then
+      call linspace(one, taper, ny, taper_lins)
+
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - center_chord(iy, ind)) * taper_lins(ny-iy+1) + &
+              center_chord(iy, ind)
+          end do
+        end do
+      end do
+
+    else
+      ny2 = (ny + 1) / 2
+      call linspace(one, taper, ny2, taper_lins_sym)
+
+      dx(ny2:) = taper_lins_sym
+      do iy=1,ny2
+        dx(iy) = taper_lins_sym(ny2-iy+1)
+      end do
+
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - center_chord(iy, ind)) * dx(ny-iy+1) + &
+              center_chord(iy, ind)
+          end do
+        end do
+      end do
+    end if
+
+
+  end subroutine
+
+  subroutine linspace(l, k, n, z)
+
+    implicit none
+
+    !// Argument declarations
+    integer, intent(in) :: n
+    real(kind=8), dimension(n), intent(out) :: z
+    real(kind=8), intent(in) :: l
+    real(kind=8), intent(in) :: k
+
+    !// local variables
+    integer :: i
+    real(kind=8) :: d
+
+    d = (k - l) / (n - 1)
+    z(1) = l
+    do i = 2, n-1
+      z(i) = z(i-1) + d
+    end do
+    z(1) = l
+    z(n) = k
+    return
+
+  end subroutine linspace
+
   subroutine calc_vonmises_main(nodes, r, disp, E, G, x_gl, n, vonmises)
 
     implicit none
@@ -526,6 +686,29 @@ contains
 
   end subroutine
 
+  subroutine compute_normals_main(nx, ny, mesh, normals, S_ref)
+
+    implicit none
+
+    real(kind=8), intent(in) :: mesh(nx, ny, 3)
+    integer, intent(in) :: nx, ny
+
+    real(kind=8), intent(out) :: normals(nx-1, ny-1, 3), S_ref
+
+    integer :: i, j
+    real(kind=8) :: norms(nx, ny), out(3)
+
+    do i=1,nx-1
+      do j=1,ny-1
+        call cross(mesh(i, j+1, :) - mesh(i+1, j, :), mesh(i, j, :) - mesh(i+1, j+1, :), out)
+        normals(i, j, :) = out
+        norms(i, j) = sqrt(sum(normals(i, j, :)**2))
+        normals(i, j, :) = normals(i, j, :) / norms(i, j)
+      end do
+    end do
+    S_ref = 0.5 * sum(norms)
+
+  end subroutine
 
 ! REAL FUNCTIONS
 

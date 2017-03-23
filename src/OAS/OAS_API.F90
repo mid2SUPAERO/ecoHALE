@@ -5,6 +5,84 @@ module oas_api
 
 contains
 
+  subroutine compute_normals_b(nx, ny, mesh, meshb, normals, normalsb, S_ref, S_refb)
+
+    use oas_main_b, only: compute_normals_main_b
+    implicit none
+
+    real(kind=8), intent(in) :: mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: meshb(nx, ny, 3)
+
+    integer, intent(in) :: nx, ny
+
+    real(kind=8), intent(out) :: normals(nx-1, ny-1, 3), S_ref
+    real(kind=8), intent(in) :: normalsb(nx-1, ny-1, 3), S_refb
+
+    integer :: i, j
+    real(kind=8) :: norms(nx, ny), out(3)
+
+    call compute_normals_main_b(nx, ny, mesh, meshb, normals, normalsb, S_ref, S_refb)
+
+  end subroutine
+
+  subroutine manipulate_mesh(nx, ny, input_mesh, sweep, twist,&
+    chord_dist, dihedral, taper, symmetry, mesh)
+
+    implicit none
+
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    logical, intent(in) :: symmetry
+
+    real(kind=8), intent(out) :: mesh(nx, ny, 3)
+
+    call manipulate_mesh_main(nx, ny, input_mesh, sweep, twist, &
+      chord_dist, dihedral, taper, symmetry, mesh)
+
+  end subroutine
+
+  subroutine manipulate_mesh_d(nx, ny, input_mesh, sweep, sweepd, twist, twistd, &
+    chord_dist, chord_distd, dihedral, dihedrald, taper, taperd, symmetry, mesh, meshd)
+
+    use oas_main_d, only: manipulate_mesh_main_d
+    implicit none
+
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    real(kind=8), intent(in) :: sweepd, twistd(ny)
+    real(kind=8), intent(in) :: dihedrald, taperd, chord_distd(ny)
+    logical, intent(in) :: symmetry
+
+    real(kind=8), intent(out) :: mesh(nx, ny, 3), meshd(nx, ny, 3)
+
+    call manipulate_mesh_main_d(nx, ny, input_mesh, sweep, sweepd, twist, twistd, &
+      chord_dist, chord_distd, dihedral, dihedrald, taper, taperd, symmetry, mesh, meshd)
+
+  end subroutine
+
+  subroutine manipulate_mesh_b(nx, ny, input_mesh, sweep, sweepb, twist, twistb,&
+    chord_dist, chord_distb, dihedral, dihedralb, taper, taperb, symmetry, mesh, meshb)
+
+    use oas_main_b, only: manipulate_mesh_main_b
+    implicit none
+
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    real(kind=8), intent(in) :: meshb(nx, ny, 3)
+    logical, intent(in) :: symmetry
+
+    real(kind=8), intent(out) :: sweepb, twistb(ny)
+    real(kind=8), intent(out) :: dihedralb, taperb, chord_distb(ny)
+    real(kind=8), intent(out) :: mesh(nx, ny, 3)
+
+    call manipulate_mesh_main_b(nx, ny, input_mesh, sweep, sweepb, twist, twistb,&
+      chord_dist, chord_distb, dihedral, dihedralb, taper, taperb, symmetry, mesh, meshb)
+
+  end subroutine
+
   subroutine forcecalc(v, circ, rho, bpts, nx, ny, num_panels, sec_forces)
 
     implicit none

@@ -6,7 +6,11 @@ from numpy import cos, sin, tan
 
 from openmdao.api import Component
 
-from b_spline import get_bspline_mtx
+try:
+    import OAS_API
+    fortran_flag = True
+except:
+    fortran_flag = False
 
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
@@ -66,6 +70,29 @@ def scale_x(mesh, chord_dist):
     for i in range(ny):
         mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_dist[i] + \
             quarter_chord[i, 0]
+
+def scale_x_d(mesh, chord_dist):
+    derivs = numpy.zeros((numpy.prod(mesh.shape), len(chord_dist)))
+
+    te = mesh[-1]
+    le = mesh[ 0]
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    ny = mesh.shape[1]
+    nx = mesh.shape[0]
+
+    chord_distd = numpy.zeros((len(chord_dist)))
+    for j in range(len(chord_dist)):
+        chord_distd[:] = 0.
+        chord_distd[j] = 1.
+
+        meshd = numpy.zeros(mesh.shape)
+        for i in range(ny):
+            meshd[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_distd[i]
+
+        derivs[:, j] = meshd.flatten()
+
+    return derivs
 
 
 def sweep(mesh, angle, symmetry):
@@ -201,9 +228,6 @@ def taper(mesh, taper_ratio, symmetry):
     if symmetry:
         taper = numpy.linspace(1, taper_ratio, num_y)[::-1]
 
-        jac = get_bspline_mtx(num_y, num_y, order=2)
-        taper = jac.dot(taper)
-
         for i in xrange(num_x):
             for ind in xrange(3):
                 mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
@@ -212,9 +236,6 @@ def taper(mesh, taper_ratio, symmetry):
     else:
         ny2 = int((num_y + 1) / 2)
         taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
-
-        jac = get_bspline_mtx(ny2, ny2, order=2)
-        taper = jac.dot(taper)
 
         dx = numpy.hstack((taper, taper[::-1][1:]))
 
@@ -233,51 +254,58 @@ class GeometryMesh(Component):
     def __init__(self, surface):
         super(GeometryMesh, self).__init__()
 
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
-        self.n = self.nx * self.ny
+        ny = surface['num_y']
         self.mesh = surface['mesh']
 
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=numpy.zeros(self.ny), dtype='complex')
-        self.add_param('chord_dist', val=numpy.zeros(self.ny), dtype='complex')
+        self.add_param('twist', val=numpy.zeros(ny), dtype='complex')
+        self.add_param('chord_dist', val=numpy.zeros(ny), dtype='complex')
         self.add_param('taper', val=1.)
         self.add_output('mesh', val=self.mesh)
 
         self.symmetry = surface['symmetry']
 
-        self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
+        if not fortran_flag:
+            self.deriv_options['type'] = 'fd'
+            self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = self.mesh.copy()
-        # stretch(mesh, params['span'])
-        sweep(mesh, params['sweep'], self.symmetry)
-        scale_x(mesh, params['chord_dist'])
-        rotate(mesh, params['twist'])
-        dihedral(mesh, params['dihedral'], self.symmetry)
-        taper(mesh, params['taper'], self.symmetry)
+
+        if fortran_flag:
+            # Does not have span stretching coded yet
+            mesh = OAS_API.oas_api.manipulate_mesh(mesh, params['sweep'],
+                params['twist'], params['chord_dist'], params['dihedral'],
+                params['taper'], self.symmetry)
+
+        else:
+
+            mesh = self.mesh.copy()
+            # stretch(mesh, params['span'])
+            sweep(mesh, params['sweep'], self.symmetry)
+            rotate(mesh, params['twist'])
+            scale_x(mesh, params['chord_dist'])
+            dihedral(mesh, params['dihedral'], self.symmetry)
+            taper(mesh, params['taper'], self.symmetry)
 
         unknowns['mesh'] = mesh
 
-    def linearize(self, params, unknowns, resids):
+    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
-        jac = self.alloc_jacobian()
+        mesh = self.mesh.copy()
 
-        # This fails for some reason when running structures only cases,
-        # maybe because we don't actually have these design variables
-        fd_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['span', 'sweep', 'dihedral',
-                                            'twist', 'taper', 'chord_dist'],
-                                            fd_states=[])
-        jac.update(fd_jac)
+        if mode == 'fwd':
+            mesh, dresids['mesh'] = OAS_API.oas_api.manipulate_mesh_d(mesh, params['sweep'],
+            dparams['sweep'], params['twist'], dparams['twist'], params['chord_dist'],
+            dparams['chord_dist'], params['dihedral'], dparams['dihedral'],
+            params['taper'], dparams['taper'], self.symmetry)
 
-        # view_mat(jac['mesh', 'taper'])
-        # exit()
-
-        return jac
+        if mode == 'rev':
+            dparams['sweep'], dparams['twist'], dparams['chord_dist'], dparams['dihedral'], dparams['taper'], mesh = OAS_API.oas_api.manipulate_mesh_b(mesh, params['sweep'],
+            params['twist'], params['chord_dist'], params['dihedral'],
+            params['taper'], self.symmetry, dresids['mesh'])
 
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):

@@ -556,11 +556,21 @@ class VLMGeometry(Component):
             mesh[:-1,  1:, :] - mesh[1:, :-1, :],
             mesh[:-1, :-1, :] - mesh[1:,  1:, :],
             axis=2)
-
         norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
-
         for j in xrange(3):
             normals[:, :, j] /= norms
+        old_normals = normals.copy()
+
+        nx, ny = mesh.shape[:2]
+        normals = numpy.zeros((nx-1, ny-1, 3), dtype="complex")
+        norms = numpy.zeros((nx-1, ny-1), dtype="complex")
+        for i in range(nx-1):
+            for j in range(ny-1):
+                normals[i, j, :] = numpy.cross(mesh[i, j+1, :] - mesh[i+1, j,   :],
+                                               mesh[i, j,   :] - mesh[i+1, j+1, :])
+                norms[i, j] = numpy.sqrt(numpy.sum(normals[i, j, :]**2))
+                normals[i, j, :] = normals[i, j, :] / norms[i, j]
+        S_ref = 0.5 * numpy.sum(norms)
 
         # Store each array
         unknowns['b_pts'] = b_pts
@@ -568,7 +578,7 @@ class VLMGeometry(Component):
         unknowns['widths'] = widths
         unknowns['lengths'] = lengths
         unknowns['normals'] = normals
-        unknowns['S_ref'] = 0.5 * numpy.sum(norms)
+        unknowns['S_ref'] = S_ref
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for geometry."""
@@ -577,14 +587,21 @@ class VLMGeometry(Component):
         name = self.surface['name']
         mesh = params['def_mesh']
 
-        cs_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['def_mesh'],
-                                            fd_unknowns=['normals', 'S_ref'],
-                                            fd_states=[])
-        jac.update(cs_jac)
-
         nx = self.surface['num_x']
         ny = self.surface['num_y']
+
+        normalsb = numpy.zeros(unknowns['normals'].shape)
+        for i in range(nx-1):
+            for j in range(ny-1):
+                for ind in range(3):
+                    normalsb[:, :, :] = 0.
+                    normalsb[i, j, ind] = 1.
+                    meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 0.)
+                    jac['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
+
+        normalsb[:, :, :] = 0.
+        meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 1.)
+        jac['S_ref', 'def_mesh'] = numpy.atleast_2d(meshb.flatten())
 
         for iz, v in zip((0, ny*3), (.75, .25)):
             numpy.fill_diagonal(jac['b_pts', 'def_mesh'][:, iz:], v)

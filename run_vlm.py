@@ -47,7 +47,7 @@ if __name__ == "__main__":
     OAS_prob = OASProblem(prob_dict)
     OAS_prob.add_surface({'name' : 'wing',
                           'symmetry' : True,
-                          'num_y' : 5,
+                          'num_y' : 81,
                           'num_x' : 3})
 
     # Single lifting surface
@@ -88,8 +88,11 @@ if __name__ == "__main__":
         OAS_prob.add_desvar('tail.taper', lower=.5, upper=2.)
         OAS_prob.add_constraint('tail_perf.CL', equals=0.5)
 
+    st = time()
+
     # Actually run the problem
     OAS_prob.run()
 
     print("\nWing CL:", OAS_prob.prob['wing_perf.CL'])
     print("Wing CD:", OAS_prob.prob['wing_perf.CD'])
+    print("Time elapsed: {} secs".format(time() - st))

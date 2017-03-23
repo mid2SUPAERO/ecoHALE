@@ -377,8 +377,8 @@ class OASProblem(object):
         self.prob.driver.add_recorder(recorder)
 
         # Profile (time) the problem
-        # profile.setup(self.prob)
-        # profile.start()
+        profile.setup(self.prob)
+        profile.start()
 
         # Set up the problem
         self.prob.setup()
@@ -389,14 +389,13 @@ class OASProblem(object):
         # Save an N2 diagram for the problem
         view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
-        # Run a single analysis loop to populate uninitialized values
-        self.prob.run_once()
-
         # If `optimize` == True in prob_dict, perform optimization. Otherwise,
         # simply pass the problem since analysis has already been run.
-        if not self.prob_dict['optimize']:  # run analysis once
-            pass
-        else:  # perform optimization
+        if not self.prob_dict['optimize']:
+            # Run a single analysis loop
+            self.prob.run_once()
+        else:
+            # Perform optimization
             self.prob.run()
 
         # Uncomment this to check the partial derivatives of each component
@@ -517,7 +516,7 @@ class OASProblem(object):
             # Obtain the Jacobian to interpolate the data from the b-spline
             # control points for both twist and chord
             jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
-            jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'])
+            jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'], order=surface['num_chord_dist'])
 
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',

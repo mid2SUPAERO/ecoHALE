@@ -5,6 +5,436 @@ module oas_main_b
   implicit none
 
 contains
+!  differentiation of manipulate_mesh_main in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: chord_dist taper sweep mesh
+!                dihedral twist
+!   with respect to varying inputs: chord_dist taper sweep mesh
+!                dihedral twist
+!   rw status of diff variables: chord_dist:incr taper:incr sweep:incr
+!                mesh:in-zero dihedral:incr twist:incr
+  subroutine manipulate_mesh_main_b(nx, ny, input_mesh, sweep, sweepb, &
+&   twist, twistb, chord_dist, chord_distb, dihedral, dihedralb, taper, &
+&   taperb, symmetry, mesh, meshb)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8) :: sweepb, twistb(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    real(kind=8) :: dihedralb, taperb, chord_distb(ny)
+    logical, intent(in) :: symmetry
+    real(kind=8) :: mesh(nx, ny, 3)
+    real(kind=8) :: meshb(nx, ny, 3)
+    real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, &
+&   tan_theta
+    real(kind=8) :: leb(ny, 3), teb(ny, 3), quarter_chordb(ny, 3), &
+&   tan_thetab
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: dxb(ny), y0b, rad_twistb(ny), rotation_matrixb(ny, 3&
+&   , 3)
+    real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
+&   ny+1)/2)
+    real(kind=8) :: rowb(ny, 3), outb(3), taper_linsb(ny), &
+&   taper_lins_symb((ny+1)/2)
+    real(kind=8) :: center_chord(ny, 3), one
+    real(kind=8) :: center_chordb(ny, 3)
+    integer :: ny2, ix, iy, ind
+    intrinsic tan
+    intrinsic cos
+    intrinsic sin
+    real(kind=8), dimension(3) :: arg1
+    real(kind=8), dimension(3) :: arg1b
+    integer :: branch
+    real(kind=8) :: tempb0
+    real(kind=8) :: tempb
+    p180 = 3.14159265358979323846264338/180.
+    mesh = input_mesh
+    one = 1.
+! sweep first
+    le = mesh(1, :, :)
+    tan_theta = tan(p180*sweep)
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -((le(:, 2)-y0)*tan_theta)
+      call pushcontrol1b(1)
+    else
+      ny2 = (ny-1)/2
+      y0 = le(ny2+1, 2)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+      call pushcontrol1b(0)
+    end if
+    do ix=1,nx
+      call pushreal8array(mesh(ix, :, 1), ny)
+      mesh(ix, :, 1) = mesh(ix, :, 1) + dx
+    end do
+! rotate
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    rad_twist = twist*p180
+    rotation_matrix(:, :, :) = 0.
+    rotation_matrix(:, 1, 1) = cos(rad_twist)
+    rotation_matrix(:, 1, 3) = sin(rad_twist)
+    rotation_matrix(:, 2, 2) = 1.
+    rotation_matrix(:, 3, 1) = -sin(rad_twist)
+    rotation_matrix(:, 3, 3) = cos(rad_twist)
+    do ix=1,nx
+      row = mesh(ix, :, :)
+      do iy=1,ny
+        call pushreal8array(arg1, 3)
+        arg1(:) = row(iy, :) - quarter_chord(iy, :)
+        call matmul2(3, 3, 1, rotation_matrix(iy, :, :), arg1(:), out)
+        call pushreal8array(mesh(ix, iy, :), 3)
+        mesh(ix, iy, :) = out
+      end do
+      call pushreal8array(mesh(ix, :, :), ny*3)
+      mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
+    end do
+! scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      call pushreal8array(mesh(:, iy, 1), nx)
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
+! dihedral
+    le = mesh(1, :, :)
+    tan_theta = tan(p180*dihedral)
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -((le(:, 2)-y0)*tan_theta)
+      call pushcontrol1b(1)
+    else
+      ny2 = (ny-1)/2
+      y0 = le(ny2+1, 2)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+      call pushcontrol1b(0)
+    end if
+    do ix=1,nx
+      call pushreal8array(mesh(ix, :, 3), ny)
+      mesh(ix, :, 3) = mesh(ix, :, 3) + dx
+    end do
+! taper
+    call pushreal8array(le, ny*3)
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    center_chord = 0.5*te + 0.5*le
+    if (symmetry) then
+      call linspace(one, taper, ny, taper_lins)
+      center_chordb = 0.0_8
+      taper_linsb = 0.0_8
+      do iy=ny,1,-1
+        do ix=nx,1,-1
+          do ind=3,1,-1
+            tempb = taper_lins(ny-iy+1)*meshb(ix, iy, ind)
+            center_chordb(iy, ind) = center_chordb(iy, ind) + meshb(ix, &
+&             iy, ind) - tempb
+            taper_linsb(ny-iy+1) = taper_linsb(ny-iy+1) + (mesh(ix, iy, &
+&             ind)-center_chord(iy, ind))*meshb(ix, iy, ind)
+            meshb(ix, iy, ind) = tempb
+          end do
+        end do
+      end do
+      call linspace_b(one, taper, taperb, ny, taper_lins, taper_linsb)
+      dxb = 0.0_8
+    else
+      call pushinteger4(ny2)
+      ny2 = (ny+1)/2
+      call linspace(one, taper, ny2, taper_lins_sym)
+      dx(ny2:) = taper_lins_sym
+      do iy=1,ny2
+        dx(iy) = taper_lins_sym(ny2-iy+1)
+      end do
+      center_chordb = 0.0_8
+      dxb = 0.0_8
+      do iy=ny,1,-1
+        do ix=nx,1,-1
+          do ind=3,1,-1
+            tempb0 = dx(ny-iy+1)*meshb(ix, iy, ind)
+            center_chordb(iy, ind) = center_chordb(iy, ind) + meshb(ix, &
+&             iy, ind) - tempb0
+            dxb(ny-iy+1) = dxb(ny-iy+1) + (mesh(ix, iy, ind)-&
+&             center_chord(iy, ind))*meshb(ix, iy, ind)
+            meshb(ix, iy, ind) = tempb0
+          end do
+        end do
+      end do
+      taper_lins_symb = 0.0_8
+      do iy=ny2,1,-1
+        taper_lins_symb(ny2-iy+1) = taper_lins_symb(ny2-iy+1) + dxb(iy)
+        dxb(iy) = 0.0_8
+      end do
+      taper_lins_symb = taper_lins_symb + dxb(ny2:ny)
+      dxb(ny2:ny) = 0.0_8
+      call linspace_b(one, taper, taperb, ny2, taper_lins_sym, &
+&               taper_lins_symb)
+      call popinteger4(ny2)
+    end if
+    leb = 0.0_8
+    teb = 0.0_8
+    teb = 0.5*center_chordb
+    leb = 0.5*center_chordb
+    meshb(nx, :, :) = meshb(nx, :, :) + teb
+    call popreal8array(le, ny*3)
+    meshb(1, :, :) = meshb(1, :, :) + leb
+    do ix=nx,1,-1
+      call popreal8array(mesh(ix, :, 3), ny)
+      dxb = dxb + meshb(ix, :, 3)
+    end do
+    call popcontrol1b(branch)
+    if (branch .eq. 0) then
+      leb = 0.0_8
+      leb(ny2+1:ny, 2) = leb(ny2+1:ny, 2) + tan_theta*dxb(ny2+1:ny)
+      y0b = -(tan_theta*sum(dxb(ny2+1:)))
+      tan_thetab = sum((le(ny2+1:, 2)-y0)*dxb(ny2+1:))
+      dxb(ny2+1:ny) = 0.0_8
+      leb(1:ny2, 2) = leb(1:ny2, 2) - tan_theta*dxb(1:ny2)
+      y0b = y0b + tan_theta*sum(dxb(:ny2))
+      tan_thetab = tan_thetab - sum((le(:ny2, 2)-y0)*dxb(:ny2))
+      dxb(1:ny2) = 0.0_8
+      leb(ny2+1, 2) = leb(ny2+1, 2) + y0b
+    else
+      leb = 0.0_8
+      leb(:, 2) = leb(:, 2) - tan_theta*dxb
+      y0b = tan_theta*sum(dxb)
+      tan_thetab = -sum((le(:, 2)-y0)*dxb)
+      leb(ny, 2) = leb(ny, 2) + y0b
+      dxb = 0.0_8
+    end if
+    dihedralb = dihedralb + (1.0+tan(p180*dihedral)**2)*p180*tan_thetab
+    meshb(1, :, :) = meshb(1, :, :) + leb
+    quarter_chordb = 0.0_8
+    do iy=ny,1,-1
+      call popreal8array(mesh(:, iy, 1), nx)
+      quarter_chordb(iy, 1) = quarter_chordb(iy, 1) + sum(meshb(:, iy, 1&
+&       )) - chord_dist(iy)*sum(meshb(:, iy, 1))
+      chord_distb(iy) = chord_distb(iy) + sum((mesh(:, iy, 1)-&
+&       quarter_chord(iy, 1))*meshb(:, iy, 1))
+      meshb(:, iy, 1) = chord_dist(iy)*meshb(:, iy, 1)
+    end do
+    leb = 0.0_8
+    teb = 0.0_8
+    teb = 0.25*quarter_chordb
+    leb = 0.75*quarter_chordb
+    meshb(nx, :, :) = meshb(nx, :, :) + teb
+    meshb(1, :, :) = meshb(1, :, :) + leb
+    quarter_chordb = 0.0_8
+    rotation_matrixb = 0.0_8
+    do ix=nx,1,-1
+      call popreal8array(mesh(ix, :, :), ny*3)
+      quarter_chordb = quarter_chordb + meshb(ix, :, :)
+      rowb = 0.0_8
+      do iy=ny,1,-1
+        outb = 0.0_8
+        call popreal8array(mesh(ix, iy, :), 3)
+        outb = meshb(ix, iy, :)
+        meshb(ix, iy, :) = 0.0_8
+        arg1b = 0.0_8
+        call matmul2_b(3, 3, 1, rotation_matrix(iy, :, :), &
+&                rotation_matrixb(iy, :, :), arg1(:), arg1b(:), out, &
+&                outb)
+        call popreal8array(arg1, 3)
+        rowb(iy, :) = rowb(iy, :) + arg1b
+        quarter_chordb(iy, :) = quarter_chordb(iy, :) - arg1b
+      end do
+      meshb(ix, :, :) = meshb(ix, :, :) + rowb
+    end do
+    rad_twistb = 0.0_8
+    rad_twistb = -(sin(rad_twist)*rotation_matrixb(:, 3, 3))
+    rotation_matrixb(:, 3, 3) = 0.0_8
+    rad_twistb = rad_twistb - cos(rad_twist)*rotation_matrixb(:, 3, 1)
+    rotation_matrixb(:, 3, 1) = 0.0_8
+    rotation_matrixb(:, 2, 2) = 0.0_8
+    rad_twistb = rad_twistb + cos(rad_twist)*rotation_matrixb(:, 1, 3)
+    rotation_matrixb(:, 1, 3) = 0.0_8
+    rad_twistb = rad_twistb - sin(rad_twist)*rotation_matrixb(:, 1, 1)
+    twistb = twistb + p180*rad_twistb
+    leb = 0.0_8
+    teb = 0.0_8
+    teb = 0.25*quarter_chordb
+    leb = 0.75*quarter_chordb
+    meshb(nx, :, :) = meshb(nx, :, :) + teb
+    meshb(1, :, :) = meshb(1, :, :) + leb
+    do ix=nx,1,-1
+      call popreal8array(mesh(ix, :, 1), ny)
+      dxb = dxb + meshb(ix, :, 1)
+    end do
+    call popcontrol1b(branch)
+    if (branch .eq. 0) then
+      ny2 = (ny-1)/2
+      le = mesh(1, :, :)
+      y0 = le(ny2+1, 2)
+      tan_thetab = sum((le(ny2+1:, 2)-y0)*dxb(ny2+1:))
+      dxb(ny2+1:ny) = 0.0_8
+      tan_thetab = tan_thetab - sum((le(:ny2, 2)-y0)*dxb(:ny2))
+    else
+      le = mesh(1, :, :)
+      y0 = le(ny, 2)
+      tan_thetab = -sum((le(:, 2)-y0)*dxb)
+    end if
+    sweepb = sweepb + (1.0+tan(p180*sweep)**2)*p180*tan_thetab
+    meshb = 0.0_8
+  end subroutine manipulate_mesh_main_b
+  subroutine manipulate_mesh_main(nx, ny, input_mesh, sweep, twist, &
+&   chord_dist, dihedral, taper, symmetry, mesh)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
+    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
+    logical, intent(in) :: symmetry
+    real(kind=8), intent(out) :: mesh(nx, ny, 3)
+    real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, &
+&   tan_theta
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
+&   ny+1)/2)
+    real(kind=8) :: center_chord(ny, 3), one
+    integer :: ny2, ix, iy, ind
+    intrinsic tan
+    intrinsic cos
+    intrinsic sin
+    real(kind=8), dimension(3) :: arg1
+    p180 = 3.14159265358979323846264338/180.
+    mesh = input_mesh
+    one = 1.
+! sweep first
+    le = mesh(1, :, :)
+    tan_theta = tan(p180*sweep)
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -((le(:, 2)-y0)*tan_theta)
+    else
+      ny2 = (ny-1)/2
+      y0 = le(ny2+1, 2)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+    end if
+    do ix=1,nx
+      mesh(ix, :, 1) = mesh(ix, :, 1) + dx
+    end do
+! rotate
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    rad_twist = twist*p180
+    rotation_matrix(:, :, :) = 0.
+    rotation_matrix(:, 1, 1) = cos(rad_twist)
+    rotation_matrix(:, 1, 3) = sin(rad_twist)
+    rotation_matrix(:, 2, 2) = 1.
+    rotation_matrix(:, 3, 1) = -sin(rad_twist)
+    rotation_matrix(:, 3, 3) = cos(rad_twist)
+    do ix=1,nx
+      row = mesh(ix, :, :)
+      do iy=1,ny
+        arg1(:) = row(iy, :) - quarter_chord(iy, :)
+        call matmul2(3, 3, 1, rotation_matrix(iy, :, :), arg1(:), out)
+        mesh(ix, iy, :) = out
+      end do
+      mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
+    end do
+! scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
+! dihedral
+    le = mesh(1, :, :)
+    tan_theta = tan(p180*dihedral)
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -((le(:, 2)-y0)*tan_theta)
+    else
+      ny2 = (ny-1)/2
+      y0 = le(ny2+1, 2)
+      dx(:ny2) = -((le(:ny2, 2)-y0)*tan_theta)
+      dx(ny2+1:) = (le(ny2+1:, 2)-y0)*tan_theta
+    end if
+    do ix=1,nx
+      mesh(ix, :, 3) = mesh(ix, :, 3) + dx
+    end do
+! taper
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    center_chord = 0.5*te + 0.5*le
+    if (symmetry) then
+      call linspace(one, taper, ny, taper_lins)
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
+&             )*taper_lins(ny-iy+1) + center_chord(iy, ind)
+          end do
+        end do
+      end do
+    else
+      ny2 = (ny+1)/2
+      call linspace(one, taper, ny2, taper_lins_sym)
+      dx(ny2:) = taper_lins_sym
+      do iy=1,ny2
+        dx(iy) = taper_lins_sym(ny2-iy+1)
+      end do
+      do iy=1,ny
+        do ix=1,nx
+          do ind=1,3
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
+&             )*dx(ny-iy+1) + center_chord(iy, ind)
+          end do
+        end do
+      end do
+    end if
+  end subroutine manipulate_mesh_main
+!  differentiation of linspace in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: k z
+!   with respect to varying inputs: k
+  subroutine linspace_b(l, k, kb, n, z, zb)
+    implicit none
+!// argument declarations
+    integer, intent(in) :: n
+    real(kind=8), dimension(n) :: z
+    real(kind=8), dimension(n) :: zb
+    real(kind=8), intent(in) :: l
+    real(kind=8), intent(in) :: k
+    real(kind=8) :: kb
+!// local variables
+    integer :: i
+    real(kind=8) :: d
+    real(kind=8) :: db
+    kb = kb + zb(n)
+    zb(n) = 0.0_8
+    zb(1) = 0.0_8
+    db = 0.0_8
+    do i=n-1,2,-1
+      zb(i-1) = zb(i-1) + zb(i)
+      db = db + zb(i)
+      zb(i) = 0.0_8
+    end do
+    kb = kb + db/(n-1)
+  end subroutine linspace_b
+  subroutine linspace(l, k, n, z)
+    implicit none
+!// argument declarations
+    integer, intent(in) :: n
+    real(kind=8), dimension(n), intent(out) :: z
+    real(kind=8), intent(in) :: l
+    real(kind=8), intent(in) :: k
+!// local variables
+    integer :: i
+    real(kind=8) :: d
+    d = (k-l)/(n-1)
+    z(1) = l
+    do i=2,n-1
+      z(i) = z(i-1) + d
+    end do
+    z(1) = l
+    z(n) = k
+    return
+  end subroutine linspace
 !  differentiation of calc_vonmises_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: r vonmises nodes disp
 !   with respect to varying inputs: r vonmises nodes disp
@@ -1481,6 +1911,90 @@ contains
       sec_forces(:, i) = rho*circ*v_cross_bound(:, i)
     end do
   end subroutine forcecalc_main
+!  differentiation of compute_normals_main in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: s_ref mesh normals
+!   with respect to varying inputs: s_ref mesh normals
+!   rw status of diff variables: s_ref:in-zero mesh:incr normals:in-out
+  subroutine compute_normals_main_b(nx, ny, mesh, meshb, normals, &
+&   normalsb, s_ref, s_refb)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3)
+    real(kind=8) :: meshb(nx, ny, 3)
+    real(kind=8) :: normals(nx-1, ny-1, 3), s_ref
+    real(kind=8) :: normalsb(nx-1, ny-1, 3), s_refb
+    integer :: i, j
+    real(kind=8) :: norms(nx, ny), out(3)
+    real(kind=8) :: normsb(nx, ny), outb(3)
+    intrinsic sum
+    intrinsic sqrt
+    real(kind=8), dimension(3) :: arg1
+    real(kind=8), dimension(3) :: arg1b
+    real(kind=8), dimension(3) :: arg2
+    real(kind=8), dimension(3) :: arg2b
+    real(kind=8) :: tempb(3)
+    do i=1,nx-1
+      do j=1,ny-1
+        arg1(:) = mesh(i, j+1, :) - mesh(i+1, j, :)
+        arg2(:) = mesh(i, j, :) - mesh(i+1, j+1, :)
+        call cross(arg1(:), arg2(:), out)
+        normals(i, j, :) = out
+        norms(i, j) = sqrt(sum(normals(i, j, :)**2))
+      end do
+    end do
+    normsb = 0.0_8
+    normsb = 0.5*s_refb
+    outb = 0.0_8
+    do i=nx-1,1,-1
+      do j=ny-1,1,-1
+        tempb = normalsb(i, j, :)/norms(i, j)
+        normsb(i, j) = normsb(i, j) + sum(-(normals(i, j, :)*tempb/norms&
+&         (i, j)))
+        if (sum(normals(i, j, :)**2) .eq. 0.0_8) then
+          normalsb(i, j, :) = tempb
+        else
+          normalsb(i, j, :) = 2*normals(i, j, :)*normsb(i, j)/(2.0*sqrt(&
+&           sum(normals(i, j, :)**2))) + tempb
+        end if
+        normsb(i, j) = 0.0_8
+        outb = outb + normalsb(i, j, :)
+        normalsb(i, j, :) = 0.0_8
+        arg1(:) = mesh(i, j+1, :) - mesh(i+1, j, :)
+        arg2(:) = mesh(i, j, :) - mesh(i+1, j+1, :)
+        arg1b = 0.0_8
+        arg2b = 0.0_8
+        call cross_b(arg1(:), arg1b(:), arg2(:), arg2b(:), out, outb)
+        meshb(i, j, :) = meshb(i, j, :) + arg2b
+        meshb(i+1, j+1, :) = meshb(i+1, j+1, :) - arg2b
+        meshb(i, j+1, :) = meshb(i, j+1, :) + arg1b
+        meshb(i+1, j, :) = meshb(i+1, j, :) - arg1b
+      end do
+    end do
+    s_refb = 0.0_8
+  end subroutine compute_normals_main_b
+  subroutine compute_normals_main(nx, ny, mesh, normals, s_ref)
+    implicit none
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: mesh(nx, ny, 3)
+    real(kind=8), intent(out) :: normals(nx-1, ny-1, 3), s_ref
+    integer :: i, j
+    real(kind=8) :: norms(nx, ny), out(3)
+    intrinsic sum
+    intrinsic sqrt
+    real(kind=8), dimension(3) :: arg1
+    real(kind=8), dimension(3) :: arg2
+    do i=1,nx-1
+      do j=1,ny-1
+        arg1(:) = mesh(i, j+1, :) - mesh(i+1, j, :)
+        arg2(:) = mesh(i, j, :) - mesh(i+1, j+1, :)
+        call cross(arg1(:), arg2(:), out)
+        normals(i, j, :) = out
+        norms(i, j) = sqrt(sum(normals(i, j, :)**2))
+        normals(i, j, :) = normals(i, j, :)/norms(i, j)
+      end do
+    end do
+    s_ref = 0.5*sum(norms)
+  end subroutine compute_normals_main
 !  differentiation of unit in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: u v
 !   with respect to varying inputs: u v
