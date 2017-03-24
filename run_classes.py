@@ -166,6 +166,7 @@ class OASProblem(object):
                     'M' : 0.84,             # Mach number at cruise
                     'rho' : 0.38,           # [kg/m^3] air density at 35,000 ft
                     'a' : 295.4,            # [m/s] speed of sound at 35,000 ft
+                    'force_fd' : False,     # if true, we FD over the whole model
                     }
 
         return defaults
@@ -366,8 +367,9 @@ class OASProblem(object):
         a .db file and creates an N2 diagram to view the problem hierarchy.
         """
 
-        # Uncomment this to use finite differences over the entire model
-        # self.prob.root.deriv_options['type'] = 'fd'
+        # Use finite differences over the entire model if user selected it
+        if self.prob_dict['force_fd']:
+            self.prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -377,8 +379,8 @@ class OASProblem(object):
         self.prob.driver.add_recorder(recorder)
 
         # Profile (time) the problem
-        profile.setup(self.prob)
-        profile.start()
+        # profile.setup(self.prob)
+        # profile.start()
 
         # Set up the problem
         self.prob.setup()
@@ -442,18 +444,18 @@ class OASProblem(object):
 
             # Obtain the Jacobians to interpolate the data from the b-spline
             # control points
-            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
-            jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1)
+            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'], order=min(surface['num_twist'], 4))
+            jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1, order=min(surface['num_thickness'], 4))
 
             # Add structural components to the surface-specific group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', jac_twist),
+                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('thickness_bsp',
-                     Bspline('thickness_cp', 'thickness', jac_thickness),
+                     Bspline('thickness_cp', 'thickness', surface['num_thickness'], surface['num_y']-1),
                      promotes=['*'])
             tmp_group.add('mesh',
                      GeometryMesh(surface),
@@ -523,10 +525,10 @@ class OASProblem(object):
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', jac_twist),
+                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('chord_dist_bsp',
-                     Bspline('chord_dist_cp', 'chord_dist', jac_chord_dist),
+                     Bspline('chord_dist_cp', 'chord_dist', surface['num_chord_dist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('mesh',
                      GeometryMesh(surface),
@@ -633,24 +635,18 @@ class OASProblem(object):
                 ('span', surface['span']),
                 ('taper', surface['taper'])]
 
-            # Obtain the Jacobians to interpolate the data from the b-spline
-            # control points
-            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
-            jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1)
-            jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'])
-
             # Add components to include in the surface's group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', jac_twist),
+                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('thickness_bsp',
-                     Bspline('thickness_cp', 'thickness', jac_thickness),
+                     Bspline('thickness_cp', 'thickness', surface['num_thickness'], surface['num_y']-1),
                      promotes=['*'])
             tmp_group.add('chord_dist_bsp',
-                     Bspline('chord_dist_cp', 'chord_dist', jac_chord_dist),
+                     Bspline('chord_dist_cp', 'chord_dist', surface['num_chord_dist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),

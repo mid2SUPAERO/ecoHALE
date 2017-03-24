@@ -1,7 +1,7 @@
 !    -*- f90 -*-
 ! Note: the context of this file is case sensitive.
 
-python module OAS_API ! in 
+python module OAS_API ! in
     interface  ! in :OAS_API
         module oas_api ! in :OAS_API:OAS_API.F90
             use oas_main
@@ -330,7 +330,7 @@ python module OAS_API ! in
                 real(kind=8) dimension(nx,ny,3),intent(in),depend(nx,ny) :: def_meshb
             end subroutine transferdisplacements_b
         end module oas_api
-    end interface 
+    end interface
 end python module OAS_API
 
 ! This file was auto-generated with f2py (version:2).

@@ -5,6 +5,7 @@ import numpy
 from numpy import cos, sin, tan
 
 from openmdao.api import Component
+from b_spline import get_bspline_mtx
 
 try:
     import OAS_API
@@ -297,15 +298,46 @@ class GeometryMesh(Component):
         mesh = self.mesh.copy()
 
         if mode == 'fwd':
+            if 'sweep' in dparams:
+                sweepd = dparams['sweep']
+            else:
+                sweepd = 0.
+            if 'twist' in dparams:
+                twistd = dparams['twist']
+            else:
+                twistd = numpy.zeros(params['twist'].shape)
+            if 'chord_dist' in dparams:
+                chord_distd = dparams['chord_dist']
+            else:
+                chord_distd = numpy.zeros(params['chord_dist'].shape)
+            if 'dihedral' in dparams:
+                dihedrald = dparams['dihedral']
+            else:
+                dihedrald = 0.
+            if 'taper' in dparams:
+                taperd = dparams['taper']
+            else:
+                taperd = 0.
+
             mesh, dresids['mesh'] = OAS_API.oas_api.manipulate_mesh_d(mesh, params['sweep'],
-            dparams['sweep'], params['twist'], dparams['twist'], params['chord_dist'],
-            dparams['chord_dist'], params['dihedral'], dparams['dihedral'],
-            params['taper'], dparams['taper'], self.symmetry)
+            sweepd, params['twist'], twistd, params['chord_dist'],
+            chord_distd, params['dihedral'], dihedrald,
+            params['taper'], taperd, self.symmetry)
 
         if mode == 'rev':
-            dparams['sweep'], dparams['twist'], dparams['chord_dist'], dparams['dihedral'], dparams['taper'], mesh = OAS_API.oas_api.manipulate_mesh_b(mesh, params['sweep'],
-            params['twist'], params['chord_dist'], params['dihedral'],
+            sweepb, twistb, chord_distb, dihedralb, taperb, mesh = OAS_API.oas_api.manipulate_mesh_b(mesh, params['sweep'], params['twist'], params['chord_dist'], params['dihedral'],
             params['taper'], self.symmetry, dresids['mesh'])
+
+            if 'sweep' in dparams:
+                dparams['sweep'] = sweepb
+            if 'twist' in dparams:
+                dparams['twist'] = twistb
+            if 'chord_dist' in dparams:
+                dparams['chord_dist'] = chord_distb
+            if 'dihedral' in dparams:
+                dparams['dihedral'] = dihedralb
+            if 'taper' in dparams:
+                dparams['taper'] = taperb
 
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
@@ -608,13 +640,13 @@ class Bspline(Component):
 
     """
 
-    def __init__(self, cpname, ptname, jac):
+    def __init__(self, cpname, ptname, n_input, n_output):
         super(Bspline, self).__init__()
         self.cpname = cpname
         self.ptname = ptname
-        self.jac = jac
-        self.add_param(cpname, val=numpy.zeros(jac.shape[1]))
-        self.add_output(ptname, val=numpy.zeros(jac.shape[0]))
+        self.jac = get_bspline_mtx(n_input, n_output, order=min(n_input, 4))
+        self.add_param(cpname, val=numpy.zeros(n_input))
+        self.add_output(ptname, val=numpy.zeros(n_output))
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns[self.ptname] = self.jac.dot(params[self.cpname])

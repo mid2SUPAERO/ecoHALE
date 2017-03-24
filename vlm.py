@@ -590,18 +590,26 @@ class VLMGeometry(Component):
         nx = self.surface['num_x']
         ny = self.surface['num_y']
 
-        normalsb = numpy.zeros(unknowns['normals'].shape)
-        for i in range(nx-1):
-            for j in range(ny-1):
-                for ind in range(3):
-                    normalsb[:, :, :] = 0.
-                    normalsb[i, j, ind] = 1.
-                    meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 0.)
-                    jac['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
+        if fortran_flag:
+            normalsb = numpy.zeros(unknowns['normals'].shape)
+            for i in range(nx-1):
+                for j in range(ny-1):
+                    for ind in range(3):
+                        normalsb[:, :, :] = 0.
+                        normalsb[i, j, ind] = 1.
+                        meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 0.)
+                        jac['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
 
-        normalsb[:, :, :] = 0.
-        meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 1.)
-        jac['S_ref', 'def_mesh'] = numpy.atleast_2d(meshb.flatten())
+            normalsb[:, :, :] = 0.
+            meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 1.)
+            jac['S_ref', 'def_mesh'] = numpy.atleast_2d(meshb.flatten())
+
+        else:
+            cs_jac = self.complex_step_jacobian(params, unknowns, resids,
+                                            fd_params=['def_mesh'],
+                                            fd_unknowns=['normals', 'S_ref'],
+                                            fd_states=[])
+            jac.update(cs_jac)
 
         for iz, v in zip((0, ny*3), (.75, .25)):
             numpy.fill_diagonal(jac['b_pts', 'def_mesh'][:, iz:], v)
@@ -695,8 +703,9 @@ class AssembleAIC(Component):
         self.mtx = numpy.zeros((tot_panels, tot_panels),
                                    dtype="complex")
 
-        # self.deriv_options['type'] = 'cs'
-        # self.deriv_options['form'] = 'central'
+        if not fortran_flag:
+            self.deriv_options['type'] = 'cs'
+            self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Actually assemble the AIC matrix
@@ -999,6 +1008,10 @@ class VLMForces(Component):
         self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
         self.v = numpy.zeros((tot_panels, 3), dtype="complex")
 
+        if not fortran_flag:
+            self.deriv_options['type'] = 'cs'
+            self.deriv_options['form'] = 'central'
+
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
         alpha = params['alpha'] * numpy.pi / 180.
@@ -1031,7 +1044,22 @@ class VLMForces(Component):
 
             b_pts = params[name+'b_pts']
 
-            sec_forces = OAS_API.oas_api.forcecalc(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
+            if fortran_flag:
+                sec_forces = OAS_API.oas_api.forcecalc(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
+            else:
+
+                bound = b_pts[:, 1:, :] - b_pts[:, :-1, :]
+
+                # Cross the obtained velocities with the bound vortex filament
+                # vectors
+                cross = numpy.cross(self.v[i:i+num_panels],
+                                    bound.reshape(-1, bound.shape[-1], order='F'))
+
+                sec_forces = numpy.zeros(((nx-1)*(ny-1), 3), dtype='complex')
+                # Compute the sectional forces acting on each panel
+                for ind in xrange(3):
+                    sec_forces[:, ind] = \
+                        (params['rho'] * circ[i:i+num_panels] * cross[:, ind])
 
             unknowns[name+'sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
 
