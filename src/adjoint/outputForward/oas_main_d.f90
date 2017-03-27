@@ -66,6 +66,20 @@ contains
       meshd(ix, :, 1) = meshd(ix, :, 1) + dxd
       mesh(ix, :, 1) = mesh(ix, :, 1) + dx
     end do
+! scale x
+    led = meshd(1, :, :)
+    le = mesh(1, :, :)
+    ted = meshd(nx, :, :)
+    te = mesh(nx, :, :)
+    quarter_chordd = 0.25*ted + 0.75*led
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      meshd(:, iy, 1) = (meshd(:, iy, 1)-quarter_chordd(iy, 1))*&
+&       chord_dist(iy) + (mesh(:, iy, 1)-quarter_chord(iy, 1))*&
+&       chord_distd(iy) + quarter_chordd(iy, 1)
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
 ! rotate
     led = meshd(1, :, :)
     le = mesh(1, :, :)
@@ -99,20 +113,6 @@ contains
       end do
       meshd(ix, :, :) = meshd(ix, :, :) + quarter_chordd
       mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
-    end do
-! scale x
-    led = meshd(1, :, :)
-    le = mesh(1, :, :)
-    ted = meshd(nx, :, :)
-    te = mesh(nx, :, :)
-    quarter_chordd = 0.25*ted + 0.75*led
-    quarter_chord = 0.25*te + 0.75*le
-    do iy=1,ny
-      meshd(:, iy, 1) = (meshd(:, iy, 1)-quarter_chordd(iy, 1))*&
-&       chord_dist(iy) + (mesh(:, iy, 1)-quarter_chord(iy, 1))*&
-&       chord_distd(iy) + quarter_chordd(iy, 1)
-      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
-&       iy) + quarter_chord(iy, 1)
     end do
 ! dihedral
     led = meshd(1, :, :)
@@ -219,6 +219,14 @@ contains
     do ix=1,nx
       mesh(ix, :, 1) = mesh(ix, :, 1) + dx
     end do
+! scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
 ! rotate
     le = mesh(1, :, :)
     te = mesh(nx, :, :)
@@ -238,14 +246,6 @@ contains
         mesh(ix, iy, :) = out
       end do
       mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
-    end do
-! scale x
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25*te + 0.75*le
-    do iy=1,ny
-      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
-&       iy) + quarter_chord(iy, 1)
     end do
 ! dihedral
     le = mesh(1, :, :)

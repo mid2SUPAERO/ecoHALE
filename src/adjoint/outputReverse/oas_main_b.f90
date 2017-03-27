@@ -67,9 +67,19 @@ contains
       call pushreal8array(mesh(ix, :, 1), ny)
       mesh(ix, :, 1) = mesh(ix, :, 1) + dx
     end do
+! scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      call pushreal8array(mesh(:, iy, 1), nx)
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
 ! rotate
     le = mesh(1, :, :)
     te = mesh(nx, :, :)
+    call pushreal8array(quarter_chord, ny*3)
     quarter_chord = 0.25*te + 0.75*le
     rad_twist = twist*p180
     rotation_matrix(:, :, :) = 0.
@@ -81,7 +91,6 @@ contains
     do ix=1,nx
       row = mesh(ix, :, :)
       do iy=1,ny
-        call pushreal8array(arg1, 3)
         arg1(:) = row(iy, :) - quarter_chord(iy, :)
         call matmul2(3, 3, 1, rotation_matrix(iy, :, :), arg1(:), out)
         call pushreal8array(mesh(ix, iy, :), 3)
@@ -89,15 +98,6 @@ contains
       end do
       call pushreal8array(mesh(ix, :, :), ny*3)
       mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
-    end do
-! scale x
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25*te + 0.75*le
-    do iy=1,ny
-      call pushreal8array(mesh(:, iy, 1), nx)
-      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
-&       iy) + quarter_chord(iy, 1)
     end do
 ! dihedral
     le = mesh(1, :, :)
@@ -207,21 +207,6 @@ contains
     dihedralb = dihedralb + (1.0+tan(p180*dihedral)**2)*p180*tan_thetab
     meshb(1, :, :) = meshb(1, :, :) + leb
     quarter_chordb = 0.0_8
-    do iy=ny,1,-1
-      call popreal8array(mesh(:, iy, 1), nx)
-      quarter_chordb(iy, 1) = quarter_chordb(iy, 1) + sum(meshb(:, iy, 1&
-&       )) - chord_dist(iy)*sum(meshb(:, iy, 1))
-      chord_distb(iy) = chord_distb(iy) + sum((mesh(:, iy, 1)-&
-&       quarter_chord(iy, 1))*meshb(:, iy, 1))
-      meshb(:, iy, 1) = chord_dist(iy)*meshb(:, iy, 1)
-    end do
-    leb = 0.0_8
-    teb = 0.0_8
-    teb = 0.25*quarter_chordb
-    leb = 0.75*quarter_chordb
-    meshb(nx, :, :) = meshb(nx, :, :) + teb
-    meshb(1, :, :) = meshb(1, :, :) + leb
-    quarter_chordb = 0.0_8
     rotation_matrixb = 0.0_8
     do ix=nx,1,-1
       call popreal8array(mesh(ix, :, :), ny*3)
@@ -232,11 +217,12 @@ contains
         call popreal8array(mesh(ix, iy, :), 3)
         outb = meshb(ix, iy, :)
         meshb(ix, iy, :) = 0.0_8
+        row = mesh(ix, :, :)
+        arg1(:) = row(iy, :) - quarter_chord(iy, :)
         arg1b = 0.0_8
         call matmul2_b(3, 3, 1, rotation_matrix(iy, :, :), &
 &                rotation_matrixb(iy, :, :), arg1(:), arg1b(:), out, &
 &                outb)
-        call popreal8array(arg1, 3)
         rowb(iy, :) = rowb(iy, :) + arg1b
         quarter_chordb(iy, :) = quarter_chordb(iy, :) - arg1b
       end do
@@ -252,6 +238,22 @@ contains
     rotation_matrixb(:, 1, 3) = 0.0_8
     rad_twistb = rad_twistb - sin(rad_twist)*rotation_matrixb(:, 1, 1)
     twistb = twistb + p180*rad_twistb
+    leb = 0.0_8
+    teb = 0.0_8
+    call popreal8array(quarter_chord, ny*3)
+    teb = 0.25*quarter_chordb
+    leb = 0.75*quarter_chordb
+    meshb(nx, :, :) = meshb(nx, :, :) + teb
+    meshb(1, :, :) = meshb(1, :, :) + leb
+    quarter_chordb = 0.0_8
+    do iy=ny,1,-1
+      call popreal8array(mesh(:, iy, 1), nx)
+      quarter_chordb(iy, 1) = quarter_chordb(iy, 1) + sum(meshb(:, iy, 1&
+&       )) - chord_dist(iy)*sum(meshb(:, iy, 1))
+      chord_distb(iy) = chord_distb(iy) + sum((mesh(:, iy, 1)-&
+&       quarter_chord(iy, 1))*meshb(:, iy, 1))
+      meshb(:, iy, 1) = chord_dist(iy)*meshb(:, iy, 1)
+    end do
     leb = 0.0_8
     teb = 0.0_8
     teb = 0.25*quarter_chordb
@@ -315,6 +317,14 @@ contains
     do ix=1,nx
       mesh(ix, :, 1) = mesh(ix, :, 1) + dx
     end do
+! scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    do iy=1,ny
+      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
+&       iy) + quarter_chord(iy, 1)
+    end do
 ! rotate
     le = mesh(1, :, :)
     te = mesh(nx, :, :)
@@ -334,14 +344,6 @@ contains
         mesh(ix, iy, :) = out
       end do
       mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
-    end do
-! scale x
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25*te + 0.75*le
-    do iy=1,ny
-      mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord_dist(&
-&       iy) + quarter_chord(iy, 1)
     end do
 ! dihedral
     le = mesh(1, :, :)

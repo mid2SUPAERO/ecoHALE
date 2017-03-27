@@ -59,6 +59,7 @@ def rotate(mesh, thetas):
         row[:] = numpy.einsum("ikj, ij -> ik", mats, row - quarter_chord)
         row += quarter_chord
 
+    return mesh
 
 def scale_x(mesh, chord_dist):
     te = mesh[-1]
@@ -286,8 +287,8 @@ class GeometryMesh(Component):
             mesh = self.mesh.copy()
             # stretch(mesh, params['span'])
             sweep(mesh, params['sweep'], self.symmetry)
-            rotate(mesh, params['twist'])
             scale_x(mesh, params['chord_dist'])
+            rotate(mesh, params['twist'])
             dihedral(mesh, params['dihedral'], self.symmetry)
             taper(mesh, params['taper'], self.symmetry)
 

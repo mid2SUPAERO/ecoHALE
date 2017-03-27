@@ -45,6 +45,15 @@ contains
       mesh(ix, :, 1) = mesh(ix, :, 1) + dx
     end do
 
+    ! Scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    do iy=1,ny
+      mesh(:, iy, 1) = (mesh(:, iy, 1) - quarter_chord(iy, 1)) * chord_dist(iy) + &
+        quarter_chord(iy, 1)
+    end do
 
     ! Rotate
     le = mesh(1, :, :)
@@ -67,18 +76,6 @@ contains
       end do
       mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
     end do
-
-
-    ! Scale x
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25 * te + 0.75 * le
-
-    do iy=1,ny
-      mesh(:, iy, 1) = (mesh(:, iy, 1) - quarter_chord(iy, 1)) * chord_dist(iy) + &
-        quarter_chord(iy, 1)
-    end do
-
 
     ! Dihedral
     le = mesh(1, :, :)
