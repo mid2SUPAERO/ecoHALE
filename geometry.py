@@ -340,6 +340,26 @@ class GeometryMesh(Component):
             if 'taper' in dparams:
                 dparams['taper'] = taperb
 
+class MonotonicTaper(Component):
+    def __init__(self, surface):
+        super(MonotonicTaper, self).__init__()
+        self.nvars = surface['num_y']
+        self.add_param('chord_dist', val=numpy.zeros(self.nvars), dtype='complex')
+        self.add_output('monotonic', val=numpy.zeros(self.nvars-1))
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        # Monotonic chord constraint
+        for i in range(self.nvars-1):
+            unknowns['monotonic'][i] = params['chord_dist'][i+1] - params['chord_dist'][i]
+
+    def linearize(self, params, unknowns, resids):
+        jac = self.alloc_jacobian()
+        for i in range(self.nvars - 1):
+            jac['monotonic', 'chord_dist'][i,i] = -1.0
+            jac['monotonic', 'chord_dist'][i,i+1] = 1.0
+
+        return jac
+
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
     """ Generate simple rectangular wing mesh.

@@ -20,7 +20,7 @@ from openmdao.api import view_model
 # =============================================================================
 # OpenAeroStruct modules
 # =============================================================================
-from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicTaper
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
@@ -145,10 +145,11 @@ class OASProblem(object):
                     'chord_dist' : None,
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.12,      # thickness over chord ratio
-                    'c_max_t' : .303,       # chordwise location of maximum
+                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0012)
+                    'c_max_t' : .303,       # chordwise location of maximum (NACA0012)
                                             # thickness
-                    'exact_failure_constraint' : False # if false, use KS function
+                    'exact_failure_constraint' : False, # if false, use KS function
+                    'monotonictaper' : False # apply monotonic taper constraint
                     }
         return defaults
 
@@ -159,7 +160,8 @@ class OASProblem(object):
         """
 
         defaults = {'optimize' : False,     # flag for analysis or optimization
-                    'Re' : 0.,              # Reynolds number
+                    'opt' : 'SNOPT',        # Default optimizer
+                    'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,           # angle of attack
                     'CT' : 9.80665 * 17.e-6,   # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
@@ -168,6 +170,7 @@ class OASProblem(object):
                     'rho' : 0.38,           # [kg/m^3] air density at 35,000 ft
                     'a' : 295.4,            # [m/s] speed of sound at 35,000 ft
                     'force_fd' : False,     # if true, we FD over the whole model
+                    'withViscous' : True,   # add viscous drag component
                     }
 
         return defaults
@@ -330,14 +333,32 @@ class OASProblem(object):
         try:  # Use SNOPT optimizer if installed
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
-            self.prob.driver.options['optimizer'] = "SNOPT"
-            self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
-                                             'Major feasibility tolerance': 1.0e-6,
-                                             'Major iterations limit':50,
-                                             'Minor iterations limit':1000,
-                                             'Iterations limit':1000
-                                             }
-
+            if self.prob_dict['opt'] == 'SNOPT':
+                self.prob.driver.options['optimizer'] = "SNOPT"
+                self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                                 'Major feasibility tolerance': 1.0e-8,
+                                                 'Major iterations limit':400,
+                                                 'Minor iterations limit':2000,
+                                                 'Iterations limit':1000
+                                                 }
+            elif self.prob_dict['opt'] == 'ALPSO':
+                self.prob.driver.options['optimizer'] = 'ALPSO'
+                self.prob.driver.opt_settings = {'SwarmSize': 40,
+                                                'maxOuterIter': 200,
+                                                'maxInnerIter': 6,
+                                                'rtol': 1e-5,
+                                                'atol': 1e-5,
+                                                'dtol': 1e-5,
+                                                'printOuterIters': 1
+                                                 }
+            elif self.prob_dict['opt'] == 'NOMAD':
+                self.prob.driver.options['optimizer'] = 'NOMAD'
+                self.prob.driver.opt_settings = {'maxiter':1000,
+                                                'minmeshsize':1e-12,
+                                                'minpollsize':1e-12,
+                                                'displaydegree':0,
+                                                'printfile':1
+                                                }
         except:  # Use SLSQP optimizer if SNOPT not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'
@@ -390,7 +411,7 @@ class OASProblem(object):
         # self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+        # view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         # If `optimize` == True in prob_dict, perform optimization. Otherwise,
         # simply pass the problem since analysis has already been run.
@@ -540,20 +561,24 @@ class OASProblem(object):
             tmp_group.add('vlmgeom',
                      VLMGeometry(surface),
                      promotes=['*'])
+            if surface['monotonictaper']:
+                tmp_group.add('monotonictaper',
+                         MonotonicTaper(surface),
+                         promotes=['*'])
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each
             # individual surface.
             name_orig = name.strip('_')
-            name = name_orig
-            exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=[])')
-
-            # Add a performance group for each surface
-            name = name_orig + '_perf'
-            exec('root.add("' + name + '", ' + 'VLMFunctionals(surface)' + ', promotes=["v", "alpha", "M", "re", "rho"])')
+            root.add(name_orig, tmp_group, promotes=[])
+            root.add(name_orig+'_perf', VLMFunctionals(surface, self.prob_dict),
+                    promotes=["v", "alpha", "M", "re", "rho"])
 
         # Add problem information as an independent variables component
+        if self.prob_dict['Re'] == 0:
+            Error('Reynolds number must be greater than zero for viscous drag ' +
+            'calculation. If only inviscid drag is desired, set withViscous ' +
+            'flag to False.')
         prob_vars = [('v', self.prob_dict['v']),
             ('alpha', self.prob_dict['alpha']),
             ('M', self.prob_dict['M']),

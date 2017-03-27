@@ -1280,7 +1280,7 @@ class ViscousDrag(Component):
         shape.
     """
 
-    def __init__(self, surface):
+    def __init__(self, surface, withViscous):
         super(ViscousDrag, self).__init__()
 
         # Percentage of chord with laminar flow
@@ -1299,18 +1299,18 @@ class ViscousDrag(Component):
         self.add_param('widths', val=numpy.zeros((self.ny-1)))
         self.add_param('lengths', val=numpy.zeros((self.ny)))
         self.add_output('CDv', val=0.)
+        self.withViscous = withViscous
 
     def solve_nonlinear(self, params, unknowns, resids):
-        re = params['re']
-        M = params['M']
-        S_ref = params['S_ref']
-        sweep = params['sweep'] * numpy.pi / 180.
-        widths = params['widths']
-        lengths = params['lengths']
+        if self.withViscous:
+            re = params['re']
+            M = params['M']
+            S_ref = params['S_ref']
+            sweep = params['sweep'] * numpy.pi / 180.
+            widths = params['widths']
+            lengths = params['lengths']
 
-        self.d_over_q = numpy.zeros((self.ny - 1))
-
-        if re > 0:
+            self.d_over_q = numpy.zeros((self.ny - 1))
 
             chords = (lengths[1:] + lengths[:-1]) / 2.
             Re_c = re * chords
@@ -1337,13 +1337,15 @@ class ViscousDrag(Component):
             # D_over_q = D / 0.5 / rho / v**2
             self.d_over_q = 2 * cd * chords
 
-        self.D_over_q = numpy.sum(self.d_over_q * widths)
+            self.D_over_q = numpy.sum(self.d_over_q * widths)
 
-        # Calculate form factor
-        FF = 1.34 * M**0.18 * numpy.cos(sweep)**0.28 * \
-                    (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
+            # Calculate form factor
+            FF = 1.34 * M**0.18 * numpy.cos(sweep)**0.28 * \
+                        (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
 
-        unknowns['CDv'] = FF * self.D_over_q / S_ref
+            unknowns['CDv'] = FF * self.D_over_q / S_ref
+        else:
+            unknowns['CDv'] = 0.0
 
     def linearize(self, params, unknowns, resids):
         """ Jacobian for viscous drag."""
@@ -1352,7 +1354,7 @@ class ViscousDrag(Component):
         jac['CDv', 'lengths'] = numpy.zeros_like(jac['CDv', 'lengths'])
         re = params['re']
 
-        if re > 0:
+        if self.withViscous:
             p180 = numpy.pi / 180.
             M = params['M']
             S_ref = params['S_ref']
@@ -1579,8 +1581,10 @@ class VLMFunctionals(Group):
     """ Group that contains the aerodynamic functionals used to evaluate
     performance. """
 
-    def __init__(self, surface):
+    def __init__(self, surface, prob_dict):
         super(VLMFunctionals, self).__init__()
+
+        withViscous = prob_dict['withViscous']
 
         self.add('liftdrag',
                  VLMLiftDrag(surface),
@@ -1595,5 +1599,5 @@ class VLMFunctionals(Group):
                  TotalDrag(surface),
                  promotes=['*'])
         self.add('viscousdrag',
-                 ViscousDrag(surface),
+                 ViscousDrag(surface, withViscous),
                  promotes=['*'])
