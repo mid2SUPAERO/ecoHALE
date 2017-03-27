@@ -804,6 +804,41 @@ class SpatialBeamFailureKS(Component):
 
         return jac
 
+class SpatialBeamFailureExact(Component):
+    """
+    Outputs individual failure constraints on each FEM element. 
+
+    Parameters
+    ----------
+    vonmises[ny-1, 2] : array_like
+        von Mises stress magnitudes for each FEM element.
+
+    Returns
+    -------
+    failure[ny-1, 2] : array_like
+        Array of failure conditions. Positive if element has failed.
+
+    """
+
+    def __init__(self, surface):
+        super(SpatialBeamFailureExact, self).__init__()
+
+        self.ny = surface['num_y']
+
+        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=complex))
+        self.add_output('failure', val=numpy.zeros((self.ny-1, 2), dtype=complex))
+
+        self.sigma = surface['stress']
+
+    def solve_nonlinear(self, params, unknowns, resids):
+        sigma = self.sigma
+        vonmises = params['vonmises']
+
+        unknowns['failure'] = vonmises/sigma - 1
+
+    def linearize(self, params, unknowns, resids):
+        return {('failure', 'vonmises') : numpy.eye(((self.ny-1)*2)) / self.sigma}
+
 
 class SpatialBeamStates(Group):
     """ Group that contains the spatial beam states. """
@@ -843,6 +878,11 @@ class SpatialBeamFunctionals(Group):
         self.add('vonmises',
                  SpatialBeamVonMisesTube(surface),
                  promotes=['*'])
-        self.add('failure',
-                 SpatialBeamFailureKS(surface),
-                 promotes=['*'])
+        if surface['exact_failure_constraint']:
+            self.add('failure',
+                     SpatialBeamFailureExact(surface),
+                     promotes=['*'])
+        else:
+            self.add('failure',
+                    SpatialBeamFailureKS(surface),
+                    promotes=['*'])

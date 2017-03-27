@@ -148,6 +148,7 @@ class OASProblem(object):
                     't_over_c' : 0.12,      # thickness over chord ratio
                     'c_max_t' : .303,       # chordwise location of maximum
                                             # thickness
+                    'exact_failure_constraint' : False # if false, use KS function
                     }
         return defaults
 
