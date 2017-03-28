@@ -149,7 +149,8 @@ class OASProblem(object):
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0012)
                                             # thickness
                     'exact_failure_constraint' : False, # if false, use KS function
-                    'monotonictaper' : False # apply monotonic taper constraint
+                    'monotonictaper' : False, # apply monotonic taper constraint
+                    'fix_root_twist' : 0.0,  # fix root twist to zero
                     }
         return defaults
 
@@ -538,17 +539,13 @@ class OASProblem(object):
                 ('taper', surface['taper']),
                 ('disp', numpy.zeros((surface['num_y'], 6)))]
 
-            # Obtain the Jacobian to interpolate the data from the b-spline
-            # control points for both twist and chord
-            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
-            jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'], order=surface['num_chord_dist'])
-
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
+                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y'],
+                            fixroot=surface['fix_root_twist']),
                      promotes=['*'])
             tmp_group.add('chord_dist_bsp',
                      Bspline('chord_dist_cp', 'chord_dist', surface['num_chord_dist'], surface['num_y']),

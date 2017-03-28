@@ -38,7 +38,6 @@ def rotate(mesh, thetas):
         Nodal mesh defining the twisted aerodynamic surface.
 
     """
-
     te = mesh[-1]
     le = mesh[ 0]
     quarter_chord = 0.25 * te + 0.75 * le
@@ -661,19 +660,32 @@ class Bspline(Component):
 
     """
 
-    def __init__(self, cpname, ptname, n_input, n_output):
+    def __init__(self, cpname, ptname, n_input, n_output, fixroot=None):
         super(Bspline, self).__init__()
         self.cpname = cpname
         self.ptname = ptname
-        self.jac = get_bspline_mtx(n_input, n_output, order=min(n_input, 4))
+        self.fixroot = fixroot
+        if fixroot is not None:
+            n_cp = n_input + 1
+        else:
+            n_cp = n_input
+        self.jac = get_bspline_mtx(n_cp, n_output, order=min(n_input, 4))
         self.add_param(cpname, val=numpy.zeros(n_input))
         self.add_output(ptname, val=numpy.zeros(n_output))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns[self.ptname] = self.jac.dot(params[self.cpname])
+        if self.fixroot is not None:
+            cp_vector = numpy.append(params[self.cpname], self.fixroot)
+        else:
+            cp_vector = params[self.cpname]
+        unknowns[self.ptname] = self.jac.dot(cp_vector)
 
     def linearize(self, params, unknowns, resids):
-        return {(self.ptname, self.cpname): self.jac}
+        if self.fixroot is not None:
+            jac = self.jac[:,:-1]
+        else:
+            jac = self.jac
+        return {(self.ptname, self.cpname): jac}
 
 
 class LinearInterp(Component):
