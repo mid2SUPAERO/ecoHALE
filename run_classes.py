@@ -260,26 +260,27 @@ class OASProblem(object):
         if surf_dict['twist'] is not None:
             num_twist = surf_dict['num_twist']
 
-            # If the surface is symmetric, simply interpolate the initial
-            # twist_cp values based on the mesh data
-            if surf_dict['symmetry']:
-                twist = numpy.interp(numpy.linspace(0, 1, num_twist), eta, surf_dict['twist'])
-            else:
-
-                # If num_twist is odd, create the twist vector and mirror it
-                # then stack the two together, but remove the duplicated twist
-                # value.
-                if num_twist % 2:
-                    twist = numpy.interp(numpy.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['twist'])
-                    twist = numpy.hstack((twist[:-1], twist[::-1]))
-
-                # If num_twist is even, mirror the twist vector and stack
-                # them together
+            if 'CRM' in surf_dict['wing_type']:
+                # If the surface is symmetric, simply interpolate the initial
+                # twist_cp values based on the mesh data
+                if surf_dict['symmetry']:
+                    twist = numpy.interp(numpy.linspace(0, 1, num_twist), eta, surf_dict['twist'])
                 else:
-                    twist = numpy.interp(numpy.linspace(0, 1, num_twist/2), eta, surf_dict['twist'])
-                    twist = numpy.hstack((twist, twist[::-1]))
 
-            surf_dict['twist'] = twist
+                    # If num_twist is odd, create the twist vector and mirror it
+                    # then stack the two together, but remove the duplicated twist
+                    # value.
+                    if num_twist % 2:
+                        twist = numpy.interp(numpy.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['twist'])
+                        twist = numpy.hstack((twist[:-1], twist[::-1]))
+
+                    # If num_twist is even, mirror the twist vector and stack
+                    # them together
+                    else:
+                        twist = numpy.interp(numpy.linspace(0, 1, num_twist/2), eta, surf_dict['twist'])
+                        twist = numpy.hstack((twist, twist[::-1]))
+
+                surf_dict['twist'] = twist
 
         # If not initial twist information is provided, simply use zero twist
         else:
