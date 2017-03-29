@@ -150,7 +150,6 @@ class OASProblem(object):
                                             # thickness
                     'exact_failure_constraint' : False, # if false, use KS function
                     'monotonictaper' : False, # apply monotonic taper constraint
-                    'fix_root_twist' : 0.0,  # fix root twist to zero
                     }
         return defaults
 
@@ -544,8 +543,7 @@ class OASProblem(object):
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y'],
-                            fixroot=surface['fix_root_twist']),
+                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('chord_dist_bsp',
                      Bspline('chord_dist_cp', 'chord_dist', surface['num_chord_dist'], surface['num_y']),

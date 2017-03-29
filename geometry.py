@@ -359,7 +359,6 @@ class MonotonicTaper(Component):
 
         return jac
 
-
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
     """ Generate simple rectangular wing mesh.
 
@@ -660,32 +659,19 @@ class Bspline(Component):
 
     """
 
-    def __init__(self, cpname, ptname, n_input, n_output, fixroot=None):
+    def __init__(self, cpname, ptname, n_input, n_output):
         super(Bspline, self).__init__()
         self.cpname = cpname
         self.ptname = ptname
-        self.fixroot = fixroot
-        if fixroot is not None:
-            n_cp = n_input + 1
-        else:
-            n_cp = n_input
-        self.jac = get_bspline_mtx(n_cp, n_output, order=min(n_input, 4))
+        self.jac = get_bspline_mtx(n_input, n_output, order=min(n_input, 4))
         self.add_param(cpname, val=numpy.zeros(n_input))
         self.add_output(ptname, val=numpy.zeros(n_output))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        if self.fixroot is not None:
-            cp_vector = numpy.append(params[self.cpname], self.fixroot)
-        else:
-            cp_vector = params[self.cpname]
-        unknowns[self.ptname] = self.jac.dot(cp_vector)
+        unknowns[self.ptname] = self.jac.dot(params[self.cpname])
 
     def linearize(self, params, unknowns, resids):
-        if self.fixroot is not None:
-            jac = self.jac[:,:-1]
-        else:
-            jac = self.jac
-        return {(self.ptname, self.cpname): jac}
+        return {(self.ptname, self.cpname): self.jac}
 
 
 class LinearInterp(Component):
