@@ -38,7 +38,6 @@ def rotate(mesh, thetas):
         Nodal mesh defining the twisted aerodynamic surface.
 
     """
-
     te = mesh[-1]
     le = mesh[ 0]
     quarter_chord = 0.25 * te + 0.75 * le
@@ -359,7 +358,6 @@ class MonotonicTaper(Component):
             jac['monotonic', 'chord_dist'][i,i+1] = 1.0
 
         return jac
-
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
     """ Generate simple rectangular wing mesh.

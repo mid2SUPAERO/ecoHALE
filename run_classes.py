@@ -148,7 +148,7 @@ class OASProblem(object):
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0012)
                                             # thickness
                     'exact_failure_constraint' : False, # if false, use KS function
-                    'monotonictaper' : False # apply monotonic taper constraint
+                    'monotonictaper' : False, # apply monotonic taper constraint
                     }
         return defaults
 
