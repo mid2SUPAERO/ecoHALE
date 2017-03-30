@@ -16,8 +16,10 @@ from scipy.linalg import lu_factor, lu_solve
 try:
     import OAS_API
     fortran_flag = True
+    data_type = float
 except:
     fortran_flag = False
+    data_type = complex
 
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
@@ -179,22 +181,19 @@ class AssembleK(Component):
     def __init__(self, surface, cg_x=5):
         super(AssembleK, self).__init__()
 
-        # self.deriv_options['type'] = 'fd'
-        # self.deriv_options['form'] = 'central'
-
         self.ny = surface['num_y']
 
         self.size = size = 6 * self.ny + 6
 
-        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype="complex"))
-        self.add_param('Iy', val=numpy.zeros((self.ny - 1), dtype="complex"))
-        self.add_param('Iz', val=numpy.zeros((self.ny - 1), dtype="complex"))
-        self.add_param('J', val=numpy.zeros((self.ny - 1), dtype="complex"))
-        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype="complex"))
-        self.add_param('loads', val=numpy.zeros((self.ny, 6), dtype="complex"))
+        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('Iy', val=numpy.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('Iz', val=numpy.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('J', val=numpy.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=data_type))
+        self.add_param('loads', val=numpy.zeros((self.ny, 6), dtype=data_type))
 
-        self.add_output('K', val=numpy.zeros((size, size), dtype="complex"))
-        self.add_output('rhs', val=numpy.zeros((size), dtype="complex"))
+        self.add_output('K', val=numpy.zeros((size, size), dtype=data_type))
+        self.add_output('rhs', val=numpy.zeros((size), dtype=data_type))
 
         self.E = surface['E']
         self.G = surface['G']
@@ -203,43 +202,43 @@ class AssembleK(Component):
         self.const2 = numpy.array([
             [1, -1],
             [-1, 1],
-        ], dtype='complex')
+        ], dtype=data_type)
         self.const_y = numpy.array([
             [12, -6, -12, -6],
             [-6, 4, 6, 2],
             [-12, 6, 12, 6],
             [-6, 2, 6, 4],
-        ], dtype='complex')
+        ], dtype=data_type)
         self.const_z = numpy.array([
             [12, 6, -12, 6],
             [6, 4, -6, 2],
             [-12, -6, 12, -6],
             [6, 2, -6, 4],
-        ], dtype='complex')
-        self.x_gl = numpy.array([1, 0, 0], dtype='complex')
+        ], dtype=data_type)
+        self.x_gl = numpy.array([1, 0, 0], dtype=data_type)
 
-        self.K_elem = numpy.zeros((12, 12), dtype='complex')
-        self.T_elem = numpy.zeros((12, 12), dtype='complex')
-        self.T = numpy.zeros((3, 3), dtype='complex')
+        self.K_elem = numpy.zeros((12, 12), dtype=data_type)
+        self.T_elem = numpy.zeros((12, 12), dtype=data_type)
+        self.T = numpy.zeros((3, 3), dtype=data_type)
 
-        self.K = numpy.zeros((size, size), dtype='complex')
-        self.rhs = numpy.zeros(size, dtype='complex')
+        self.K = numpy.zeros((size, size), dtype=data_type)
+        self.rhs = numpy.zeros(size, dtype=data_type)
 
-        self.K_a = numpy.zeros((2, 2), dtype='complex')
-        self.K_t = numpy.zeros((2, 2), dtype='complex')
-        self.K_y = numpy.zeros((4, 4), dtype='complex')
-        self.K_z = numpy.zeros((4, 4), dtype='complex')
+        self.K_a = numpy.zeros((2, 2), dtype=data_type)
+        self.K_t = numpy.zeros((2, 2), dtype=data_type)
+        self.K_y = numpy.zeros((4, 4), dtype=data_type)
+        self.K_z = numpy.zeros((4, 4), dtype=data_type)
 
-        self.S_a = numpy.zeros((2, 12), dtype='complex')
+        self.S_a = numpy.zeros((2, 12), dtype=data_type)
         self.S_a[(0, 1), (0, 6)] = 1.
 
-        self.S_t = numpy.zeros((2, 12), dtype='complex')
+        self.S_t = numpy.zeros((2, 12), dtype=data_type)
         self.S_t[(0, 1), (3, 9)] = 1.
 
-        self.S_y = numpy.zeros((4, 12), dtype='complex')
+        self.S_y = numpy.zeros((4, 12), dtype=data_type)
         self.S_y[(0, 1, 2, 3), (2, 4, 8, 10)] = 1.
 
-        self.S_z = numpy.zeros((4, 12), dtype='complex')
+        self.S_z = numpy.zeros((4, 12), dtype=data_type)
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
         if not fortran_flag:
@@ -342,9 +341,9 @@ class SpatialBeamFEM(Component):
     def __init__(self, size):
         super(SpatialBeamFEM, self).__init__()
 
-        self.add_param('K', val=numpy.zeros((size, size), dtype="complex"))
-        self.add_param('rhs', val=numpy.zeros((size), dtype="complex"))
-        self.add_state('disp_aug', val=numpy.zeros((size), dtype="complex"))
+        self.add_param('K', val=numpy.zeros((size, size), dtype=data_type))
+        self.add_param('rhs', val=numpy.zeros((size), dtype=data_type))
+        self.add_state('disp_aug', val=numpy.zeros((size), dtype=data_type))
 
         self.size = size
 
@@ -438,8 +437,8 @@ class SpatialBeamDisp(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype='complex'))
-        self.add_output('disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
+        self.add_param('disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype=data_type))
+        self.add_output('disp', val=numpy.zeros((self.ny, 6), dtype=data_type))
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Obtain the relevant portions of disp_aug and store the reshaped
@@ -478,8 +477,8 @@ class ComputeNodes(Component):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=complex))
-        self.add_output('nodes', val=numpy.zeros((self.ny, 3), dtype=complex))
+        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_output('nodes', val=numpy.zeros((self.ny, 3), dtype=data_type))
 
     def solve_nonlinear(self, params, unknowns, resids):
         w = self.fem_origin
@@ -521,8 +520,8 @@ class SpatialBeamEnergy(Component):
 
         ny = surface['num_y']
 
-        self.add_param('disp', val=numpy.zeros((ny, 6), dtype=complex))
-        self.add_param('loads', val=numpy.zeros((ny, 6), dtype=complex))
+        self.add_param('disp', val=numpy.zeros((ny, 6), dtype=data_type))
+        self.add_param('loads', val=numpy.zeros((ny, 6), dtype=data_type))
         self.add_output('energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -556,8 +555,8 @@ class SpatialBeamWeight(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype=complex))
-        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=complex))
+        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=data_type))
         self.add_output('weight', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -566,13 +565,6 @@ class SpatialBeamWeight(Component):
 
         # Calculate the volume and weight of the total structure
         volume = numpy.sum(numpy.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A)
-
-        volume = 0.
-        for i in range(self.ny-1):
-            diff = (nodes[i+1, :] - nodes[i, :])**2
-            diff_sum = numpy.sum(diff)
-            diff_norm = numpy.sqrt(diff_sum) * A[i]
-            volume = volume + diff_norm
 
         weight = volume * self.surface['mrho'] * 9.81
 
@@ -644,14 +636,14 @@ class SpatialBeamVonMisesTube(Component):
         self.ny = surface['num_y']
 
         self.add_param('nodes', val=numpy.zeros((self.ny, 3),
-                       dtype="complex"))
+                       dtype=data_type))
         self.add_param('r', val=numpy.zeros((self.ny - 1),
-                       dtype="complex"))
+                       dtype=data_type))
         self.add_param('disp', val=numpy.zeros((self.ny, 6),
-                       dtype="complex"))
+                       dtype=data_type))
 
         self.add_output('vonmises', val=numpy.zeros((self.ny-1, 2),
-                        dtype="complex"))
+                        dtype=data_type))
 
         if not fortran_flag:
             self.deriv_options['type'] = 'cs'
@@ -660,8 +652,8 @@ class SpatialBeamVonMisesTube(Component):
         self.E = surface['E']
         self.G = surface['G']
 
-        self.T = numpy.zeros((3, 3), dtype='complex')
-        self.x_gl = numpy.array([1, 0, 0], dtype='complex')
+        self.T = numpy.zeros((3, 3), dtype=data_type)
+        self.x_gl = numpy.array([1, 0, 0], dtype=data_type)
         self.t = 0
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -759,7 +751,7 @@ class SpatialBeamFailureKS(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=complex))
+        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=data_type))
         self.add_output('failure', val=0.)
 
         self.sigma = surface['stress']
@@ -825,8 +817,8 @@ class SpatialBeamFailureExact(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=complex))
-        self.add_output('failure', val=numpy.zeros((self.ny-1, 2), dtype=complex))
+        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=data_type))
+        self.add_output('failure', val=numpy.zeros((self.ny-1, 2), dtype=data_type))
 
         self.sigma = surface['stress']
 
@@ -878,6 +870,7 @@ class SpatialBeamFunctionals(Group):
         self.add('vonmises',
                  SpatialBeamVonMisesTube(surface),
                  promotes=['*'])
+
         if surface['exact_failure_constraint']:
             self.add('failure',
                      SpatialBeamFailureExact(surface),

@@ -62,8 +62,21 @@ class TestAero(unittest.TestCase):
         OAS_prob.run()
         prob = OAS_prob.prob
         self.assertAlmostEqual(prob['wing_perf.CL'], .45655138, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CD'], 0.0055402121081108589, places=5)
 
-    def test_aero_optimization_flat(self):
+    def test_aero_analysis_flat_viscous_symmetry(self):
+        OAS_prob = OASProblem({'type' : 'aero',
+                               'optimize' : False,
+                               'with_viscous' : True})
+        surf_dict = {'symmetry' : True}
+        OAS_prob.add_surface(surf_dict)
+        OAS_prob.setup()
+        OAS_prob.run()
+        prob = OAS_prob.prob
+        self.assertAlmostEqual(prob['wing_perf.CL'], .45655138, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CD'], 0.018942466133780547, places=5)
+
+    def test_aero_optimization(self):
         OAS_prob = OASProblem({'type' : 'aero',
                                'optimize' : True})
         OAS_prob.add_surface()
@@ -79,6 +92,40 @@ class TestAero(unittest.TestCase):
         OAS_prob.run()
         prob = OAS_prob.prob
         self.assertAlmostEqual(prob['wing_perf.CD'], .004048702908627036, places=5)
+
+    def test_aero_viscous_optimization(self):
+        OAS_prob = OASProblem({'type' : 'aero',
+                               'optimize' : True,
+                               'with_viscous' : True})
+        OAS_prob.add_surface()
+        OAS_prob.setup()
+
+        OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
+        OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+        OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
+        OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+        OAS_prob.run()
+        prob = OAS_prob.prob
+        self.assertAlmostEqual(prob['wing_perf.CD'], .016881257086387776, places=5)
+
+    def test_aero_viscous_chord_optimization(self):
+        OAS_prob = OASProblem({'type' : 'aero',
+                               'optimize' : True,
+                               'with_viscous' : True})
+        OAS_prob.add_surface()
+        OAS_prob.setup()
+
+        OAS_prob.add_desvar('wing.chord_dist_cp', lower=0.1, upper=3.)
+        OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
+        OAS_prob.add_constraint('wing.S_ref', equals=10)
+        OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+        OAS_prob.run()
+        prob = OAS_prob.prob
+        self.assertAlmostEqual(prob['wing_perf.CD'], .018636766165044456, places=5)
 
     def test_aero_multiple_opt(self):
         OAS_prob = OASProblem({'type' : 'aero',

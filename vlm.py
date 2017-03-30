@@ -10,22 +10,6 @@ prepended on them. E.g., 'def_mesh' on a surface called 'wing' would be
 'wing_def_mesh', etc. Please see an N2 diagram (the .html file produced by
 this code) for more information about which parameters are renamed.
 
-.. todo:: fix depiction of wing
-Depiction of wing:
-
-    y -->
- x  -----------------  Leading edge
- |  | + | + | + | + |
- v  |   |   |   |   |
-    | o | o | o | o |
-    -----------------  Trailing edge
-
-The '+' symbols represent the bound points on the 1/4 chord line, which are
-used to compute drag.
-The 'o' symbols represent the collocation points on the 3/4 chord line, where
-the flow tangency condition is enforced.
-
-For this depiction, num_x = 2 and num_y = 5.
 """
 
 from __future__ import division, print_function
@@ -33,11 +17,14 @@ import numpy
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
+
 try:
     import OAS_API
     fortran_flag = True
+    data_type = float
 except:
     fortran_flag = False
+    data_type = complex
 
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
@@ -175,7 +162,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                 pts = params[name+'c_pts']
 
             # Initialize sub-matrix to populate within full mtx
-            small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype='complex')
+            small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype=data_type)
 
             # Dense fortran assembly for the AIC matrix
             if fortran_flag:
@@ -399,8 +386,6 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
         i_panels_ += n_panels_
 
     mtxd /= 4 * numpy.pi
-    # if mtxd.any():
-    #     view_mat(mtxd)
 
 def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, skip=False):
 
@@ -517,17 +502,14 @@ class VLMGeometry(Component):
         self.fem_origin = surface['fem_origin']
 
         self.add_param('def_mesh', val=numpy.zeros((nx, ny, 3),
-                       dtype="complex"))
+                       dtype=data_type))
         self.add_output('b_pts', val=numpy.zeros((nx-1, ny, 3),
-                        dtype="complex"))
+                        dtype=data_type))
         self.add_output('c_pts', val=numpy.zeros((nx-1, ny-1, 3)))
         self.add_output('widths', val=numpy.zeros((ny-1)))
         self.add_output('lengths', val=numpy.zeros((ny)))
         self.add_output('normals', val=numpy.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=0.)
-
-    def _get_lengths(self, A, B, axis):
-        return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
 
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = params['def_mesh']
@@ -556,20 +538,11 @@ class VLMGeometry(Component):
             mesh[:-1,  1:, :] - mesh[1:, :-1, :],
             mesh[:-1, :-1, :] - mesh[1:,  1:, :],
             axis=2)
+
         norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
         for j in xrange(3):
             normals[:, :, j] /= norms
-        old_normals = normals.copy()
 
-        nx, ny = mesh.shape[:2]
-        normals = numpy.zeros((nx-1, ny-1, 3), dtype="complex")
-        norms = numpy.zeros((nx-1, ny-1), dtype="complex")
-        for i in range(nx-1):
-            for j in range(ny-1):
-                normals[i, j, :] = numpy.cross(mesh[i, j+1, :] - mesh[i+1, j,   :],
-                                               mesh[i, j,   :] - mesh[i+1, j+1, :])
-                norms[i, j] = numpy.sqrt(numpy.sum(normals[i, j, :]**2))
-                normals[i, j, :] = normals[i, j, :] / norms[i, j]
         S_ref = 0.5 * numpy.sum(norms)
 
         # Store each array
@@ -682,11 +655,11 @@ class AssembleAIC(Component):
             name = surface['name']
 
             self.add_param(name+'def_mesh', val=numpy.zeros((nx, ny, 3),
-                           dtype="complex"))
+                           dtype=data_type))
             self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3),
-                           dtype="complex"))
+                           dtype=data_type))
             self.add_param(name+'c_pts', val=numpy.zeros((nx-1, ny-1, 3),
-                           dtype="complex"))
+                           dtype=data_type))
             self.add_param(name+'normals', val=numpy.zeros((nx-1, ny-1, 3)))
             tot_panels += (nx - 1) * (ny - 1)
 
@@ -695,13 +668,13 @@ class AssembleAIC(Component):
         self.add_param('v', val=1.)
         self.add_param('alpha', val=0.)
 
-        self.add_output('AIC', val=numpy.zeros((tot_panels, tot_panels), dtype="complex"))
-        self.add_output('rhs', val=numpy.zeros((tot_panels), dtype="complex"))
+        self.add_output('AIC', val=numpy.zeros((tot_panels, tot_panels), dtype=data_type))
+        self.add_output('rhs', val=numpy.zeros((tot_panels), dtype=data_type))
 
         self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3),
-                                   dtype="complex")
+                                   dtype=data_type)
         self.mtx = numpy.zeros((tot_panels, tot_panels),
-                                   dtype="complex")
+                                   dtype=data_type)
 
         if not fortran_flag:
             self.deriv_options['type'] = 'cs'
@@ -714,7 +687,7 @@ class AssembleAIC(Component):
         # Construct an flattened array with the normals of each surface in order
         # so we can do the normals with velocities to set up the right-hand-side
         # of the system.
-        flattened_normals = numpy.zeros((self.tot_panels, 3), dtype='complex')
+        flattened_normals = numpy.zeros((self.tot_panels, 3), dtype=data_type)
         i = 0
         for surface in self.surfaces:
             name = surface['name']
@@ -734,7 +707,7 @@ class AssembleAIC(Component):
         alpha = params['alpha'] * numpy.pi / 180.
         cosa = numpy.cos(alpha)
         sina = numpy.sin(alpha)
-        v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype="complex")
+        v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype=data_type)
 
         # Populate the right-hand side of the linear system with the
         # expected velocities at each collocation point
@@ -883,9 +856,9 @@ class AeroCirculations(Component):
     def __init__(self, size):
         super(AeroCirculations, self).__init__()
 
-        self.add_param('AIC', val=numpy.zeros((size, size), dtype="complex"))
-        self.add_param('rhs', val=numpy.zeros((size), dtype="complex"))
-        self.add_state('circulations', val=numpy.zeros((size), dtype="complex"))
+        self.add_param('AIC', val=numpy.zeros((size, size), dtype=data_type))
+        self.add_param('rhs', val=numpy.zeros((size), dtype=data_type))
+        self.add_state('circulations', val=numpy.zeros((size), dtype=data_type))
 
         self.size = size
 
@@ -993,9 +966,9 @@ class VLMForces(Component):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-            self.add_param(name+'def_mesh', val=numpy.zeros((nx, ny, 3), dtype='complex'))
-            self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3), dtype='complex'))
-            self.add_output(name+'sec_forces', val=numpy.zeros((nx-1, ny-1, 3), dtype='complex'))
+            self.add_param(name+'def_mesh', val=numpy.zeros((nx, ny, 3), dtype=data_type))
+            self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3), dtype=data_type))
+            self.add_output(name+'sec_forces', val=numpy.zeros((nx-1, ny-1, 3), dtype=data_type))
 
         self.tot_panels = tot_panels
 
@@ -1005,8 +978,8 @@ class VLMForces(Component):
         self.add_param('rho', val=3.)
         self.surfaces = surfaces
 
-        self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype="complex")
-        self.v = numpy.zeros((tot_panels, 3), dtype="complex")
+        self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype=data_type)
+        self.v = numpy.zeros((tot_panels, 3), dtype=data_type)
 
         if not fortran_flag:
             self.deriv_options['type'] = 'cs'
@@ -1055,7 +1028,7 @@ class VLMForces(Component):
                 cross = numpy.cross(self.v[i:i+num_panels],
                                     bound.reshape(-1, bound.shape[-1], order='F'))
 
-                sec_forces = numpy.zeros(((nx-1)*(ny-1), 3), dtype='complex')
+                sec_forces = numpy.zeros(((nx-1)*(ny-1), 3), dtype=data_type)
                 # Compute the sectional forces acting on each panel
                 for ind in xrange(3):
                     sec_forces[:, ind] = \
@@ -1280,7 +1253,7 @@ class ViscousDrag(Component):
         shape.
     """
 
-    def __init__(self, surface, withViscous):
+    def __init__(self, surface, with_viscous):
         super(ViscousDrag, self).__init__()
 
         # Percentage of chord with laminar flow
@@ -1299,10 +1272,10 @@ class ViscousDrag(Component):
         self.add_param('widths', val=numpy.zeros((self.ny-1)))
         self.add_param('lengths', val=numpy.zeros((self.ny)))
         self.add_output('CDv', val=0.)
-        self.withViscous = withViscous
+        self.with_viscous = with_viscous
 
     def solve_nonlinear(self, params, unknowns, resids):
-        if self.withViscous:
+        if self.with_viscous:
             re = params['re']
             M = params['M']
             S_ref = params['S_ref']
@@ -1354,7 +1327,7 @@ class ViscousDrag(Component):
         jac['CDv', 'lengths'] = numpy.zeros_like(jac['CDv', 'lengths'])
         re = params['re']
 
-        if self.withViscous:
+        if self.with_viscous:
             p180 = numpy.pi / 180.
             M = params['M']
             S_ref = params['S_ref']
@@ -1584,7 +1557,7 @@ class VLMFunctionals(Group):
     def __init__(self, surface, prob_dict):
         super(VLMFunctionals, self).__init__()
 
-        withViscous = prob_dict['withViscous']
+        with_viscous = prob_dict['with_viscous']
 
         self.add('liftdrag',
                  VLMLiftDrag(surface),
@@ -1599,5 +1572,5 @@ class VLMFunctionals(Group):
                  TotalDrag(surface),
                  promotes=['*'])
         self.add('viscousdrag',
-                 ViscousDrag(surface, withViscous),
+                 ViscousDrag(surface, with_viscous),
                  promotes=['*'])

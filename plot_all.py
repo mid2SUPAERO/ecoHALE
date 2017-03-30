@@ -1,19 +1,16 @@
 """ Script to plot results from aero, struct, or aerostruct optimization.
 
 Usage is
-`python plot_all.py a` for aero only,
-`python plot_all.py s` for struct only,
-`python plot_all.py as` for aerostruct, or
+`python plot_all.py aero.db` for aero only,
+`python plot_all.py struct.db` for struct only,
+`python plot_all.py aerostruct.db` for aerostruct, or
 `python plot_all.py __name__` for user-named database.
-
-The script automatically appends '.db' to the provided name.
-Ex: `python plot_all.py example` opens 'example.db'.
 
 You can select a certain zoom factor for the 3d view by adding a number as a
 last keyword.
 The larger the number, the closer the view. Floats or ints are accepted.
 
-Ex: `python plot_all.py a 1` a wider view than `python plot_all.py a 5`.
+Ex: `python plot_all.py aero.db 1` a wider view than `python plot_all.py aero.db 5`.
 
 """
 
@@ -47,22 +44,12 @@ except:
 # User-set parameters
 #####################
 
-if sys.argv[1] == 'as':
-    filename = 'aerostruct'
-elif sys.argv[1] == 'a':
-    filename = 'aero'
-elif sys.argv[1] == 's':
-    filename = 'struct'
-else:
-    filename = sys.argv[1]
+db_name = sys.argv[1]
 
 try:
     zoom_scale = sys.argv[2]
 except:
     zoom_scale = 2.8
-
-db_name = filename + '.db'
-
 
 class Display(object):
     def __init__(self, db_name):

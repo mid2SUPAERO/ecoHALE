@@ -10,8 +10,10 @@ from b_spline import get_bspline_mtx
 try:
     import OAS_API
     fortran_flag = True
+    data_type = float
 except:
     fortran_flag = False
+    data_type = complex
 
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
@@ -47,7 +49,7 @@ def rotate(mesh, thetas):
 
     rad_thetas = thetas * numpy.pi / 180.
 
-    mats = numpy.zeros((ny, 3, 3), dtype="complex")
+    mats = numpy.zeros((ny, 3, 3), dtype=data_type)
     mats[:, 0, 0] = cos(rad_thetas)
     mats[:, 0, 2] = sin(rad_thetas)
     mats[:, 1, 1] = 1
@@ -261,8 +263,8 @@ class GeometryMesh(Component):
         self.add_param('span', val=58.7630524)
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=numpy.zeros(ny), dtype='complex')
-        self.add_param('chord_dist', val=numpy.zeros(ny), dtype='complex')
+        self.add_param('twist', val=numpy.zeros(ny), dtype=data_type)
+        self.add_param('chord_dist', val=numpy.zeros(ny), dtype=data_type)
         self.add_param('taper', val=1.)
         self.add_output('mesh', val=self.mesh)
 
@@ -343,7 +345,7 @@ class MonotonicTaper(Component):
     def __init__(self, surface):
         super(MonotonicTaper, self).__init__()
         self.nvars = surface['num_y']
-        self.add_param('chord_dist', val=numpy.zeros(self.nvars), dtype='complex')
+        self.add_param('chord_dist', val=numpy.zeros(self.nvars), dtype=data_type)
         self.add_output('monotonic', val=numpy.zeros(self.nvars-1))
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -485,7 +487,7 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
     # Get the number of points that define this CRM shape and create a mesh
     # array based on this size
     n_raw_points = raw_crm_points.shape[0]
-    mesh = numpy.empty((2, n_raw_points, 3), dtype='complex')
+    mesh = numpy.empty((2, n_raw_points, 3), dtype=data_type)
 
     # Set the leading and trailing edges of the mesh matrix
     mesh[0, :, :] = le.T
@@ -510,7 +512,7 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
     # Populate a mesh object with the desired num_y dimension based on
     # interpolated values from the raw CRM points.
-    mesh = numpy.empty((2, ny2, 3), dtype='complex')
+    mesh = numpy.empty((2, ny2, 3), dtype=data_type)
     for j in range(2):
         for i in range(3):
             mesh[j, :, i] = numpy.interp(lins[::-1], eta, raw_mesh[j, :, i].real)
@@ -577,7 +579,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
     te = mesh[-1, :, :]
 
     # Create a new mesh with the desired num_x and set the leading and trailing edge values
-    new_mesh = numpy.zeros((num_x, num_y, 3), dtype='complex')
+    new_mesh = numpy.zeros((num_x, num_y, 3), dtype=data_type)
     new_mesh[ 0, :, :] = le
     new_mesh[-1, :, :] = te
 
@@ -620,7 +622,7 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
 
     """
 
-    mesh = numpy.zeros((num_x, num_y, 3), dtype='complex')
+    mesh = numpy.zeros((num_x, num_y, 3), dtype=data_type)
     ny2 = (num_y + 1) / 2
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 

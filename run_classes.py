@@ -148,7 +148,7 @@ class OASProblem(object):
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0012)
                                             # thickness
                     'exact_failure_constraint' : False, # if false, use KS function
-                    'monotonictaper' : False, # apply monotonic taper constraint
+                    'monotonic_taper' : False, # apply monotonic taper constraint
                     }
         return defaults
 
@@ -159,7 +159,7 @@ class OASProblem(object):
         """
 
         defaults = {'optimize' : False,     # flag for analysis or optimization
-                    'opt' : 'SNOPT',        # Default optimizer
+                    'opt' : 'SNOPT',        # default optimizer
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,           # angle of attack
@@ -169,7 +169,7 @@ class OASProblem(object):
                     'rho' : 0.38,           # [kg/m^3] air density at 35,000 ft
                     'a' : 295.4,            # [m/s] speed of sound at 35,000 ft
                     'force_fd' : False,     # if true, we FD over the whole model
-                    'withViscous' : False,  # add viscous drag component
+                    'with_viscous' : False,  # if true, compute viscous drag
                     'print_level' : 0,      # int to control output during optimization
                                             # 0 for no additional printing
                                             # 1 for nonlinear solver printing
@@ -334,7 +334,7 @@ class OASProblem(object):
         or SLSQP otherwise.
         """
 
-        try:  # Use SNOPT optimizer if installed
+        try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
             if self.prob_dict['opt'] == 'SNOPT':
@@ -395,7 +395,7 @@ class OASProblem(object):
 
         # Use finite differences over the entire model if user selected it
         if self.prob_dict['force_fd']:
-            self.prob.root.deriv_options['type'] = 'fd'
+            self.prob.root.deriv_options['type'] = 'cs'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -557,8 +557,8 @@ class OASProblem(object):
             tmp_group.add('vlmgeom',
                      VLMGeometry(surface),
                      promotes=['*'])
-            if surface['monotonictaper']:
-                tmp_group.add('monotonictaper',
+            if surface['monotonic_taper']:
+                tmp_group.add('monotonic_taper',
                          MonotonicTaper(surface),
                          promotes=['*'])
 
@@ -573,7 +573,7 @@ class OASProblem(object):
         # Add problem information as an independent variables component
         if self.prob_dict['Re'] == 0:
             Error('Reynolds number must be greater than zero for viscous drag ' +
-            'calculation. If only inviscid drag is desired, set withViscous ' +
+            'calculation. If only inviscid drag is desired, set with_viscous ' +
             'flag to False.')
 
         prob_vars = [('v', self.prob_dict['v']),

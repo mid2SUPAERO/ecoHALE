@@ -3,11 +3,14 @@
 from __future__ import division, print_function
 import numpy
 from time import time
+
 try:
     import OAS_API
     fortran_flag = True
+    data_type = float
 except:
     fortran_flag = False
+    data_type = complex
 
 print('Fortran =', fortran_flag)
 
@@ -47,9 +50,9 @@ class TransferDisplacements(Component):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
-        self.add_param('disp', val=numpy.zeros((self.ny, 6), dtype='complex'))
-        self.add_output('def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype='complex'))
+        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_param('disp', val=numpy.zeros((self.ny, 6), dtype=data_type))
+        self.add_output('def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=data_type))
 
         if not fortran_flag:
             self.deriv_options['type'] = 'cs'
@@ -65,18 +68,18 @@ class TransferDisplacements(Component):
         else:
 
             ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
-            Smesh = numpy.zeros(mesh.shape, dtype="complex")
+            Smesh = numpy.zeros(mesh.shape, dtype=data_type)
             for ind in xrange(self.nx):
                 Smesh[ind, :, :] = mesh[ind, :, :] - ref_curve
 
-            def_mesh = numpy.zeros(mesh.shape, dtype="complex")
+            def_mesh = numpy.zeros(mesh.shape, dtype=data_type)
             cos, sin = numpy.cos, numpy.sin
             for ind in xrange(self.ny):
                 dx, dy, dz, rx, ry, rz = disp[ind, :]
 
                 # 1 eye from the axis rotation matrices
                 # -3 eye from subtracting Smesh three times
-                T = -2 * numpy.eye(3, dtype="complex")
+                T = -2 * numpy.eye(3, dtype=data_type)
                 T[ 1:,  1:] += [[cos(rx), -sin(rx)], [ sin(rx), cos(rx)]]
                 T[::2, ::2] += [[cos(ry),  sin(ry)], [-sin(ry), cos(ry)]]
                 T[ :2,  :2] += [[cos(rz), -sin(rz)], [ sin(rz), cos(rz)]]
@@ -140,9 +143,9 @@ class TransferLoads(Component):
 
         self.add_param('def_mesh', val=numpy.zeros((self.nx, self.ny, 3)))
         self.add_param('sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3),
-                       dtype="complex"))
+                       dtype=data_type))
         self.add_output('loads', val=numpy.zeros((self.ny, 6),
-                        dtype="complex"))
+                        dtype=data_type))
 
         self.deriv_options['type'] = 'cs'
         self.deriv_options['form'] = 'central'
@@ -165,11 +168,11 @@ class TransferLoads(Component):
                 0.5 *   w   * mesh[-1:,  1:, :]
 
         diff = a_pts - s_pts
-        moment = numpy.zeros((self.ny - 1, 3), dtype="complex")
+        moment = numpy.zeros((self.ny - 1, 3), dtype=data_type)
         for ind in range(self.nx-1):
             moment += numpy.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
-        loads = numpy.zeros((self.ny, 6), dtype="complex")
+        loads = numpy.zeros((self.ny, 6), dtype=data_type)
         sec_forces_sum = numpy.sum(sec_forces, axis=0)
         loads[:-1, :3] += 0.5 * sec_forces_sum[:, :]
         loads[ 1:, :3] += 0.5 * sec_forces_sum[:, :]

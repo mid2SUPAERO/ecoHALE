@@ -36,7 +36,8 @@ if __name__ == "__main__":
         raise
 
     # Set problem type
-    prob_dict = {'type' : 'struct'}
+    prob_dict = {'type' : 'struct',
+                 'force_fd' : True}
 
     if sys.argv[1].startswith('0'):  # run analysis once
         prob_dict.update({'optimize' : False})
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     st = time()
     # Actually run the problem
     OAS_prob.run()
-    print('\n', time() - st)
+    print('\n', time() - st, 'secs')
     print("\nWing weight:", OAS_prob.prob['wing.weight'])
     # jac = OAS_prob.prob.calc_gradient(['wing.disp_aug'], ['wing.disp'], return_format="dict")
     # print(jac['wing.disp']['wing.disp_aug'])
