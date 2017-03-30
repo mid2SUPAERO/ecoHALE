@@ -754,7 +754,7 @@ class SpatialBeamFailureKS(Component):
 
     """
 
-    def __init__(self, surface, rho=10):
+    def __init__(self, surface, rho=100):
         super(SpatialBeamFailureKS, self).__init__()
 
         self.ny = surface['num_y']
@@ -806,7 +806,7 @@ class SpatialBeamFailureKS(Component):
 
 class SpatialBeamFailureExact(Component):
     """
-    Outputs individual failure constraints on each FEM element. 
+    Outputs individual failure constraints on each FEM element.
 
     Parameters
     ----------

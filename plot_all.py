@@ -89,6 +89,7 @@ class Display(object):
         self.show_tube = True
         self.curr_pos = 0
         self.old_n = 0
+        self.aerostruct = False
 
         self.load_db()
 
@@ -149,11 +150,18 @@ class Display(object):
 
             names = []
             for key in case_data['Unknowns'].keys():
+
+                # Aerostructural
                 if 'coupled' in key and 'loads' in key:
                     self.aerostruct = True
                     names.append(key.split('_')[:-1][0])
+
+                # Aero only
                 elif 'def_mesh' in key and 'coupled' not in key:
-                    self.aerostruct = False
+                    names.append(key.split('.')[0])
+
+                # Structural only
+                elif 'disp_aug' in key and 'coupled' not in key:
                     names.append(key.split('.')[0])
 
             self.names = names
@@ -390,24 +398,25 @@ class Display(object):
             self.ax5.text(0.05, 0.85, 'failure limit',
                 transform=self.ax5.transAxes, color='r')
 
+        n_names = len(self.names)
         for j, name in enumerate(self.names):
-            m_vals = self.mesh[self.curr_pos+j].copy()
+            m_vals = self.mesh[self.curr_pos*n_names+j].copy()
             span = m_vals[0, -1, 1] - m_vals[0, 0, 1]
             rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) * 2 / span - 1
             span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
 
             if self.show_wing:
-                t_vals = self.twist[self.curr_pos+j]
-                l_vals = self.lift[self.curr_pos+j]
-                le_vals = self.lift_ell[self.curr_pos+j]
+                t_vals = self.twist[self.curr_pos*n_names+j]
+                l_vals = self.lift[self.curr_pos*n_names+j]
+                le_vals = self.lift_ell[self.curr_pos*n_names+j]
 
                 self.ax2.plot(rel_span, t_vals, lw=2, c='b')
                 self.ax3.plot(rel_span, le_vals, '--', lw=2, c='g')
                 self.ax3.plot(span_diff, l_vals, lw=2, c='b')
 
             if self.show_tube:
-                thick_vals = self.thickness[self.curr_pos+j]
-                vm_vals = self.vonmises[self.curr_pos+j]
+                thick_vals = self.thickness[self.curr_pos*n_names+j]
+                vm_vals = self.vonmises[self.curr_pos*n_names+j]
 
                 self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
                 self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
@@ -421,12 +430,12 @@ class Display(object):
         dist = self.ax.dist
 
         for j, name in enumerate(self.names):
-            mesh0 = self.mesh[self.curr_pos+j].copy()
+            mesh0 = self.mesh[self.curr_pos*n_names+j].copy()
 
             self.ax.set_axis_off()
 
             if self.show_wing:
-                def_mesh0 = self.def_mesh[self.curr_pos+j]
+                def_mesh0 = self.def_mesh[self.curr_pos*n_names+j]
                 x = mesh0[:, :, 0]
                 y = mesh0[:, :, 1]
                 z = mesh0[:, :, 2]
@@ -452,8 +461,8 @@ class Display(object):
                     self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
             if self.show_tube:
-                r0 = self.r[self.curr_pos+j]
-                t0 = self.thickness[self.curr_pos+j]
+                r0 = self.r[self.curr_pos*n_names+j]
+                t0 = self.thickness[self.curr_pos*n_names+j]
                 colors = t0
                 colors = colors / numpy.max(colors)
                 num_circ = 12

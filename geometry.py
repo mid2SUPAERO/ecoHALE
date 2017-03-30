@@ -497,7 +497,7 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
     raw_mesh = mesh * 0.0254
 
     # Create the blended spacing using the user input for span_cos_spacing
-    ny2 = (num_y + 1) / 2
+    ny2 = (num_y + 1) // 2
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 
     # Distribution for cosine spacing

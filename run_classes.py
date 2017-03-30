@@ -1,5 +1,5 @@
 """
-The OASProblem class contains all of the methods necessary to setup and run
+The OASProblem class contains all of the methods necessary to set up and run
 aerostructural optimization using OpenAeroStruct.
 """
 
@@ -26,7 +26,6 @@ from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
-from b_spline import get_bspline_mtx
 
 class Error(Exception):
     """
@@ -170,7 +169,11 @@ class OASProblem(object):
                     'rho' : 0.38,           # [kg/m^3] air density at 35,000 ft
                     'a' : 295.4,            # [m/s] speed of sound at 35,000 ft
                     'force_fd' : False,     # if true, we FD over the whole model
-                    'withViscous' : True,   # add viscous drag component
+                    'withViscous' : False,  # add viscous drag component
+                    'print_level' : 0,      # int to control output during optimization
+                                            # 0 for no additional printing
+                                            # 1 for nonlinear solver printing
+                                            # 2 for nonlinear and linear solver printing
                     }
 
         return defaults
@@ -414,11 +417,13 @@ class OASProblem(object):
         # Save an N2 diagram for the problem
         # view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
+        self.prob.run_once()
+
         # If `optimize` == True in prob_dict, perform optimization. Otherwise,
         # simply pass the problem since analysis has already been run.
         if not self.prob_dict['optimize']:
             # Run a single analysis loop
-            self.prob.run_once()
+            pass
         else:
             # Perform optimization
             self.prob.run()
@@ -454,7 +459,7 @@ class OASProblem(object):
             name = surface['name']
             tmp_group = Group()
 
-            surface['r'] = surface['r'] / 5
+            surface['r'] = surface['r']
             surface['t'] = surface['r'] / 20
 
             # Add independent variables that do not belong to a specific component.
@@ -464,11 +469,6 @@ class OASProblem(object):
                 ('thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
                 ('r', surface['r']),
                 ('loads', surface['loads'])]
-
-            # Obtain the Jacobians to interpolate the data from the b-spline
-            # control points
-            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'], order=min(surface['num_twist'], 4))
-            jac_thickness = get_bspline_mtx(surface['num_thickness'], surface['num_y']-1, order=min(surface['num_thickness'], 4))
 
             # Add structural components to the surface-specific group
             tmp_group.add('indep_vars',
@@ -538,11 +538,6 @@ class OASProblem(object):
                 ('taper', surface['taper']),
                 ('disp', numpy.zeros((surface['num_y'], 6)))]
 
-            # Obtain the Jacobian to interpolate the data from the b-spline
-            # control points for both twist and chord
-            jac_twist = get_bspline_mtx(surface['num_twist'], surface['num_y'])
-            jac_chord_dist = get_bspline_mtx(surface['num_chord_dist'], surface['num_y'], order=surface['num_chord_dist'])
-
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
@@ -580,6 +575,7 @@ class OASProblem(object):
             Error('Reynolds number must be greater than zero for viscous drag ' +
             'calculation. If only inviscid drag is desired, set withViscous ' +
             'flag to False.')
+
         prob_vars = [('v', self.prob_dict['v']),
             ('alpha', self.prob_dict['alpha']),
             ('M', self.prob_dict['M']),
@@ -718,7 +714,7 @@ class OASProblem(object):
                      SpatialBeamFunctionals(surface),
                      promotes=['*'])
             tmp_group.add('aero_funcs',
-                     VLMFunctionals(surface),
+                     VLMFunctionals(surface, self.prob_dict),
                      promotes=['*'])
 
             name = name_orig + 'perf'
@@ -784,12 +780,15 @@ class OASProblem(object):
 
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyGMRES()
-        coupled.ln_solver.options['iprint'] = 1
         coupled.ln_solver.preconditioner = LinearGaussSeidel()
         coupled.aero_states.ln_solver = LinearGaussSeidel()
 
         coupled.nl_solver = NLGaussSeidel()
-        coupled.nl_solver.options['iprint'] = 1
+
+        if self.prob_dict['print_level'] == 2:
+            coupled.ln_solver.options['iprint'] = 1
+        if self.prob_dict['print_level']:
+            coupled.nl_solver.options['iprint'] = 1
 
         # Ensure that the groups are ordered correctly within the coupled group
         # so that a system with multiple surfaces is solved corretly.

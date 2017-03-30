@@ -68,7 +68,8 @@ if __name__ == "__main__":
         # Add additional lifting surface
         OAS_prob.add_surface({'name' : 'tail',
                               'span' : 3.,
-                              'offset' : numpy.array([5., 0., 1.])})
+                              'offset' : numpy.array([5., 0., 1.]),
+                              'symmetry' : True})
 
         # Setup problem and add design variables, constraints, and objective
         OAS_prob.setup()
