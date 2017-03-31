@@ -3,12 +3,8 @@ Define the aerodynamic analysis component using a vortex lattice method.
 
 We input a nodal mesh and properties of the airflow to calculate the
 circulations of the horseshoe vortices. We then compute the forces, lift,
-and drag acting on the lifting surfaces.
-
-Note that some of the parameters and unknowns have the surface name
-prepended on them. E.g., 'def_mesh' on a surface called 'wing' would be
-'wing_def_mesh', etc. Please see an N2 diagram (the .html file produced by
-this code) for more information about which parameters are renamed.
+and drag acting on the lifting surfaces. Currently we can compute the induced
+and viscous drag.
 
 """
 
@@ -46,17 +42,17 @@ def _calc_vorticity(A, B, P):
 
     Parameters
     ----------
-    A[3] : array_like
+    A[3] : numpy array
         Coordinates for the start point of the filament.
-    B[3] : array_like
+    B[3] : numpy array
         Coordinates for the end point of the filament.
-    P[3] : array_like
+    P[3] : numpy array
         Coordinates for the collocation point where the influence coefficient
         is computed.
 
     Returns
     -------
-    out[3] : array_like
+    out[3] : numpy array
         Influence coefficient contribution for the described filament.
 
     """
@@ -88,7 +84,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     Parameters
     ----------
-    mtx[num_y-1, num_y-1, 3] : array_like
+    mtx[num_y-1, num_y-1, 3] : numpy array
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
     params : dictionary
@@ -102,7 +98,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     Returns
     -------
-    mtx[tot_panels, tot_panels, 3] : array_like
+    mtx[tot_panels, tot_panels, 3] : numpy array
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
     """
@@ -471,24 +467,25 @@ class VLMGeometry(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : array_like
+    def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
 
     Returns
     -------
-    b_pts[nx-1, ny, 3] : array_like
+    b_pts[nx-1, ny, 3] : numpy array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts[nx-1, ny-1, 3] : array_like
+    c_pts[nx-1, ny-1, 3] : numpy array
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    widths[nx-1, ny-1] : array_like
+    widths[nx-1, ny-1] : numpy array
         The spanwise widths of each individual panel.
-    normals[nx-1, ny-1, 3] : array_like
+    lengths[ny] : numpy array
+        The chordwise length of the entire airfoil following the camber line.
+    normals[nx-1, ny-1, 3] : numpy array
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
     S_ref : float
         The reference area of the lifting surface.
-
     """
 
     def __init__(self, surface):
@@ -615,19 +612,24 @@ class AssembleAIC(Component):
     """
     Compute the circulations based on the AIC matrix and the panel velocities.
     Note that the flow tangency condition is enforced at the 3/4 chord point.
+    There are multiple versions of the first four parameters with one
+    for each surface defined.
+    Each of these parameters has the name of the surface prepended on the
+    actual parameter name.
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : array_like
+    def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
-    b_pts[nx-1, ny, 3] : array_like
+    b_pts[nx-1, ny, 3] : numpy array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts[nx-1, ny-1, 3] : array_like
+    c_pts[nx-1, ny-1, 3] : numpy array
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    normals[nx-1, ny-1, 3] : array_like
+    normals[nx-1, ny-1, 3] : numpy array
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
+
     v : float
         Freestream air velocity in m/s.
     alpha : float
@@ -635,11 +637,12 @@ class AssembleAIC(Component):
 
     Returns
     -------
-    circulations : array_like
-        Flattened vector of horseshoe vortex strengths calculated by solving
-        the linear system of AIC_mtx * circulations = rhs, where rhs is
-        based on the air velocity at each collocation point.
-
+    AIC[tot_panels, tot_panels] : numpy array
+        The aerodynamic influence coefficient matrix. Solving the linear system
+        of AIC * circulations = n * v gives us the circulations for each of the
+        horseshoe vortices.
+    rhs[tot_panels] : numpy array
+        The right-hand-side of the linear system that yields the circulations.
     """
 
     def __init__(self, surfaces):
@@ -829,28 +832,25 @@ class AssembleAIC(Component):
 
 class AeroCirculations(Component):
     """
-    Compute the displacements and rotations by solving the linear system
-    using the structural stiffness matrix.
+    Compute the circulation strengths of the horseshoe vortices by solving the
+    linear system AIC * circulations = n * v.
+    This component is copied from OpenMDAO's LinearSystem component with the
+    names of the parameters and outputs changed to match our problem formulation.
 
     Parameters
     ----------
-    A[ny-1] : array_like
-        Areas for each FEM element.
-    Iy[ny-1] : array_like
-        Mass moment of inertia around the y-axis for each FEM element.
-    Iz[ny-1] : array_like
-        Mass moment of inertia around the z-axis for each FEM element.
-    J[ny-1] : array_like
-        Polar moment of inertia for each FEM element.
-    nodes[ny, 3] : array_like
-        Flattened array with coordinates for each FEM node.
+    AIC[tot_panels, tot_panels] : numpy array
+        The aerodynamic influence coefficient matrix. Solving the linear system
+        of AIC * circulations = n * v gives us the circulations for each of the
+        horseshoe vortices.
+    rhs[tot_panels] : numpy array
+        The right-hand-side of the linear system that yields the circulations.
 
     Returns
     -------
-    circulations[6*(ny+1)] : array_like
+    circulations[6*(ny+1)] : numpy array
         Augmented displacement array. Obtained by solving the system
-        K * circulations = rhs, where rhs is a flattened version of loads.
-
+        AIC * circulations = n * v.
     """
 
     def __init__(self, size):
@@ -926,17 +926,18 @@ class AeroCirculations(Component):
 class VLMForces(Component):
     """ Compute aerodynamic forces acting on each section.
 
-    Note that some of the parameters and unknowns has the surface name
+    Note that the first two parameters and the unknown have the surface name
     prepended on it. E.g., 'def_mesh' on a surface called 'wing' would be
-    'wing_def_mesh', etc.
+    'wing.def_mesh', etc.
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : array_like
+    def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
-    b_pts[nx-1, ny, 3] : array_like
+    b_pts[nx-1, ny, 3] : numpy array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    circulations : array_like
+
+    circulations : numpy array
         Flattened vector of horseshoe vortex strengths calculated by solving
         the linear system of AIC_mtx * circulations = rhs, where rhs is
         based on the air velocity at each collocation point.
@@ -949,9 +950,9 @@ class VLMForces(Component):
 
     Returns
     -------
-    sec_forces[nx-1, ny-1, 3] : array_like
+    sec_forces[nx-1, ny-1, 3] : numpy array
         Flattened array containing the sectional forces acting on each panel.
-        Stored in Fortran order (only relevant when more than one chordwise
+        Stored in Fortran order (only relevant with more than one chordwise
         panel).
 
     """
@@ -1144,9 +1145,9 @@ class VLMLiftDrag(Component):
 
     Parameters
     ----------
-    sec_forces[nx-1, ny-1, 3] : array_like
+    sec_forces[nx-1, ny-1, 3] : numpy array
         Flattened array containing the sectional forces acting on each panel.
-        Stored in Fortran order (only relevant when more than one chordwise
+        Stored in Fortran order (only relevant with more than one chordwise
         panel).
     alpha : float
         Angle of attack in degrees.
@@ -1154,9 +1155,9 @@ class VLMLiftDrag(Component):
     Returns
     -------
     L : float
-        Total lift force for the lifting surface.
+        Total induced lift force for the lifting surface.
     D : float
-        Total drag force for the lifting surface.
+        Total induced drag force for the lifting surface.
 
     """
 
@@ -1223,10 +1224,7 @@ class VLMLiftDrag(Component):
 
 class ViscousDrag(Component):
     """
-    If the simulation is given a non-zero Reynolds number, this is used to
-    compute the skin friction drag. If Reynolds number == 0, then there is
-    no skin friction drag dependence. Currently, the Reynolds number
-    must be set by the user in the run script.
+    Compute the skin friction drag if the with_viscous option is True.
 
     Parameters
     ----------
@@ -1240,9 +1238,9 @@ class ViscousDrag(Component):
     sweep : float
         The angle (in degrees) of the wing sweep. This is used in the form
         factor calculation.
-    widths : [1, ny-1] array
+    widths[ny-1] : numpy array
         The spanwise width of each panel.
-    lengths : [1, ny] array
+    lengths[ny] : numpy array
         The sum of the lengths of each line segment along a chord section.
 
     Returns
@@ -1464,12 +1462,12 @@ class TotalLift(Component):
 
     Parameters
     ----------
-    CL1 : array_like
+    CL1 : float
         Induced coefficient of lift (CL) for the lifting surface.
 
     Returns
     -------
-    CL : array_like
+    CL : float
         Total coefficient of lift (CL) for the lifting surface.
     CL_wing : float
         CL of the main wing, used for CL constrained optimization.

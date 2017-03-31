@@ -29,14 +29,14 @@ def rotate(mesh, thetas):
 
     Parameters
     ----------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
-    thetas : array_like
+    thetas[ny] : numpy array
         1-D array of rotation angles for each wing slice in degrees.
 
     Returns
     -------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the twisted aerodynamic surface.
 
     """
@@ -60,9 +60,21 @@ def rotate(mesh, thetas):
         row[:] = numpy.einsum("ikj, ij -> ik", mats, row - quarter_chord)
         row += quarter_chord
 
-    return mesh
-
 def scale_x(mesh, chord_dist):
+    """ Modify the chords along the span of the wing by scaling the x-coord.
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    chord_dist[ny] : numpy array
+        Chord length for each panel edge.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh with the new chord lengths.
+    """
     te = mesh[-1]
     le = mesh[ 0]
     quarter_chord = 0.25 * te + 0.75 * le
@@ -74,45 +86,21 @@ def scale_x(mesh, chord_dist):
         mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_dist[i] + \
             quarter_chord[i, 0]
 
-def scale_x_d(mesh, chord_dist):
-    derivs = numpy.zeros((numpy.prod(mesh.shape), len(chord_dist)))
-
-    te = mesh[-1]
-    le = mesh[ 0]
-    quarter_chord = 0.25 * te + 0.75 * le
-
-    ny = mesh.shape[1]
-    nx = mesh.shape[0]
-
-    chord_distd = numpy.zeros((len(chord_dist)))
-    for j in range(len(chord_dist)):
-        chord_distd[:] = 0.
-        chord_distd[j] = 1.
-
-        meshd = numpy.zeros(mesh.shape)
-        for i in range(ny):
-            meshd[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_distd[i]
-
-        derivs[:, j] = meshd.flatten()
-
-    return derivs
-
-
-def sweep(mesh, angle, symmetry):
+def sweep(mesh, sweep_angle, symmetry):
     """ Apply shearing sweep. Positive sweeps back.
 
     Parameters
     ----------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
-    angle : float
+    sweep_angle : float
         Shearing sweep angle in degrees.
     symmetry : boolean
         Flag set to true if surface is reflected about y=0 plane.
 
     Returns
     -------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the swept aerodynamic surface.
 
     """
@@ -120,7 +108,7 @@ def sweep(mesh, angle, symmetry):
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
     p180 = numpy.pi / 180
-    tan_theta = tan(p180*angle)
+    tan_theta = tan(p180*sweep_angle)
 
     if symmetry:
         y0 = le[-1, 1]
@@ -137,21 +125,21 @@ def sweep(mesh, angle, symmetry):
     for i in xrange(num_x):
         mesh[i, :, 0] += dx
 
-def dihedral(mesh, angle, symmetry):
+def dihedral(mesh, dihedral_angle, symmetry):
     """ Apply dihedral angle. Positive angles up.
 
     Parameters
     ----------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
-    angle : float
+    dihedral_angle : float
         Dihedral angle in degrees.
     symmetry : boolean
         Flag set to true if surface is reflected about y=0 plane.
 
     Returns
     -------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the aerodynamic surface with dihedral angle.
 
     """
@@ -159,7 +147,7 @@ def dihedral(mesh, angle, symmetry):
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
     p180 = numpy.pi / 180
-    tan_theta = tan(p180*angle)
+    tan_theta = tan(p180*dihedral_angle)
 
     if symmetry:
         y0 = le[-1, 1]
@@ -176,19 +164,23 @@ def dihedral(mesh, angle, symmetry):
         mesh[i, :, 2] += dx
 
 
-def stretch(mesh, length):
-    """ Stretch mesh in spanwise direction to reach specified length.
+def stretch(mesh, span):
+    """
+
+    .. warning:: This function does not currently work as intended.
+
+    Stretch mesh in spanwise direction to reach specified span.
 
     Parameters
     ----------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
-    length : float
+    span : float
         Relative stetch ratio in the spanwise direction.
 
     Returns
     -------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the stretched aerodynamic surface.
 
     """
@@ -197,19 +189,19 @@ def stretch(mesh, length):
 
     num_x, num_y, _ = mesh.shape
 
-    span = le[-1, 1] - le[0, 1]
-    dy = (length - span) / (num_y - 1) * numpy.arange(1, num_y)
+    prev_span = le[-1, 1] - le[0, 1]
+    dy = (span - prev_span) / (num_y - 1) * numpy.arange(1, num_y)
 
     for i in xrange(num_x):
         mesh[i, 1:, 1] += dy
 
 
 def taper(mesh, taper_ratio, symmetry):
-    """ Alter the spanwise chord to produce a tapered wing.
+    """ Alter the spanwise chord linearly to produce a tapered wing.
 
     Parameters
     ----------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
     taper_ratio : float
         Taper ratio for the wing; 1 is untapered, 0 goes to a point.
@@ -218,7 +210,7 @@ def taper(mesh, taper_ratio, symmetry):
 
     Returns
     -------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the tapered aerodynamic surface.
 
     """
@@ -250,8 +242,30 @@ def taper(mesh, taper_ratio, symmetry):
 
 class GeometryMesh(Component):
     """
-    OpenMDAO component that performs mesh manipulation functions.
+    OpenMDAO component that performs mesh manipulation functions. It reads in
+    the initial mesh from the surface dictionary and outputs the altered
+    mesh based on the geometric design variables.
 
+    Parameters
+    ----------
+    span : float
+        Relative stetch ratio in the spanwise direction.
+    sweep : float
+        Shearing sweep angle in degrees.
+    dihedral : float
+        Dihedral angle in degrees.
+    twist[ny] : numpy array
+        1-D array of rotation angles for each wing slice in degrees.
+    chord_dist[ny] : numpy array
+        Chord length for each panel edge.
+    taper : float
+        Taper ratio for the wing; 1 is untapered, 0 goes to a point at the tip.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Modified mesh based on the initial mesh in the surface dictionary and
+        the geometric design variables.
     """
 
     def __init__(self, surface):
@@ -260,7 +274,7 @@ class GeometryMesh(Component):
         ny = surface['num_y']
         self.mesh = surface['mesh']
 
-        self.add_param('span', val=58.7630524)
+        self.add_param('span', val=0.)
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(ny), dtype=data_type)
@@ -286,6 +300,7 @@ class GeometryMesh(Component):
         else:
 
             mesh = self.mesh.copy()
+            # stretch is not currently working as intended
             # stretch(mesh, params['span'])
             sweep(mesh, params['sweep'], self.symmetry)
             scale_x(mesh, params['chord_dist'])
@@ -342,23 +357,34 @@ class GeometryMesh(Component):
                 dparams['taper'] = taperb
 
 class MonotonicTaper(Component):
+    """ Produce a constraint that is violated if the chord lengths of the wing
+        do not decrease monotonically from the root to the taper.
+
+    Parameters
+    ----------
+    chord_dist[ny] : numpy array
+        The chord length distribution.
+
+    Returns
+    -------
+    monotonic[ny-1] : numpy array
+        Values are greater than 0 if the constrain is violated.
+
+    """
     def __init__(self, surface):
         super(MonotonicTaper, self).__init__()
-        self.nvars = surface['num_y']
-        self.add_param('chord_dist', val=numpy.zeros(self.nvars), dtype=data_type)
-        self.add_output('monotonic', val=numpy.zeros(self.nvars-1))
+        ny = surface['num_y']
+        self.add_param('chord_dist', val=numpy.zeros(ny), dtype=data_type)
+        self.add_output('monotonic', val=numpy.zeros(ny-1))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        # Monotonic chord constraint
-        for i in range(self.nvars-1):
-            unknowns['monotonic'][i] = params['chord_dist'][i+1] - params['chord_dist'][i]
+        # Compute the difference chord lengths and their neighbors
+        unknowns['monotonic'] = params['chord_dist'][:-1] - params['chord_dist'][1:]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        for i in range(self.nvars - 1):
-            jac['monotonic', 'chord_dist'][i,i] = -1.0
-            jac['monotonic', 'chord_dist'][i,i+1] = 1.0
-
+        numpy.fill_diagonal(jac['monotonic', 'chord_dist'][:, :], 1)
+        numpy.fill_diagonal(jac['monotonic', 'chord_dist'][:, 1:], -1)
         return jac
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
@@ -391,14 +417,14 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
     Returns
     -------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
-    eta : array_like
+    eta : numpy array
         Spanwise locations of the airfoil slices. Later used in the
         interpolation function to obtain correct twist values during at
         points along the span that are not aligned with these slices.
-    twist : array_like
+    twist : numpy array
         Twist along the span at the spanwise eta locations. We use these twists
         as training points for interpolation to obtain twist values at
         arbitrary points along the span.
@@ -536,7 +562,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
     Parameters
     ----------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface with only
         the leading and trailing edges defined.
     num_x : float
@@ -550,7 +576,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
     Returns
     -------
-    new_mesh : array_like
+    new_mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the final aerodynamic surface with the
         specified number of chordwise node points.
 
@@ -616,7 +642,7 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
 
     Returns
     -------
-    mesh : array_like
+    mesh[nx, ny, 3] : numpy array
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
 
@@ -659,6 +685,17 @@ class Bspline(Component):
     General function to translate from control points to actual points
     using a b-spline representation.
 
+    Parameters
+    ----------
+    cpname : string
+        Name of the OpenMDAO component containing the control point values.
+    ptname : string
+        Name of the OpenMDAO component that will contain the interpolated
+        b-spline values.
+    n_input : int
+        Number of input control points.
+    n_output : int
+        Number of outputted interpolated b-spline points.
     """
 
     def __init__(self, cpname, ptname, n_input, n_output):
@@ -674,60 +711,3 @@ class Bspline(Component):
 
     def linearize(self, params, unknowns, resids):
         return {(self.ptname, self.cpname): self.jac}
-
-
-class LinearInterp(Component):
-    """ Linear interpolation used to create linearly varying parameters. """
-
-    def __init__(self, num_y, name):
-        super(LinearInterp, self).__init__()
-
-        self.add_param('linear_'+name, val=numpy.zeros(2))
-        self.add_output(name, val=numpy.zeros(num_y))
-
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
-
-        self.num_y = num_y
-        self.vname = name
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        a, b = params['linear_'+self.vname]
-
-        if self.num_y % 2 == 0:
-            imax = int(self.num_y/2)
-        else:
-            imax = int((self.num_y+1)/2)
-        for ind in xrange(imax):
-            w = 1.0*ind/(imax-1)
-
-            unknowns[self.vname][ind] = a*(1-w) + b*w
-            unknowns[self.vname][-1-ind] = a*(1-w) + b*w
-
-
-if __name__ == "__main__":
-    """ Test mesh generation and view results in .html file. """
-
-    import plotly.offline as plt
-    import plotly.graph_objs as go
-
-    from plot_tools import wire_mesh, build_layout
-
-    thetas = numpy.zeros(20)
-    thetas[10:] += 10
-
-    mesh = gen_crm_mesh(3, 3)
-
-    # new_mesh = rotate(mesh, thetas)
-
-    # new_mesh = sweep(mesh, 20)
-
-    new_mesh = stretch(mesh, 100)
-
-    # wireframe_orig = wire_mesh(mesh)
-    wireframe_new = wire_mesh(new_mesh)
-    layout = build_layout()
-
-    fig = go.Figure(data=wireframe_new, layout=layout)
-    plt.plot(fig, filename="wing_3d.html")

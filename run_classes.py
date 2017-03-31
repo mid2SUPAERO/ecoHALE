@@ -102,11 +102,15 @@ class OASProblem(object):
         Each dictionary describes one surface.
         """
 
-        defaults = {'name' : 'wing',        # name of the surface
+        defaults = {
+                    # General mesh shape definitions
+                    'name' : 'wing',        # name of the surface
                     'num_x' : 3,            # number of chordwise points
                     'num_y' : 5,            # number of spanwise points
                     'span' : 10.,           # full wingspan
                     'chord' : 1.,           # root chord
+                    'symmetry' : True,      # if true, model one half of wing
+                                            # reflected across the plane y = 0
                     'span_cos_spacing' : 1,   # 0 for uniform spanwise panels
                                             # 1 for cosine-spaced panels
                                             # any value between 0 and 1 for
@@ -115,24 +119,6 @@ class OASProblem(object):
                                             # 1 for cosine-spaced panels
                                             # any value between 0 and 1 for
                                             # a mixed spacing
-                    'dihedral' : 0.,        # wing dihedral angle in degrees
-                                            # positive is upward
-                    'sweep' : 0.,           # wing sweep angle in degrees
-                                            # positive sweeps back
-                    'taper' : 1.,           # taper ratio; 1. is uniform chord
-
-                    'CL0' : 0.0,            # CL value at AoA (alpha) = 0
-                    'CD0' : 0.0,            # CD value at AoA (alpha) = 0
-
-                    # Structural values are based on aluminum
-                    'E' : 70.e9,            # [Pa] Young's modulus of the spar
-                    'G' : 30.e9,            # [Pa] shear modulus of the spar
-                    'stress' : 20.e6,       # [Pa] yield stress
-                    'mrho' : 3.e3,          # [kg/m^3] material density
-                    'fem_origin' : 0.35,    # chordwise location of the spar
-                    'symmetry' : False,     # if true, model one half of wing
-                                            # reflected across the plane y = 0
-                    'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
                     'wing_type' : 'rect',   # initial shape of the wing
                                             # either 'CRM' or 'rect'
                                             # 'CRM' can have different options
@@ -140,15 +126,36 @@ class OASProblem(object):
                                             # for the CRM shape at alpha=2.75
                     'offset' : numpy.array([0., 0., 0.]), # coordinates to offset
                                     # the surface from its default location
+
+                    # Mesh deformation values and settings
+                    'dihedral' : 0.,        # wing dihedral angle in degrees
+                                            # positive is upward
+                    'sweep' : 0.,           # wing sweep angle in degrees
+                                            # positive sweeps back
+                    'taper' : 1.,           # taper ratio; 1. is uniform chord
+
                     'twist' : None,
                     'chord_dist' : None,
+                    'monotonic_taper' : False, # apply monotonic taper constraint
+
+                    # Aerodynamic properties
+                    'CL0' : 0.0,            # CL value at AoA (alpha) = 0
+                    'CD0' : 0.0,            # CD value at AoA (alpha) = 0
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
                     't_over_c' : 0.12,      # thickness over chord ratio (NACA0012)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0012)
                                             # thickness
+
+                    # Structural values are based on aluminum
+                    'E' : 70.e9,            # [Pa] Young's modulus of the spar
+                    'G' : 30.e9,            # [Pa] shear modulus of the spar
+                    'stress' : 20.e6,       # [Pa] yield stress
+                    'mrho' : 3.e3,          # [kg/m^3] material density
+                    'fem_origin' : 0.35,    # chordwise location of the spar
+                    'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
                     'exact_failure_constraint' : False, # if false, use KS function
-                    'monotonic_taper' : False, # apply monotonic taper constraint
+
                     }
         return defaults
 
@@ -158,22 +165,22 @@ class OASProblem(object):
         these defaults are overwritten based on user input for the problem.
         """
 
-        defaults = {'optimize' : False,     # flag for analysis or optimization
-                    'opt' : 'SNOPT',        # default optimizer
+        defaults = {'optimize' : False,      # flag for analysis or optimization
+                    'opt' : 'SNOPT',         # default optimizer
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
-                    'alpha' : 5.,           # angle of attack
-                    'CT' : 9.80665 * 17.e-6,   # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
-                    'R' : 14.3e6,           # [m] maximum range
-                    'M' : 0.84,             # Mach number at cruise
-                    'rho' : 0.38,           # [kg/m^3] air density at 35,000 ft
-                    'a' : 295.4,            # [m/s] speed of sound at 35,000 ft
-                    'force_fd' : False,     # if true, we FD over the whole model
+                    'alpha' : 5.,            # angle of attack
+                    'CT' : 9.80665 * 17.e-6, # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
+                    'R' : 14.3e6,            # [m] maximum range
+                    'M' : 0.84,              # Mach number at cruise
+                    'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
+                    'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
+                    'force_fd' : False,      # if true, we FD over the whole model
                     'with_viscous' : False,  # if true, compute viscous drag
-                    'print_level' : 0,      # int to control output during optimization
-                                            # 0 for no additional printing
-                                            # 1 for nonlinear solver printing
-                                            # 2 for nonlinear and linear solver printing
+                    'print_level' : 0,       # int to control output during optimization
+                                             # 0 for no additional printing
+                                             # 1 for nonlinear solver printing
+                                             # 2 for nonlinear and linear solver printing
                     }
 
         return defaults
@@ -231,7 +238,8 @@ class OASProblem(object):
                 surf_dict['twist'] = twist
 
             else:
-                Error('wing_type option not understood. Must be either "CRM" or "rect".')
+                Error('wing_type option not understood. Must be either a type of ' +
+                      '"CRM" or "rect".')
 
             # Chop the mesh in half if using symmetry during analysis.
             # Note that this means that the provided mesh should be the full mesh
@@ -363,7 +371,7 @@ class OASProblem(object):
                                                 'displaydegree':0,
                                                 'printfile':1
                                                 }
-        except:  # Use SLSQP optimizer if SNOPT not installed
+        except:  # Use Scipy SLSQP optimizer if pyOptSparse not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'
             self.prob.driver.options['disp'] = True
@@ -395,7 +403,7 @@ class OASProblem(object):
 
         # Use finite differences over the entire model if user selected it
         if self.prob_dict['force_fd']:
-            self.prob.root.deriv_options['type'] = 'cs'
+            self.prob.root.deriv_options['type'] = 'fd'
 
         # Record optimization history to a database
         # Data saved here can be examined using `plot_all.py`
@@ -411,11 +419,12 @@ class OASProblem(object):
         # Set up the problem
         self.prob.setup()
 
-        # Uncomment this line to have more verbose output about convergence
-        # self.prob.print_all_convergence()
+        # Have more verbose output about optimization convergence
+        if self.prob_dict['print_level']:
+            self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        # view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         self.prob.run_once()
 
@@ -495,10 +504,7 @@ class OASProblem(object):
 
             # Add tmp_group to the problem with the name of the surface.
             # The default is 'wing'.
-            nm = name
-            name = name[:-1]
-            exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=[])')
+            root.add(name[:-1], tmp_group, promotes=[])
 
         # Actually set up the problem
         self.setup_prob()
@@ -681,8 +687,7 @@ class OASProblem(object):
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name
             name = name[:-1]
-            exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=[])')
+            root.add(name, tmp_group, promotes=[])
 
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
@@ -700,11 +705,10 @@ class OASProblem(object):
             tmp_group.struct_states.ln_solver = LinearGaussSeidel()
 
             name = name_orig
-            exec(name + ' = tmp_group')
-            exec('coupled.add("' + name[:-1] + '", ' + name + ', promotes=[])')
+            coupled.add(name[:-1], tmp_group, promotes=[])
 
             # Add a loads component to the coupled group
-            exec('coupled.add("' + name_orig + 'loads' + '", ' + 'TransferLoads(surface)' + ', promotes=[])')
+            coupled.add(name_orig + 'loads', TransferLoads(surface), promotes=[])
 
             # Add a performance group which evaluates the data after solving
             # the coupled system
@@ -717,9 +721,8 @@ class OASProblem(object):
                      VLMFunctionals(surface, self.prob_dict),
                      promotes=['*'])
 
-            name = name_orig + 'perf'
-            exec(name + ' = tmp_group')
-            exec('root.add("' + name + '", ' + name + ', promotes=["rho", "v", "alpha", "re", "M"])')
+
+            root.add(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.

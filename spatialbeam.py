@@ -57,10 +57,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     Assemble the structural stiffness matrix based on 6 degrees of freedom
     per element.
 
-    Can be run in dense Fortran or dense
-    Python code depending on the flags used. Currently, dense Fortran
-    seems to be the fastest version across many matrix sizes.
-
+    Can be run in Fortran or Python code depending on the flags used.
     """
 
     # Populate the right-hand side of the linear system using the
@@ -69,7 +66,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     rhs[:6*n] = loads.reshape(n*6)
     rhs[numpy.abs(rhs) < 1e-6] = 0.
 
-    # Dense Fortran
+    # Fortran
     if fortran_flag:
         K = OAS_API.oas_api.assemblestructmtx(nodes, A, J, Iy, Iz,
                                      K_a, K_t, K_y, K_z,
@@ -77,7 +74,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                                      K_elem, S_a, S_t, S_y, S_z, T_elem,
                                      const2, const_y, const_z)
 
-    # Dense Python
+    # Python
     else:
 
         K[:] = 0.
@@ -156,26 +153,28 @@ class AssembleK(Component):
 
     Parameters
     ----------
-    A[ny-1] : array_like
+    A[ny-1] : numpy array
         Areas for each FEM element.
-    Iy[ny-1] : array_like
+    Iy[ny-1] : numpy array
         Mass moment of inertia around the y-axis for each FEM element.
-    Iz[ny-1] : array_like
+    Iz[ny-1] : numpy array
         Mass moment of inertia around the z-axis for each FEM element.
-    J[ny-1] : array_like
+    J[ny-1] : numpy array
         Polar moment of inertia for each FEM element.
-    nodes[ny, 3] : array_like
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
-    loads[ny, 6] : array_like
+    loads[ny, 6] : numpy array
         Flattened array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
     Returns
     -------
-    disp_aug[6*(ny+1)] : array_like
-        Augmented displacement array. Obtained by solving the system
-        K * disp_aug = rhs, where rhs is a flattened version of loads.
-
+    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
+        Stiffness matrix for the entire FEM system. Used to solve the linear
+        system K * u = f to obtain the displacements, u.
+    rhs[(nx-1)*(ny-1)] : numpy array
+        Right-hand-side of the linear system. The loads from the aerodynamic
+        analysis or the user-defined loads.
     """
 
     def __init__(self, surface, cg_x=5):
@@ -316,25 +315,23 @@ class SpatialBeamFEM(Component):
     """
     Compute the displacements and rotations by solving the linear system
     using the structural stiffness matrix.
+    This component is copied from OpenMDAO's LinearSystem component with the
+    names of the parameters and outputs changed to match our problem formulation.
 
     Parameters
     ----------
-    A[ny-1] : array_like
-        Areas for each FEM element.
-    Iy[ny-1] : array_like
-        Mass moment of inertia around the y-axis for each FEM element.
-    Iz[ny-1] : array_like
-        Mass moment of inertia around the z-axis for each FEM element.
-    J[ny-1] : array_like
-        Polar moment of inertia for each FEM element.
-    nodes[ny, 3] : array_like
-        Flattened array with coordinates for each FEM node.
+    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
+        Stiffness matrix for the entire FEM system. Used to solve the linear
+        system K * u = f to obtain the displacements, u.
+    rhs[(nx-1)*(ny-1)] : numpy array
+        Right-hand-side of the linear system. The loads from the aerodynamic
+        analysis or the user-defined loads.
 
     Returns
     -------
-    disp_aug[6*(ny+1)] : array_like
+    disp_aug[6*(ny+1)] : numpy array
         Augmented displacement array. Obtained by solving the system
-        K * disp_aug = rhs, where rhs is a flattened version of loads.
+        K * u = f, where f is a flattened version of loads.
 
     """
 
@@ -412,7 +409,8 @@ class SpatialBeamFEM(Component):
 
 class SpatialBeamDisp(Component):
     """
-    Select displacements from augmented vector.
+    Reshape the flattened displacements from the linear system solution into
+    a 2D array so we can more easily use the results.
 
     The solution to the linear system has additional results due to the
     constraints on the FEM model. The displacements from this portion of
@@ -421,13 +419,13 @@ class SpatialBeamDisp(Component):
 
     Parameters
     ----------
-    disp_aug[6*(ny+1)] : array_like
+    disp_aug[6*(ny+1)] : numpy array
         Augmented displacement array. Obtained by solving the system
         K * disp_aug = rhs, where rhs is a flattened version of loads.
 
     Returns
     -------
-    disp[6*ny] : array_like
+    disp[6*ny] : numpy array
         Actual displacement array formed by truncating disp_aug.
 
     """
@@ -456,16 +454,17 @@ class ComputeNodes(Component):
     """
     Compute FEM nodes based on aerodynamic mesh.
 
-    The FEM nodes are placed at 0.35*chord, or based on the fem_origin value.
+    The FEM nodes are placed at fem_origin * chord,
+    with the default fem_origin = 0.35.
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : array_like
+    mesh[nx, ny, 3] : numpy array
         Array defining the nodal points of the lifting surface.
 
     Returns
     -------
-    nodes[ny, 3] : array_like
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
 
     """
@@ -502,9 +501,9 @@ class SpatialBeamEnergy(Component):
 
     Parameters
     ----------
-    disp[ny, 6] : array_like
+    disp[ny, 6] : numpy array
         Actual displacement array formed by truncating disp_aug.
-    loads[ny, 6] : array_like
+    loads[ny, 6] : numpy array
         Array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
@@ -538,15 +537,16 @@ class SpatialBeamWeight(Component):
 
     Parameters
     ----------
-    A[ny-1] : array_like
+    A[ny-1] : numpy array
         Areas for each FEM element.
-    nodes[ny, 3] : array_like
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
 
     Returns
     -------
     weight : float
-        Total weight of the structural component."""
+        Total weight of the structural component.
+    """
 
     def __init__(self, surface):
         super(SpatialBeamWeight, self).__init__()
@@ -616,16 +616,16 @@ class SpatialBeamVonMisesTube(Component):
 
     Parameters
     ----------
-    r[ny-1] : array_like
+    r[ny-1] : numpy array
         Radii for each FEM element.
-    nodes[ny, 3] : array_like
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
-    disp[ny, 6] : array_like
+    disp[ny, 6] : numpy array
         Displacements of each FEM node.
 
     Returns
     -------
-    vonmises[ny-1, 2] : array_like
+    vonmises[ny-1, 2] : numpy array
         von Mises stress magnitudes for each FEM element.
 
     """
@@ -732,9 +732,13 @@ class SpatialBeamFailureKS(Component):
     to find the maximum point of failure, which produces a better-posed
     optimization problem.
 
+    The rho parameter controls how conservatively the KS function aggregates
+    the failure constraints. A lower value is more conservative while a greater
+    value is more aggressive (closer approximation to the max() function).
+
     Parameters
     ----------
-    vonmises[ny-1, 2] : array_like
+    vonmises[ny-1, 2] : numpy array
         von Mises stress magnitudes for each FEM element.
 
     Returns
@@ -802,12 +806,12 @@ class SpatialBeamFailureExact(Component):
 
     Parameters
     ----------
-    vonmises[ny-1, 2] : array_like
+    vonmises[ny-1, 2] : numpy array
         von Mises stress magnitudes for each FEM element.
 
     Returns
     -------
-    failure[ny-1, 2] : array_like
+    failure[ny-1, 2] : numpy array
         Array of failure conditions. Positive if element has failed.
 
     """

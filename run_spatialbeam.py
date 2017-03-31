@@ -36,8 +36,7 @@ if __name__ == "__main__":
         raise
 
     # Set problem type
-    prob_dict = {'type' : 'struct',
-                 'force_fd' : True}
+    prob_dict = {'type' : 'struct'}
 
     if sys.argv[1].startswith('0'):  # run analysis once
         prob_dict.update({'optimize' : False})

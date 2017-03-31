@@ -3,29 +3,26 @@ import numpy
 
 from openmdao.api import Component
 
-
-
 class MaterialsTube(Component):
     """ Compute geometric properties for a tube element.
 
     Parameters
     ----------
-    r : array_like
+    r : numpy array
         Radii for each FEM element.
-    thickness : array_like
+    thickness : numpy array
         Tube thickness for each FEM element.
 
     Returns
     -------
-    A : array_like
+    A : numpy array
         Areas for each FEM element.
-    Iy : array_like
+    Iy : numpy array
         Mass moment of inertia around the y-axis for each FEM element.
-    Iz : array_like
+    Iz : numpy array
         Mass moment of inertia around the z-axis for each FEM element.
-    J : array_like
+    J : numpy array
         Polar moment of inertia for each FEM element.
-
     """
 
     def __init__(self, surface):
@@ -46,10 +43,6 @@ class MaterialsTube(Component):
         self.add_output('Iz', val=numpy.zeros((self.ny - 1)))
         self.add_output('J', val=numpy.zeros((self.ny - 1)))
 
-        # self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
-        #self.deriv_options['extra_check_partials_form'] = "central"
-
         self.arange = numpy.arange((self.ny - 1))
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -62,7 +55,6 @@ class MaterialsTube(Component):
         unknowns['Iy'] = pi * (r2**4 - r1**4) / 4.
         unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
         unknowns['J'] = pi * (r2**4 - r1**4) / 2.
-
 
     def linearize(self, params, unknowns, resids):
         name = self.surface['name']

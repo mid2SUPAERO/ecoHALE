@@ -32,7 +32,7 @@ For each case, you can view the optimization results using `plot_all.py`. Examin
 An example workflow would be:
 
     python run_aerostruct.py 1
-    python plot_all.py as
+    python plot_all.py aerostruct.db
 
 The keywords used for each file are explained in their respective docstrings at the top of the file.
 

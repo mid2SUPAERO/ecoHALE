@@ -191,7 +191,7 @@ if input_arg == 'prob1':
     prob.root.deriv_options['type'] = 'fd'
 
     # Record the optimization history in `spatialbeam.db`. You can view
-    # this by running `python plot_all.py s` or `python OptView.py s`.
+    # this by running `python plot_all.py struct` or `python OptView.py struct`.
     recorder = SqliteRecorder('spatialbeam.db')
     recorder.options['record_params'] = True
     recorder.options['record_derivs'] = True
@@ -390,7 +390,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     if 'prob2' in input_arg or 'prob3ab' in input_arg:
 
         # Record the optimization history in `aerostruct.db`. You can view
-        # this by running `python plot_all.py as` or `python OptView.py as`.
+        # this by running `python plot_all.py aerostruct.db` or `python OptView.py aerostruct.db`.
         recorder = SqliteRecorder('aerostruct.db')
         recorder.options['record_params'] = True
         recorder.options['record_derivs'] = True
