@@ -28,15 +28,14 @@ contains
 &   tan_theta
     real(kind=8) :: leb(ny, 3), teb(ny, 3), quarter_chordb(ny, 3), &
 &   tan_thetab
-    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)&
+&   , one
     real(kind=8) :: dxb(ny), y0b, rad_twistb(ny), rotation_matrixb(ny, 3&
 &   , 3)
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
 &   ny+1)/2)
     real(kind=8) :: rowb(ny, 3), outb(3), taper_linsb(ny), &
 &   taper_lins_symb((ny+1)/2)
-    real(kind=8) :: center_chord(ny, 3), one
-    real(kind=8) :: center_chordb(ny, 3)
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic cos
@@ -91,6 +90,7 @@ contains
     do ix=1,nx
       row = mesh(ix, :, :)
       do iy=1,ny
+        call pushreal8array(arg1, 3)
         arg1(:) = row(iy, :) - quarter_chord(iy, :)
         call matmul2(3, 3, 1, rotation_matrix(iy, :, :), arg1(:), out)
         call pushreal8array(mesh(ix, iy, :), 3)
@@ -121,19 +121,19 @@ contains
     call pushreal8array(le, ny*3)
     le = mesh(1, :, :)
     te = mesh(nx, :, :)
-    center_chord = 0.5*te + 0.5*le
+    quarter_chord = 0.25*te + 0.75*le
     if (symmetry) then
       call linspace(one, taper, ny, taper_lins)
-      center_chordb = 0.0_8
+      quarter_chordb = 0.0_8
       taper_linsb = 0.0_8
       do iy=ny,1,-1
         do ix=nx,1,-1
           do ind=3,1,-1
             tempb = taper_lins(ny-iy+1)*meshb(ix, iy, ind)
-            center_chordb(iy, ind) = center_chordb(iy, ind) + meshb(ix, &
-&             iy, ind) - tempb
+            quarter_chordb(iy, ind) = quarter_chordb(iy, ind) + meshb(ix&
+&             , iy, ind) - tempb
             taper_linsb(ny-iy+1) = taper_linsb(ny-iy+1) + (mesh(ix, iy, &
-&             ind)-center_chord(iy, ind))*meshb(ix, iy, ind)
+&             ind)-quarter_chord(iy, ind))*meshb(ix, iy, ind)
             meshb(ix, iy, ind) = tempb
           end do
         end do
@@ -148,16 +148,16 @@ contains
       do iy=1,ny2
         dx(iy) = taper_lins_sym(ny2-iy+1)
       end do
-      center_chordb = 0.0_8
       dxb = 0.0_8
+      quarter_chordb = 0.0_8
       do iy=ny,1,-1
         do ix=nx,1,-1
           do ind=3,1,-1
             tempb0 = dx(ny-iy+1)*meshb(ix, iy, ind)
-            center_chordb(iy, ind) = center_chordb(iy, ind) + meshb(ix, &
-&             iy, ind) - tempb0
+            quarter_chordb(iy, ind) = quarter_chordb(iy, ind) + meshb(ix&
+&             , iy, ind) - tempb0
             dxb(ny-iy+1) = dxb(ny-iy+1) + (mesh(ix, iy, ind)-&
-&             center_chord(iy, ind))*meshb(ix, iy, ind)
+&             quarter_chord(iy, ind))*meshb(ix, iy, ind)
             meshb(ix, iy, ind) = tempb0
           end do
         end do
@@ -175,8 +175,8 @@ contains
     end if
     leb = 0.0_8
     teb = 0.0_8
-    teb = 0.5*center_chordb
-    leb = 0.5*center_chordb
+    teb = 0.25*quarter_chordb
+    leb = 0.75*quarter_chordb
     meshb(nx, :, :) = meshb(nx, :, :) + teb
     call popreal8array(le, ny*3)
     meshb(1, :, :) = meshb(1, :, :) + leb
@@ -217,12 +217,11 @@ contains
         call popreal8array(mesh(ix, iy, :), 3)
         outb = meshb(ix, iy, :)
         meshb(ix, iy, :) = 0.0_8
-        row = mesh(ix, :, :)
-        arg1(:) = row(iy, :) - quarter_chord(iy, :)
         arg1b = 0.0_8
         call matmul2_b(3, 3, 1, rotation_matrix(iy, :, :), &
 &                rotation_matrixb(iy, :, :), arg1(:), arg1b(:), out, &
 &                outb)
+        call popreal8array(arg1, 3)
         rowb(iy, :) = rowb(iy, :) + arg1b
         quarter_chordb(iy, :) = quarter_chordb(iy, :) - arg1b
       end do
@@ -290,10 +289,10 @@ contains
     real(kind=8), intent(out) :: mesh(nx, ny, 3)
     real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, &
 &   tan_theta
-    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)&
+&   , one
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
 &   ny+1)/2)
-    real(kind=8) :: center_chord(ny, 3), one
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic cos
@@ -363,14 +362,14 @@ contains
 ! taper
     le = mesh(1, :, :)
     te = mesh(nx, :, :)
-    center_chord = 0.5*te + 0.5*le
+    quarter_chord = 0.25*te + 0.75*le
     if (symmetry) then
       call linspace(one, taper, ny, taper_lins)
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
-&             )*taper_lins(ny-iy+1) + center_chord(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-quarter_chord(iy, ind&
+&             ))*taper_lins(ny-iy+1) + quarter_chord(iy, ind)
           end do
         end do
       end do
@@ -384,8 +383,8 @@ contains
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
-&             )*dx(ny-iy+1) + center_chord(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-quarter_chord(iy, ind&
+&             ))*dx(ny-iy+1) + quarter_chord(iy, ind)
           end do
         end do
       end do

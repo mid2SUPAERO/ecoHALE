@@ -115,7 +115,7 @@ def sweep(mesh, sweep_angle, symmetry):
         dx = -(le[:, 1] - y0) * tan_theta
 
     else:
-        ny2 = int((num_y - 1) / 2)
+        ny2 = (num_y - 1) // 2
         y0 = le[ny2, 1]
 
         dx_right = (le[ny2:, 1] - y0) * tan_theta
@@ -154,7 +154,7 @@ def dihedral(mesh, dihedral_angle, symmetry):
         dx = -(le[:, 1] - y0) * tan_theta
 
     else:
-        ny2 = int((num_y-1) / 2)
+        ny2 = (num_y-1) // 2
         y0 = le[ny2, 1]
         dx_right = (le[ny2:, 1] - y0) * tan_theta
         dx_left = -(le[:ny2, 1] - y0) * tan_theta
@@ -218,26 +218,26 @@ def taper(mesh, taper_ratio, symmetry):
     le = mesh[0]
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
-    center_chord = .5 * te + .5 * le
+    quarter_chord = 0.25 * te + 0.75 * le
 
     if symmetry:
         taper = numpy.linspace(1, taper_ratio, num_y)[::-1]
 
         for i in xrange(num_x):
             for ind in xrange(3):
-                mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
-                    taper + center_chord[:, ind]
+                mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
+                    taper + quarter_chord[:, ind]
 
     else:
-        ny2 = int((num_y + 1) / 2)
+        ny2 = (num_y + 1) // 2
         taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
 
         dx = numpy.hstack((taper, taper[::-1][1:]))
 
         for i in xrange(num_x):
             for ind in xrange(3):
-                mesh[i, :, ind] = (mesh[i, :, ind] - center_chord[:, ind]) * \
-                    dx + center_chord[:, ind]
+                mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
+                    dx + quarter_chord[:, ind]
 
 
 class GeometryMesh(Component):
@@ -248,8 +248,6 @@ class GeometryMesh(Component):
 
     Parameters
     ----------
-    span : float
-        Relative stetch ratio in the spanwise direction.
     sweep : float
         Shearing sweep angle in degrees.
     dihedral : float
@@ -274,7 +272,6 @@ class GeometryMesh(Component):
         ny = surface['num_y']
         self.mesh = surface['mesh']
 
-        self.add_param('span', val=0.)
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
         self.add_param('twist', val=numpy.zeros(ny), dtype=data_type)
@@ -298,10 +295,7 @@ class GeometryMesh(Component):
                 params['taper'], self.symmetry)
 
         else:
-
             mesh = self.mesh.copy()
-            # stretch is not currently working as intended
-            # stretch(mesh, params['span'])
             sweep(mesh, params['sweep'], self.symmetry)
             scale_x(mesh, params['chord_dist'])
             rotate(mesh, params['twist'])
@@ -583,9 +577,9 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
     """
 
     # Obtain mesh and num properties
-    num_y = mesh.shape[1]
-    ny2 = (num_y + 1) / 2
-    nx2 = (num_x + 1) / 2
+    num_x, num_y = mesh.shape[:2]
+    ny2 = (num_y + 1) // 2
+    nx2 = (num_x + 1) // 2
 
     # Create beta, an array of linear sampling points to pi/2
     beta = numpy.linspace(0, numpy.pi/2, nx2)
@@ -649,7 +643,7 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
     """
 
     mesh = numpy.zeros((num_x, num_y, 3), dtype=data_type)
-    ny2 = (num_y + 1) / 2
+    ny2 = (num_y + 1) // 2
     beta = numpy.linspace(0, numpy.pi/2, ny2)
 
     # mixed spacing with span_cos_spacing as a weighting factor

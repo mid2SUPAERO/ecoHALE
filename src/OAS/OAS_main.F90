@@ -17,9 +17,8 @@ contains
     real(kind=8), intent(out) :: mesh(nx, ny, 3)
 
     real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, tan_theta
-    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3), one
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((ny+1)/2)
-    real(kind=8) :: center_chord(ny, 3), one
     integer :: ny2, ix, iy, ind
 
     p180 = 3.14159265358979323846264338 / 180.
@@ -100,7 +99,7 @@ contains
     ! Taper
     le = mesh(1, :, :)
     te = mesh(nx, :, :)
-    center_chord = 0.5 * te + 0.5 * le
+    quarter_chord = 0.25 * te + 0.75 * le
 
     if (symmetry) then
       call linspace(one, taper, ny, taper_lins)
@@ -108,8 +107,8 @@ contains
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - center_chord(iy, ind)) * taper_lins(ny-iy+1) + &
-              center_chord(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - quarter_chord(iy, ind)) * taper_lins(ny-iy+1) + &
+              quarter_chord(iy, ind)
           end do
         end do
       end do
@@ -126,8 +125,8 @@ contains
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - center_chord(iy, ind)) * dx(ny-iy+1) + &
-              center_chord(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - quarter_chord(iy, ind)) * dx(ny-iy+1) + &
+              quarter_chord(iy, ind)
           end do
         end do
       end do

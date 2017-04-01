@@ -540,7 +540,6 @@ class OASProblem(object):
                 ('chord_dist_cp', surface['chord_dist']),
                 ('dihedral', surface['dihedral']),
                 ('sweep', surface['sweep']),
-                ('span', surface['span']),
                 ('taper', surface['taper']),
                 ('disp', numpy.zeros((surface['num_y'], 6)))]
 
@@ -661,7 +660,6 @@ class OASProblem(object):
                 ('r', surface['r']),
                 ('dihedral', surface['dihedral']),
                 ('sweep', surface['sweep']),
-                ('span', surface['span']),
                 ('taper', surface['taper'])]
 
             # Add components to include in the surface's group

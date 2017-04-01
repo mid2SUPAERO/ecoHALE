@@ -27,15 +27,14 @@ contains
 &   tan_theta
     real(kind=8) :: led(ny, 3), ted(ny, 3), quarter_chordd(ny, 3), &
 &   tan_thetad
-    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)&
+&   , one
     real(kind=8) :: dxd(ny), y0d, rad_twistd(ny), rotation_matrixd(ny, 3&
 &   , 3)
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
 &   ny+1)/2)
     real(kind=8) :: rowd(ny, 3), outd(3), taper_linsd(ny), &
 &   taper_lins_symd((ny+1)/2)
-    real(kind=8) :: center_chord(ny, 3), one
-    real(kind=8) :: center_chordd(ny, 3)
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic cos
@@ -144,19 +143,19 @@ contains
     le = mesh(1, :, :)
     ted = meshd(nx, :, :)
     te = mesh(nx, :, :)
-    center_chordd = 0.5*ted + 0.5*led
-    center_chord = 0.5*te + 0.5*le
+    quarter_chordd = 0.25*ted + 0.75*led
+    quarter_chord = 0.25*te + 0.75*le
     if (symmetry) then
       call linspace_d(one, taper, taperd, ny, taper_lins, taper_linsd)
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            meshd(ix, iy, ind) = (meshd(ix, iy, ind)-center_chordd(iy, &
+            meshd(ix, iy, ind) = (meshd(ix, iy, ind)-quarter_chordd(iy, &
 &             ind))*taper_lins(ny-iy+1) + (mesh(ix, iy, ind)-&
-&             center_chord(iy, ind))*taper_linsd(ny-iy+1) + &
-&             center_chordd(iy, ind)
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
-&             )*taper_lins(ny-iy+1) + center_chord(iy, ind)
+&             quarter_chord(iy, ind))*taper_linsd(ny-iy+1) + &
+&             quarter_chordd(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-quarter_chord(iy, ind&
+&             ))*taper_lins(ny-iy+1) + quarter_chord(iy, ind)
           end do
         end do
       end do
@@ -173,11 +172,11 @@ contains
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            meshd(ix, iy, ind) = (meshd(ix, iy, ind)-center_chordd(iy, &
-&             ind))*dx(ny-iy+1) + (mesh(ix, iy, ind)-center_chord(iy, &
-&             ind))*dxd(ny-iy+1) + center_chordd(iy, ind)
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
-&             )*dx(ny-iy+1) + center_chord(iy, ind)
+            meshd(ix, iy, ind) = (meshd(ix, iy, ind)-quarter_chordd(iy, &
+&             ind))*dx(ny-iy+1) + (mesh(ix, iy, ind)-quarter_chord(iy, &
+&             ind))*dxd(ny-iy+1) + quarter_chordd(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-quarter_chord(iy, ind&
+&             ))*dx(ny-iy+1) + quarter_chord(iy, ind)
           end do
         end do
       end do
@@ -193,10 +192,10 @@ contains
     real(kind=8), intent(out) :: mesh(nx, ny, 3)
     real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, &
 &   tan_theta
-    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)&
+&   , one
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((&
 &   ny+1)/2)
-    real(kind=8) :: center_chord(ny, 3), one
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic cos
@@ -265,14 +264,14 @@ contains
 ! taper
     le = mesh(1, :, :)
     te = mesh(nx, :, :)
-    center_chord = 0.5*te + 0.5*le
+    quarter_chord = 0.25*te + 0.75*le
     if (symmetry) then
       call linspace(one, taper, ny, taper_lins)
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
-&             )*taper_lins(ny-iy+1) + center_chord(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-quarter_chord(iy, ind&
+&             ))*taper_lins(ny-iy+1) + quarter_chord(iy, ind)
           end do
         end do
       end do
@@ -286,8 +285,8 @@ contains
       do iy=1,ny
         do ix=1,nx
           do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-center_chord(iy, ind)&
-&             )*dx(ny-iy+1) + center_chord(iy, ind)
+            mesh(ix, iy, ind) = (mesh(ix, iy, ind)-quarter_chord(iy, ind&
+&             ))*dx(ny-iy+1) + quarter_chord(iy, ind)
           end do
         end do
       end do
