@@ -12,7 +12,7 @@ prob3c
 
 # Base imports
 from __future__ import division, print_function
-import numpy
+import numpy as np
 import sys
 import time
 from pprint import pprint as pp
@@ -115,7 +115,7 @@ if input_arg == 'prob1':
 
     # Define the loads here. Choose either a tip load or distributed load
     # by commenting the lines as necessary.
-    loads = numpy.zeros((num_y, 6))
+    loads = np.zeros((num_y, 6))
     P = 1e4  # load of 10 kN
     # loads[0, 2] = P  # tip load
     loads[1:, 2] = P / (num_y - 1)  # load distributed across all nodes
@@ -129,7 +129,7 @@ if input_arg == 'prob1':
     # For example, here we set the loads, and SpatialBeamStates computes
     # the displacements based off of these loads.
     des_vars = [
-        ('twist', numpy.zeros(surface['num_y'])),
+        ('twist', np.zeros(surface['num_y'])),
         ('span', surface['span']),
         ('r', r),
         ('thickness', thickness),
@@ -282,7 +282,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     # the new mesh based off of these twist values.
     indep_vars = [
         ('span', surface['span']),
-        ('twist', numpy.zeros(num_y)),
+        ('twist', np.zeros(num_y)),
         ('thickness', thickness),
         ('v', prob_dict['v']),
         ('alpha', prob_dict['alpha']),
@@ -421,8 +421,8 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
             # Print the derivative results.
             # Note that we convert fuelburn from Newtons to kg.
             print("\nd_fuelburn/d_alpha", jac['fuelburn']['alpha'])
-            print("norm(d_fuelburn/d_twist)", numpy.linalg.norm(jac['fuelburn']['twist']))
-            print("norm(d_fuelburn/d_thickness)", numpy.linalg.norm(jac['fuelburn']['thickness']))
+            print("norm(d_fuelburn/d_twist)", np.linalg.norm(jac['fuelburn']['twist']))
+            print("norm(d_fuelburn/d_thickness)", np.linalg.norm(jac['fuelburn']['thickness']))
 
     # Multidisciplinary optimization
     if 'prob3c' in input_arg:

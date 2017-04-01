@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-import numpy
+import numpy as np
 import scipy.sparse
 
 def get_bspline_mtx(num_cp, num_pt, order=4):
@@ -21,16 +21,16 @@ def get_bspline_mtx(num_cp, num_pt, order=4):
         points vector.
 
     """
-    knots = numpy.zeros(num_cp + order)
-    knots[order-1:num_cp+1] = numpy.linspace(0, 1, num_cp - order + 2)
+    knots = np.zeros(num_cp + order)
+    knots[order-1:num_cp+1] = np.linspace(0, 1, num_cp - order + 2)
     knots[num_cp+1:] = 1.0
-    t_vec = numpy.linspace(0, 1, num_pt)
+    t_vec = np.linspace(0, 1, num_pt)
 
-    basis = numpy.zeros(order)
-    arange = numpy.arange(order)
-    data = numpy.zeros((num_pt, order))
-    rows = numpy.zeros((num_pt, order), int)
-    cols = numpy.zeros((num_pt, order), int)
+    basis = np.zeros(order)
+    arange = np.arange(order)
+    data = np.zeros((num_pt, order))
+    rows = np.zeros((num_pt, order), int)
+    cols = np.zeros((num_pt, order), int)
 
     for ipt in xrange(num_pt):
         t = t_vec[ipt]
@@ -89,10 +89,10 @@ if __name__ == "__main__":
     rng = 5 # 700 * 1.852 / 1e3
     alt = 11
 
-    lins = numpy.linspace(0, 1, num_cp)
-    cos_dist = 0.5 * (1 - numpy.cos(lins * numpy.pi))
+    lins = np.linspace(0, 1, num_cp)
+    cos_dist = 0.5 * (1 - np.cos(lins * np.pi))
     x_cp = rng * cos_dist
-    h_cp = alt * numpy.sin(numpy.pi * cos_dist)
+    h_cp = alt * np.sin(np.pi * cos_dist)
 
     import time
     t0 = time.time()

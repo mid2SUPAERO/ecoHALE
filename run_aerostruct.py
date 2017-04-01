@@ -13,7 +13,7 @@ multiple surfaces.
 from __future__ import division, print_function
 import sys
 from time import time
-import numpy
+import numpy as np
 
 from run_classes import OASProblem
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
         # Add additional lifting surface
         surf_dict.update({'name' : 'tail',
-                          'offset':numpy.array([0., 0., 10.])})
+                          'offset':np.array([0., 0., 10.])})
         OAS_prob.add_surface(surf_dict)
 
         # Setup problem and add design variables, constraints, and objective

@@ -12,7 +12,7 @@ call as `python run_spatialbeam.py 1m` to perform optimization.
 from __future__ import division, print_function
 import sys
 from time import time
-import numpy
+import numpy as np
 
 from run_classes import OASProblem
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         # Add additional lifting surface
         OAS_prob.add_surface({'name' : 'tail',
                               'span' : 3.,
-                              'offset' : numpy.array([10., 0., 0.])})
+                              'offset' : np.array([10., 0., 0.])})
 
         # Setup problem and add design variables, constraints, and objective
         OAS_prob.setup()

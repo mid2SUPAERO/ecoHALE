@@ -7,8 +7,8 @@ rotation about the x, y, and z-axes.
 """
 
 from __future__ import division, print_function
-import numpy
-numpy.random.seed(123)
+import numpy as np
+np.random.seed(123)
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
@@ -25,14 +25,14 @@ def view_mat(mat):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
     if len(mat.shape) > 2:
-        mat = numpy.sum(mat, axis=2)
+        mat = np.sum(mat, axis=2)
     im = plt.imshow(mat.real, interpolation='none')
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
 
 def norm(vec):
-    return numpy.sqrt(numpy.sum(vec**2))
+    return np.sqrt(np.sum(vec**2))
 
 
 def unit(vec):
@@ -42,7 +42,7 @@ def unit(vec):
 def radii(mesh, t_c=0.15):
     """ Obtain the radii of the FEM component based on chord. """
     vectors = mesh[-1, :, :] - mesh[0, :, :]
-    chords = numpy.sqrt(numpy.sum(vectors**2, axis=1))
+    chords = np.sqrt(np.sum(vectors**2, axis=1))
     chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
     return t_c * chords
 
@@ -64,7 +64,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
     # prescribed or computed loads
     rhs[:] = 0.0
     rhs[:6*n] = loads.reshape(n*6)
-    rhs[numpy.abs(rhs) < 1e-6] = 0.
+    rhs[np.abs(rhs) < 1e-6] = 0.
 
     # Fortran
     if fortran_flag:
@@ -87,8 +87,8 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
             P1 = nodes[ielem+1, :]
 
             x_loc = unit(P1 - P0)
-            y_loc = unit(numpy.cross(x_loc, x_gl))
-            z_loc = unit(numpy.cross(x_loc, y_loc))
+            y_loc = unit(np.cross(x_loc, x_gl))
+            z_loc = unit(np.cross(x_loc, y_loc))
 
             T[0, :] = x_loc
             T[1, :] = y_loc
@@ -153,26 +153,26 @@ class AssembleK(Component):
 
     Parameters
     ----------
-    A[ny-1] : numpy array
+    A[ny-1] : np array
         Areas for each FEM element.
-    Iy[ny-1] : numpy array
+    Iy[ny-1] : np array
         Mass moment of inertia around the y-axis for each FEM element.
-    Iz[ny-1] : numpy array
+    Iz[ny-1] : np array
         Mass moment of inertia around the z-axis for each FEM element.
-    J[ny-1] : numpy array
+    J[ny-1] : np array
         Polar moment of inertia for each FEM element.
-    nodes[ny, 3] : numpy array
+    nodes[ny, 3] : np array
         Flattened array with coordinates for each FEM node.
-    loads[ny, 6] : numpy array
+    loads[ny, 6] : np array
         Flattened array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
     Returns
     -------
-    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
+    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : np array
         Stiffness matrix for the entire FEM system. Used to solve the linear
         system K * u = f to obtain the displacements, u.
-    rhs[(nx-1)*(ny-1)] : numpy array
+    rhs[(nx-1)*(ny-1)] : np array
         Right-hand-side of the linear system. The loads from the aerodynamic
         analysis or the user-defined loads.
     """
@@ -184,60 +184,60 @@ class AssembleK(Component):
 
         self.size = size = 6 * self.ny + 6
 
-        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype=data_type))
-        self.add_param('Iy', val=numpy.zeros((self.ny - 1), dtype=data_type))
-        self.add_param('Iz', val=numpy.zeros((self.ny - 1), dtype=data_type))
-        self.add_param('J', val=numpy.zeros((self.ny - 1), dtype=data_type))
-        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=data_type))
-        self.add_param('loads', val=numpy.zeros((self.ny, 6), dtype=data_type))
+        self.add_param('A', val=np.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('Iy', val=np.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('Iz', val=np.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('J', val=np.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('nodes', val=np.zeros((self.ny, 3), dtype=data_type))
+        self.add_param('loads', val=np.zeros((self.ny, 6), dtype=data_type))
 
-        self.add_output('K', val=numpy.zeros((size, size), dtype=data_type))
-        self.add_output('rhs', val=numpy.zeros((size), dtype=data_type))
+        self.add_output('K', val=np.zeros((size, size), dtype=data_type))
+        self.add_output('rhs', val=np.zeros((size), dtype=data_type))
 
         self.E = surface['E']
         self.G = surface['G']
         self.cg_x = cg_x
 
-        self.const2 = numpy.array([
+        self.const2 = np.array([
             [1, -1],
             [-1, 1],
         ], dtype=data_type)
-        self.const_y = numpy.array([
+        self.const_y = np.array([
             [12, -6, -12, -6],
             [-6, 4, 6, 2],
             [-12, 6, 12, 6],
             [-6, 2, 6, 4],
         ], dtype=data_type)
-        self.const_z = numpy.array([
+        self.const_z = np.array([
             [12, 6, -12, 6],
             [6, 4, -6, 2],
             [-12, -6, 12, -6],
             [6, 2, -6, 4],
         ], dtype=data_type)
-        self.x_gl = numpy.array([1, 0, 0], dtype=data_type)
+        self.x_gl = np.array([1, 0, 0], dtype=data_type)
 
-        self.K_elem = numpy.zeros((12, 12), dtype=data_type)
-        self.T_elem = numpy.zeros((12, 12), dtype=data_type)
-        self.T = numpy.zeros((3, 3), dtype=data_type)
+        self.K_elem = np.zeros((12, 12), dtype=data_type)
+        self.T_elem = np.zeros((12, 12), dtype=data_type)
+        self.T = np.zeros((3, 3), dtype=data_type)
 
-        self.K = numpy.zeros((size, size), dtype=data_type)
-        self.rhs = numpy.zeros(size, dtype=data_type)
+        self.K = np.zeros((size, size), dtype=data_type)
+        self.rhs = np.zeros(size, dtype=data_type)
 
-        self.K_a = numpy.zeros((2, 2), dtype=data_type)
-        self.K_t = numpy.zeros((2, 2), dtype=data_type)
-        self.K_y = numpy.zeros((4, 4), dtype=data_type)
-        self.K_z = numpy.zeros((4, 4), dtype=data_type)
+        self.K_a = np.zeros((2, 2), dtype=data_type)
+        self.K_t = np.zeros((2, 2), dtype=data_type)
+        self.K_y = np.zeros((4, 4), dtype=data_type)
+        self.K_z = np.zeros((4, 4), dtype=data_type)
 
-        self.S_a = numpy.zeros((2, 12), dtype=data_type)
+        self.S_a = np.zeros((2, 12), dtype=data_type)
         self.S_a[(0, 1), (0, 6)] = 1.
 
-        self.S_t = numpy.zeros((2, 12), dtype=data_type)
+        self.S_t = np.zeros((2, 12), dtype=data_type)
         self.S_t[(0, 1), (3, 9)] = 1.
 
-        self.S_y = numpy.zeros((4, 12), dtype=data_type)
+        self.S_y = np.zeros((4, 12), dtype=data_type)
         self.S_y[(0, 1, 2, 3), (2, 4, 8, 10)] = 1.
 
-        self.S_z = numpy.zeros((4, 12), dtype=data_type)
+        self.S_z = np.zeros((4, 12), dtype=data_type)
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
         if not fortran_flag:
@@ -248,8 +248,8 @@ class AssembleK(Component):
 
         # Find constrained nodes based on closeness to specified cg point
         nodes = params['nodes']
-        dist = nodes - numpy.array([self.cg_x, 0, 0])
-        idx = (numpy.linalg.norm(dist, axis=1)).argmin()
+        dist = nodes - np.array([self.cg_x, 0, 0])
+        idx = (np.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
 
         loads = params['loads']
@@ -272,8 +272,8 @@ class AssembleK(Component):
 
         # Find constrained nodes based on closeness to specified cg point
         nodes = params['nodes']
-        dist = nodes - numpy.array([self.cg_x, 0, 0])
-        idx = (numpy.linalg.norm(dist, axis=1)).argmin()
+        dist = nodes - np.array([self.cg_x, 0, 0])
+        idx = (np.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
 
         loads = params['loads']
@@ -320,16 +320,16 @@ class SpatialBeamFEM(Component):
 
     Parameters
     ----------
-    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
+    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : np array
         Stiffness matrix for the entire FEM system. Used to solve the linear
         system K * u = f to obtain the displacements, u.
-    rhs[(nx-1)*(ny-1)] : numpy array
+    rhs[(nx-1)*(ny-1)] : np array
         Right-hand-side of the linear system. The loads from the aerodynamic
         analysis or the user-defined loads.
 
     Returns
     -------
-    disp_aug[6*(ny+1)] : numpy array
+    disp_aug[6*(ny+1)] : np array
         Augmented displacement array. Obtained by solving the system
         K * u = f, where f is a flattened version of loads.
 
@@ -338,9 +338,9 @@ class SpatialBeamFEM(Component):
     def __init__(self, size):
         super(SpatialBeamFEM, self).__init__()
 
-        self.add_param('K', val=numpy.zeros((size, size), dtype=data_type))
-        self.add_param('rhs', val=numpy.zeros((size), dtype=data_type))
-        self.add_state('disp_aug', val=numpy.zeros((size), dtype=data_type))
+        self.add_param('K', val=np.zeros((size, size), dtype=data_type))
+        self.add_param('rhs', val=np.zeros((size), dtype=data_type))
+        self.add_state('disp_aug', val=np.zeros((size), dtype=data_type))
 
         self.size = size
 
@@ -349,7 +349,7 @@ class SpatialBeamFEM(Component):
         self.rhs_cache = None
 
     def solve_nonlinear(self, params, unknowns, resids):
-        """ Use numpy to solve Ax=b for x.
+        """ Use np to solve Ax=b for x.
         """
 
         # lu factorization for use with solve_linear
@@ -381,7 +381,7 @@ class SpatialBeamFEM(Component):
             if 'disp_aug' in dunknowns:
                 dunknowns['disp_aug'] += params['K'].T.dot(dresids['disp_aug'])
             if 'K' in dparams:
-                dparams['K'] += numpy.outer(unknowns['disp_aug'], dresids['disp_aug']).T
+                dparams['K'] += np.outer(unknowns['disp_aug'], dresids['disp_aug']).T
             if 'rhs' in dparams:
                 dparams['rhs'] -= dresids['disp_aug']
 
@@ -396,7 +396,7 @@ class SpatialBeamFEM(Component):
             t=1
 
         if self.rhs_cache is None:
-            self.rhs_cache = numpy.zeros((self.size, ))
+            self.rhs_cache = np.zeros((self.size, ))
         rhs = self.rhs_cache
 
         for voi in vois:
@@ -419,13 +419,13 @@ class SpatialBeamDisp(Component):
 
     Parameters
     ----------
-    disp_aug[6*(ny+1)] : numpy array
+    disp_aug[6*(ny+1)] : np array
         Augmented displacement array. Obtained by solving the system
         K * disp_aug = rhs, where rhs is a flattened version of loads.
 
     Returns
     -------
-    disp[6*ny] : numpy array
+    disp[6*ny] : np array
         Actual displacement array formed by truncating disp_aug.
 
     """
@@ -435,8 +435,8 @@ class SpatialBeamDisp(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('disp_aug', val=numpy.zeros(((self.ny+1)*6), dtype=data_type))
-        self.add_output('disp', val=numpy.zeros((self.ny, 6), dtype=data_type))
+        self.add_param('disp_aug', val=np.zeros(((self.ny+1)*6), dtype=data_type))
+        self.add_output('disp', val=np.zeros((self.ny, 6), dtype=data_type))
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Obtain the relevant portions of disp_aug and store the reshaped
@@ -446,7 +446,7 @@ class SpatialBeamDisp(Component):
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
         n = self.ny * 6
-        jac['disp', 'disp_aug'][:n, :n] = numpy.eye((n))
+        jac['disp', 'disp_aug'][:n, :n] = np.eye((n))
         return jac
 
 
@@ -459,12 +459,12 @@ class ComputeNodes(Component):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Array defining the nodal points of the lifting surface.
 
     Returns
     -------
-    nodes[ny, 3] : numpy array
+    nodes[ny, 3] : np array
         Flattened array with coordinates for each FEM node.
 
     """
@@ -476,8 +476,8 @@ class ComputeNodes(Component):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=data_type))
-        self.add_output('nodes', val=numpy.zeros((self.ny, 3), dtype=data_type))
+        self.add_param('mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_output('nodes', val=np.zeros((self.ny, 3), dtype=data_type))
 
     def solve_nonlinear(self, params, unknowns, resids):
         w = self.fem_origin
@@ -490,8 +490,8 @@ class ComputeNodes(Component):
         w = self.fem_origin
 
         n = self.ny * 3
-        jac['nodes', 'mesh'][:n, :n] = numpy.eye(n) * (1-w)
-        jac['nodes', 'mesh'][:n, -n:] = numpy.eye(n) * w
+        jac['nodes', 'mesh'][:n, :n] = np.eye(n) * (1-w)
+        jac['nodes', 'mesh'][:n, -n:] = np.eye(n) * w
 
         return jac
 
@@ -501,9 +501,9 @@ class SpatialBeamEnergy(Component):
 
     Parameters
     ----------
-    disp[ny, 6] : numpy array
+    disp[ny, 6] : np array
         Actual displacement array formed by truncating disp_aug.
-    loads[ny, 6] : numpy array
+    loads[ny, 6] : np array
         Array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
@@ -519,12 +519,12 @@ class SpatialBeamEnergy(Component):
 
         ny = surface['num_y']
 
-        self.add_param('disp', val=numpy.zeros((ny, 6), dtype=data_type))
-        self.add_param('loads', val=numpy.zeros((ny, 6), dtype=data_type))
+        self.add_param('disp', val=np.zeros((ny, 6), dtype=data_type))
+        self.add_param('loads', val=np.zeros((ny, 6), dtype=data_type))
         self.add_output('energy', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
-        unknowns['energy'] = numpy.sum(params['disp'] * params['loads'])
+        unknowns['energy'] = np.sum(params['disp'] * params['loads'])
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
@@ -537,9 +537,9 @@ class SpatialBeamWeight(Component):
 
     Parameters
     ----------
-    A[ny-1] : numpy array
+    A[ny-1] : np array
         Areas for each FEM element.
-    nodes[ny, 3] : numpy array
+    nodes[ny, 3] : np array
         Flattened array with coordinates for each FEM node.
 
     Returns
@@ -555,8 +555,8 @@ class SpatialBeamWeight(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('A', val=numpy.zeros((self.ny - 1), dtype=data_type))
-        self.add_param('nodes', val=numpy.zeros((self.ny, 3), dtype=data_type))
+        self.add_param('A', val=np.zeros((self.ny - 1), dtype=data_type))
+        self.add_param('nodes', val=np.zeros((self.ny, 3), dtype=data_type))
         self.add_output('weight', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -564,7 +564,7 @@ class SpatialBeamWeight(Component):
         nodes = params['nodes']
 
         # Calculate the volume and weight of the total structure
-        volume = numpy.sum(numpy.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A)
+        volume = np.sum(np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A)
 
         weight = volume * self.surface['mrho'] * 9.81
 
@@ -580,7 +580,7 @@ class SpatialBeamWeight(Component):
 
         # First we will solve for dweight_dA
         # Calculate the volume and weight of the total structure
-        norms = numpy.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
+        norms = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
 
         # Multiply by the material density and force of gravity
         dweight_dA = norms * self.surface['mrho'] * 9.81
@@ -595,7 +595,7 @@ class SpatialBeamWeight(Component):
         # Next, we will compute the derivative of weight wrt nodes.
         # Here we're using results from AD to compute the derivative
         # Initialize the reverse seeds.
-        nodesb = numpy.zeros(nodes.shape)
+        nodesb = np.zeros(nodes.shape)
         tempb = (nodes[1:, :] - nodes[:-1, :]) * (A / norms).reshape(-1, 1)
         nodesb[1:, :] += tempb
         nodesb[:-1, :] -= tempb
@@ -616,16 +616,16 @@ class SpatialBeamVonMisesTube(Component):
 
     Parameters
     ----------
-    r[ny-1] : numpy array
+    r[ny-1] : np array
         Radii for each FEM element.
-    nodes[ny, 3] : numpy array
+    nodes[ny, 3] : np array
         Flattened array with coordinates for each FEM node.
-    disp[ny, 6] : numpy array
+    disp[ny, 6] : np array
         Displacements of each FEM node.
 
     Returns
     -------
-    vonmises[ny-1, 2] : numpy array
+    vonmises[ny-1, 2] : np array
         von Mises stress magnitudes for each FEM element.
 
     """
@@ -635,14 +635,14 @@ class SpatialBeamVonMisesTube(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('nodes', val=numpy.zeros((self.ny, 3),
+        self.add_param('nodes', val=np.zeros((self.ny, 3),
                        dtype=data_type))
-        self.add_param('r', val=numpy.zeros((self.ny - 1),
+        self.add_param('r', val=np.zeros((self.ny - 1),
                        dtype=data_type))
-        self.add_param('disp', val=numpy.zeros((self.ny, 6),
+        self.add_param('disp', val=np.zeros((self.ny, 6),
                        dtype=data_type))
 
-        self.add_output('vonmises', val=numpy.zeros((self.ny-1, 2),
+        self.add_output('vonmises', val=np.zeros((self.ny-1, 2),
                         dtype=data_type))
 
         if not fortran_flag:
@@ -652,8 +652,8 @@ class SpatialBeamVonMisesTube(Component):
         self.E = surface['E']
         self.G = surface['G']
 
-        self.T = numpy.zeros((3, 3), dtype=data_type)
-        self.x_gl = numpy.array([1, 0, 0], dtype=data_type)
+        self.T = np.zeros((3, 3), dtype=data_type)
+        self.x_gl = np.array([1, 0, 0], dtype=data_type)
         self.t = 0
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -680,8 +680,8 @@ class SpatialBeamVonMisesTube(Component):
                 L = norm(P1 - P0)
 
                 x_loc = unit(P1 - P0)
-                y_loc = unit(numpy.cross(x_loc, x_gl))
-                z_loc = unit(numpy.cross(x_loc, y_loc))
+                y_loc = unit(np.cross(x_loc, x_gl))
+                z_loc = unit(np.cross(x_loc, y_loc))
 
                 T[0, :] = x_loc
                 T[1, :] = y_loc
@@ -692,13 +692,13 @@ class SpatialBeamVonMisesTube(Component):
                 u1x, u1y, u1z = T.dot(disp[ielem+1, :3])
                 r1x, r1y, r1z = T.dot(disp[ielem+1, 3:])
 
-                tmp = numpy.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
+                tmp = np.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
                 sxx0 = E * (u1x - u0x) / L + E * r[ielem] / L * tmp
                 sxx1 = E * (u0x - u1x) / L + E * r[ielem] / L * tmp
                 sxt = G * r[ielem] * (r1x - r0x) / L
 
-                vonmises[ielem, 0] = numpy.sqrt(sxx0**2 + sxt**2)
-                vonmises[ielem, 1] = numpy.sqrt(sxx1**2 + sxt**2)
+                vonmises[ielem, 0] = np.sqrt(sxx0**2 + sxt**2)
+                vonmises[ielem, 1] = np.sqrt(sxx1**2 + sxt**2)
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
@@ -738,7 +738,7 @@ class SpatialBeamFailureKS(Component):
 
     Parameters
     ----------
-    vonmises[ny-1, 2] : numpy array
+    vonmises[ny-1, 2] : np array
         von Mises stress magnitudes for each FEM element.
 
     Returns
@@ -755,7 +755,7 @@ class SpatialBeamFailureKS(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=data_type))
+        self.add_param('vonmises', val=np.zeros((self.ny-1, 2), dtype=data_type))
         self.add_output('failure', val=0.)
 
         self.sigma = surface['stress']
@@ -766,9 +766,9 @@ class SpatialBeamFailureKS(Component):
         rho = self.rho
         vonmises = params['vonmises']
 
-        fmax = numpy.max(vonmises/sigma - 1)
+        fmax = np.max(vonmises/sigma - 1)
 
-        nlog, nsum, nexp = numpy.log, numpy.sum, numpy.exp
+        nlog, nsum, nexp = np.log, np.sum, np.exp
         ks = 1 / rho * nlog(nsum(nexp(rho * (vonmises/sigma - 1 - fmax))))
         unknowns['failure'] = fmax + ks
 
@@ -779,17 +779,17 @@ class SpatialBeamFailureKS(Component):
         rho = self.rho
 
         # Find the location of the max stress constraint
-        fmax = numpy.max(vonmises / sigma - 1)
-        i, j = numpy.where((vonmises/sigma - 1)==fmax)
+        fmax = np.max(vonmises / sigma - 1)
+        i, j = np.where((vonmises/sigma - 1)==fmax)
         i, j = i[0], j[0]
 
         # Set incoming seed as 1 so we simply get the jacobian entries
         ksb = 1.
 
         # Use results from the AD code to compute the jacobian entries
-        tempb0 = ksb / (rho * numpy.sum(numpy.exp(rho * (vonmises/sigma - fmax - 1))))
-        tempb = numpy.exp(rho*(vonmises/sigma-fmax-1))*rho*tempb0
-        fmaxb = ksb - numpy.sum(tempb)
+        tempb0 = ksb / (rho * np.sum(np.exp(rho * (vonmises/sigma - fmax - 1))))
+        tempb = np.exp(rho*(vonmises/sigma-fmax-1))*rho*tempb0
+        fmaxb = ksb - np.sum(tempb)
 
         # Populate the entries
         derivs = tempb / sigma
@@ -806,12 +806,12 @@ class SpatialBeamFailureExact(Component):
 
     Parameters
     ----------
-    vonmises[ny-1, 2] : numpy array
+    vonmises[ny-1, 2] : np array
         von Mises stress magnitudes for each FEM element.
 
     Returns
     -------
-    failure[ny-1, 2] : numpy array
+    failure[ny-1, 2] : np array
         Array of failure conditions. Positive if element has failed.
 
     """
@@ -821,8 +821,8 @@ class SpatialBeamFailureExact(Component):
 
         self.ny = surface['num_y']
 
-        self.add_param('vonmises', val=numpy.zeros((self.ny-1, 2), dtype=data_type))
-        self.add_output('failure', val=numpy.zeros((self.ny-1, 2), dtype=data_type))
+        self.add_param('vonmises', val=np.zeros((self.ny-1, 2), dtype=data_type))
+        self.add_output('failure', val=np.zeros((self.ny-1, 2), dtype=data_type))
 
         self.sigma = surface['stress']
 
@@ -833,7 +833,7 @@ class SpatialBeamFailureExact(Component):
         unknowns['failure'] = vonmises/sigma - 1
 
     def linearize(self, params, unknowns, resids):
-        return {('failure', 'vonmises') : numpy.eye(((self.ny-1)*2)) / self.sigma}
+        return {('failure', 'vonmises') : np.eye(((self.ny-1)*2)) / self.sigma}
 
 
 class SpatialBeamStates(Group):

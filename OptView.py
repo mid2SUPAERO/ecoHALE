@@ -285,7 +285,7 @@ class Display(object):
                         data_all[new_key] = []
                         data_major[new_key] = []
 
-                    # Process the data from the key. Convert it to a numpy
+                    # Process the data from the key. Convert it to a np
                     # array, keep only the real part, squeeze any 1-dim
                     # axes out of it, then flatten it.
                     data = np.squeeze(np.array(iter_data[key]).real).flatten()

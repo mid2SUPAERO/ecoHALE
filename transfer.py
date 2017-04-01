@@ -1,7 +1,7 @@
 """ Define the transfer components to couple aero and struct analyses. """
 
 from __future__ import division, print_function
-import numpy
+import numpy as np
 from time import time
 
 try:
@@ -25,9 +25,9 @@ class TransferDisplacements(Component):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Flattened array defining the lifting surfaces.
-    disp[ny, 6] : numpy array
+    disp[ny, 6] : np array
         Flattened array containing displacements on the FEM component.
         Contains displacements for all six degrees of freedom, including
         displacements in the x, y, and z directions, and rotations about the
@@ -35,7 +35,7 @@ class TransferDisplacements(Component):
 
     Returns
     -------
-    def_mesh[nx, ny, 3] : numpy array
+    def_mesh[nx, ny, 3] : np array
         Flattened array defining the lifting surfaces after deformation.
     """
 
@@ -48,9 +48,9 @@ class TransferDisplacements(Component):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=data_type))
-        self.add_param('disp', val=numpy.zeros((self.ny, 6), dtype=data_type))
-        self.add_output('def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_param('mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_param('disp', val=np.zeros((self.ny, 6), dtype=data_type))
+        self.add_output('def_mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
 
         if not fortran_flag:
             self.deriv_options['type'] = 'cs'
@@ -66,18 +66,18 @@ class TransferDisplacements(Component):
         else:
 
             ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
-            Smesh = numpy.zeros(mesh.shape, dtype=data_type)
+            Smesh = np.zeros(mesh.shape, dtype=data_type)
             for ind in xrange(self.nx):
                 Smesh[ind, :, :] = mesh[ind, :, :] - ref_curve
 
-            def_mesh = numpy.zeros(mesh.shape, dtype=data_type)
-            cos, sin = numpy.cos, numpy.sin
+            def_mesh = np.zeros(mesh.shape, dtype=data_type)
+            cos, sin = np.cos, np.sin
             for ind in xrange(self.ny):
                 dx, dy, dz, rx, ry, rz = disp[ind, :]
 
                 # 1 eye from the axis rotation matrices
                 # -3 eye from subtracting Smesh three times
-                T = -2 * numpy.eye(3, dtype=data_type)
+                T = -2 * np.eye(3, dtype=data_type)
                 T[ 1:,  1:] += [[cos(rx), -sin(rx)], [ sin(rx), cos(rx)]]
                 T[::2, ::2] += [[cos(ry),  sin(ry)], [-sin(ry), cos(ry)]]
                 T[ :2,  :2] += [[cos(rz), -sin(rz)], [ sin(rz), cos(rz)]]
@@ -115,16 +115,16 @@ class TransferLoads(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : numpy array
+    def_mesh[nx, ny, 3] : np array
         Flattened array defining the lifting surfaces after deformation.
-    sec_forces[nx-1, ny-1, 3] : numpy array
+    sec_forces[nx-1, ny-1, 3] : np array
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant when more than one chordwise
         panel).
 
     Returns
     -------
-    loads[ny, 6] : numpy array
+    loads[ny, 6] : np array
         Flattened array containing the loads applied on the FEM component,
         computed from the sectional forces.
     """
@@ -138,10 +138,10 @@ class TransferLoads(Component):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('def_mesh', val=numpy.zeros((self.nx, self.ny, 3), dtype=complex))
-        self.add_param('sec_forces', val=numpy.zeros((self.nx-1, self.ny-1, 3),
+        self.add_param('def_mesh', val=np.zeros((self.nx, self.ny, 3), dtype=complex))
+        self.add_param('sec_forces', val=np.zeros((self.nx-1, self.ny-1, 3),
                        dtype=complex))
-        self.add_output('loads', val=numpy.zeros((self.ny, 6),
+        self.add_output('loads', val=np.zeros((self.ny, 6),
                         dtype=complex))
 
         self.deriv_options['type'] = 'cs'
@@ -165,12 +165,12 @@ class TransferLoads(Component):
                 0.5 *   w   * mesh[-1:,  1:, :]
 
         diff = a_pts - s_pts
-        moment = numpy.zeros((self.ny - 1, 3), dtype=complex)
+        moment = np.zeros((self.ny - 1, 3), dtype=complex)
         for ind in range(self.nx-1):
-            moment += numpy.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
+            moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
-        loads = numpy.zeros((self.ny, 6), dtype=complex)
-        sec_forces_sum = numpy.sum(sec_forces, axis=0)
+        loads = np.zeros((self.ny, 6), dtype=complex)
+        sec_forces_sum = np.sum(sec_forces, axis=0)
         loads[:-1, :3] += 0.5 * sec_forces_sum[:, :]
         loads[ 1:, :3] += 0.5 * sec_forces_sum[:, :]
         loads[:-1, 3:] += 0.5 * moment

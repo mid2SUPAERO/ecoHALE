@@ -9,7 +9,7 @@ aerostructural optimization using OpenAeroStruct.
 from __future__ import division, print_function
 import sys
 from time import time
-import numpy
+import numpy as np
 
 # =============================================================================
 # OpenMDAO modules
@@ -124,7 +124,7 @@ class OASProblem(object):
                                             # 'CRM' can have different options
                                             # after it, such as 'CRM:alpha_2.75'
                                             # for the CRM shape at alpha=2.75
-                    'offset' : numpy.array([0., 0., 0.]), # coordinates to offset
+                    'offset' : np.array([0., 0., 0.]), # coordinates to offset
                                     # the surface from its default location
 
                     # Mesh deformation values and settings
@@ -260,11 +260,11 @@ class OASProblem(object):
         # These b-spline control points are what the optimizer sees
         # and controls
         if 'num_twist' not in input_dict.keys():
-            surf_dict['num_twist'] = numpy.max([int((num_y - 1) / 5), 5])
+            surf_dict['num_twist'] = np.max([int((num_y - 1) / 5), 5])
         if 'num_thickness' not in input_dict.keys():
-            surf_dict['num_thickness'] = numpy.max([int((num_y - 1) / 5), 5])
+            surf_dict['num_thickness'] = np.max([int((num_y - 1) / 5), 5])
         if 'num_chord_dist' not in input_dict.keys():
-            surf_dict['num_chord_dist'] = numpy.max([int((num_y - 1) / 5), 5])
+            surf_dict['num_chord_dist'] = np.max([int((num_y - 1) / 5), 5])
 
         # If the mesh generation provided an initial twist, set this within
         # the surf_dict object
@@ -275,37 +275,37 @@ class OASProblem(object):
                 # If the surface is symmetric, simply interpolate the initial
                 # twist_cp values based on the mesh data
                 if surf_dict['symmetry']:
-                    twist = numpy.interp(numpy.linspace(0, 1, num_twist), eta, surf_dict['twist'])
+                    twist = np.interp(np.linspace(0, 1, num_twist), eta, surf_dict['twist'])
                 else:
 
                     # If num_twist is odd, create the twist vector and mirror it
                     # then stack the two together, but remove the duplicated twist
                     # value.
                     if num_twist % 2:
-                        twist = numpy.interp(numpy.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['twist'])
-                        twist = numpy.hstack((twist[:-1], twist[::-1]))
+                        twist = np.interp(np.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['twist'])
+                        twist = np.hstack((twist[:-1], twist[::-1]))
 
                     # If num_twist is even, mirror the twist vector and stack
                     # them together
                     else:
-                        twist = numpy.interp(numpy.linspace(0, 1, num_twist/2), eta, surf_dict['twist'])
-                        twist = numpy.hstack((twist, twist[::-1]))
+                        twist = np.interp(np.linspace(0, 1, num_twist/2), eta, surf_dict['twist'])
+                        twist = np.hstack((twist, twist[::-1]))
 
                 surf_dict['twist'] = twist
 
         # If not initial twist information is provided, simply use zero twist
         else:
-            surf_dict['twist'] = numpy.zeros((surf_dict['num_twist']))
+            surf_dict['twist'] = np.zeros((surf_dict['num_twist']))
 
         # If the user did not provide chord distribution information, set
         # scalars for each chord to 1. so the planform is unchanged
         if surf_dict['chord_dist'] is None:
-            surf_dict['chord_dist'] = numpy.ones((surf_dict['num_chord_dist']))
+            surf_dict['chord_dist'] = np.ones((surf_dict['num_chord_dist']))
 
         # If the user chose a random chord distribution, set a random array
         # of scalars
         elif surf_dict['chord_dist'] == 'random':
-            surf_dict['chord_dist'] = numpy.random.random((surf_dict['num_chord_dist']))
+            surf_dict['chord_dist'] = np.random.random((surf_dict['num_chord_dist']))
 
         # Store updated values
         surf_dict['num_x'] = num_x
@@ -315,7 +315,7 @@ class OASProblem(object):
         surf_dict['t'] = r / 10
 
         # Set default loads at the tips
-        loads = numpy.zeros((r.shape[0] + 1, 6), dtype='complex')
+        loads = np.zeros((r.shape[0] + 1, 6), dtype='complex')
         loads[0, 2] = 1e3
         if not surf_dict['symmetry']:
             loads[-1, 2] = 1e3
@@ -475,7 +475,7 @@ class OASProblem(object):
             # Note that these are the only ones necessary for structual-only
             # analysis and optimization.
             indep_vars = [
-                ('thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
+                ('thickness_cp', np.ones(surface['num_thickness'])*np.max(surface['t'])),
                 ('r', surface['r']),
                 ('loads', surface['loads'])]
 
@@ -541,7 +541,7 @@ class OASProblem(object):
                 ('dihedral', surface['dihedral']),
                 ('sweep', surface['sweep']),
                 ('taper', surface['taper']),
-                ('disp', numpy.zeros((surface['num_y'], 6)))]
+                ('disp', np.zeros((surface['num_y'], 6)))]
 
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',
@@ -655,7 +655,7 @@ class OASProblem(object):
             # Add independent variables that do not belong to a specific component
             indep_vars = [
                 ('twist_cp', surface['twist']),
-                ('thickness_cp', numpy.ones(surface['num_thickness'])*numpy.max(surface['t'])),
+                ('thickness_cp', np.ones(surface['num_thickness'])*np.max(surface['t'])),
                 ('chord_dist_cp', surface['chord_dist']),
                 ('r', surface['r']),
                 ('dihedral', surface['dihedral']),

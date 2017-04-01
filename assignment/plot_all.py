@@ -25,7 +25,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.animation as manimation
 
-import numpy
+import numpy as np
 import sqlitedict
 import traceback
 
@@ -49,7 +49,7 @@ else:
 db_name = filename + '.db'
 
 def _get_lengths(self, A, B, axis):
-    return numpy.sqrt(numpy.sum((B - A)**2, axis=axis))
+    return np.sqrt(np.sum((B - A)**2, axis=axis))
 
 class Display(object):
     def __init__(self, db_name):
@@ -132,7 +132,7 @@ class Display(object):
                 self.r.append(case_data['Unknowns']['r'])
                 self.thickness.append(case_data['Unknowns']['thickness'])
                 self.vonmises.append(
-                    numpy.max(case_data['Unknowns']['vonmises'], axis=1))
+                    np.max(case_data['Unknowns']['vonmises'], axis=1))
                 self.show_tube = True
             except:
                 self.show_tube = False
@@ -143,7 +143,7 @@ class Display(object):
                 normals.append(case_data['Unknowns']['normals'])
                 widths.append(case_data['Unknowns']['widths'])
                 sec_forces.append(case_data['Unknowns']['sec_forces'])
-                alpha.append(case_data['Unknowns']['alpha'] * numpy.pi / 180.)
+                alpha.append(case_data['Unknowns']['alpha'] * np.pi / 180.)
                 rho.append(case_data['Unknowns']['rho'])
                 v.append(case_data['Unknowns']['v'])
                 self.show_wing = True
@@ -152,7 +152,7 @@ class Display(object):
                 pass
 
         if self.opt:
-            self.num_iters = numpy.max([len(self.mesh) - 1, 1])
+            self.num_iters = np.max([len(self.mesh) - 1, 1])
         else:
             self.num_iters = 0
 
@@ -160,7 +160,7 @@ class Display(object):
         self.symmetry = True
         for mesh in self.mesh:
             y_values = mesh[0, :, 1]
-            if not (numpy.all(y_values >= -1e-10) or numpy.all(y_values <= 1e-10)):
+            if not (np.all(y_values >= -1e-10) or np.all(y_values <= 1e-10)):
                 self.symmetry = False
 
         if self.symmetry:
@@ -181,33 +181,33 @@ class Display(object):
                 mirror_mesh = self.mesh[i].copy()
                 mirror_mesh[:, :, 1] *= -1.
                 mirror_mesh = mirror_mesh[:, ::-1, :][:, 1:, :]
-                new_mesh.append(numpy.hstack((self.mesh[i], mirror_mesh)))
+                new_mesh.append(np.hstack((self.mesh[i], mirror_mesh)))
 
                 if self.show_tube:
                     thickness = self.thickness[i]
-                    new_thickness.append(numpy.hstack((thickness, thickness[::-1])))
+                    new_thickness.append(np.hstack((thickness, thickness[::-1])))
                     r = self.r[i]
-                    new_r.append(numpy.hstack((r, r[::-1])))
+                    new_r.append(np.hstack((r, r[::-1])))
                     vonmises = self.vonmises[i]
-                    new_vonmises.append(numpy.hstack((vonmises, vonmises[::-1])))
+                    new_vonmises.append(np.hstack((vonmises, vonmises[::-1])))
 
                 if self.show_wing:
                     mirror_mesh = self.def_mesh[i].copy()
                     mirror_mesh[:, :, 1] *= -1.
                     mirror_mesh = mirror_mesh[:, ::-1, :][:, 1:, :]
-                    new_def_mesh.append(numpy.hstack((self.def_mesh[i], mirror_mesh)))
+                    new_def_mesh.append(np.hstack((self.def_mesh[i], mirror_mesh)))
 
                     mirror_normals = normals[i].copy()
                     mirror_normals = mirror_normals[:, ::-1, :][:, 1:, :]
-                    new_normals.append(numpy.hstack((normals[i], mirror_normals)))
+                    new_normals.append(np.hstack((normals[i], mirror_normals)))
 
                     mirror_forces = sec_forces[i].copy()
                     mirror_forces = mirror_forces[:, ::-1, :]
-                    new_sec_forces.append(numpy.hstack((sec_forces[i], mirror_forces)))
+                    new_sec_forces.append(np.hstack((sec_forces[i], mirror_forces)))
 
-                    new_widths.append(numpy.hstack((widths[i], widths[i][:, ::-1])))
+                    new_widths.append(np.hstack((widths[i], widths[i][:, ::-1])))
                     twist = self.twist[i]
-                    new_twist.append(numpy.hstack((twist, twist[::-1][1:])))
+                    new_twist.append(np.hstack((twist, twist[::-1][1:])))
 
             self.mesh = new_mesh
             if self.show_tube:
@@ -225,12 +225,12 @@ class Display(object):
 
             for i in range(self.num_iters + 1):
                 a = alpha[i]
-                cosa = numpy.cos(a)
-                sina = numpy.sin(a)
+                cosa = np.cos(a)
+                sina = np.sin(a)
                 forces = sec_forces[i]
 
-                forces = numpy.sum(sec_forces[i], axis=0)
-                widths_ = numpy.mean(widths[i], axis=0)
+                forces = np.sum(sec_forces[i], axis=0)
+                widths_ = np.mean(widths[i], axis=0)
 
                 lift = (-forces[:, 0] * sina + forces[:, 2] * cosa)/widths_/0.5/rho[i]/v[i]**2
 
@@ -238,40 +238,40 @@ class Display(object):
                 span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                 span = span - (span[0] + .5)
 
-                lift_area = numpy.sum(lift * (span[1:] - span[:-1]))
+                lift_area = np.sum(lift * (span[1:] - span[:-1]))
 
-                lift_ell = 4 * lift_area / numpy.pi * numpy.sqrt(1 - (2*span)**2)
+                lift_ell = 4 * lift_area / np.pi * np.sqrt(1 - (2*span)**2)
 
                 self.lift.append(lift)
                 self.lift_ell.append(lift_ell)
 
             # recenter def_mesh points for better viewing
             for i in range(self.num_iters + 1):
-                center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+                center = np.mean(np.mean(self.mesh[i], axis=0), axis=0)
                 self.def_mesh[i] = self.def_mesh[i] - center
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters + 1):
-            center = numpy.mean(numpy.mean(self.mesh[i], axis=0), axis=0)
+            center = np.mean(np.mean(self.mesh[i], axis=0), axis=0)
             self.mesh[i] = self.mesh[i] - center
 
         if self.show_wing:
-            self.min_twist, self.max_twist = numpy.min(self.twist), numpy.max(self.twist)
+            self.min_twist, self.max_twist = np.min(self.twist), np.max(self.twist)
             diff = (self.max_twist - self.min_twist) * 0.05
             self.min_twist -= diff
             self.max_twist += diff
-            self.min_l, self.max_l = numpy.min(self.lift), numpy.max(self.lift)
-            self.min_le, self.max_le = numpy.min(self.lift_ell), numpy.max(self.lift_ell)
+            self.min_l, self.max_l = np.min(self.lift), np.max(self.lift)
+            self.min_le, self.max_le = np.min(self.lift_ell), np.max(self.lift_ell)
             self.min_l, self.max_l = min(self.min_l, self.min_le), max(self.max_l, self.max_le)
             diff = (self.max_l - self.min_l) * 0.05
             self.min_l -= diff
             self.max_l += diff
         if self.show_tube:
-            self.min_t, self.max_t = numpy.min(self.thickness), numpy.max(self.thickness)
+            self.min_t, self.max_t = np.min(self.thickness), np.max(self.thickness)
             diff = (self.max_t - self.min_t) * 0.05
             self.min_t -= diff
             self.max_t += diff
-            self.min_vm, self.max_vm = numpy.min(self.vonmises), numpy.max(self.vonmises)
+            self.min_vm, self.max_vm = np.min(self.vonmises), np.max(self.vonmises)
             diff = (self.max_vm - self.min_vm) * 0.05
             self.min_vm -= diff
             self.max_vm += diff
@@ -366,27 +366,27 @@ class Display(object):
             r0 = self.r[self.curr_pos]
             t0 = self.thickness[self.curr_pos]
             colors = t0
-            colors = colors / numpy.max(colors)
+            colors = colors / np.max(colors)
             num_circ = 12
             fem_origin = 0.35
             n = mesh0.shape[1]
-            p = numpy.linspace(0, 2*numpy.pi, num_circ)
+            p = np.linspace(0, 2*np.pi, num_circ)
             if self.show_wing:
                 if self.show_def_mesh.get():
                     mesh0[:, :, 2] = def_mesh0[:, :, 2]
             for i, thick in enumerate(t0):
-                r = numpy.array((r0[i], r0[i]))
-                R, P = numpy.meshgrid(r, p)
-                X, Z = R*numpy.cos(P), R*numpy.sin(P)
+                r = np.array((r0[i], r0[i]))
+                R, P = np.meshgrid(r, p)
+                X, Z = R*np.cos(P), R*np.sin(P)
                 chords = mesh0[1, :, 0] - mesh0[0, :, 0]
                 comp = fem_origin * chords + mesh0[0, :, 0]
                 X[:, 0] += comp[i]
                 X[:, 1] += comp[i+1]
                 Z[:, 0] += fem_origin * mesh0[1, i, 2]
                 Z[:, 1] += fem_origin * mesh0[1, i+1, 2]
-                Y = numpy.empty(X.shape)
-                Y[:] = numpy.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
-                col = numpy.zeros(X.shape)
+                Y = np.empty(X.shape)
+                Y[:] = np.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
+                col = np.zeros(X.shape)
                 col[:] = colors[i]
 
                 try:
@@ -396,10 +396,10 @@ class Display(object):
                     self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                         facecolors=cm.coolwarm(col), linewidth=0)
 
-        lim = numpy.max(numpy.max(mesh0)) / 2.8
+        lim = np.max(np.max(mesh0)) / 2.8
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
-        round_to_n = lambda x, n: round(x, -int(numpy.floor(numpy.log10(abs(x)))) + (n - 1))
+        round_to_n = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + (n - 1))
 
         if self.opt:
             obj_val = round_to_n(self.obj[self.curr_pos], 7)
@@ -443,10 +443,10 @@ class Display(object):
         list_min = 1.e20
         list_max = -1.e20
         for list_ in input_list:
-            mi = numpy.min(list_)
+            mi = np.min(list_)
             if mi < list_min:
                 list_min = mi
-            ma = numpy.max(list_)
+            ma = np.max(list_)
             if ma > list_max:
                 list_max = ma
 

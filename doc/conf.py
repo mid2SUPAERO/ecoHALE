@@ -35,12 +35,12 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'numpydoc'
+    'npdoc'
 ]
 
 # Generate the API documentation when building
 autosummary_generate = True
-numpydoc_show_class_members = False
+npdoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

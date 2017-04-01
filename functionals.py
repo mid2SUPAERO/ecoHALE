@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-import numpy
+import numpy as np
 
 from openmdao.api import Component
 
@@ -43,7 +43,7 @@ class FunctionalBreguetRange(Component):
             CD = params[name+'CD']
             Ws = params[name+'weight']
 
-            fuelburn += numpy.sum((W0 + Ws) * (numpy.exp(R * CT / a / M * CD / CL) - 1))
+            fuelburn += np.sum((W0 + Ws) * (np.exp(R * CT / a / M * CD / CL) - 1))
 
         # Convert fuelburn from N to kg
         unknowns['fuelburn'] = fuelburn / 9.80665

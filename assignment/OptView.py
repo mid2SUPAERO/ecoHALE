@@ -33,7 +33,7 @@ from mpl_toolkits.axes_grid1 import host_subplot
 import mpl_toolkits.axisartist as AA
 warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 warnings.filterwarnings("ignore",category=UserWarning)
-import numpy
+import numpy as np
 from sqlitedict import SqliteDict
 
 class Display(object):
@@ -123,7 +123,7 @@ class Display(object):
                 solver_name = string[0]
             else:
                 nkey = int(db['last'])
-            self.iter_type = numpy.zeros(nkey)
+            self.iter_type = np.zeros(nkey)
 
             # Check to see if there is bounds information in the hst file
             try:
@@ -153,7 +153,7 @@ class Display(object):
                                 self.func_data_all[new_key] = []
                                 if self.iter_type[i] == 1:
                                     self.func_data_major[new_key] = []
-                            if numpy.isscalar(f[key]) or f[key].shape == (1,):
+                            if np.isscalar(f[key]) or f[key].shape == (1,):
                                 self.func_data_all[new_key].append(f[key])
                                 if self.iter_type[i] == 1:
                                     self.func_data_major[new_key].append(f[key])
@@ -182,7 +182,7 @@ class Display(object):
                                 self.var_data_all[new_key] = []
                                 if self.iter_type[i] == 1:
                                     self.var_data_major[new_key] = []
-                            if numpy.isscalar(f[key]) or f[key].shape == (1,):
+                            if np.isscalar(f[key]) or f[key].shape == (1,):
                                 self.var_data_all[new_key].append(f[key])
                                 if self.iter_type[i] == 1:
                                     self.var_data_major[new_key].append(f[key])
@@ -226,7 +226,7 @@ class Display(object):
                                 self.func_data_all[new_key] = []
                                 if self.iter_type[i] == 1:
                                     self.func_data_major[new_key] = []
-                            if numpy.isscalar(f[key]) or f[key].shape == (1,):
+                            if np.isscalar(f[key]) or f[key].shape == (1,):
                                 self.func_data_all[new_key].append(f[key])
                                 if self.iter_type[i] == 1:
                                     self.func_data_major[new_key].append(f[key])
@@ -258,8 +258,8 @@ class Display(object):
                                 self.var_data_all[new_key] = []
                                 if self.iter_type[i] == 1:
                                     self.var_data_major[new_key] = []
-                            if numpy.isscalar(f[key]) or f[key].shape == (1,):
-                                if type(f[key]) == numpy.ndarray:
+                            if np.isscalar(f[key]) or f[key].shape == (1,):
+                                if type(f[key]) == np.ndarray:
                                     val = f[key][0]
                                 else:
                                     val = f[key]
@@ -403,7 +403,7 @@ class Display(object):
                 minmax_list = []
                 for minmax in dat[val]:
                     minmax_list.append(
-                        [numpy.min(minmax), numpy.max(minmax)])
+                        [np.min(minmax), np.max(minmax)])
                 plots = a.plot(minmax_list, "o-", label=val,
                     markeredgecolor='none', clip_on=False)
 
@@ -781,23 +781,23 @@ class Display(object):
 
         num_vars = len(keys)
         num_iters = len(dat[keys[0]])
-        full_data = numpy.arange(num_iters, dtype=numpy.float_).reshape(num_iters, 1)
+        full_data = np.arange(num_iters, dtype=np.float_).reshape(num_iters, 1)
         var_names = ['Iteration']
         for key in keys:
-            small_data = numpy.asarray(dat[key])
+            small_data = np.asarray(dat[key])
 
             if len(small_data.shape) == 1:
-                full_data = numpy.c_[full_data, small_data]
+                full_data = np.c_[full_data, small_data]
                 var_names.append(key)
 
             else:
                 m = small_data.shape[0]
                 n = small_data.shape[1]
-                indiv_data = numpy.empty((m, 1))
+                indiv_data = np.empty((m, 1))
                 for i in range(n):
                     for j in range(m):
                         indiv_data[j] = small_data[j][i]
-                    full_data = numpy.c_[full_data, indiv_data]
+                    full_data = np.c_[full_data, indiv_data]
                     var_names.append(key + '_{}'.format(i))
 
         filename = 'OptView_tec.dat'
@@ -810,7 +810,7 @@ class Display(object):
 
         self._file.write('Zone T= \"OptView_tec_data\", ' + \
                     'I={}, '.format(num_iters) + 'F=POINT\n')
-        numpy.savetxt(self._file, full_data)
+        np.savetxt(self._file, full_data)
         self._file.close()
 
     def var_search(self, _):
@@ -923,8 +923,8 @@ class Display(object):
                 xdat = point_selected[0].get_xdata()
                 ydat = point_selected[0].get_ydata()
 
-                iter_count = numpy.round(event.xdata, 0)
-                ind = numpy.where(xdat == iter_count)[0][0]
+                iter_count = np.round(event.xdata, 0)
+                ind = np.where(xdat == iter_count)[0][0]
 
                 label = label + '\niter: {0:d}\nvalue: {1}'.format(int(iter_count), ydat[ind])
                 self.annotation = ax.annotate(label,

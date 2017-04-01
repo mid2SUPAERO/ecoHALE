@@ -9,7 +9,7 @@ and viscous drag.
 """
 
 from __future__ import division, print_function
-import numpy
+import numpy as np
 
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
@@ -26,7 +26,7 @@ def view_mat(mat):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
     if len(mat.shape) > 2:
-        mat = numpy.sum(mat, axis=2)
+        mat = np.sum(mat, axis=2)
     im = plt.imshow(mat.real, interpolation='none')
     plt.colorbar(im, orientation='horizontal')
     plt.show()
@@ -34,7 +34,7 @@ def view_mat(mat):
 
 def norm(vec):
     """ Finds the 2-norm of a vector. """
-    return numpy.sqrt(numpy.sum(vec**2))
+    return np.sqrt(np.sum(vec**2))
 
 
 def _calc_vorticity(A, B, P):
@@ -42,17 +42,17 @@ def _calc_vorticity(A, B, P):
 
     Parameters
     ----------
-    A[3] : numpy array
+    A[3] : np array
         Coordinates for the start point of the filament.
-    B[3] : numpy array
+    B[3] : np array
         Coordinates for the end point of the filament.
-    P[3] : numpy array
+    P[3] : np array
         Coordinates for the collocation point where the influence coefficient
         is computed.
 
     Returns
     -------
-    out[3] : numpy array
+    out[3] : np array
         Influence coefficient contribution for the described filament.
 
     """
@@ -63,7 +63,7 @@ def _calc_vorticity(A, B, P):
     r1_mag = norm(r1)
     r2_mag = norm(r2)
 
-    return (r1_mag + r2_mag) * numpy.cross(r1, r2) / \
+    return (r1_mag + r2_mag) * np.cross(r1, r2) / \
            (r1_mag * r2_mag * (r1_mag * r2_mag + r1.dot(r2)))
 
 
@@ -84,7 +84,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     Parameters
     ----------
-    mtx[num_y-1, num_y-1, 3] : numpy array
+    mtx[num_y-1, num_y-1, 3] : np array
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
     params : dictionary
@@ -98,16 +98,16 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     Returns
     -------
-    mtx[tot_panels, tot_panels, 3] : numpy array
+    mtx[tot_panels, tot_panels, 3] : np array
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
     """
 
     alpha = params['alpha']
     mtx[:, :, :] = 0.0
-    cosa = numpy.cos(alpha * numpy.pi / 180.)
-    sina = numpy.sin(alpha * numpy.pi / 180.)
-    u = numpy.array([cosa, 0, sina])
+    cosa = np.cos(alpha * np.pi / 180.)
+    sina = np.sin(alpha * np.pi / 180.)
+    u = np.array([cosa, 0, sina])
 
     i_ = 0
     i_bpts_ = 0
@@ -158,7 +158,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                 pts = params[name+'c_pts']
 
             # Initialize sub-matrix to populate within full mtx
-            small_mat = numpy.zeros((n_panels, n_panels_, 3), dtype=data_type)
+            small_mat = np.zeros((n_panels, n_panels_, 3), dtype=data_type)
 
             # Dense fortran assembly for the AIC matrix
             if fortran_flag:
@@ -195,9 +195,9 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                             r1_mag = norm(r1)
                             r2_mag = norm(r2)
 
-                            t1 = numpy.cross(u, r2) / \
+                            t1 = np.cross(u, r2) / \
                                 (r2_mag * (r2_mag - u.dot(r2)))
-                            t3 = numpy.cross(u, r1) / \
+                            t3 = np.cross(u, r1) / \
                                 (r1_mag * (r1_mag - u.dot(r1)))
 
                             # AIC contribution from trailing vortex filaments
@@ -212,9 +212,9 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                                 r1_mag = norm(r1)
                                 r2_mag = norm(r2)
 
-                                t1 = numpy.cross(u, r2) / \
+                                t1 = np.cross(u, r2) / \
                                     (r2_mag * (r2_mag - u.dot(r2)))
-                                t3 = numpy.cross(u, r1) / \
+                                t3 = np.cross(u, r1) / \
                                     (r1_mag * (r1_mag - u.dot(r1)))
 
                                 trailing += t3 - t1
@@ -278,7 +278,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                                     if symmetry:
                                         bound = _calc_vorticity(B_sym, A_sym, P)
                                     else:
-                                        bound = numpy.zeros((3))
+                                        bound = np.zeros((3))
                                     small_mat[cp_loc, el_loc, :] = \
                                         trailing + edges + bound
                                 else:
@@ -304,7 +304,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         i_bpts_ += n_bpts_
         i_panels_ += n_panels_
 
-    mtx /= 4 * numpy.pi
+    mtx /= 4 * np.pi
 
 def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, skip=False):
 
@@ -381,13 +381,13 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
         i_bpts_ += n_bpts_
         i_panels_ += n_panels_
 
-    mtxd /= 4 * numpy.pi
+    mtxd /= 4 * np.pi
 
 def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, skip=False):
 
     alpha = params['alpha']
 
-    mtxb /= 4 * numpy.pi
+    mtxb /= 4 * np.pi
 
     i_ = 0
     i_bpts_ = 0
@@ -467,21 +467,21 @@ class VLMGeometry(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : numpy array
+    def_mesh[nx, ny, 3] : np array
         Array defining the nodal coordinates of the lifting surface.
 
     Returns
     -------
-    b_pts[nx-1, ny, 3] : numpy array
+    b_pts[nx-1, ny, 3] : np array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts[nx-1, ny-1, 3] : numpy array
+    c_pts[nx-1, ny-1, 3] : np array
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    widths[nx-1, ny-1] : numpy array
+    widths[nx-1, ny-1] : np array
         The spanwise widths of each individual panel.
-    lengths[ny] : numpy array
+    lengths[ny] : np array
         The chordwise length of the entire airfoil following the camber line.
-    normals[nx-1, ny-1, 3] : numpy array
+    normals[nx-1, ny-1, 3] : np array
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
     S_ref : float
@@ -498,14 +498,14 @@ class VLMGeometry(Component):
 
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('def_mesh', val=numpy.zeros((nx, ny, 3),
+        self.add_param('def_mesh', val=np.zeros((nx, ny, 3),
                        dtype=data_type))
-        self.add_output('b_pts', val=numpy.zeros((nx-1, ny, 3),
+        self.add_output('b_pts', val=np.zeros((nx-1, ny, 3),
                         dtype=data_type))
-        self.add_output('c_pts', val=numpy.zeros((nx-1, ny-1, 3)))
-        self.add_output('widths', val=numpy.zeros((ny-1)))
-        self.add_output('lengths', val=numpy.zeros((ny)))
-        self.add_output('normals', val=numpy.zeros((nx-1, ny-1, 3)))
+        self.add_output('c_pts', val=np.zeros((nx-1, ny-1, 3)))
+        self.add_output('widths', val=np.zeros((ny-1)))
+        self.add_output('lengths', val=np.zeros((ny)))
+        self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -527,20 +527,20 @@ class VLMGeometry(Component):
         # Compute the cambered length of each chordwise set of mesh points
         dx = mesh[1:, :, 0] - mesh[:-1, :, 0]
         dz = mesh[1:, :, 2] - mesh[:-1, :, 2]
-        lengths = numpy.sum(numpy.sqrt(dx**2 + dz**2), axis=0)
+        lengths = np.sum(np.sqrt(dx**2 + dz**2), axis=0)
 
         # Compute the normal of each panel by taking the cross-product of
         # its diagonals. Note that this could be a nonplanar surface
-        normals = numpy.cross(
+        normals = np.cross(
             mesh[:-1,  1:, :] - mesh[1:, :-1, :],
             mesh[:-1, :-1, :] - mesh[1:,  1:, :],
             axis=2)
 
-        norms = numpy.sqrt(numpy.sum(normals**2, axis=2))
+        norms = np.sqrt(np.sum(normals**2, axis=2))
         for j in xrange(3):
             normals[:, :, j] /= norms
 
-        S_ref = 0.5 * numpy.sum(norms)
+        S_ref = 0.5 * np.sum(norms)
 
         # Store each array
         unknowns['b_pts'] = b_pts
@@ -561,7 +561,7 @@ class VLMGeometry(Component):
         ny = self.surface['num_y']
 
         if fortran_flag:
-            normalsb = numpy.zeros(unknowns['normals'].shape)
+            normalsb = np.zeros(unknowns['normals'].shape)
             for i in range(nx-1):
                 for j in range(ny-1):
                     for ind in range(3):
@@ -572,7 +572,7 @@ class VLMGeometry(Component):
 
             normalsb[:, :, :] = 0.
             meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 1.)
-            jac['S_ref', 'def_mesh'] = numpy.atleast_2d(meshb.flatten())
+            jac['S_ref', 'def_mesh'] = np.atleast_2d(meshb.flatten())
 
         else:
             cs_jac = self.complex_step_jacobian(params, unknowns, resids,
@@ -582,24 +582,24 @@ class VLMGeometry(Component):
             jac.update(cs_jac)
 
         for iz, v in zip((0, ny*3), (.75, .25)):
-            numpy.fill_diagonal(jac['b_pts', 'def_mesh'][:, iz:], v)
+            np.fill_diagonal(jac['b_pts', 'def_mesh'][:, iz:], v)
 
         for iz, v in zip((0, 3, ny*3, (ny+1)*3),
                          (.125, .125, .375, .375)):
             for ix in range(nx-1):
-                numpy.fill_diagonal(jac['c_pts', 'def_mesh']
+                np.fill_diagonal(jac['c_pts', 'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
         for i in range(ny-1):
             jac['widths', 'def_mesh'][i, 3*i+1] = -1
             jac['widths', 'def_mesh'][i, 3*i+4] =  1
 
-        jac['lengths', 'def_mesh'] = numpy.zeros_like(jac['lengths', 'def_mesh'])
+        jac['lengths', 'def_mesh'] = np.zeros_like(jac['lengths', 'def_mesh'])
         for i in range(ny):
             dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
             dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
             for j in range(nx-1):
-                l = numpy.sqrt(dx[j]**2 + dz[j]**2)
+                l = np.sqrt(dx[j]**2 + dz[j]**2)
                 jac['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
                 jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
                 jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
@@ -619,14 +619,14 @@ class AssembleAIC(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : numpy array
+    def_mesh[nx, ny, 3] : np array
         Array defining the nodal coordinates of the lifting surface.
-    b_pts[nx-1, ny, 3] : numpy array
+    b_pts[nx-1, ny, 3] : np array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts[nx-1, ny-1, 3] : numpy array
+    c_pts[nx-1, ny-1, 3] : np array
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    normals[nx-1, ny-1, 3] : numpy array
+    normals[nx-1, ny-1, 3] : np array
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
 
@@ -637,11 +637,11 @@ class AssembleAIC(Component):
 
     Returns
     -------
-    AIC[tot_panels, tot_panels] : numpy array
+    AIC[tot_panels, tot_panels] : np array
         The aerodynamic influence coefficient matrix. Solving the linear system
         of AIC * circulations = n * v gives us the circulations for each of the
         horseshoe vortices.
-    rhs[tot_panels] : numpy array
+    rhs[tot_panels] : np array
         The right-hand-side of the linear system that yields the circulations.
     """
 
@@ -657,13 +657,13 @@ class AssembleAIC(Component):
             nx = surface['num_x']
             name = surface['name']
 
-            self.add_param(name+'def_mesh', val=numpy.zeros((nx, ny, 3),
+            self.add_param(name+'def_mesh', val=np.zeros((nx, ny, 3),
                            dtype=data_type))
-            self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3),
+            self.add_param(name+'b_pts', val=np.zeros((nx-1, ny, 3),
                            dtype=data_type))
-            self.add_param(name+'c_pts', val=numpy.zeros((nx-1, ny-1, 3),
+            self.add_param(name+'c_pts', val=np.zeros((nx-1, ny-1, 3),
                            dtype=data_type))
-            self.add_param(name+'normals', val=numpy.zeros((nx-1, ny-1, 3)))
+            self.add_param(name+'normals', val=np.zeros((nx-1, ny-1, 3)))
             tot_panels += (nx - 1) * (ny - 1)
 
         self.tot_panels = tot_panels
@@ -671,12 +671,12 @@ class AssembleAIC(Component):
         self.add_param('v', val=1.)
         self.add_param('alpha', val=0.)
 
-        self.add_output('AIC', val=numpy.zeros((tot_panels, tot_panels), dtype=data_type))
-        self.add_output('rhs', val=numpy.zeros((tot_panels), dtype=data_type))
+        self.add_output('AIC', val=np.zeros((tot_panels, tot_panels), dtype=data_type))
+        self.add_output('rhs', val=np.zeros((tot_panels), dtype=data_type))
 
-        self.AIC_mtx = numpy.zeros((tot_panels, tot_panels, 3),
+        self.AIC_mtx = np.zeros((tot_panels, tot_panels, 3),
                                    dtype=data_type)
-        self.mtx = numpy.zeros((tot_panels, tot_panels),
+        self.mtx = np.zeros((tot_panels, tot_panels),
                                    dtype=data_type)
 
         if not fortran_flag:
@@ -690,7 +690,7 @@ class AssembleAIC(Component):
         # Construct an flattened array with the normals of each surface in order
         # so we can do the normals with velocities to set up the right-hand-side
         # of the system.
-        flattened_normals = numpy.zeros((self.tot_panels, 3), dtype=data_type)
+        flattened_normals = np.zeros((self.tot_panels, 3), dtype=data_type)
         i = 0
         for surface in self.surfaces:
             name = surface['name']
@@ -707,10 +707,10 @@ class AssembleAIC(Component):
 
         # Obtain the freestream velocity direction and magnitude by taking
         # alpha into account
-        alpha = params['alpha'] * numpy.pi / 180.
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
-        v_inf = params['v'] * numpy.array([cosa, 0., sina], dtype=data_type)
+        alpha = params['alpha'] * np.pi / 180.
+        cosa = np.cos(alpha)
+        sina = np.sin(alpha)
+        v_inf = params['v'] * np.array([cosa, 0., sina], dtype=data_type)
 
         # Populate the right-hand side of the linear system with the
         # expected velocities at each collocation point
@@ -723,7 +723,7 @@ class AssembleAIC(Component):
 
         if mode == 'fwd':
 
-            AIC_mtxd = numpy.zeros(self.AIC_mtx.shape)
+            AIC_mtxd = np.zeros(self.AIC_mtx.shape)
 
             # Actually assemble the AIC matrix
             _assemble_AIC_mtx_d(AIC_mtxd, params, dparams, dunknowns, dresids, self.surfaces)
@@ -731,8 +731,8 @@ class AssembleAIC(Component):
             # Construct an flattened array with the normals of each surface in order
             # so we can do the normals with velocities to set up the right-hand-side
             # of the system.
-            flattened_normals = numpy.zeros((self.tot_panels, 3))
-            flattened_normalsd = numpy.zeros((self.tot_panels, 3))
+            flattened_normals = np.zeros((self.tot_panels, 3))
+            flattened_normalsd = np.zeros((self.tot_panels, 3))
             i = 0
             for surface in self.surfaces:
                 name = surface['name']
@@ -752,17 +752,17 @@ class AssembleAIC(Component):
 
             # Obtain the freestream velocity direction and magnitude by taking
             # alpha into account
-            alpha = params['alpha'] * numpy.pi / 180.
-            alphad = dparams['alpha'] * numpy.pi / 180.
-            cosa = numpy.cos(alpha)
-            sina = numpy.sin(alpha)
+            alpha = params['alpha'] * np.pi / 180.
+            alphad = dparams['alpha'] * np.pi / 180.
+            cosa = np.cos(alpha)
+            sina = np.sin(alpha)
             cosad = -sina * alphad
             sinad = cosa * alphad
 
-            freestream_direction = numpy.array([cosa, 0., sina])
+            freestream_direction = np.array([cosa, 0., sina])
             v_inf = params['v'] * freestream_direction
             v_infd = dparams['v'] * freestream_direction
-            v_infd += params['v'] * numpy.array([cosad, 0., sinad])
+            v_infd += params['v'] * np.array([cosad, 0., sinad])
 
             # Populate the right-hand side of the linear system with the
             # expected velocities at each collocation point
@@ -778,7 +778,7 @@ class AssembleAIC(Component):
             # Construct an flattened array with the normals of each surface in order
             # so we can do the normals with velocities to set up the right-hand-side
             # of the system.
-            flattened_normals = numpy.zeros((self.tot_panels, 3))
+            flattened_normals = np.zeros((self.tot_panels, 3))
             i = 0
             for surface in self.surfaces:
                 name = surface['name']
@@ -786,25 +786,25 @@ class AssembleAIC(Component):
                 flattened_normals[i:i+num_panels, :] = params[name+'normals'].reshape(-1, 3, order='F')
                 i += num_panels
 
-            AIC_mtxb = numpy.zeros((self.tot_panels, self.tot_panels, 3))
-            flattened_normalsb = numpy.zeros(flattened_normals.shape)
+            AIC_mtxb = np.zeros((self.tot_panels, self.tot_panels, 3))
+            flattened_normalsb = np.zeros(flattened_normals.shape)
             for ind in xrange(3):
                 AIC_mtxb[:, :, ind] = (dresids['AIC'].T * flattened_normals[:, ind]).T
-                flattened_normalsb[:, ind] += numpy.sum(self.AIC_mtx[:, :, ind].real * dresids['AIC'], axis=1).T
+                flattened_normalsb[:, ind] += np.sum(self.AIC_mtx[:, :, ind].real * dresids['AIC'], axis=1).T
 
             # Actually assemble the AIC matrix
             _assemble_AIC_mtx_b(AIC_mtxb, params, dparams, dunknowns, dresids, self.surfaces)
 
             # Obtain the freestream velocity direction and magnitude by taking
             # alpha into account
-            alpha = params['alpha'] * numpy.pi / 180.
-            cosa = numpy.cos(alpha)
-            sina = numpy.sin(alpha)
-            arr = numpy.array([cosa, 0., sina])
+            alpha = params['alpha'] * np.pi / 180.
+            cosa = np.cos(alpha)
+            sina = np.sin(alpha)
+            arr = np.array([cosa, 0., sina])
             v_inf = params['v'] * arr
 
             fn = flattened_normals
-            fnb = numpy.zeros(fn.shape)
+            fnb = np.zeros(fn.shape)
             rhsb = dresids['rhs']
 
             v_infb = 0.
@@ -814,9 +814,9 @@ class AssembleAIC(Component):
 
             dparams['v'] += sum(arr * v_infb)
             arrb = params['v'] * v_infb
-            alphab = numpy.cos(alpha) * arrb[2]
-            alphab -= numpy.sin(alpha) * arrb[0]
-            alphab *= numpy.pi / 180.
+            alphab = np.cos(alpha) * arrb[2]
+            alphab -= np.sin(alpha) * arrb[0]
+            alphab *= np.pi / 180.
 
             dparams['alpha'] += alphab
 
@@ -839,16 +839,16 @@ class AeroCirculations(Component):
 
     Parameters
     ----------
-    AIC[tot_panels, tot_panels] : numpy array
+    AIC[tot_panels, tot_panels] : np array
         The aerodynamic influence coefficient matrix. Solving the linear system
         of AIC * circulations = n * v gives us the circulations for each of the
         horseshoe vortices.
-    rhs[tot_panels] : numpy array
+    rhs[tot_panels] : np array
         The right-hand-side of the linear system that yields the circulations.
 
     Returns
     -------
-    circulations[6*(ny+1)] : numpy array
+    circulations[6*(ny+1)] : np array
         Augmented displacement array. Obtained by solving the system
         AIC * circulations = n * v.
     """
@@ -856,9 +856,9 @@ class AeroCirculations(Component):
     def __init__(self, size):
         super(AeroCirculations, self).__init__()
 
-        self.add_param('AIC', val=numpy.zeros((size, size), dtype=data_type))
-        self.add_param('rhs', val=numpy.zeros((size), dtype=data_type))
-        self.add_state('circulations', val=numpy.zeros((size), dtype=data_type))
+        self.add_param('AIC', val=np.zeros((size, size), dtype=data_type))
+        self.add_param('rhs', val=np.zeros((size), dtype=data_type))
+        self.add_state('circulations', val=np.zeros((size), dtype=data_type))
 
         self.size = size
 
@@ -897,7 +897,7 @@ class AeroCirculations(Component):
             if 'circulations' in dunknowns:
                 dunknowns['circulations'] += params['AIC'].T.dot(dresids['circulations'])
             if 'AIC' in dparams:
-                dparams['AIC'] += numpy.outer(unknowns['circulations'], dresids['circulations']).T
+                dparams['AIC'] += np.outer(unknowns['circulations'], dresids['circulations']).T
             if 'rhs' in dparams:
                 dparams['rhs'] -= dresids['circulations']
 
@@ -912,7 +912,7 @@ class AeroCirculations(Component):
             t=1
 
         if self.rhs_cache is None:
-            self.rhs_cache = numpy.zeros((self.size, ))
+            self.rhs_cache = np.zeros((self.size, ))
         rhs = self.rhs_cache
 
         for voi in vois:
@@ -932,12 +932,12 @@ class VLMForces(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : numpy array
+    def_mesh[nx, ny, 3] : np array
         Array defining the nodal coordinates of the lifting surface.
-    b_pts[nx-1, ny, 3] : numpy array
+    b_pts[nx-1, ny, 3] : np array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
 
-    circulations : numpy array
+    circulations : np array
         Flattened vector of horseshoe vortex strengths calculated by solving
         the linear system of AIC_mtx * circulations = rhs, where rhs is
         based on the air velocity at each collocation point.
@@ -950,7 +950,7 @@ class VLMForces(Component):
 
     Returns
     -------
-    sec_forces[nx-1, ny-1, 3] : numpy array
+    sec_forces[nx-1, ny-1, 3] : np array
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant with more than one chordwise
         panel).
@@ -967,20 +967,20 @@ class VLMForces(Component):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-            self.add_param(name+'def_mesh', val=numpy.zeros((nx, ny, 3), dtype=data_type))
-            self.add_param(name+'b_pts', val=numpy.zeros((nx-1, ny, 3), dtype=data_type))
-            self.add_output(name+'sec_forces', val=numpy.zeros((nx-1, ny-1, 3), dtype=data_type))
+            self.add_param(name+'def_mesh', val=np.zeros((nx, ny, 3), dtype=data_type))
+            self.add_param(name+'b_pts', val=np.zeros((nx-1, ny, 3), dtype=data_type))
+            self.add_output(name+'sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
 
         self.tot_panels = tot_panels
 
-        self.add_param('circulations', val=numpy.zeros((tot_panels)))
+        self.add_param('circulations', val=np.zeros((tot_panels)))
         self.add_param('alpha', val=3.)
         self.add_param('v', val=10.)
         self.add_param('rho', val=3.)
         self.surfaces = surfaces
 
-        self.mtx = numpy.zeros((tot_panels, tot_panels, 3), dtype=data_type)
-        self.v = numpy.zeros((tot_panels, 3), dtype=data_type)
+        self.mtx = np.zeros((tot_panels, tot_panels, 3), dtype=data_type)
+        self.v = np.zeros((tot_panels, 3), dtype=data_type)
 
         if not fortran_flag:
             self.deriv_options['type'] = 'cs'
@@ -988,10 +988,10 @@ class VLMForces(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         circ = params['circulations']
-        alpha = params['alpha'] * numpy.pi / 180.
+        alpha = params['alpha'] * np.pi / 180.
         rho = params['rho']
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
+        cosa = np.cos(alpha)
+        sina = np.sin(alpha)
 
         # Assemble a different matrix here than the AIC_mtx from above; Note
         # that the collocation points used here are the midpoints of each
@@ -1026,10 +1026,10 @@ class VLMForces(Component):
 
                 # Cross the obtained velocities with the bound vortex filament
                 # vectors
-                cross = numpy.cross(self.v[i:i+num_panels],
+                cross = np.cross(self.v[i:i+num_panels],
                                     bound.reshape(-1, bound.shape[-1], order='F'))
 
-                sec_forces = numpy.zeros(((nx-1)*(ny-1), 3), dtype=data_type)
+                sec_forces = np.zeros(((nx-1)*(ny-1), 3), dtype=data_type)
                 # Compute the sectional forces acting on each panel
                 for ind in xrange(3):
                     sec_forces[:, ind] = \
@@ -1044,20 +1044,20 @@ class VLMForces(Component):
         if mode == 'fwd':
 
             circ = params['circulations']
-            alpha = params['alpha'] * numpy.pi / 180.
-            alphad = dparams['alpha'] * numpy.pi / 180.
-            cosa = numpy.cos(alpha)
-            sina = numpy.sin(alpha)
+            alpha = params['alpha'] * np.pi / 180.
+            alphad = dparams['alpha'] * np.pi / 180.
+            cosa = np.cos(alpha)
+            sina = np.sin(alpha)
             cosad = -sina * alphad
             sinad = cosa * alphad
             rho = params['rho']
 
-            mtxd = numpy.zeros(self.mtx.shape)
+            mtxd = np.zeros(self.mtx.shape)
 
             # Actually assemble the AIC matrix
             _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, self.surfaces, skip=True)
 
-            vd = numpy.zeros(self.v.shape)
+            vd = np.zeros(self.v.shape)
 
             # Compute the induced velocities at the midpoints of the
             # bound vortex filaments
@@ -1094,13 +1094,13 @@ class VLMForces(Component):
         if mode == 'rev':
 
             circ = params['circulations']
-            alpha = params['alpha'] * numpy.pi / 180.
-            cosa = numpy.cos(alpha)
-            sina = numpy.sin(alpha)
+            alpha = params['alpha'] * np.pi / 180.
+            cosa = np.cos(alpha)
+            sina = np.sin(alpha)
 
             i = 0
             rho = params['rho'].real
-            vb = numpy.zeros(self.v.shape)
+            vb = np.zeros(self.v.shape)
             for surface in self.surfaces:
                 name = surface['name']
                 nx = surface['num_x']
@@ -1121,14 +1121,14 @@ class VLMForces(Component):
 
                 i += num_panels
 
-            sinab = params['v'] * numpy.sum(vb[:, 2])
-            dparams['v'] += cosa * numpy.sum(vb[:, 0]) + sina * numpy.sum(vb[:, 2])
-            cosab = params['v'] * numpy.sum(vb[:, 0])
-            ab = numpy.cos(alpha) * sinab - numpy.sin(alpha) * cosab
-            dparams['alpha'] += numpy.pi * ab / 180.
+            sinab = params['v'] * np.sum(vb[:, 2])
+            dparams['v'] += cosa * np.sum(vb[:, 0]) + sina * np.sum(vb[:, 2])
+            cosab = params['v'] * np.sum(vb[:, 0])
+            ab = np.cos(alpha) * sinab - np.sin(alpha) * cosab
+            dparams['alpha'] += np.pi * ab / 180.
 
-            mtxb = numpy.zeros(self.mtx.shape)
-            circb = numpy.zeros(circ.shape)
+            mtxb = np.zeros(self.mtx.shape)
+            circb = np.zeros(circ.shape)
             for i in range(3):
                 for j in range(self.tot_panels):
                     mtxb[j, :, i] += circ * vb[j, i]
@@ -1145,7 +1145,7 @@ class VLMLiftDrag(Component):
 
     Parameters
     ----------
-    sec_forces[nx-1, ny-1, 3] : numpy array
+    sec_forces[nx-1, ny-1, 3] : np array
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant with more than one chordwise
         panel).
@@ -1169,22 +1169,22 @@ class VLMLiftDrag(Component):
         nx = surface['num_x']
         self.num_panels = (nx -1) * (ny - 1)
 
-        self.add_param('sec_forces', val=numpy.zeros((nx - 1, ny - 1, 3)))
+        self.add_param('sec_forces', val=np.zeros((nx - 1, ny - 1, 3)))
         self.add_param('alpha', val=3.)
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
-        alpha = params['alpha'] * numpy.pi / 180.
+        alpha = params['alpha'] * np.pi / 180.
         forces = params['sec_forces'].reshape(-1, 3)
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
+        cosa = np.cos(alpha)
+        sina = np.sin(alpha)
 
         # Compute the induced lift force on each lifting surface
-        unknowns['L'] = numpy.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
+        unknowns['L'] = np.sum(-forces[:, 0] * sina + forces[:, 2] * cosa)
 
         # Compute the induced drag force on each lifting surface
-        unknowns['D'] = numpy.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
+        unknowns['D'] = np.sum( forces[:, 0] * cosa + forces[:, 2] * sina)
 
         if self.surface['symmetry']:
             unknowns['D'] *= 2
@@ -1196,9 +1196,9 @@ class VLMLiftDrag(Component):
         jac = self.alloc_jacobian()
 
         # Analytic derivatives for sec_forces
-        alpha = params['alpha'] * numpy.pi / 180.
-        cosa = numpy.cos(alpha)
-        sina = numpy.sin(alpha)
+        alpha = params['alpha'] * np.pi / 180.
+        cosa = np.cos(alpha)
+        sina = np.sin(alpha)
 
         forces = params['sec_forces']
 
@@ -1207,18 +1207,18 @@ class VLMLiftDrag(Component):
         else:
             symmetry_factor = 1.
 
-        tmp = numpy.array([-sina, 0, cosa])
+        tmp = np.array([-sina, 0, cosa])
         jac['L', 'sec_forces'] = \
-            numpy.atleast_2d(numpy.tile(tmp, self.num_panels)) * symmetry_factor
-        tmp = numpy.array([cosa, 0, sina])
+            np.atleast_2d(np.tile(tmp, self.num_panels)) * symmetry_factor
+        tmp = np.array([cosa, 0, sina])
         jac['D', 'sec_forces'] = \
-            numpy.atleast_2d(numpy.tile(tmp, self.num_panels)) * symmetry_factor
+            np.atleast_2d(np.tile(tmp, self.num_panels)) * symmetry_factor
 
-        p180 = numpy.pi / 180.
+        p180 = np.pi / 180.
         jac['L', 'alpha'] = p180 * symmetry_factor * \
-            numpy.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
+            np.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
         jac['D', 'alpha'] = p180 * symmetry_factor * \
-            numpy.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
+            np.sum(-forces[:, :, 0] * sina + forces[:, :, 2] * cosa)
 
         return jac
 
@@ -1238,9 +1238,9 @@ class ViscousDrag(Component):
     sweep : float
         The angle (in degrees) of the wing sweep. This is used in the form
         factor calculation.
-    widths[ny-1] : numpy array
+    widths[ny-1] : np array
         The spanwise width of each panel.
-    lengths[ny] : numpy array
+    lengths[ny] : np array
         The sum of the lengths of each line segment along a chord section.
 
     Returns
@@ -1267,8 +1267,8 @@ class ViscousDrag(Component):
         self.add_param('M', val=.84)
         self.add_param('S_ref', val=0.)
         self.add_param('sweep', val=0.0)
-        self.add_param('widths', val=numpy.zeros((self.ny-1)))
-        self.add_param('lengths', val=numpy.zeros((self.ny)))
+        self.add_param('widths', val=np.zeros((self.ny-1)))
+        self.add_param('lengths', val=np.zeros((self.ny)))
         self.add_output('CDv', val=0.)
         self.with_viscous = with_viscous
 
@@ -1277,18 +1277,18 @@ class ViscousDrag(Component):
             re = params['re']
             M = params['M']
             S_ref = params['S_ref']
-            sweep = params['sweep'] * numpy.pi / 180.
+            sweep = params['sweep'] * np.pi / 180.
             widths = params['widths']
             lengths = params['lengths']
 
-            self.d_over_q = numpy.zeros((self.ny - 1))
+            self.d_over_q = np.zeros((self.ny - 1))
 
             chords = (lengths[1:] + lengths[:-1]) / 2.
             Re_c = re * chords
 
-            cdturb_total = 0.455 / (numpy.log10(Re_c))**2.58 / \
+            cdturb_total = 0.455 / (np.log10(Re_c))**2.58 / \
                 (1.0 + 0.144*M**2)**0.65
-            cdlam_tr = 1.328 / numpy.sqrt(Re_c * self.k_lam)
+            cdlam_tr = 1.328 / np.sqrt(Re_c * self.k_lam)
 
             # Use eq. 12.27 of Raymer for turbulent Cf
             if self.k_lam == 0:
@@ -1296,7 +1296,7 @@ class ViscousDrag(Component):
                 cd = cdturb_total
 
             elif self.k_lam < 1.0:
-                cdturb_tr = 0.455 / (numpy.log10(Re_c*self.k_lam))**2.58 / \
+                cdturb_tr = 0.455 / (np.log10(Re_c*self.k_lam))**2.58 / \
                     (1.0 + 0.144*M**2)**0.65
 
             else:
@@ -1308,10 +1308,10 @@ class ViscousDrag(Component):
             # D_over_q = D / 0.5 / rho / v**2
             self.d_over_q = 2 * cd * chords
 
-            self.D_over_q = numpy.sum(self.d_over_q * widths)
+            self.D_over_q = np.sum(self.d_over_q * widths)
 
             # Calculate form factor
-            FF = 1.34 * M**0.18 * numpy.cos(sweep)**0.28 * \
+            FF = 1.34 * M**0.18 * np.cos(sweep)**0.28 * \
                         (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
 
             unknowns['CDv'] = FF * self.D_over_q / S_ref
@@ -1322,11 +1322,11 @@ class ViscousDrag(Component):
         """ Jacobian for viscous drag."""
 
         jac = self.alloc_jacobian()
-        jac['CDv', 'lengths'] = numpy.zeros_like(jac['CDv', 'lengths'])
+        jac['CDv', 'lengths'] = np.zeros_like(jac['CDv', 'lengths'])
         re = params['re']
 
         if self.with_viscous:
-            p180 = numpy.pi / 180.
+            p180 = np.pi / 180.
             M = params['M']
             S_ref = params['S_ref']
             sweep = params['sweep'] * p180
@@ -1335,7 +1335,7 @@ class ViscousDrag(Component):
 
             B = (1. + 0.144*M**2)**0.65
 
-            FF = 1.34 * M**0.18 * numpy.cos(sweep)**0.28 * \
+            FF = 1.34 * M**0.18 * np.cos(sweep)**0.28 * \
                         (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
             FF_M = FF * 0.18 / M
             D_over_q = 0.0
@@ -1348,15 +1348,15 @@ class ViscousDrag(Component):
             cdT_Re = 0.0
 
             if self.k_lam == 0:
-                cdT_Re = 0.455/(numpy.log10(Re_c))**3.58/B * \
-                            -2.58 / numpy.log(10) / Re_c
+                cdT_Re = 0.455/(np.log10(Re_c))**3.58/B * \
+                            -2.58 / np.log(10) / Re_c
             elif self.k_lam < 1.0:
 
                 cdl_Re = 1.328 / (Re_c*self.k_lam)**1.5 * -0.5 * self.k_lam
-                cdt_Re = 0.455/(numpy.log10(Re_c*self.k_lam))**3.58/B * \
-                            -2.58 / numpy.log(10) / Re_c
-                cdT_Re = 0.455/(numpy.log10(Re_c))**3.58/B * \
-                            -2.58 / numpy.log(10) / Re_c
+                cdt_Re = 0.455/(np.log10(Re_c*self.k_lam))**3.58/B * \
+                            -2.58 / np.log(10) / Re_c
+                cdT_Re = 0.455/(np.log10(Re_c))**3.58/B * \
+                            -2.58 / np.log(10) / Re_c
             else:
                 cdl_Re = 1.328 / (Re_c*self.k_lam)**1.5 * -0.5 * self.k_lam
 
@@ -1370,7 +1370,7 @@ class ViscousDrag(Component):
             jac['CDv', 'widths'][0, :] = self.d_over_q * FF / S_ref
             jac['CDv', 'S_ref'] = - self.D_over_q * FF / S_ref**2
             jac['CDv', 'sweep'] = - self.D_over_q * FF / S_ref * \
-                0.28 * numpy.sin(sweep) / numpy.cos(sweep) * p180
+                0.28 * np.sin(sweep) / np.cos(sweep) * p180
 
         return jac
 

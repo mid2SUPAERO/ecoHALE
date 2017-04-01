@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-import numpy
+import numpy as np
 
 from openmdao.api import Component
 
@@ -8,20 +8,20 @@ class MaterialsTube(Component):
 
     Parameters
     ----------
-    r : numpy array
+    r : np array
         Radii for each FEM element.
-    thickness : numpy array
+    thickness : np array
         Tube thickness for each FEM element.
 
     Returns
     -------
-    A : numpy array
+    A : np array
         Areas for each FEM element.
-    Iy : numpy array
+    Iy : np array
         Mass moment of inertia around the y-axis for each FEM element.
-    Iz : numpy array
+    Iz : np array
         Mass moment of inertia around the z-axis for each FEM element.
-    J : numpy array
+    J : np array
         Polar moment of inertia for each FEM element.
     """
 
@@ -38,16 +38,16 @@ class MaterialsTube(Component):
 
         self.add_param('r', val=surface['r'])
         self.add_param('thickness', val=surface['t'])
-        self.add_output('A', val=numpy.zeros((self.ny - 1)))
-        self.add_output('Iy', val=numpy.zeros((self.ny - 1)))
-        self.add_output('Iz', val=numpy.zeros((self.ny - 1)))
-        self.add_output('J', val=numpy.zeros((self.ny - 1)))
+        self.add_output('A', val=np.zeros((self.ny - 1)))
+        self.add_output('Iy', val=np.zeros((self.ny - 1)))
+        self.add_output('Iz', val=np.zeros((self.ny - 1)))
+        self.add_output('J', val=np.zeros((self.ny - 1)))
 
-        self.arange = numpy.arange((self.ny - 1))
+        self.arange = np.arange((self.ny - 1))
 
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
-        pi = numpy.pi
+        pi = np.pi
         r1 = params['r'] - 0.5 * params['thickness']
         r2 = params['r'] + 0.5 * params['thickness']
 
@@ -60,7 +60,7 @@ class MaterialsTube(Component):
         name = self.surface['name']
         jac = self.alloc_jacobian()
 
-        pi = numpy.pi
+        pi = np.pi
         r = params['r'].real
         t = params['thickness'].real
         r1 = r - 0.5 * t

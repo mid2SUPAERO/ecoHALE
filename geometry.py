@@ -1,7 +1,7 @@
 """ Manipulate geometry mesh based on high-level design parameters. """
 
 from __future__ import division, print_function
-import numpy
+import numpy as np
 from numpy import cos, sin, tan
 
 from openmdao.api import Component
@@ -19,7 +19,7 @@ def view_mat(mat):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
     if len(mat.shape) > 2:
-        mat = numpy.sum(mat, axis=2)
+        mat = np.sum(mat, axis=2)
     im = plt.imshow(mat.real, interpolation='none')
     plt.colorbar(im, orientation='horizontal')
     plt.show()
@@ -29,14 +29,14 @@ def rotate(mesh, thetas):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the initial aerodynamic surface.
-    thetas[ny] : numpy array
+    thetas[ny] : np array
         1-D array of rotation angles for each wing slice in degrees.
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the twisted aerodynamic surface.
 
     """
@@ -47,9 +47,9 @@ def rotate(mesh, thetas):
     ny = mesh.shape[1]
     nx = mesh.shape[0]
 
-    rad_thetas = thetas * numpy.pi / 180.
+    rad_thetas = thetas * np.pi / 180.
 
-    mats = numpy.zeros((ny, 3, 3), dtype=data_type)
+    mats = np.zeros((ny, 3, 3), dtype=data_type)
     mats[:, 0, 0] = cos(rad_thetas)
     mats[:, 0, 2] = sin(rad_thetas)
     mats[:, 1, 1] = 1
@@ -57,7 +57,7 @@ def rotate(mesh, thetas):
     mats[:, 2, 2] = cos(rad_thetas)
     for ix in range(nx):
         row = mesh[ix]
-        row[:] = numpy.einsum("ikj, ij -> ik", mats, row - quarter_chord)
+        row[:] = np.einsum("ikj, ij -> ik", mats, row - quarter_chord)
         row += quarter_chord
 
 def scale_x(mesh, chord_dist):
@@ -65,14 +65,14 @@ def scale_x(mesh, chord_dist):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the initial aerodynamic surface.
-    chord_dist[ny] : numpy array
+    chord_dist[ny] : np array
         Chord length for each panel edge.
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh with the new chord lengths.
     """
     te = mesh[-1]
@@ -91,7 +91,7 @@ def sweep(mesh, sweep_angle, symmetry):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the initial aerodynamic surface.
     sweep_angle : float
         Shearing sweep angle in degrees.
@@ -100,14 +100,14 @@ def sweep(mesh, sweep_angle, symmetry):
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the swept aerodynamic surface.
 
     """
 
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
-    p180 = numpy.pi / 180
+    p180 = np.pi / 180
     tan_theta = tan(p180*sweep_angle)
 
     if symmetry:
@@ -120,7 +120,7 @@ def sweep(mesh, sweep_angle, symmetry):
 
         dx_right = (le[ny2:, 1] - y0) * tan_theta
         dx_left = -(le[:ny2, 1] - y0) * tan_theta
-        dx = numpy.hstack((dx_left, dx_right))
+        dx = np.hstack((dx_left, dx_right))
 
     for i in xrange(num_x):
         mesh[i, :, 0] += dx
@@ -130,7 +130,7 @@ def dihedral(mesh, dihedral_angle, symmetry):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the initial aerodynamic surface.
     dihedral_angle : float
         Dihedral angle in degrees.
@@ -139,14 +139,14 @@ def dihedral(mesh, dihedral_angle, symmetry):
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the aerodynamic surface with dihedral angle.
 
     """
 
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
-    p180 = numpy.pi / 180
+    p180 = np.pi / 180
     tan_theta = tan(p180*dihedral_angle)
 
     if symmetry:
@@ -158,7 +158,7 @@ def dihedral(mesh, dihedral_angle, symmetry):
         y0 = le[ny2, 1]
         dx_right = (le[ny2:, 1] - y0) * tan_theta
         dx_left = -(le[:ny2, 1] - y0) * tan_theta
-        dx = numpy.hstack((dx_left, dx_right))
+        dx = np.hstack((dx_left, dx_right))
 
     for i in xrange(num_x):
         mesh[i, :, 2] += dx
@@ -173,14 +173,14 @@ def stretch(mesh, span):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the initial aerodynamic surface.
     span : float
         Relative stetch ratio in the spanwise direction.
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the stretched aerodynamic surface.
 
     """
@@ -190,7 +190,7 @@ def stretch(mesh, span):
     num_x, num_y, _ = mesh.shape
 
     prev_span = le[-1, 1] - le[0, 1]
-    dy = (span - prev_span) / (num_y - 1) * numpy.arange(1, num_y)
+    dy = (span - prev_span) / (num_y - 1) * np.arange(1, num_y)
 
     for i in xrange(num_x):
         mesh[i, 1:, 1] += dy
@@ -201,7 +201,7 @@ def taper(mesh, taper_ratio, symmetry):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the initial aerodynamic surface.
     taper_ratio : float
         Taper ratio for the wing; 1 is untapered, 0 goes to a point.
@@ -210,7 +210,7 @@ def taper(mesh, taper_ratio, symmetry):
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the tapered aerodynamic surface.
 
     """
@@ -221,7 +221,7 @@ def taper(mesh, taper_ratio, symmetry):
     quarter_chord = 0.25 * te + 0.75 * le
 
     if symmetry:
-        taper = numpy.linspace(1, taper_ratio, num_y)[::-1]
+        taper = np.linspace(1, taper_ratio, num_y)[::-1]
 
         for i in xrange(num_x):
             for ind in xrange(3):
@@ -230,9 +230,9 @@ def taper(mesh, taper_ratio, symmetry):
 
     else:
         ny2 = (num_y + 1) // 2
-        taper = numpy.linspace(1, taper_ratio, ny2)[::-1]
+        taper = np.linspace(1, taper_ratio, ny2)[::-1]
 
-        dx = numpy.hstack((taper, taper[::-1][1:]))
+        dx = np.hstack((taper, taper[::-1][1:]))
 
         for i in xrange(num_x):
             for ind in xrange(3):
@@ -252,16 +252,16 @@ class GeometryMesh(Component):
         Shearing sweep angle in degrees.
     dihedral : float
         Dihedral angle in degrees.
-    twist[ny] : numpy array
+    twist[ny] : np array
         1-D array of rotation angles for each wing slice in degrees.
-    chord_dist[ny] : numpy array
+    chord_dist[ny] : np array
         Chord length for each panel edge.
     taper : float
         Taper ratio for the wing; 1 is untapered, 0 goes to a point at the tip.
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Modified mesh based on the initial mesh in the surface dictionary and
         the geometric design variables.
     """
@@ -274,8 +274,8 @@ class GeometryMesh(Component):
 
         self.add_param('sweep', val=0.)
         self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=numpy.zeros(ny), dtype=data_type)
-        self.add_param('chord_dist', val=numpy.zeros(ny), dtype=data_type)
+        self.add_param('twist', val=np.zeros(ny), dtype=data_type)
+        self.add_param('chord_dist', val=np.zeros(ny), dtype=data_type)
         self.add_param('taper', val=1.)
         self.add_output('mesh', val=self.mesh)
 
@@ -316,11 +316,11 @@ class GeometryMesh(Component):
             if 'twist' in dparams:
                 twistd = dparams['twist']
             else:
-                twistd = numpy.zeros(params['twist'].shape)
+                twistd = np.zeros(params['twist'].shape)
             if 'chord_dist' in dparams:
                 chord_distd = dparams['chord_dist']
             else:
-                chord_distd = numpy.zeros(params['chord_dist'].shape)
+                chord_distd = np.zeros(params['chord_dist'].shape)
             if 'dihedral' in dparams:
                 dihedrald = dparams['dihedral']
             else:
@@ -356,20 +356,20 @@ class MonotonicTaper(Component):
 
     Parameters
     ----------
-    chord_dist[ny] : numpy array
+    chord_dist[ny] : np array
         The chord length distribution.
 
     Returns
     -------
-    monotonic[ny-1] : numpy array
+    monotonic[ny-1] : np array
         Values are greater than 0 if the constrain is violated.
 
     """
     def __init__(self, surface):
         super(MonotonicTaper, self).__init__()
         ny = surface['num_y']
-        self.add_param('chord_dist', val=numpy.zeros(ny), dtype=data_type)
-        self.add_output('monotonic', val=numpy.zeros(ny-1))
+        self.add_param('chord_dist', val=np.zeros(ny), dtype=data_type)
+        self.add_output('monotonic', val=np.zeros(ny-1))
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Compute the difference chord lengths and their neighbors
@@ -377,8 +377,8 @@ class MonotonicTaper(Component):
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        numpy.fill_diagonal(jac['monotonic', 'chord_dist'][:, :], 1)
-        numpy.fill_diagonal(jac['monotonic', 'chord_dist'][:, 1:], -1)
+        np.fill_diagonal(jac['monotonic', 'chord_dist'][:, :], 1)
+        np.fill_diagonal(jac['monotonic', 'chord_dist'][:, 1:], -1)
         return jac
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
@@ -411,14 +411,14 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
-    eta : numpy array
+    eta : np array
         Spanwise locations of the airfoil slices. Later used in the
         interpolation function to obtain correct twist values during at
         points along the span that are not aligned with these slices.
-    twist : numpy array
+    twist : np array
         Twist along the span at the spanwise eta locations. We use these twists
         as training points for interpolation to obtain twist values at
         arbitrary points along the span.
@@ -435,7 +435,7 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
         # Note that the first line is copied from the jig shape because we do not
         # have information about the wing section inside of the fuselage
         # because the cgns file has the wing-body together with cut meshes.
-        raw_crm_points = numpy.array([
+        raw_crm_points = np.array([
 [0.,            904.294,           0.0,          174.126,         6.7166,       536.181], # 0
 [0.1049403748,  993.7138118110,  121.2598425197, 175.8828985433,  4.3064288580, 466.4631457464],
 [0.1475622617, 1030.0125685039,  170.5099362598, 176.8216161417,  3.5899506711, 437.2201981238],
@@ -464,7 +464,7 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
     else:
         # eta, xle, yle, zle, twist, chord
         # Info taken from AIAA paper 2008-6919 by Vassberg
-        raw_crm_points = numpy.array([
+        raw_crm_points = np.array([
          [0.,   904.294,    0.0,   174.126, 6.7166,  536.181], # 0
          [.1,   989.505,  115.675, 175.722, 4.4402,  468.511],
          [.15, 1032.133,  173.513, 176.834, 3.6063,  434.764],
@@ -488,7 +488,7 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
         ])
 
     # Get the leading edge of the raw crm points
-    le = numpy.vstack((raw_crm_points[:,1],
+    le = np.vstack((raw_crm_points[:,1],
                     raw_crm_points[:,2],
                     raw_crm_points[:,3]))
 
@@ -500,14 +500,14 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
     # Get the trailing edge of the crm points, based on the chord + le distance.
     # Note that we do not account for twist here; instead we set that using
     # the twist design variable later in run_classes.py.
-    te = numpy.vstack((raw_crm_points[:,1] + chord,
+    te = np.vstack((raw_crm_points[:,1] + chord,
                        raw_crm_points[:,2],
                        raw_crm_points[:,3]))
 
     # Get the number of points that define this CRM shape and create a mesh
     # array based on this size
     n_raw_points = raw_crm_points.shape[0]
-    mesh = numpy.empty((2, n_raw_points, 3), dtype=data_type)
+    mesh = np.empty((2, n_raw_points, 3), dtype=data_type)
 
     # Set the leading and trailing edges of the mesh matrix
     mesh[0, :, :] = le.T
@@ -518,13 +518,13 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
     # Create the blended spacing using the user input for span_cos_spacing
     ny2 = (num_y + 1) // 2
-    beta = numpy.linspace(0, numpy.pi/2, ny2)
+    beta = np.linspace(0, np.pi/2, ny2)
 
     # Distribution for cosine spacing
-    cosine = numpy.cos(beta)
+    cosine = np.cos(beta)
 
     # Distribution for uniform spacing
-    uniform = numpy.linspace(0, 1., ny2)[::-1]
+    uniform = np.linspace(0, 1., ny2)[::-1]
 
     # Combine the two distrubtions using span_cos_spacing as the weighting factor.
     # span_cos_spacing == 1. is for fully cosine, 0. for uniform
@@ -532,17 +532,17 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
     # Populate a mesh object with the desired num_y dimension based on
     # interpolated values from the raw CRM points.
-    mesh = numpy.empty((2, ny2, 3), dtype=data_type)
+    mesh = np.empty((2, ny2, 3), dtype=data_type)
     for j in range(2):
         for i in range(3):
-            mesh[j, :, i] = numpy.interp(lins[::-1], eta, raw_mesh[j, :, i].real)
+            mesh[j, :, i] = np.interp(lins[::-1], eta, raw_mesh[j, :, i].real)
 
     # That is just one half of the mesh and we later expect the full mesh,
     # even if we're using symmetry == True.
     # So here we mirror and stack the two halves of the wing.
     left_half = mesh.copy()
     left_half[:, :, 1] *= -1.
-    mesh = numpy.hstack((left_half[:, ::-1, :], mesh[:, 1:, :]))
+    mesh = np.hstack((left_half[:, ::-1, :], mesh[:, 1:, :]))
 
     # If we need to add chordwise panels, do so
     if num_x > 2:
@@ -556,7 +556,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Nodal mesh defining the initial aerodynamic surface with only
         the leading and trailing edges defined.
     num_x : float
@@ -570,7 +570,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
     Returns
     -------
-    new_mesh[nx, ny, 3] : numpy array
+    new_mesh[nx, ny, 3] : np array
         Nodal mesh defining the final aerodynamic surface with the
         specified number of chordwise node points.
 
@@ -582,24 +582,24 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
     nx2 = (num_x + 1) // 2
 
     # Create beta, an array of linear sampling points to pi/2
-    beta = numpy.linspace(0, numpy.pi/2, nx2)
+    beta = np.linspace(0, np.pi/2, nx2)
 
     # Obtain the two spacings that we will use to blend
-    cosine = .5 * numpy.cos(beta)  # cosine spacing
-    uniform = numpy.linspace(0, .5, nx2)[::-1]  # uniform spacing
+    cosine = .5 * np.cos(beta)  # cosine spacing
+    uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
 
     # Create half of the wing in the chordwise direction
     half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
 
     # Mirror this half wing into a full wing; offset by 0.5 so it goes 0 to 1
-    full_wing_x = numpy.hstack((-half_wing[:-1], half_wing[::-1])) + .5
+    full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) + .5
 
     # Obtain the leading and trailing edges
     le = mesh[ 0, :, :]
     te = mesh[-1, :, :]
 
     # Create a new mesh with the desired num_x and set the leading and trailing edge values
-    new_mesh = numpy.zeros((num_x, num_y, 3), dtype=data_type)
+    new_mesh = np.zeros((num_x, num_y, 3), dtype=data_type)
     new_mesh[ 0, :, :] = le
     new_mesh[-1, :, :] = te
 
@@ -636,36 +636,36 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
 
     Returns
     -------
-    mesh[nx, ny, 3] : numpy array
+    mesh[nx, ny, 3] : np array
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
 
     """
 
-    mesh = numpy.zeros((num_x, num_y, 3), dtype=data_type)
+    mesh = np.zeros((num_x, num_y, 3), dtype=data_type)
     ny2 = (num_y + 1) // 2
-    beta = numpy.linspace(0, numpy.pi/2, ny2)
+    beta = np.linspace(0, np.pi/2, ny2)
 
     # mixed spacing with span_cos_spacing as a weighting factor
     # this is for the spanwise spacing
-    cosine = .5 * numpy.cos(beta)  # cosine spacing
-    uniform = numpy.linspace(0, .5, ny2)[::-1]  # uniform spacing
+    cosine = .5 * np.cos(beta)  # cosine spacing
+    uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
     half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
-    full_wing = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * span
+    full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
     nx2 = (num_x + 1) / 2
-    beta = numpy.linspace(0, numpy.pi/2, nx2)
+    beta = np.linspace(0, np.pi/2, nx2)
 
     # mixed spacing with span_cos_spacing as a weighting factor
     # this is for the chordwise spacing
-    cosine = .5 * numpy.cos(beta)  # cosine spacing
-    uniform = numpy.linspace(0, .5, nx2)[::-1]  # uniform spacing
+    cosine = .5 * np.cos(beta)  # cosine spacing
+    uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
     half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
-    full_wing_x = numpy.hstack((-half_wing[:-1], half_wing[::-1])) * chord
+    full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) * chord
 
     # Special case if there are only 2 chordwise nodes
     if num_x <= 2:
-        full_wing_x = numpy.array([0., chord])
+        full_wing_x = np.array([0., chord])
 
     for ind_x in xrange(num_x):
         for ind_y in xrange(num_y):
@@ -697,8 +697,8 @@ class Bspline(Component):
         self.cpname = cpname
         self.ptname = ptname
         self.jac = get_bspline_mtx(n_input, n_output, order=min(n_input, 4))
-        self.add_param(cpname, val=numpy.zeros(n_input))
-        self.add_output(ptname, val=numpy.zeros(n_output))
+        self.add_param(cpname, val=np.zeros(n_input))
+        self.add_output(ptname, val=np.zeros(n_output))
 
     def solve_nonlinear(self, params, unknowns, resids):
         unknowns[self.ptname] = self.jac.dot(params[self.cpname])

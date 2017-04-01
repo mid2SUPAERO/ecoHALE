@@ -12,7 +12,7 @@ call as `python run_vlm.py 1m` to perform optimization.
 from __future__ import division, print_function
 import sys
 from time import time
-import numpy
+import numpy as np
 
 from run_classes import OASProblem
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         # Add additional lifting surface
         OAS_prob.add_surface({'name' : 'tail',
                               'span' : 3.,
-                              'offset' : numpy.array([5., 0., 1.]),
+                              'offset' : np.array([5., 0., 1.]),
                               'symmetry' : True})
 
         # Setup problem and add design variables, constraints, and objective

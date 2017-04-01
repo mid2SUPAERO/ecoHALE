@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import sys
 from time import time
-import numpy
+import numpy as np
 import unittest
 
 from run_classes import OASProblem
@@ -25,7 +25,7 @@ class TestAero(unittest.TestCase):
         OAS_prob.add_surface({'span_cos_spacing' : 0.})
         OAS_prob.add_surface({'name' : 'tail',
                               'span_cos_spacing' : 0.,
-                              'offset' : numpy.array([0., 0., 1000000.])})
+                              'offset' : np.array([0., 0., 1000000.])})
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
@@ -40,13 +40,13 @@ class TestAero(unittest.TestCase):
                               'num_y' : 3,
                               'span_cos_spacing' : 0.,
                               'symmetry' : False,
-                              'offset' : numpy.array([0., -2.5, 0.])})
+                              'offset' : np.array([0., -2.5, 0.])})
         OAS_prob.add_surface({'name' : 'tail',
                               'span' : 5.,
                               'num_y' : 3,
                               'span_cos_spacing' : 0.,
                               'symmetry' : False,
-                              'offset' : numpy.array([0., 2.5, 0.])})
+                              'offset' : np.array([0., 2.5, 0.])})
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
@@ -162,7 +162,7 @@ class TestAero(unittest.TestCase):
                       'span_cos_spacing' : 0.}
         OAS_prob.add_surface(surf_dict)
         surf_dict.update({'name' : 'tail',
-                       'offset' : numpy.array([0., 0., 10.])})
+                       'offset' : np.array([0., 0., 10.])})
         OAS_prob.add_surface(surf_dict)
         OAS_prob.setup()
 
@@ -330,7 +330,7 @@ class TestAeroStruct(unittest.TestCase):
                      'num_thickness' : 2}
         OAS_prob.add_surface(surf_dict)
         surf_dict.update({'name' : 'tail',
-                          'offset':numpy.array([0., 0., 1.e7])})
+                          'offset':np.array([0., 0., 1.e7])})
         OAS_prob.add_surface(surf_dict)
         OAS_prob.setup()
 
@@ -350,7 +350,7 @@ class TestAeroStruct(unittest.TestCase):
         prob = OAS_prob.prob
         self.assertAlmostEqual(prob['fuelburn'], 181838.09546516923, places=1)
         self.assertAlmostEqual(prob['wing_perf.failure'], 0, places=5)
-        self.assertAlmostEqual(numpy.linalg.norm(prob['wing.twist_cp']), numpy.linalg.norm(prob['tail.twist_cp']), places=1)
+        self.assertAlmostEqual(np.linalg.norm(prob['wing.twist_cp']), np.linalg.norm(prob['tail.twist_cp']), places=1)
 
 
 if __name__ == "__main__":
