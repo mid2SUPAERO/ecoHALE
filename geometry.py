@@ -24,16 +24,20 @@ def view_mat(mat):
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
-def rotate(mesh, thetas):
+def rotate(mesh, theta_y, symmetry, rotate_x=True):
     """ Compute rotation matrices given mesh and rotation angles in degrees.
 
     Parameters
     ----------
     mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
-    thetas[ny] : numpy array
-        1-D array of rotation angles for each wing slice in degrees.
-
+    theta_y[ny] : numpy array
+        1-D array of rotation angles about y-axis for each wing slice in degrees.
+    symmetry : boolean
+        Flag set to True if surface is reflected about y=0 plane.
+    rotate_x : boolean
+        Flag set to True if the user desires the twist variable to always be
+        applied perpendicular to the wing (say, in the case of a winglet).
     Returns
     -------
     mesh[nx, ny, 3] : numpy array
@@ -47,14 +51,41 @@ def rotate(mesh, thetas):
     ny = mesh.shape[1]
     nx = mesh.shape[0]
 
-    rad_thetas = thetas * np.pi / 180.
+    if rotate_x:
+        # Compute spanwise z displacements along quarter chord
+        if symmetry:
+            dz_qc = quarter_chord[:-1,2] - quarter_chord[1:,2]
+            dy_qc = quarter_chord[:-1,1] - quarter_chord[1:,1]
+            theta_x = np.arctan(dz_qc/dy_qc)
 
-    mats = np.zeros((ny, 3, 3), dtype=data_type)
-    mats[:, 0, 0] = cos(rad_thetas)
-    mats[:, 0, 2] = sin(rad_thetas)
-    mats[:, 1, 1] = 1
-    mats[:, 2, 0] = -sin(rad_thetas)
-    mats[:, 2, 2] = cos(rad_thetas)
+            # Prepend with 0 so that root is not rotated
+            rad_theta_x = np.append(theta_x, 0.0)
+        else:
+            root_index = int((ny - 1) / 2)
+            dz_qc_left = quarter_chord[:root_index,2] - quarter_chord[1:root_index+1,2]
+            dy_qc_left = quarter_chord[:root_index,1] - quarter_chord[1:root_index+1,1]
+            theta_x_left = np.arctan(dz_qc_left/dy_qc_left)
+            dz_qc_right = quarter_chord[root_index+1:,2] - quarter_chord[root_index:-1,2]
+            dy_qc_right = quarter_chord[root_index+1:,1] - quarter_chord[root_index:-1,1]
+            theta_x_right = np.arctan(dz_qc_right/dy_qc_right)
+
+            # Concatenate theta's
+            rad_theta_x = np.concatenate((theta_x_left, np.zeros(1), theta_x_right))
+
+    else:
+        rad_theta_x = 0.0
+
+    rad_theta_y = theta_y * np.pi / 180.
+
+    mats = np.zeros((ny, 3, 3), dtype="complex")
+    mats[:, 0, 0] = cos(rad_theta_y)
+    mats[:, 0, 2] = sin(rad_theta_y)
+    mats[:, 1, 0] = sin(rad_theta_x)*sin(rad_theta_y)
+    mats[:, 1, 1] = cos(rad_theta_x)
+    mats[:, 1, 2] = -sin(rad_theta_x)*cos(rad_theta_y)
+    mats[:, 2, 0] = -cos(rad_theta_x)*sin(rad_theta_y)
+    mats[:, 2, 1] = sin(rad_theta_x)
+    mats[:, 2, 2] = cos(rad_theta_x)*cos(rad_theta_y)
     for ix in range(nx):
         row = mesh[ix]
         row[:] = np.einsum("ikj, ij -> ik", mats, row - quarter_chord)
@@ -85,6 +116,42 @@ def scale_x(mesh, chord_dist):
     for i in range(ny):
         mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_dist[i] + \
             quarter_chord[i, 0]
+
+def shear_x(mesh, xshear):
+    """ Shear the wing in the x direction (distributed sweep)
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    xshear[ny] : numpy array
+        Distance to translate wing in x direction.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh with the new chord lengths.
+    """
+    mesh[0,:,0] += xshear
+    mesh[1,:,0] += xshear
+
+def shear_z(mesh, zshear):
+    """ Shear the wing in the z direction (distributed dihedral)
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    zshear[ny] : numpy array
+        Distance to translate wing in z direction.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh with the new chord lengths.
+    """
+    mesh[0,:,2] += zshear
+    mesh[1,:,2] += zshear
 
 def sweep(mesh, sweep_angle, symmetry):
     """ Apply shearing sweep. Positive sweeps back.
@@ -272,14 +339,33 @@ class GeometryMesh(Component):
         ny = surface['num_y']
         self.mesh = surface['mesh']
 
-        self.add_param('sweep', val=0.)
-        self.add_param('dihedral', val=0.)
-        self.add_param('twist', val=np.zeros(ny), dtype=data_type)
-        self.add_param('chord_dist', val=np.zeros(ny), dtype=data_type)
-        self.add_param('taper', val=1.)
+        # Variables that should be initialized to one
+        ones_list = ['span', 'rootchord', 'taper', 'chord_cp']
+        # Variables that should be initialized to zero
+        zeros_list = ['sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'zshear_cp']
+        all_geo_vars = ones_list + zeros_list
+        self.geo_params = {}
+        for var in all_geo_vars:
+            if len(var.split('_')) > 1:
+                param = var.split('_')[0]
+                if var in ones_list:
+                    val = np.ones(ny)
+                else:
+                    val = np.zeros(ny)
+            else:
+                param = var
+                if var in ones_list:
+                    val = 1.0
+                else:
+                    val = 0.0
+            self.geo_params[param] = val
+            if var in surface['active_geo_vars']:
+                self.add_param(param, val=val)
+
         self.add_output('mesh', val=self.mesh)
 
         self.symmetry = surface['symmetry']
+        self.rotate_x = True
 
         if not fortran_flag:
             self.deriv_options['type'] = 'fd'
@@ -287,26 +373,30 @@ class GeometryMesh(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = self.mesh.copy()
+        self.geo_params.update(params)
 
         if fortran_flag:
             # Does not have span stretching coded yet
-            mesh = OAS_API.oas_api.manipulate_mesh(mesh, params['sweep'],
-                params['twist'], params['chord_dist'], params['dihedral'],
-                params['taper'], self.symmetry)
+            mesh = OAS_API.oas_api.manipulate_mesh(mesh, self.geo_params['taper'],
+                self.geo_params['chord'], self.geo_params['sweep'], self.geo_params['xshear'],
+                self.geo_params['dihedral'], self.geo_params['zshear'],
+                self.geo_params['twist'], self.symmetry, self.rotate_x)
 
         else:
-            mesh = self.mesh.copy()
-            sweep(mesh, params['sweep'], self.symmetry)
-            scale_x(mesh, params['chord_dist'])
-            rotate(mesh, params['twist'])
-            dihedral(mesh, params['dihedral'], self.symmetry)
-            taper(mesh, params['taper'], self.symmetry)
+            taper(mesh, self.geo_params['taper'], self.symmetry)
+            scale_x(mesh, self.geo_params['chord'])
+            # stretch(mesh, params['span'])
+            sweep(mesh, self.geo_params['sweep'], self.symmetry)
+            shear_x(mesh, self.geo_params['xshear'])
+            dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
+            shear_z(mesh, self.geo_params['zshear'])
+            rotate(mesh, self.geo_params['twist'], self.symmetry, self.rotate_x)
 
         unknowns['mesh'] = mesh
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-
         mesh = self.mesh.copy()
+        self.geo_params.update(params)
 
         if mode == 'fwd':
             if 'sweep' in dparams:
@@ -316,11 +406,11 @@ class GeometryMesh(Component):
             if 'twist' in dparams:
                 twistd = dparams['twist']
             else:
-                twistd = np.zeros(params['twist'].shape)
-            if 'chord_dist' in dparams:
-                chord_distd = dparams['chord_dist']
+                twistd = np.zeros(self.geo_params['twist'].shape)
+            if 'chord' in dparams:
+                chordd = dparams['chord']
             else:
-                chord_distd = np.zeros(params['chord_dist'].shape)
+                chordd = np.zeros(self.geo_params['chord'].shape)
             if 'dihedral' in dparams:
                 dihedrald = dparams['dihedral']
             else:
@@ -329,26 +419,43 @@ class GeometryMesh(Component):
                 taperd = dparams['taper']
             else:
                 taperd = 0.
+            if 'xshear' in dparams:
+                xsheard = dparams['xshear']
+            else:
+                xsheard = np.zeros(self.geo_params['xshear'].shape)
+            if 'zshear' in dparams:
+                zsheard = dparams['zshear']
+            else:
+                zsheard = np.zeros(self.geo_params['zshear'].shape)
 
-            mesh, dresids['mesh'] = OAS_API.oas_api.manipulate_mesh_d(mesh, params['sweep'],
-            sweepd, params['twist'], twistd, params['chord_dist'],
-            chord_distd, params['dihedral'], dihedrald,
-            params['taper'], taperd, self.symmetry)
+            mesh, dresids['mesh'] = OAS_API.oas_api.manipulate_mesh_d(mesh,
+            self.geo_params['taper'], taperd, self.geo_params['chord'], chordd,
+            self.geo_params['sweep'], sweepd, self.geo_params['xshear'], xsheard,
+            self.geo_params['dihedral'], dihedrald, self.geo_params['zshear'],
+            zsheard, self.geo_params['twist'], twistd, self.symmetry, self.rotate_x)
 
         if mode == 'rev':
-            sweepb, twistb, chord_distb, dihedralb, taperb, mesh = OAS_API.oas_api.manipulate_mesh_b(mesh, params['sweep'], params['twist'], params['chord_dist'], params['dihedral'],
-            params['taper'], self.symmetry, dresids['mesh'])
+            taperb, chordb, sweepb, xshearb, dihedralb, zshearb, twistb, mesh = \
+            OAS_API.oas_api.manipulate_mesh_b(mesh, self.geo_params['taper'],
+            self.geo_params['chord'], self.geo_params['sweep'],
+            self.geo_params['xshear'], self.geo_params['dihedral'],
+            self.geo_params['zshear'], self.geo_params['twist'],
+            self.symmetry, self.rotate_x, dresids['mesh'])
 
             if 'sweep' in dparams:
                 dparams['sweep'] = sweepb
             if 'twist' in dparams:
                 dparams['twist'] = twistb
-            if 'chord_dist' in dparams:
-                dparams['chord_dist'] = chord_distb
+            if 'chord' in dparams:
+                dparams['chord'] = chordb
             if 'dihedral' in dparams:
                 dparams['dihedral'] = dihedralb
             if 'taper' in dparams:
                 dparams['taper'] = taperb
+            if 'xshear' in dparams:
+                dparams['xshear'] = xshearb
+            if 'zshear' in dparams:
+                dparams['zshear'] = zshearb
 
 class MonotonicTaper(Component):
     """ Produce a constraint that is violated if the chord lengths of the wing

@@ -522,12 +522,14 @@ class VLMGeometry(Component):
                 0.5 * 0.75 * mesh[1:,  1:, :]
 
         # Compute the widths of each panel
-        widths = mesh[0, 1:, 1] - mesh[0, :-1, 1]
+        qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
+        widths = np.linalg.norm(qc[1:, :] - qc[:-1, :], axis=1)
 
         # Compute the cambered length of each chordwise set of mesh points
         dx = mesh[1:, :, 0] - mesh[:-1, :, 0]
+        dy = mesh[1:, :, 1] - mesh[:-1, :, 1]
         dz = mesh[1:, :, 2] - mesh[:-1, :, 2]
-        lengths = np.sum(np.sqrt(dx**2 + dz**2), axis=0)
+        lengths = np.sum(np.sqrt(dx**2 + dy**2 + dz**2), axis=0)
 
         # Compute the normal of each panel by taking the cross-product of
         # its diagonals. Note that this could be a nonplanar surface
@@ -590,18 +592,33 @@ class VLMGeometry(Component):
                 np.fill_diagonal(jac['c_pts', 'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
+        jac['widths', 'def_mesh'] = np.zeros_like(jac['widths', 'def_mesh'])
+        qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
+        gap = [0, (nx-1)*ny*3]
+        factor = [0.75, 0.25]
         for i in range(ny-1):
-            jac['widths', 'def_mesh'][i, 3*i+1] = -1
-            jac['widths', 'def_mesh'][i, 3*i+4] =  1
+            dx = (qc[i+1, 0] - qc[i, 0]) / unknowns['widths'][i]
+            dy = (qc[i+1, 1] - qc[i, 1]) / unknowns['widths'][i]
+            dz = (qc[i+1, 2] - qc[i, 2]) / unknowns['widths'][i]
+            for j in range(2):
+                jac['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j]
+                jac['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j]
+                jac['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j]
+                jac['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j]
+                jac['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j]
+                jac['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j]
 
         jac['lengths', 'def_mesh'] = np.zeros_like(jac['lengths', 'def_mesh'])
         for i in range(ny):
             dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
+            dy = mesh[1:, i, 1] - mesh[:-1, i, 1]
             dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
             for j in range(nx-1):
-                l = np.sqrt(dx[j]**2 + dz[j]**2)
+                l = np.sqrt(dx[j]**2 + dy[j]**2 + dz[j]**2)
                 jac['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
                 jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
+                jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 1] -= dy[j] / l
+                jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 1] += dy[j] / l
                 jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
                 jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] += dz[j] / l
 
