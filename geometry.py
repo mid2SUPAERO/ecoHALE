@@ -577,7 +577,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
     """
 
     # Obtain mesh and num properties
-    num_x, num_y = mesh.shape[:2]
+    num_y = mesh.shape[1]
     ny2 = (num_y + 1) // 2
     nx2 = (num_x + 1) // 2
 

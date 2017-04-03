@@ -21,7 +21,7 @@ import warnings
 
 # ======================================================================
 # External Python modules
-# ======================================================================
+# ====================================================================== 
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\

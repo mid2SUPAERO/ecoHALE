@@ -574,7 +574,7 @@ class Display(object):
                 self.draw_slider()
 
     def save_image(self):
-        fname = 'fig' + '.png'
+        fname = 'fig' + '.pdf'
         plt.savefig(fname)
 
     def quit(self):

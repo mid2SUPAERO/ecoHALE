@@ -34,6 +34,8 @@ An example workflow would be:
     python run_aerostruct.py 1
     python plot_all.py aerostruct.db
 
+The first command performs aerostructural optimization and the second visualizes the optimization history.
+
 The keywords used for each file are explained in their respective docstrings at the top of the file.
 
 If you wish to examine the code in more depth, see `run_classes.py` and the methods it calls. These methods interface directly with OpenMDAO.
