@@ -164,9 +164,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             if fortran_flag:
                 small_mat[:, :, :] = OAS_API.oas_api.assembleaeromtx(alpha, pts, bpts,
                                                          mesh, skip, symmetry)
-                print(alpha, pts, bpts, mesh)
-                print(skip)
-                print(small_mat)
             # Python matrix assembly
             else:
                 # Spanwise loop through horseshoe elements
