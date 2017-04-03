@@ -25,9 +25,9 @@ class TransferDisplacements(Component):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Flattened array defining the lifting surfaces.
-    disp[ny, 6] : np array
+    disp[ny, 6] : numpy array
         Flattened array containing displacements on the FEM component.
         Contains displacements for all six degrees of freedom, including
         displacements in the x, y, and z directions, and rotations about the
@@ -35,7 +35,7 @@ class TransferDisplacements(Component):
 
     Returns
     -------
-    def_mesh[nx, ny, 3] : np array
+    def_mesh[nx, ny, 3] : numpy array
         Flattened array defining the lifting surfaces after deformation.
     """
 
@@ -115,16 +115,16 @@ class TransferLoads(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : np array
+    def_mesh[nx, ny, 3] : numpy array
         Flattened array defining the lifting surfaces after deformation.
-    sec_forces[nx-1, ny-1, 3] : np array
+    sec_forces[nx-1, ny-1, 3] : numpy array
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant when more than one chordwise
         panel).
 
     Returns
     -------
-    loads[ny, 6] : np array
+    loads[ny, 6] : numpy array
         Flattened array containing the loads applied on the FEM component,
         computed from the sectional forces.
     """

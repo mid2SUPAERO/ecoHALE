@@ -70,8 +70,6 @@ Known Issues
 
 
 
-.. todo:: Add information here. In the meantime, check out the Module Index below.
-
 .. toctree::
    :maxdepth: 2
 

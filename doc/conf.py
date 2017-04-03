@@ -11,7 +11,7 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
+from __future__ import print_function
 import sys, os
 # import sphinx_bootstrap_theme
 
@@ -307,8 +307,23 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
+autodoc_default_flags = ['members', 'private-members', 'special-members',
+                         #'undoc-members',
+                         'show-inheritance']
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    exclusions = ('__weakref__',  # special-members
+                  '__doc__', '__module__', '__dict__',  # undoc-members
+                  'solve_nonlinear', 'apply_nonlinear', 'apply_linear',
+                  'linearize', 'solve_linear'
+                  )
+    exclude = name in exclusions
+    print(app, what, name, obj, skip, options, exclude)
+    return skip or exclude
+
 # Add the 'copybutton' javascript, to hide/show the prompt in code
 # examples, originally taken from scikit-learn's doc/conf.py
 def setup(app):
     app.add_javascript('copybutton.js')
     app.add_stylesheet('style.css')
+    app.connect('autodoc-skip-member', autodoc_skip_member)

@@ -29,14 +29,14 @@ def rotate(mesh, thetas):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
-    thetas[ny] : np array
+    thetas[ny] : numpy array
         1-D array of rotation angles for each wing slice in degrees.
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the twisted aerodynamic surface.
 
     """
@@ -65,14 +65,14 @@ def scale_x(mesh, chord_dist):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
-    chord_dist[ny] : np array
+    chord_dist[ny] : numpy array
         Chord length for each panel edge.
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh with the new chord lengths.
     """
     te = mesh[-1]
@@ -91,7 +91,7 @@ def sweep(mesh, sweep_angle, symmetry):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
     sweep_angle : float
         Shearing sweep angle in degrees.
@@ -100,7 +100,7 @@ def sweep(mesh, sweep_angle, symmetry):
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the swept aerodynamic surface.
 
     """
@@ -130,7 +130,7 @@ def dihedral(mesh, dihedral_angle, symmetry):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
     dihedral_angle : float
         Dihedral angle in degrees.
@@ -139,7 +139,7 @@ def dihedral(mesh, dihedral_angle, symmetry):
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the aerodynamic surface with dihedral angle.
 
     """
@@ -173,14 +173,14 @@ def stretch(mesh, span):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
     span : float
         Relative stetch ratio in the spanwise direction.
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the stretched aerodynamic surface.
 
     """
@@ -201,7 +201,7 @@ def taper(mesh, taper_ratio, symmetry):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface.
     taper_ratio : float
         Taper ratio for the wing; 1 is untapered, 0 goes to a point.
@@ -210,7 +210,7 @@ def taper(mesh, taper_ratio, symmetry):
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the tapered aerodynamic surface.
 
     """
@@ -252,16 +252,16 @@ class GeometryMesh(Component):
         Shearing sweep angle in degrees.
     dihedral : float
         Dihedral angle in degrees.
-    twist[ny] : np array
+    twist[ny] : numpy array
         1-D array of rotation angles for each wing slice in degrees.
-    chord_dist[ny] : np array
+    chord_dist[ny] : numpy array
         Chord length for each panel edge.
     taper : float
         Taper ratio for the wing; 1 is untapered, 0 goes to a point at the tip.
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Modified mesh based on the initial mesh in the surface dictionary and
         the geometric design variables.
     """
@@ -356,12 +356,12 @@ class MonotonicTaper(Component):
 
     Parameters
     ----------
-    chord_dist[ny] : np array
+    chord_dist[ny] : numpy array
         The chord length distribution.
 
     Returns
     -------
-    monotonic[ny-1] : np array
+    monotonic[ny-1] : numpy array
         Values are greater than 0 if the constrain is violated.
 
     """
@@ -411,14 +411,14 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
-    eta : np array
+    eta : numpy array
         Spanwise locations of the airfoil slices. Later used in the
         interpolation function to obtain correct twist values during at
         points along the span that are not aligned with these slices.
-    twist : np array
+    twist : numpy array
         Twist along the span at the spanwise eta locations. We use these twists
         as training points for interpolation to obtain twist values at
         arbitrary points along the span.
@@ -556,7 +556,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the initial aerodynamic surface with only
         the leading and trailing edges defined.
     num_x : float
@@ -570,7 +570,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
     Returns
     -------
-    new_mesh[nx, ny, 3] : np array
+    new_mesh[nx, ny, 3] : numpy array
         Nodal mesh defining the final aerodynamic surface with the
         specified number of chordwise node points.
 
@@ -636,7 +636,7 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
 
     Returns
     -------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
 

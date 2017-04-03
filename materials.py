@@ -8,20 +8,20 @@ class MaterialsTube(Component):
 
     Parameters
     ----------
-    r : np array
+    r : numpy array
         Radii for each FEM element.
-    thickness : np array
+    thickness : numpy array
         Tube thickness for each FEM element.
 
     Returns
     -------
-    A : np array
+    A : numpy array
         Areas for each FEM element.
-    Iy : np array
+    Iy : numpy array
         Mass moment of inertia around the y-axis for each FEM element.
-    Iz : np array
+    Iz : numpy array
         Mass moment of inertia around the z-axis for each FEM element.
-    J : np array
+    J : numpy array
         Polar moment of inertia for each FEM element.
     """
 

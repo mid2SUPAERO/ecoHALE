@@ -153,26 +153,26 @@ class AssembleK(Component):
 
     Parameters
     ----------
-    A[ny-1] : np array
+    A[ny-1] : numpy array
         Areas for each FEM element.
-    Iy[ny-1] : np array
+    Iy[ny-1] : numpy array
         Mass moment of inertia around the y-axis for each FEM element.
-    Iz[ny-1] : np array
+    Iz[ny-1] : numpy array
         Mass moment of inertia around the z-axis for each FEM element.
-    J[ny-1] : np array
+    J[ny-1] : numpy array
         Polar moment of inertia for each FEM element.
-    nodes[ny, 3] : np array
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
-    loads[ny, 6] : np array
+    loads[ny, 6] : numpy array
         Flattened array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
     Returns
     -------
-    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : np array
+    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
         Stiffness matrix for the entire FEM system. Used to solve the linear
         system K * u = f to obtain the displacements, u.
-    rhs[(nx-1)*(ny-1)] : np array
+    rhs[(nx-1)*(ny-1)] : numpy array
         Right-hand-side of the linear system. The loads from the aerodynamic
         analysis or the user-defined loads.
     """
@@ -320,16 +320,16 @@ class SpatialBeamFEM(Component):
 
     Parameters
     ----------
-    K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : np array
+    K[6*(ny+1), 6*(ny+1)] : numpy array
         Stiffness matrix for the entire FEM system. Used to solve the linear
         system K * u = f to obtain the displacements, u.
-    rhs[(nx-1)*(ny-1)] : np array
+    rhs[6*(ny+1)] : numpy array
         Right-hand-side of the linear system. The loads from the aerodynamic
         analysis or the user-defined loads.
 
     Returns
     -------
-    disp_aug[6*(ny+1)] : np array
+    disp_aug[6*(ny+1)] : numpy array
         Augmented displacement array. Obtained by solving the system
         K * u = f, where f is a flattened version of loads.
 
@@ -419,13 +419,13 @@ class SpatialBeamDisp(Component):
 
     Parameters
     ----------
-    disp_aug[6*(ny+1)] : np array
+    disp_aug[6*(ny+1)] : numpy array
         Augmented displacement array. Obtained by solving the system
         K * disp_aug = rhs, where rhs is a flattened version of loads.
 
     Returns
     -------
-    disp[6*ny] : np array
+    disp[6*ny] : numpy array
         Actual displacement array formed by truncating disp_aug.
 
     """
@@ -459,12 +459,12 @@ class ComputeNodes(Component):
 
     Parameters
     ----------
-    mesh[nx, ny, 3] : np array
+    mesh[nx, ny, 3] : numpy array
         Array defining the nodal points of the lifting surface.
 
     Returns
     -------
-    nodes[ny, 3] : np array
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
 
     """
@@ -501,9 +501,9 @@ class SpatialBeamEnergy(Component):
 
     Parameters
     ----------
-    disp[ny, 6] : np array
+    disp[ny, 6] : numpy array
         Actual displacement array formed by truncating disp_aug.
-    loads[ny, 6] : np array
+    loads[ny, 6] : numpy array
         Array containing the loads applied on the FEM component,
         computed from the sectional forces.
 
@@ -537,9 +537,9 @@ class SpatialBeamWeight(Component):
 
     Parameters
     ----------
-    A[ny-1] : np array
+    A[ny-1] : numpy array
         Areas for each FEM element.
-    nodes[ny, 3] : np array
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
 
     Returns
@@ -616,16 +616,16 @@ class SpatialBeamVonMisesTube(Component):
 
     Parameters
     ----------
-    r[ny-1] : np array
+    r[ny-1] : numpy array
         Radii for each FEM element.
-    nodes[ny, 3] : np array
+    nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
-    disp[ny, 6] : np array
+    disp[ny, 6] : numpy array
         Displacements of each FEM node.
 
     Returns
     -------
-    vonmises[ny-1, 2] : np array
+    vonmises[ny-1, 2] : numpy array
         von Mises stress magnitudes for each FEM element.
 
     """
@@ -738,7 +738,7 @@ class SpatialBeamFailureKS(Component):
 
     Parameters
     ----------
-    vonmises[ny-1, 2] : np array
+    vonmises[ny-1, 2] : numpy array
         von Mises stress magnitudes for each FEM element.
 
     Returns
@@ -806,12 +806,12 @@ class SpatialBeamFailureExact(Component):
 
     Parameters
     ----------
-    vonmises[ny-1, 2] : np array
+    vonmises[ny-1, 2] : numpy array
         von Mises stress magnitudes for each FEM element.
 
     Returns
     -------
-    failure[ny-1, 2] : np array
+    failure[ny-1, 2] : numpy array
         Array of failure conditions. Positive if element has failed.
 
     """

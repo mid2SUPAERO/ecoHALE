@@ -47,8 +47,9 @@ if __name__ == "__main__":
     OAS_prob = OASProblem(prob_dict)
     OAS_prob.add_surface({'name' : 'wing',
                           'symmetry' : True,
-                          'num_y' : 5,
-                          'num_x' : 3})
+                          'num_y' : 21,
+                          'num_x' : 3,
+                          'span_cos_spacing' : .5})
 
     # Single lifting surface
     if not sys.argv[1].endswith('m'):
@@ -68,7 +69,9 @@ if __name__ == "__main__":
         # Add additional lifting surface
         OAS_prob.add_surface({'name' : 'tail',
                               'span' : 3.,
-                              'offset' : np.array([5., 0., 1.]),
+                              'num_y' : 7,
+                              'span_cos_spacing' : .5,
+                              'offset' : np.array([5., 0., .1]),
                               'symmetry' : True})
 
         # Setup problem and add design variables, constraints, and objective

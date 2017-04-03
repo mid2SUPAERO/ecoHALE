@@ -42,17 +42,17 @@ def _calc_vorticity(A, B, P):
 
     Parameters
     ----------
-    A[3] : np array
+    A[3] : numpy array
         Coordinates for the start point of the filament.
-    B[3] : np array
+    B[3] : numpy array
         Coordinates for the end point of the filament.
-    P[3] : np array
+    P[3] : numpy array
         Coordinates for the collocation point where the influence coefficient
         is computed.
 
     Returns
     -------
-    out[3] : np array
+    out[3] : numpy array
         Influence coefficient contribution for the described filament.
 
     """
@@ -84,7 +84,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     Parameters
     ----------
-    mtx[num_y-1, num_y-1, 3] : np array
+    mtx[(nx-1)*(ny-1), (nx-1)*(ny-1), 3] : numpy array
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
     params : dictionary
@@ -98,7 +98,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     Returns
     -------
-    mtx[tot_panels, tot_panels, 3] : np array
+    mtx[tot_panels, tot_panels, 3] : numpy array
         Aerodynamic influence coefficient (AIC) matrix, or the
         derivative of v w.r.t. circulations.
     """
@@ -467,21 +467,21 @@ class VLMGeometry(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : np array
+    def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
 
     Returns
     -------
-    b_pts[nx-1, ny, 3] : np array
+    b_pts[nx-1, ny, 3] : numpy array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts[nx-1, ny-1, 3] : np array
+    c_pts[nx-1, ny-1, 3] : numpy array
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    widths[nx-1, ny-1] : np array
+    widths[nx-1, ny-1] : numpy array
         The spanwise widths of each individual panel.
-    lengths[ny] : np array
+    lengths[ny] : numpy array
         The chordwise length of the entire airfoil following the camber line.
-    normals[nx-1, ny-1, 3] : np array
+    normals[nx-1, ny-1, 3] : numpy array
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
     S_ref : float
@@ -619,14 +619,14 @@ class AssembleAIC(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : np array
+    def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
-    b_pts[nx-1, ny, 3] : np array
+    b_pts[nx-1, ny, 3] : numpy array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts[nx-1, ny-1, 3] : np array
+    c_pts[nx-1, ny-1, 3] : numpy array
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed. Used to set up the linear system.
-    normals[nx-1, ny-1, 3] : np array
+    normals[nx-1, ny-1, 3] : numpy array
         The normal vector for each panel, computed as the cross of the two
         diagonals from the mesh points.
 
@@ -637,11 +637,11 @@ class AssembleAIC(Component):
 
     Returns
     -------
-    AIC[tot_panels, tot_panels] : np array
+    AIC[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
         The aerodynamic influence coefficient matrix. Solving the linear system
         of AIC * circulations = n * v gives us the circulations for each of the
         horseshoe vortices.
-    rhs[tot_panels] : np array
+    rhs[(nx-1)*(ny-1)] : numpy array
         The right-hand-side of the linear system that yields the circulations.
     """
 
@@ -839,16 +839,16 @@ class AeroCirculations(Component):
 
     Parameters
     ----------
-    AIC[tot_panels, tot_panels] : np array
+    AIC[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
         The aerodynamic influence coefficient matrix. Solving the linear system
         of AIC * circulations = n * v gives us the circulations for each of the
         horseshoe vortices.
-    rhs[tot_panels] : np array
+    rhs[(nx-1)*(ny-1)] : numpy array
         The right-hand-side of the linear system that yields the circulations.
 
     Returns
     -------
-    circulations[6*(ny+1)] : np array
+    circulations[(nx-1)*(ny-1)] : numpy array
         Augmented displacement array. Obtained by solving the system
         AIC * circulations = n * v.
     """
@@ -932,12 +932,12 @@ class VLMForces(Component):
 
     Parameters
     ----------
-    def_mesh[nx, ny, 3] : np array
+    def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
-    b_pts[nx-1, ny, 3] : np array
+    b_pts[nx-1, ny, 3] : numpy array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
 
-    circulations : np array
+    circulations : numpy array
         Flattened vector of horseshoe vortex strengths calculated by solving
         the linear system of AIC_mtx * circulations = rhs, where rhs is
         based on the air velocity at each collocation point.
@@ -950,7 +950,7 @@ class VLMForces(Component):
 
     Returns
     -------
-    sec_forces[nx-1, ny-1, 3] : np array
+    sec_forces[nx-1, ny-1, 3] : numpy array
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant with more than one chordwise
         panel).
@@ -1145,7 +1145,7 @@ class VLMLiftDrag(Component):
 
     Parameters
     ----------
-    sec_forces[nx-1, ny-1, 3] : np array
+    sec_forces[nx-1, ny-1, 3] : numpy array
         Flattened array containing the sectional forces acting on each panel.
         Stored in Fortran order (only relevant with more than one chordwise
         panel).
@@ -1238,9 +1238,9 @@ class ViscousDrag(Component):
     sweep : float
         The angle (in degrees) of the wing sweep. This is used in the form
         factor calculation.
-    widths[ny-1] : np array
+    widths[ny-1] : numpy array
         The spanwise width of each panel.
-    lengths[ny] : np array
+    lengths[ny] : numpy array
         The sum of the lengths of each line segment along a chord section.
 
     Returns

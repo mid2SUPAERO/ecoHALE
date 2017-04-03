@@ -107,3 +107,9 @@ The correct scaling parameters are difficult to know before examining the possib
   print("Wing CD:", OAS_prob.prob['wing_perf.CD'])
 
 Lastly, we actually run the optimization and print the resulting CL and CD.
+
+We can then visualize the results by running
+
+.. code-block:: bash
+
+  python plot_all.py aero.db
