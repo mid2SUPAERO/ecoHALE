@@ -51,7 +51,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                      K_a, K_t, K_y, K_z,
                      cons, E, G, x_gl, T,
                      K_elem, S_a, S_t, S_y, S_z, T_elem,
-                     const2, const_y, const_z, n, size, K, rhs):
+                     const2, const_y, const_z, n, size, K, forces):
 
     """
     Assemble the structural stiffness matrix based on 6 degrees of freedom
@@ -62,9 +62,9 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
 
     # Populate the right-hand side of the linear system using the
     # prescribed or computed loads
-    rhs[:] = 0.0
-    rhs[:6*n] = loads.reshape(n*6)
-    rhs[np.abs(rhs) < 1e-6] = 0.
+    forces[:] = 0.0
+    forces[:6*n] = loads.reshape(n*6)
+    forces[np.abs(forces) < 1e-6] = 0.
 
     # Fortran
     if fortran_flag:
@@ -143,7 +143,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
                 K[-6+k, 6*cons+k] = 1.e9
                 K[6*cons+k, -6+k] = 1.e9
 
-    return K, rhs
+    return K, forces
 
 
 class AssembleK(Component):
@@ -172,7 +172,7 @@ class AssembleK(Component):
     K[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array
         Stiffness matrix for the entire FEM system. Used to solve the linear
         system K * u = f to obtain the displacements, u.
-    rhs[(nx-1)*(ny-1)] : numpy array
+    forces[(nx-1)*(ny-1)] : numpy array
         Right-hand-side of the linear system. The loads from the aerodynamic
         analysis or the user-defined loads.
     """
@@ -192,7 +192,7 @@ class AssembleK(Component):
         self.add_param('loads', val=np.zeros((self.ny, 6), dtype=data_type))
 
         self.add_output('K', val=np.zeros((size, size), dtype=data_type))
-        self.add_output('rhs', val=np.zeros((size), dtype=data_type))
+        self.add_output('forces', val=np.zeros((size), dtype=data_type))
 
         self.E = surface['E']
         self.G = surface['G']
@@ -221,7 +221,7 @@ class AssembleK(Component):
         self.T = np.zeros((3, 3), dtype=data_type)
 
         self.K = np.zeros((size, size), dtype=data_type)
-        self.rhs = np.zeros(size, dtype=data_type)
+        self.forces = np.zeros(size, dtype=data_type)
 
         self.K_a = np.zeros((2, 2), dtype=data_type)
         self.K_t = np.zeros((2, 2), dtype=data_type)
@@ -254,7 +254,7 @@ class AssembleK(Component):
 
         loads = params['loads']
 
-        self.K, self.rhs = \
+        self.K, self.forces = \
             _assemble_system(params['nodes'],
                              params['A'], params['J'], params['Iy'],
                              params['Iz'], loads, self.K_a, self.K_t,
@@ -263,10 +263,10 @@ class AssembleK(Component):
                              self.S_a, self.S_t, self.S_y, self.S_z,
                              self.T_elem, self.const2, self.const_y,
                              self.const_z, self.ny, self.size,
-                             self.K, self.rhs)
+                             self.K, self.forces)
 
         unknowns['K'] = self.K
-        unknowns['rhs'] = self.rhs
+        unknowns['forces'] = self.forces
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
@@ -293,7 +293,7 @@ class AssembleK(Component):
                                          self.const2, self.const_y, self.const_z)
 
             dresids['K'] += Kd
-            dresids['rhs'][:-6] += dparams['loads'].reshape(-1)
+            dresids['forces'][:-6] += dparams['loads'].reshape(-1)
 
         if mode == 'rev':
             nodesb, Ab, Jb, Iyb, Izb = OAS_API.oas_api.assemblestructmtx_b(nodes, A, J, Iy, Iz,
@@ -308,7 +308,7 @@ class AssembleK(Component):
             dparams['Iy'] += Iyb
             dparams['Iz'] += Izb
 
-            dparams['loads'] += dresids['rhs'][:-6].reshape(-1, 6)
+            dparams['loads'] += dresids['forces'][:-6].reshape(-1, 6)
 
 
 class SpatialBeamFEM(Component):
@@ -323,7 +323,7 @@ class SpatialBeamFEM(Component):
     K[6*(ny+1), 6*(ny+1)] : numpy array
         Stiffness matrix for the entire FEM system. Used to solve the linear
         system K * u = f to obtain the displacements, u.
-    rhs[6*(ny+1)] : numpy array
+    forces[6*(ny+1)] : numpy array
         Right-hand-side of the linear system. The loads from the aerodynamic
         analysis or the user-defined loads.
 
@@ -339,14 +339,14 @@ class SpatialBeamFEM(Component):
         super(SpatialBeamFEM, self).__init__()
 
         self.add_param('K', val=np.zeros((size, size), dtype=data_type))
-        self.add_param('rhs', val=np.zeros((size), dtype=data_type))
+        self.add_param('forces', val=np.zeros((size), dtype=data_type))
         self.add_state('disp_aug', val=np.zeros((size), dtype=data_type))
 
         self.size = size
 
         # cache
         self.lup = None
-        self.rhs_cache = None
+        self.forces_cache = None
 
     def solve_nonlinear(self, params, unknowns, resids):
         """ Use np to solve Ax=b for x.
@@ -355,13 +355,13 @@ class SpatialBeamFEM(Component):
         # lu factorization for use with solve_linear
         self.lup = lu_factor(params['K'])
 
-        unknowns['disp_aug'] = lu_solve(self.lup, params['rhs'])
-        resids['disp_aug'] = params['K'].dot(unknowns['disp_aug']) - params['rhs']
+        unknowns['disp_aug'] = lu_solve(self.lup, params['forces'])
+        resids['disp_aug'] = params['K'].dot(unknowns['disp_aug']) - params['forces']
 
     def apply_nonlinear(self, params, unknowns, resids):
         """Evaluating residual for given state."""
 
-        resids['disp_aug'] = params['K'].dot(unknowns['disp_aug']) - params['rhs']
+        resids['disp_aug'] = params['K'].dot(unknowns['disp_aug']) - params['forces']
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
         """ Apply the derivative of state variable with respect to
@@ -373,8 +373,8 @@ class SpatialBeamFEM(Component):
                 dresids['disp_aug'] += params['K'].dot(dunknowns['disp_aug'])
             if 'K' in dparams:
                 dresids['disp_aug'] += dparams['K'].dot(unknowns['disp_aug'])
-            if 'rhs' in dparams:
-                dresids['disp_aug'] -= dparams['rhs']
+            if 'forces' in dparams:
+                dresids['disp_aug'] -= dparams['forces']
 
         elif mode == 'rev':
 
@@ -382,27 +382,27 @@ class SpatialBeamFEM(Component):
                 dunknowns['disp_aug'] += params['K'].T.dot(dresids['disp_aug'])
             if 'K' in dparams:
                 dparams['K'] += np.outer(unknowns['disp_aug'], dresids['disp_aug']).T
-            if 'rhs' in dparams:
-                dparams['rhs'] -= dresids['disp_aug']
+            if 'forces' in dparams:
+                dparams['forces'] -= dresids['disp_aug']
 
     def solve_linear(self, dumat, drmat, vois, mode=None):
         """ LU backsubstitution to solve the derivatives of the linear system."""
 
         if mode == 'fwd':
-            sol_vec, rhs_vec = self.dumat, self.drmat
+            sol_vec, forces_vec = self.dumat, self.drmat
             t=0
         else:
-            sol_vec, rhs_vec = self.drmat, self.dumat
+            sol_vec, forces_vec = self.drmat, self.dumat
             t=1
 
-        if self.rhs_cache is None:
-            self.rhs_cache = np.zeros((self.size, ))
-        rhs = self.rhs_cache
+        if self.forces_cache is None:
+            self.forces_cache = np.zeros((self.size, ))
+        forces = self.forces_cache
 
         for voi in vois:
-            rhs[:] = rhs_vec[voi]['disp_aug']
+            forces[:] = forces_vec[voi]['disp_aug']
 
-            sol = lu_solve(self.lup, rhs, trans=t)
+            sol = lu_solve(self.lup, forces, trans=t)
 
             sol_vec[voi]['disp_aug'] = sol[:]
 
@@ -421,7 +421,7 @@ class SpatialBeamDisp(Component):
     ----------
     disp_aug[6*(ny+1)] : numpy array
         Augmented displacement array. Obtained by solving the system
-        K * disp_aug = rhs, where rhs is a flattened version of loads.
+        K * disp_aug = forces, where forces is a flattened version of loads.
 
     Returns
     -------

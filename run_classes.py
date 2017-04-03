@@ -719,7 +719,6 @@ class OASProblem(object):
                      VLMFunctionals(surface, self.prob_dict),
                      promotes=['*'])
 
-
             root.add(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
         # Add a single 'aero_states' component for the whole system within the

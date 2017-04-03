@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # Instantiate problem and add default surface
     OAS_prob = OASProblem(prob_dict)
     OAS_prob.add_surface({'name' : 'wing',
-                          'num_y' : 5,
+                          'num_y' : 11,
                           'symmetry' : True})
 
     # Single lifting surface
@@ -81,7 +81,5 @@ if __name__ == "__main__":
     st = time()
     # Actually run the problem
     OAS_prob.run()
-    print('\n', time() - st, 'secs')
     print("\nWing weight:", OAS_prob.prob['wing.weight'])
-    # jac = OAS_prob.prob.calc_gradient(['wing.disp_aug'], ['wing.disp'], return_format="dict")
-    # print(jac['wing.disp']['wing.disp_aug'])
+    print("Time elapsed: {} secs".format(time() - st))

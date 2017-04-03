@@ -164,6 +164,9 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             if fortran_flag:
                 small_mat[:, :, :] = OAS_API.oas_api.assembleaeromtx(alpha, pts, bpts,
                                                          mesh, skip, symmetry)
+                print(alpha, pts, bpts, mesh)
+                print(skip)
+                print(small_mat)
             # Python matrix assembly
             else:
                 # Spanwise loop through horseshoe elements
@@ -520,6 +523,8 @@ class VLMGeometry(Component):
                 0.5 * 0.75 * mesh[1:, :-1, :] + \
                 0.5 * 0.25 * mesh[:-1,  1:, :] + \
                 0.5 * 0.75 * mesh[1:,  1:, :]
+        print(c_pts)
+        exit()
 
         # Compute the widths of each panel
         widths = mesh[0, 1:, 1] - mesh[0, :-1, 1]

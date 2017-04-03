@@ -188,7 +188,7 @@ if input_arg == 'prob1':
 
     # Simply use finite-differencing over the entire model to get the
     # derivatives used for optimization.
-    prob.root.deriv_options['type'] = 'fd'
+    # prob.root.deriv_options['type'] = 'fd'
 
     # Record the optimization history in `spatialbeam.db`. You can view
     # this by running `python plot_all.py struct` or `python OptView.py struct`.

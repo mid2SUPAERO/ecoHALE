@@ -70,15 +70,17 @@ Known Issues
 
 
 
-.. toctree::
-   :maxdepth: 2
 
-   tutorials.rst
 
 
 
 Indices and tables
 ==================
+
+.. toctree::
+   :maxdepth: 2
+
+   tutorials.rst
 
 * :ref:`genindex`
 * :ref:`modindex`
