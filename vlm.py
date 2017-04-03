@@ -523,8 +523,6 @@ class VLMGeometry(Component):
                 0.5 * 0.75 * mesh[1:, :-1, :] + \
                 0.5 * 0.25 * mesh[:-1,  1:, :] + \
                 0.5 * 0.75 * mesh[1:,  1:, :]
-        print(c_pts)
-        exit()
 
         # Compute the widths of each panel
         widths = mesh[0, 1:, 1] - mesh[0, :-1, 1]

@@ -130,7 +130,6 @@ if input_arg == 'prob1':
     # the displacements based off of these loads.
     des_vars = [
         ('twist', np.zeros(surface['num_y'])),
-        ('span', surface['span']),
         ('r', r),
         ('thickness', thickness),
         ('loads', loads)
@@ -283,6 +282,7 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     indep_vars = [
         ('span', surface['span']),
         ('twist', np.zeros(num_y)),
+        ('chord_dist', np.ones(num_y)),
         ('thickness', thickness),
         ('v', prob_dict['v']),
         ('alpha', prob_dict['alpha']),
@@ -304,10 +304,10 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     geom_comp = VLMGeometry(surface)
     spatialbeamstates_comp = SpatialBeamStates(surface)
     def_mesh_comp = TransferDisplacements(surface)
-    vlmstates_comp = VLMStates(OAS_prob.surfaces, OAS_prob.prob_dict)
+    vlmstates_comp = VLMStates(OAS_prob.surfaces)
     loads_comp = TransferLoads(surface)
 
-    vlmfuncs_comp = VLMFunctionals(surface)
+    vlmfuncs_comp = VLMFunctionals(surface, OAS_prob.prob_dict)
     spatialbeamfuncs_comp = SpatialBeamFunctionals(surface)
     fuelburn_comp = FunctionalBreguetRange(OAS_prob.surfaces, OAS_prob.prob_dict)
     eq_con_comp = FunctionalEquilibrium(OAS_prob.surfaces, OAS_prob.prob_dict)
@@ -374,10 +374,6 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
     prob = Problem()
     prob.root = root
 
-    # Print OpenMDAO solver convergence data.
-    # Uncomment this output more solver info during optimization.
-    # prob.print_all_convergence()
-
     #############################################################
     # Problem 3b:
     # Look at
@@ -399,6 +395,10 @@ elif 'prob2' in input_arg or 'prob3' in input_arg:
 
         # Have OpenMDAO set up the problem that we have constructed.
         prob.setup()
+
+        # Print OpenMDAO solver convergence data.
+        # Uncomment this output more solver info during optimization.
+        # prob.print_all_convergence()
 
         # Start timing to see how long the analysis and derivative
         # computation takes.
