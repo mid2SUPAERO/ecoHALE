@@ -203,7 +203,7 @@ class TestStruct(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing.weight'], 22080.284115390823, places=3)
+        self.assertAlmostEqual(prob['wing.weight'], 2080.284115390823, places=3)
 
     def test_struct_analysis_symmetry(self):
         OAS_prob = OASProblem({'type' : 'struct',
@@ -384,34 +384,32 @@ if __name__ == "__main__":
     # Based on user input, run one subgroup of tests
     if arg_provided:
         if 'aero' == arg:
-            test_class = TestAero
+            test_classes = [TestAero]
         elif 'struct' == arg:
-            test_class = TestStruct
+            test_classes = [TestStruct]
         elif 'aerostruct' == arg:
-            test_class = TestAeroStruct
+            test_classes = [TestAeroStruct]
+    else:
+        arg = 'full'
+        test_classes = [TestAero, TestStruct, TestAeroStruct]
 
-        print()
-        print('+==================================================+')
-        print('             Running ' + arg + ' test suite')
-        print('+==================================================+')
-        print()
+    print()
+    print('+==================================================+')
+    print('             Running ' + arg + ' test suite')
+    print('+==================================================+')
+    print()
+
+    failures = []
+    errors = []
+
+    for test_class in test_classes:
 
         # Set up the test suite and run the tests corresponding to this subgroup
         suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
         unittest.TextTestRunner().run(suite)
 
-        failures = test_class.currentResult[-1].failures
-        errors = test_class.currentResult[-1].errors
+        failures.extend(test_class.currentResult[-1].failures)
+        errors.extend(test_class.currentResult[-1].errors)
 
-        if failures or errors:
-            sys.exit(1)
-
-    # If the user did not provide any arguments, run all tests
-    else:
-        print()
-        print('+==================================================+')
-        print('|             Running full test suite              |')
-        print('+==================================================+')
-        print()
-
-        unittest.main()
+    if len(failures) or len(errors):
+        sys.exit(1)
