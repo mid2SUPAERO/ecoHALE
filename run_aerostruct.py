@@ -15,7 +15,7 @@ import sys
 from time import time
 import numpy as np
 
-from run_classes import OASProblem
+from OpenAeroStruct import OASProblem
 
 if __name__ == "__main__":
 

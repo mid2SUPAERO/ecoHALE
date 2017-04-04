@@ -4,9 +4,15 @@ from time import time
 import numpy as np
 import unittest
 
-from run_classes import OASProblem
+from OpenAeroStruct import OASProblem
 
 class TestAero(unittest.TestCase):
+
+    currentResult = []
+
+    def run(self, result=None):
+        self.currentResult.append(result) # remember result for use in tearDown
+        unittest.TestCase.run(self, result) # call superclass run method
 
     def test_aero_analysis_flat(self):
         OAS_prob = OASProblem({'type' : 'aero',
@@ -182,6 +188,13 @@ class TestAero(unittest.TestCase):
 
 
 class TestStruct(unittest.TestCase):
+
+    currentResult = []
+
+    def run(self, result=None):
+        self.currentResult.append(result) # remember result for use in tearDown
+        unittest.TestCase.run(self, result) # call superclass run method
+
     def test_struct_analysis(self):
         OAS_prob = OASProblem({'type' : 'struct',
                                'optimize' : False})
@@ -233,6 +246,12 @@ class TestStruct(unittest.TestCase):
 
 
 class TestAeroStruct(unittest.TestCase):
+
+    currentResult = []
+
+    def run(self, result=None):
+        self.currentResult.append(result) # remember result for use in tearDown
+        unittest.TestCase.run(self, result) # call superclass run method
 
     def test_aerostruct_analysis(self):
         OAS_prob = OASProblem({'type' : 'aerostruct',
@@ -380,6 +399,12 @@ if __name__ == "__main__":
         # Set up the test suite and run the tests corresponding to this subgroup
         suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
         unittest.TextTestRunner().run(suite)
+
+        failures = test_class.currentResult[-1].failures
+        errors = test_class.currentResult[-1].errors
+
+        if failures or errors:
+            sys.exit(1)
 
     # If the user did not provide any arguments, run all tests
     else:

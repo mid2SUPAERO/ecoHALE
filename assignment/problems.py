@@ -32,7 +32,7 @@ from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
-from run_classes import OASProblem
+from OpenAeroStruct import OASProblem
 from gs_newton import HybridGSNewton
 from b_spline import get_bspline_mtx
 
