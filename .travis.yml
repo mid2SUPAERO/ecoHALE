@@ -1,10 +1,62 @@
-# https://travis-ci.org/tornadoweb/tornado
-language: python
-python:
-    - 2.7
+# whitelist
+branches:
+  only:
+    - master
+    - /^test.*$/
+
+sudo: false
+
+os:
+  - linux
+
+language: generic
+
+env:
+- HDF5=h5py PY=2.7 MPI=
+
+matrix:
+  exclude:
+  - os: osx
+    env: HDF5=h5py PY=2.7 MPI=1
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gfortran
+    - libblas-dev
+    - liblapack-dev
+    - libopenmpi-dev
+    - openmpi-bin
+
+before_install:
+- OS=$(if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then echo "MacOSX"; else echo "Linux"; fi)
+- if [ "$OS" = "MacOSX" ] && [ "$MPI" ]; then brew install openmpi; fi
+- if [ "$PY" = "2.7" ];  then wget "https://repo.continuum.io/miniconda/Miniconda2-latest-$OS-x86_64.sh" -O miniconda.sh; fi
+- if [ "$PY" = "3.4" ];  then wget "https://repo.continuum.io/miniconda/Miniconda3-latest-$OS-x86_64.sh" -O miniconda.sh; fi
+- chmod +x miniconda.sh
+- if [ "$OS" = "Linux" ]; then
+    ./miniconda.sh -b  -p /home/travis/miniconda;
+  fi
+- if [ "$OS" = "MacOSX" ]; then
+    ./miniconda.sh -b  -p /Users/travis/miniconda;
+  fi
+- PATHPREFIX=$(if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then echo "/Users/travis/miniconda/bin"; else echo "/home/travis/miniconda/bin"; fi)
+- export PATH=$PATHPREFIX:$PATH
+- export OPENMDAO_TEST_DOCS=1
+#- conda update --yes conda
 
 install:
-    - pip install openmdao
+- conda install --yes python=$PY numpy scipy nose $HDF5 sphinx==1.3.1 mock swig
+- if [ "$OS" = "Linux" ]; then
+    if [ "$PY" = "2.7" ]; then
+        pip install https://openmdao.org/dists/pyoptsparse-1.0.0-cp27-none-linux_x86_64.whl;
+    elif [ "$PY" = "3.4" ]; then
+        pip install https://openmdao.org/dists/pyoptsparse-1.0.0-py3-none-linux_x86_64.whl;
+    fi
+  fi
+- pip install openmdao
 
 script:
-    - python test_suite.py struct
+- python test_suite.py struct
