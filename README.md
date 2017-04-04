@@ -1,4 +1,4 @@
-[![Build Status]https://travis-ci.org/johnjasa/OpenAeroStruct.svg?branch=dev](https://travis-ci.org/johnjasa/OpenAeroStruct)
+[![Build Status](https://travis-ci.org/johnjasa/OpenAeroStruct.svg?branch=dev)](https://travis-ci.org/johnjasa/OpenAeroStruct)
 [![Documentation Status](https://readthedocs.org/projects/openaerostruct/badge/?version=latest)](http://openaerostruct.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/johnjasa/OpenAeroStruct/badge.svg?branch=master)](https://coveralls.io/github/johnjasa/OpenAeroStruct?branch=master)
 
