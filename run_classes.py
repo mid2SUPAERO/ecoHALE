@@ -166,7 +166,7 @@ class OASProblem(object):
         """
 
         defaults = {'optimize' : False,      # flag for analysis or optimization
-                    'opt' : 'SNOPT',         # default optimizer
+                    'optimizer' : 'SNOPT',         # default optimizer
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,            # angle of attack
@@ -344,8 +344,9 @@ class OASProblem(object):
 
         try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
+            f
             self.prob.driver = pyOptSparseDriver()
-            if self.prob_dict['opt'] == 'SNOPT':
+            if self.prob_dict['optimizer'] == 'SNOPT':
                 self.prob.driver.options['optimizer'] = "SNOPT"
                 self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                                  'Major feasibility tolerance': 1.0e-8,
@@ -353,7 +354,7 @@ class OASProblem(object):
                                                  'Minor iterations limit':2000,
                                                  'Iterations limit':1000
                                                  }
-            elif self.prob_dict['opt'] == 'ALPSO':
+            elif self.prob_dict['optimizer'] == 'ALPSO':
                 self.prob.driver.options['optimizer'] = 'ALPSO'
                 self.prob.driver.opt_settings = {'SwarmSize': 40,
                                                 'maxOuterIter': 200,
@@ -363,7 +364,7 @@ class OASProblem(object):
                                                 'dtol': 1e-5,
                                                 'printOuterIters': 1
                                                  }
-            elif self.prob_dict['opt'] == 'NOMAD':
+            elif self.prob_dict['optimizer'] == 'NOMAD':
                 self.prob.driver.options['optimizer'] = 'NOMAD'
                 self.prob.driver.opt_settings = {'maxiter':1000,
                                                 'minmeshsize':1e-12,
@@ -371,11 +372,16 @@ class OASProblem(object):
                                                 'displaydegree':0,
                                                 'printfile':1
                                                 }
+            elif self.prob_dict['optimizer'] == 'SLSQP':
+                self.prob.driver.options['optimizer'] = 'SLSQP'
+                self.prob.driver.opt_settings = {
+                                                }
+
         except:  # Use Scipy SLSQP optimizer if pyOptSparse not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'
             self.prob.driver.options['disp'] = True
-            self.prob.driver.options['tol'] = 1.0e-6
+            self.prob.driver.options['tol'] = 1.0e-10
 
     def add_desvar(self, *args, **kwargs):
         """

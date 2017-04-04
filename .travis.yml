@@ -54,7 +54,7 @@ script:
 - cd ..
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - cd -
-- coverage run --source=OpenAeroStruct test_suite.py struct
+- coverage run --source=OpenAeroStruct test_suite.py
 
 after_success:
 - coveralls
