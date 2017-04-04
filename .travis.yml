@@ -56,7 +56,11 @@ install:
         pip install https://openmdao.org/dists/pyoptsparse-1.0.0-py3-none-linux_x86_64.whl;
     fi
   fi
+- pip install coveralls
 - pip install openmdao
 
 script:
 - python test_suite.py struct
+
+after_success:
+- coveralls

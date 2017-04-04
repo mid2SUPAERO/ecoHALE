@@ -190,7 +190,7 @@ class TestStruct(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing.weight'], 2080.284115390823, places=3)
+        self.assertAlmostEqual(prob['wing.weight'], 22080.284115390823, places=3)
 
     def test_struct_analysis_symmetry(self):
         OAS_prob = OASProblem({'type' : 'struct',
