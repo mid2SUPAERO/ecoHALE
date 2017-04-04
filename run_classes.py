@@ -547,9 +547,7 @@ class OASProblem(object):
             tmp_group = Group()
 
             # Add independent variables that do not belong to a specific component
-            indep_vars = [('disp', np.zeros((surface['num_y'], 6))),
-                        ('sweep', 0.0),
-                        ]
+            indep_vars = [('disp', np.zeros((surface['num_y'], 6)))]
             for var in surface['active_geo_vars']:
                 indep_vars.append((var, surface[var]))
 
@@ -631,7 +629,7 @@ class OASProblem(object):
             root.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
             root.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
             root.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
-            root.connect(name[:-1] + '.sweep', name + 'perf' + '.sweep')
+            root.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
 
         # Actually set up the problem
         self.setup_prob()

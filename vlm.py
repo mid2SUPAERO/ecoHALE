@@ -504,6 +504,7 @@ class VLMGeometry(Component):
                         dtype=data_type))
         self.add_output('c_pts', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('widths', val=np.zeros((ny-1)))
+        self.add_output('cos_sweep', val=np.zeros((ny-1)))
         self.add_output('lengths', val=np.zeros((ny)))
         self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=0.)
@@ -524,6 +525,9 @@ class VLMGeometry(Component):
         # Compute the widths of each panel
         qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
         widths = np.linalg.norm(qc[1:, :] - qc[:-1, :], axis=1)
+
+        # Compute the sweep of each panel
+        cos_sweep = np.linalg.norm(qc[1:, [1,2]] - qc[:-1, [1,2]], axis=1)/widths
 
         # Compute the cambered length of each chordwise set of mesh points
         dx = mesh[1:, :, 0] - mesh[:-1, :, 0]
@@ -548,6 +552,7 @@ class VLMGeometry(Component):
         unknowns['b_pts'] = b_pts
         unknowns['c_pts'] = c_pts
         unknowns['widths'] = widths
+        unknowns['cos_sweep'] = cos_sweep
         unknowns['lengths'] = lengths
         unknowns['normals'] = normals
         unknowns['S_ref'] = S_ref
@@ -593,20 +598,30 @@ class VLMGeometry(Component):
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
         jac['widths', 'def_mesh'] = np.zeros_like(jac['widths', 'def_mesh'])
+        jac['cos_sweep', 'def_mesh'] = np.zeros_like(jac['cos_sweep', 'def_mesh'])
         qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
         gap = [0, (nx-1)*ny*3]
         factor = [0.75, 0.25]
         for i in range(ny-1):
-            dx = (qc[i+1, 0] - qc[i, 0]) / unknowns['widths'][i]
-            dy = (qc[i+1, 1] - qc[i, 1]) / unknowns['widths'][i]
-            dz = (qc[i+1, 2] - qc[i, 2]) / unknowns['widths'][i]
+            w = unknowns['widths'][i]
+            cos_sweep = unknowns['cos_sweep'][i]
+            dx = (qc[i+1, 0] - qc[i, 0])
+            dy = (qc[i+1, 1] - qc[i, 1])
+            dz = (qc[i+1, 2] - qc[i, 2])
+            A = (cos_sweep - 1. / cos_sweep) / w**2
             for j in range(2):
-                jac['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j]
-                jac['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j]
-                jac['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j]
-                jac['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j]
-                jac['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j]
-                jac['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j]
+                jac['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
+                jac['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w
+                jac['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j] / w
+                jac['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j] / w
+                jac['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j] / w
+                jac['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j] / w
+                jac['cos_sweep', 'def_mesh'][i, i*3+gap[j]] += dx * cos_sweep / w**2 * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+gap[j]] -= dx * cos_sweep / w**2 * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] += dy * A * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] -= dy * A * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] += dz * A * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] -= dz * A * factor[j]
 
         jac['lengths', 'def_mesh'] = np.zeros_like(jac['lengths', 'def_mesh'])
         for i in range(ny):
@@ -1283,7 +1298,7 @@ class ViscousDrag(Component):
         self.add_param('re', val=5.e6)
         self.add_param('M', val=.84)
         self.add_param('S_ref', val=0.)
-        self.add_param('sweep', val=0.0)
+        self.add_param('cos_sweep', val=np.zeros((self.ny-1)))
         self.add_param('widths', val=np.zeros((self.ny-1)))
         self.add_param('lengths', val=np.zeros((self.ny)))
         self.add_output('CDv', val=0.)
@@ -1294,12 +1309,13 @@ class ViscousDrag(Component):
             re = params['re']
             M = params['M']
             S_ref = params['S_ref']
-            sweep = params['sweep'] * np.pi / 180.
             widths = params['widths']
             lengths = params['lengths']
+            cos_sweep = params['cos_sweep']
 
             self.d_over_q = np.zeros((self.ny - 1))
 
+            # Take panel chord length to be average of its edge lengths
             chords = (lengths[1:] + lengths[:-1]) / 2.
             Re_c = re * chords
 
@@ -1322,16 +1338,18 @@ class ViscousDrag(Component):
             cd = (cdlam_tr - cdturb_tr)*self.k_lam + cdturb_total
 
             # Multiply by section width to get total normalized drag for section
-            # D_over_q = D / 0.5 / rho / v**2
+            # d_over_q = d / 0.5 / rho / v**2
             self.d_over_q = 2 * cd * chords
 
-            self.D_over_q = np.sum(self.d_over_q * widths)
-
             # Calculate form factor
-            FF = 1.34 * M**0.18 * np.cos(sweep)**0.28 * \
-                        (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
+            self.k_FF = 1.34 * M**0.18 * \
+                (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
+            FF = self.k_FF * cos_sweep**0.28
 
-            unknowns['CDv'] = FF * self.D_over_q / S_ref
+            # Sum individual panel drags to get total drag
+            self.D_over_q = np.sum(self.d_over_q * widths * FF)
+
+            unknowns['CDv'] = self.D_over_q / S_ref
         else:
             unknowns['CDv'] = 0.0
 
@@ -1346,16 +1364,13 @@ class ViscousDrag(Component):
             p180 = np.pi / 180.
             M = params['M']
             S_ref = params['S_ref']
-            sweep = params['sweep'] * p180
+            cos_sweep = params['cos_sweep']
             widths = params['widths']
             lengths = params['lengths']
 
             B = (1. + 0.144*M**2)**0.65
 
-            FF = 1.34 * M**0.18 * np.cos(sweep)**0.28 * \
-                        (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
-            FF_M = FF * 0.18 / M
-            D_over_q = 0.0
+            FF = self.k_FF * cos_sweep**0.28
 
             chords = (lengths[1:] + lengths[:-1]) / 2.
             Re_c = re * chords
@@ -1383,11 +1398,10 @@ class ViscousDrag(Component):
                 (self.d_over_q / 4 / chords + chords * cd_Re * re / 2.)
             jac['CDv', 'lengths'][0, 1:] += CDv_lengths
             jac['CDv', 'lengths'][0, :-1] += CDv_lengths
-
             jac['CDv', 'widths'][0, :] = self.d_over_q * FF / S_ref
-            jac['CDv', 'S_ref'] = - self.D_over_q * FF / S_ref**2
-            jac['CDv', 'sweep'] = - self.D_over_q * FF / S_ref * \
-                0.28 * np.sin(sweep) / np.cos(sweep) * p180
+            jac['CDv', 'S_ref'] = - self.D_over_q / S_ref**2
+            jac['CDv', 'cos_sweep'][0, :] = 0.28 * self.k_FF * self.d_over_q * \
+                widths / S_ref / cos_sweep**0.72
 
         return jac
 
