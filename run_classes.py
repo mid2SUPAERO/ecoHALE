@@ -20,7 +20,7 @@ from openmdao.api import view_model
 # =============================================================================
 # OpenAeroStruct modules
 # =============================================================================
-from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicTaper
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicConstraint
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
@@ -125,6 +125,7 @@ class OASProblem(object):
                                     # the surface from its default location
                     'symmetry' : False,     # if true, model one half of wing
                                             # reflected across the plane y = 0
+                    'S_ref_type' : 'wetted',      # 'wetted' or 'projected'
 
                     # Simple Geometric Variables
                     'span' : 10.,           # full wingspan
@@ -168,7 +169,8 @@ class OASProblem(object):
 
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
-                    'monotonic_taper' : False, # apply monotonic taper constraint
+                    'monotonic_con' : None, # add monotonic constraint to the given
+                                                # distributed variable
                     }
         return defaults
 
@@ -361,7 +363,7 @@ class OASProblem(object):
                 self.prob.driver.options['optimizer'] = "SNOPT"
                 self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                                  'Major feasibility tolerance': 1.0e-8,
-                                                 'Major iterations limit':400,
+                                                 'Major iterations limit':50,
                                                  'Minor iterations limit':2000,
                                                  'Iterations limit':1000
                                                  }
@@ -570,10 +572,8 @@ class OASProblem(object):
                 tmp_group.add(trunc_var + '_bsp',
                          Bspline(var, trunc_var, surface['num_'+var], surface['num_y']),
                          promotes=['*'])
-            if surface['monotonic_taper']:
-                tmp_group.add('monotonic_taper',
-                         MonotonicTaper(surface),
-                         promotes=['*'])
+            if surface['monotonic_con'] is not None:
+                tmp_group.add('monotonic_con', MonotonicConstraint(surface), promotes=['*'])
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each

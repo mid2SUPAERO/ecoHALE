@@ -457,14 +457,17 @@ class GeometryMesh(Component):
             if 'zshear' in dparams:
                 dparams['zshear'] = zshearb
 
-class MonotonicTaper(Component):
+class MonotonicConstraint(Component):
     """ Produce a constraint that is violated if the chord lengths of the wing
         do not decrease monotonically from the root to the taper.
 
+        Currently only implemented for a symmetric wing.
+
     Parameters
     ----------
-    chord_dist[ny] : numpy array
-        The chord length distribution.
+    surface['monotonic_con'] : list or string
+        Contains the variables to which the user would like to apply the monotonic
+        constraint.
 
     Returns
     -------
@@ -473,19 +476,33 @@ class MonotonicTaper(Component):
 
     """
     def __init__(self, surface):
-        super(MonotonicTaper, self).__init__()
+        super(MonotonicConstraint, self).__init__()
         ny = surface['num_y']
-        self.add_param('chord_dist', val=np.zeros(ny), dtype=data_type)
-        self.add_output('monotonic', val=np.zeros(ny-1))
+        self.var_list = []
+        self.con_list = []
+        if type(surface['monotonic_con']) is list:
+            for var in surface['monotonic_con']:
+                self.var_list.append(var)
+                self.con_list.append('monotonic_' + var)
+        else:
+            var = surface['monotonic_con']
+            self.var_list.append(var)
+            self.con_list.append('monotonic_' + var)
+
+        for i in range(len(self.var_list)):
+            self.add_param(self.var_list[i], val=np.zeros(ny), dtype=data_type)
+            self.add_output(self.con_list[i], val=np.zeros(ny-1))
 
     def solve_nonlinear(self, params, unknowns, resids):
-        # Compute the difference chord lengths and their neighbors
-        unknowns['monotonic'] = params['chord_dist'][:-1] - params['chord_dist'][1:]
+        # Compute the difference between adjacent variable values
+        for i in range(len(self.var_list)):
+            unknowns[self.con_list[i]] = params[self.var_list[i]][:-1] - params[self.var_list[i]][1:]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        np.fill_diagonal(jac['monotonic', 'chord_dist'][:, :], 1)
-        np.fill_diagonal(jac['monotonic', 'chord_dist'][:, 1:], -1)
+        for i in range(len(self.var_list)):
+            np.fill_diagonal(jac[self.con_list[i], self.var_list[i]][:, :], 1)
+            np.fill_diagonal(jac[self.con_list[i], self.var_list[i]][:, 1:], -1)
         return jac
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):

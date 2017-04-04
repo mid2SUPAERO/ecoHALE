@@ -526,8 +526,12 @@ class VLMGeometry(Component):
         qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
         widths = np.linalg.norm(qc[1:, :] - qc[:-1, :], axis=1)
 
-        # Compute the sweep of each panel
-        cos_sweep = np.linalg.norm(qc[1:, [1,2]] - qc[:-1, [1,2]], axis=1)/widths
+        # Compute the numerator of the cosine of the sweep angle of each panel
+        # (we need this for the viscous drag dependence on sweep, and we only compute
+        # the numerator because the denominator of the cosine fraction is the width,
+        # which we have already computed. They are combined in the viscous drag
+        # calculation.)
+        cos_sweep = np.linalg.norm(qc[1:, [1,2]] - qc[:-1, [1,2]], axis=1)
 
         # Compute the cambered length of each chordwise set of mesh points
         dx = mesh[1:, :, 0] - mesh[:-1, :, 0]
@@ -546,7 +550,22 @@ class VLMGeometry(Component):
         for j in xrange(3):
             normals[:, :, j] /= norms
 
-        S_ref = 0.5 * np.sum(norms)
+        if self.surface['S_ref_type'] == 'wetted':
+            S_ref = 0.5 * np.sum(norms)
+
+        elif self.surface['S_ref_type'] == 'projected':
+            proj_mesh = mesh.copy()
+            proj_mesh[:,:,2] = 0.
+            proj_normals = np.cross(
+                proj_mesh[:-1,  1:, :] - proj_mesh[1:, :-1, :],
+                proj_mesh[:-1, :-1, :] - proj_mesh[1:,  1:, :],
+                axis=2)
+
+            proj_norms = np.sqrt(np.sum(proj_normals**2, axis=2))
+            for j in xrange(3):
+                proj_normals[:, :, j] /= proj_norms
+
+            S_ref = 0.5 * np.sum(proj_norms)
 
         # Store each array
         unknowns['b_pts'] = b_pts
@@ -568,17 +587,23 @@ class VLMGeometry(Component):
         ny = self.surface['num_y']
 
         if fortran_flag:
+
             normalsb = np.zeros(unknowns['normals'].shape)
             for i in range(nx-1):
                 for j in range(ny-1):
                     for ind in range(3):
                         normalsb[:, :, :] = 0.
                         normalsb[i, j, ind] = 1.
-                        meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 0.)
+                        meshb, _, _ = OAS_API.oas_api.compute_normals_b(mesh, normalsb, 0.)
                         jac['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
 
             normalsb[:, :, :] = 0.
-            meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 1.)
+            if self.surface['S_ref_type'] == 'wetted':
+                seed_mesh = mesh
+            elif self.surface['S_ref_type'] == 'projected':
+                seed_mesh = mesh.copy()
+                seed_mesh[:,:,2] = 0.
+            meshb, _, _ = OAS_API.oas_api.compute_normals_b(seed_mesh, normalsb, 1.)
             jac['S_ref', 'def_mesh'] = np.atleast_2d(meshb.flatten())
 
         else:
@@ -608,7 +633,6 @@ class VLMGeometry(Component):
             dx = (qc[i+1, 0] - qc[i, 0])
             dy = (qc[i+1, 1] - qc[i, 1])
             dz = (qc[i+1, 2] - qc[i, 2])
-            A = (cos_sweep - 1. / cos_sweep) / w**2
             for j in range(2):
                 jac['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
                 jac['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w
@@ -616,12 +640,10 @@ class VLMGeometry(Component):
                 jac['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j] / w
                 jac['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j] / w
                 jac['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j] / w
-                jac['cos_sweep', 'def_mesh'][i, i*3+gap[j]] += dx * cos_sweep / w**2 * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+gap[j]] -= dx * cos_sweep / w**2 * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] += dy * A * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] -= dy * A * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] += dz * A * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] -= dz * A * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] -= dy / cos_sweep * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy / cos_sweep * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] -= dz / cos_sweep * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz / cos_sweep * factor[j]
 
         jac['lengths', 'def_mesh'] = np.zeros_like(jac['lengths', 'def_mesh'])
         for i in range(ny):
@@ -1311,7 +1333,7 @@ class ViscousDrag(Component):
             S_ref = params['S_ref']
             widths = params['widths']
             lengths = params['lengths']
-            cos_sweep = params['cos_sweep']
+            cos_sweep = params['cos_sweep'] / widths
 
             self.d_over_q = np.zeros((self.ny - 1))
 
@@ -1364,9 +1386,9 @@ class ViscousDrag(Component):
             p180 = np.pi / 180.
             M = params['M']
             S_ref = params['S_ref']
-            cos_sweep = params['cos_sweep']
             widths = params['widths']
             lengths = params['lengths']
+            cos_sweep = params['cos_sweep'] / widths
 
             B = (1. + 0.144*M**2)**0.65
 
@@ -1398,10 +1420,9 @@ class ViscousDrag(Component):
                 (self.d_over_q / 4 / chords + chords * cd_Re * re / 2.)
             jac['CDv', 'lengths'][0, 1:] += CDv_lengths
             jac['CDv', 'lengths'][0, :-1] += CDv_lengths
-            jac['CDv', 'widths'][0, :] = self.d_over_q * FF / S_ref
+            jac['CDv', 'widths'][0, :] = self.d_over_q * FF / S_ref * 0.72
             jac['CDv', 'S_ref'] = - self.D_over_q / S_ref**2
-            jac['CDv', 'cos_sweep'][0, :] = 0.28 * self.k_FF * self.d_over_q * \
-                widths / S_ref / cos_sweep**0.72
+            jac['CDv', 'cos_sweep'][0, :] = 0.28 * self.k_FF * self.d_over_q / S_ref / cos_sweep**0.72
 
         return jac
 
