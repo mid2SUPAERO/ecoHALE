@@ -1,0 +1,10 @@
+# https://travis-ci.org/tornadoweb/tornado
+language: python
+python:
+    - 2.7
+
+install:
+    - pip install openmdao
+
+script:
+    - python test_suite.py struct
