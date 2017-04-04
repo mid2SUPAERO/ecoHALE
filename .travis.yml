@@ -51,7 +51,7 @@ install:
     fi
   fi
 - if [ "$FORTRAN" ]; then
-    make
+    make;
   fi
 - pip install coveralls
 - pip install openmdao
