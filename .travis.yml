@@ -2,7 +2,7 @@
 branches:
   only:
     - master
-    - /^test.*$/
+    - dev
 
 sudo: false
 
