@@ -136,7 +136,7 @@ class Display(object):
                 deriv_keys = SqliteDict(histFileName, 'derivs').keys()
                 deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
 
-            for i in xrange(nkey):
+            for i in range(nkey):
                 if OpenMDAO:
                     key = '{}|{}'.format(solver_name, i)
 
@@ -247,7 +247,7 @@ class Display(object):
                     except KeyError:
                         pass
 
-            for i in xrange(nkey):
+            for i in range(nkey):
                 if not OpenMDAO:
                     key = '%d' % i
                     if self.iter_type[i]:

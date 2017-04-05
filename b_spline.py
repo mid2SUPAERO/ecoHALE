@@ -32,11 +32,11 @@ def get_bspline_mtx(num_cp, num_pt, order=4):
     rows = np.zeros((num_pt, order), int)
     cols = np.zeros((num_pt, order), int)
 
-    for ipt in xrange(num_pt):
+    for ipt in range(num_pt):
         t = t_vec[ipt]
 
         i0 = -1
-        for ind in xrange(order, num_cp+1):
+        for ind in range(order, num_cp+1):
             if (knots[ind-1] <= t) and (t < knots[ind]):
                 i0 = ind - order
         if t == knots[-1]:
@@ -45,7 +45,7 @@ def get_bspline_mtx(num_cp, num_pt, order=4):
         basis[:] = 0.
         basis[-1] = 1.
 
-        for i in xrange(2, order+1):
+        for i in range(2, order+1):
             l = i - 1
             j1 = order - l
             j2 = order

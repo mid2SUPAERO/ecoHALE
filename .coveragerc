@@ -6,3 +6,4 @@ omit =
     OptView.py
     plot_all.py
     gs_newton.py
+    test_suite.py

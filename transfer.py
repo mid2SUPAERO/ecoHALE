@@ -67,12 +67,12 @@ class TransferDisplacements(Component):
 
             ref_curve = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
             Smesh = np.zeros(mesh.shape, dtype=data_type)
-            for ind in xrange(self.nx):
+            for ind in range(self.nx):
                 Smesh[ind, :, :] = mesh[ind, :, :] - ref_curve
 
             def_mesh = np.zeros(mesh.shape, dtype=data_type)
             cos, sin = np.cos, np.sin
-            for ind in xrange(self.ny):
+            for ind in range(self.ny):
                 dx, dy, dz, rx, ry, rz = disp[ind, :]
 
                 # 1 eye from the axis rotation matrices

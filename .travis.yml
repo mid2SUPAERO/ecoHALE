@@ -7,6 +7,7 @@ language: generic
 
 env:
 - FORTRAN= PY=2.7
+- FORTRAN= PY=3.4
 - FORTRAN=1 PY=2.7
 
 addons:
