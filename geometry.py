@@ -231,7 +231,7 @@ def dihedral(mesh, dihedral_angle, symmetry):
         mesh[i, :, 2] += dx
 
 
-def stretch(mesh, span):
+def stretch(mesh, span, symmetry):
     """
 
     .. warning:: This function does not currently work as intended.
@@ -251,17 +251,15 @@ def stretch(mesh, span):
         Nodal mesh defining the stretched aerodynamic surface.
 
     """
-
     le = mesh[0]
+    te = mesh[-1]
+    quarter_chord = 0.25 * te + 0.75 * le
+    if symmetry:
+        span /= 2.
 
-    num_x, num_y, _ = mesh.shape
-
-    prev_span = le[-1, 1] - le[0, 1]
-    dy = (span - prev_span) / (num_y - 1) * np.arange(1, num_y)
-
-    for i in xrange(num_x):
-        mesh[i, 1:, 1] += dy
-
+    prev_span = quarter_chord[-1, 1] - quarter_chord[0, 1]
+    s = quarter_chord[:,1] / prev_span
+    mesh[:, :, 1] = s * span
 
 def taper(mesh, taper_ratio, symmetry):
     """ Alter the spanwise chord linearly to produce a tapered wing.
@@ -340,9 +338,9 @@ class GeometryMesh(Component):
         self.mesh = surface['mesh']
 
         # Variables that should be initialized to one
-        ones_list = ['span', 'rootchord', 'taper', 'chord_cp']
+        ones_list = ['taper', 'chord_cp']
         # Variables that should be initialized to zero
-        zeros_list = ['sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'zshear_cp']
+        zeros_list = ['span', 'sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'zshear_cp']
         all_geo_vars = ones_list + zeros_list
         self.geo_params = {}
         for var in all_geo_vars:
@@ -380,12 +378,12 @@ class GeometryMesh(Component):
             mesh = OAS_API.oas_api.manipulate_mesh(mesh, self.geo_params['taper'],
                 self.geo_params['chord'], self.geo_params['sweep'], self.geo_params['xshear'],
                 self.geo_params['dihedral'], self.geo_params['zshear'],
-                self.geo_params['twist'], self.symmetry, self.rotate_x)
+                self.geo_params['twist'], self.geo_params['span'], self.symmetry, self.rotate_x)
 
         else:
             taper(mesh, self.geo_params['taper'], self.symmetry)
             scale_x(mesh, self.geo_params['chord'])
-            # stretch(mesh, params['span'])
+            stretch(mesh, self.geo_params['span'], self.symmetry)
             sweep(mesh, self.geo_params['sweep'], self.symmetry)
             shear_x(mesh, self.geo_params['xshear'])
             dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
@@ -427,20 +425,25 @@ class GeometryMesh(Component):
                 zsheard = dparams['zshear']
             else:
                 zsheard = np.zeros(self.geo_params['zshear'].shape)
+            if 'span' in dparams:
+                spand = dparams['span']
+            else:
+                spand = 0.
 
             mesh, dresids['mesh'] = OAS_API.oas_api.manipulate_mesh_d(mesh,
             self.geo_params['taper'], taperd, self.geo_params['chord'], chordd,
             self.geo_params['sweep'], sweepd, self.geo_params['xshear'], xsheard,
             self.geo_params['dihedral'], dihedrald, self.geo_params['zshear'],
-            zsheard, self.geo_params['twist'], twistd, self.symmetry, self.rotate_x)
+            zsheard, self.geo_params['twist'], twistd, self.geo_params['span'],
+            spand, self.symmetry, self.rotate_x)
 
         if mode == 'rev':
-            taperb, chordb, sweepb, xshearb, dihedralb, zshearb, twistb, mesh = \
+            taperb, chordb, sweepb, xshearb, dihedralb, zshearb, twistb, spanb, mesh = \
             OAS_API.oas_api.manipulate_mesh_b(mesh, self.geo_params['taper'],
             self.geo_params['chord'], self.geo_params['sweep'],
             self.geo_params['xshear'], self.geo_params['dihedral'],
             self.geo_params['zshear'], self.geo_params['twist'],
-            self.symmetry, self.rotate_x, dresids['mesh'])
+            self.geo_params['span'], self.symmetry, self.rotate_x, dresids['mesh'])
 
             if 'sweep' in dparams:
                 dparams['sweep'] = sweepb
@@ -456,6 +459,8 @@ class GeometryMesh(Component):
                 dparams['xshear'] = xshearb
             if 'zshear' in dparams:
                 dparams['zshear'] = zshearb
+            if 'span' in dparams:
+                dparams['span'] = spanb
 
 class MonotonicConstraint(Component):
     """ Produce a constraint that is violated if the chord lengths of the wing

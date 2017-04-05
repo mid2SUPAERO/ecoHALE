@@ -363,7 +363,7 @@ class OASProblem(object):
                 self.prob.driver.options['optimizer'] = "SNOPT"
                 self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                                  'Major feasibility tolerance': 1.0e-8,
-                                                 'Major iterations limit':50,
+                                                 'Major iterations limit':200,
                                                  'Minor iterations limit':2000,
                                                  'Iterations limit':1000
                                                  }
@@ -438,15 +438,13 @@ class OASProblem(object):
             self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
-
-        self.prob.run_once()
+        # view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         # If `optimize` == True in prob_dict, perform optimization. Otherwise,
         # simply pass the problem since analysis has already been run.
         if not self.prob_dict['optimize']:
             # Run a single analysis loop
-            pass
+            self.prob.run_once()
         else:
             # Perform optimization
             self.prob.run()

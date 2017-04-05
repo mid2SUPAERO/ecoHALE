@@ -4,97 +4,28 @@ module oas_main
 
 contains
 
-  subroutine manipulate_mesh_main(nx, ny, input_mesh, sweep, twist,&
-    chord_dist, dihedral, taper, symmetry, mesh)
+  subroutine manipulate_mesh_main(nx, ny, input_mesh, taper, chord, sweep, xshear, &
+    dihedral, zshear, twist, span, symmetry, rotate_x, mesh)
 
     implicit none
 
     integer, intent(in) :: nx, ny
-    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), sweep, twist(ny)
-    real(kind=8), intent(in) :: dihedral, taper, chord_dist(ny)
-    logical, intent(in) :: symmetry
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), taper, chord(ny), sweep
+    real(kind=8), intent(in) :: xshear(ny), dihedral, zshear(ny), twist(ny), span
+    logical, intent(in) :: symmetry, rotate_x
 
     real(kind=8), intent(out) :: mesh(nx, ny, 3)
 
     real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, tan_theta
-    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3), one
+    real(kind=8) :: dx(ny), y0, rad_twist(ny), rotation_matrix(ny, 3, 3)
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((ny+1)/2)
+    real(kind=8) :: rad_theta_x(ny), one, dz_qc(ny-1), dy_qc(ny-1), s(ny), new_span
+    real(kind=8) :: dz_qc_l((ny-1)/2), dz_qc_r((ny-1)/2), dy_qc_l((ny-1)/2), dy_qc_r((ny-1)/2)
     integer :: ny2, ix, iy, ind
 
     p180 = 3.14159265358979323846264338 / 180.
     mesh = input_mesh
     one = 1.
-
-    ! Sweep first
-    le = mesh(1, :, :)
-    tan_theta = tan(p180 * sweep)
-
-    if (symmetry) then
-      y0 = le(ny, 2)
-      dx = -(le(:, 2) - y0) * tan_theta
-    else
-      ny2 = (ny - 1) / 2
-      y0 = le(ny2+1, 2)
-
-      dx(:ny2) = -(le(:ny2, 2) - y0) * tan_theta
-      dx(ny2+1:) = (le(ny2+1:, 2) - y0) * tan_theta
-    end if
-
-    do ix=1,nx
-      mesh(ix, :, 1) = mesh(ix, :, 1) + dx
-    end do
-
-    ! Scale x
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25 * te + 0.75 * le
-
-    do iy=1,ny
-      mesh(:, iy, 1) = (mesh(:, iy, 1) - quarter_chord(iy, 1)) * chord_dist(iy) + &
-        quarter_chord(iy, 1)
-    end do
-
-    ! Rotate
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25 * te + 0.75 * le
-
-    rad_twist = twist * p180
-    rotation_matrix(:, :, :) = 0.
-    rotation_matrix(:, 1, 1) = cos(rad_twist)
-    rotation_matrix(:, 1, 3) = sin(rad_twist)
-    rotation_matrix(:, 2, 2) = 1.
-    rotation_matrix(:, 3, 1) = -sin(rad_twist)
-    rotation_matrix(:, 3, 3) = cos(rad_twist)
-
-    do ix=1,nx
-      row = mesh(ix, :, :)
-      do iy=1,ny
-        call matmul2(3, 3, 1, rotation_matrix(iy, :, :), row(iy, :) - quarter_chord(iy, :), out)
-        mesh(ix, iy, :) = out
-      end do
-      mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
-    end do
-
-    ! Dihedral
-    le = mesh(1, :, :)
-    tan_theta = tan(p180 * dihedral)
-
-    if (symmetry) then
-      y0 = le(ny, 2)
-      dx = -(le(:, 2) - y0) * tan_theta
-    else
-      ny2 = (ny - 1) / 2
-      y0 = le(ny2+1, 2)
-
-      dx(:ny2) = -(le(:ny2, 2) - y0) * tan_theta
-      dx(ny2+1:) = (le(ny2+1:, 2) - y0) * tan_theta
-    end if
-
-    do ix=1,nx
-      mesh(ix, :, 3) = mesh(ix, :, 3) + dx
-    end do
-
 
     ! Taper
     le = mesh(1, :, :)
@@ -132,6 +63,120 @@ contains
       end do
     end if
 
+    ! Scale x
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    do iy=1,ny
+      mesh(:, iy, 1) = (mesh(:, iy, 1) - quarter_chord(iy, 1)) * chord(iy) + &
+        quarter_chord(iy, 1)
+    end do
+
+    ! Span
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25 * te + 0.75 * le
+    new_span = span
+
+    if (symmetry) then
+      new_span = span / 2.
+    end if
+
+    s = quarter_chord(:, 2) / (quarter_chord(ny, 2) - quarter_chord(1, 2))
+    do ix=1,nx
+      mesh(ix, :, 2) = s * new_span
+    end do
+
+    ! Sweep
+    le = mesh(1, :, :)
+    tan_theta = tan(p180 * sweep)
+
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -(le(:, 2) - y0) * tan_theta
+    else
+      ny2 = (ny - 1) / 2
+      y0 = le(ny2+1, 2)
+
+      dx(:ny2) = -(le(:ny2, 2) - y0) * tan_theta
+      dx(ny2+1:) = (le(ny2+1:, 2) - y0) * tan_theta
+    end if
+
+    do ix=1,nx
+      mesh(ix, :, 1) = mesh(ix, :, 1) + dx
+    end do
+
+    ! x shear
+    do ix=1,nx
+      mesh(ix, :, 1) = mesh(ix, :, 1) + xshear
+    end do
+
+    ! Dihedral
+    le = mesh(1, :, :)
+    tan_theta = tan(p180 * dihedral)
+
+    if (symmetry) then
+      y0 = le(ny, 2)
+      dx = -(le(:, 2) - y0) * tan_theta
+    else
+      ny2 = (ny - 1) / 2
+      y0 = le(ny2+1, 2)
+
+      dx(:ny2) = -(le(:ny2, 2) - y0) * tan_theta
+      dx(ny2+1:) = (le(ny2+1:, 2) - y0) * tan_theta
+    end if
+
+    do ix=1,nx
+      mesh(ix, :, 3) = mesh(ix, :, 3) + dx
+    end do
+
+    ! z shear
+    do ix=1,nx
+      mesh(ix, :, 3) = mesh(ix, :, 3) + zshear
+    end do
+
+    ! Rotate
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    rad_theta_x(:) = 0.
+    if (rotate_x) then
+      if (symmetry) then
+        dz_qc = quarter_chord(:ny-1,3) - quarter_chord(2:,3)
+        dy_qc = quarter_chord(:ny-1,2) - quarter_chord(2:,2)
+        rad_theta_x(:ny-1) = atan(dz_qc / dy_qc)
+      else
+        ny2 = (ny - 1) / 2
+        dz_qc_l = quarter_chord(:ny2,3) - quarter_chord(2:ny2+1,3)
+        dy_qc_l = quarter_chord(:ny2,2) - quarter_chord(2:ny2+1,2)
+        rad_theta_x(:ny2) = atan(dz_qc_l / dy_qc_l)
+        dz_qc_r = quarter_chord(ny2+2:,3) - quarter_chord(ny2+1:ny-1,3)
+        dy_qc_r = quarter_chord(ny2+2:,2) - quarter_chord(ny2+1:ny-1,2)
+        rad_theta_x(ny2+2:) = atan(dz_qc_r / dy_qc_r)
+      end if
+    end if
+
+    rad_twist = twist * p180
+    rotation_matrix(:, :, :) = 0.
+    rotation_matrix(:, 1, 1) = cos(rad_twist)
+    rotation_matrix(:, 1, 3) = sin(rad_twist)
+    rotation_matrix(:, 2, 1) = sin(rad_theta_x) * sin(rad_twist)
+    rotation_matrix(:, 2, 2) = cos(rad_theta_x)
+    rotation_matrix(:, 2, 3) = -sin(rad_theta_x) * cos(rad_twist)
+    rotation_matrix(:, 3, 1) = -cos(rad_theta_x) * sin(rad_twist)
+    rotation_matrix(:, 3, 2) = sin(rad_theta_x)
+    rotation_matrix(:, 3, 3) = cos(rad_theta_x) * cos(rad_twist)
+
+    do ix=1,nx
+      row = mesh(ix, :, :)
+      do iy=1,ny
+        call matmul2(3, 3, 1, rotation_matrix(iy, :, :), row(iy, :) - quarter_chord(iy, :), out)
+        mesh(ix, iy, :) = out
+      end do
+      mesh(ix, :, :) = mesh(ix, :, :) + quarter_chord
+    end do
 
   end subroutine
 
