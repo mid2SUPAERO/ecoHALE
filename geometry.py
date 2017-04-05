@@ -485,24 +485,38 @@ class MonotonicConstraint(Component):
     Returns
     -------
     monotonic[ny-1] : numpy array
-        Values are greater than 0 if the constrain is violated.
+        Values are greater than 0 if the constraint is violated.
 
     """
-    def __init__(self, var_name, var_size):
+    def __init__(self, var_name, surface):
         super(MonotonicConstraint, self).__init__()
         self.var_name = var_name
         self.con_name = 'monotonic_' + var_name
-        self.add_param(self.var_name, val=np.zeros(var_size), dtype=data_type)
-        self.add_output(self.con_name, val=np.zeros(var_size-1))
+        self.symmetry = surface['symmetry']
+        self.ny = surface['num_y']
+        self.add_param(self.var_name, val=np.zeros(self.ny), dtype=data_type)
+        self.add_output(self.con_name, val=np.zeros(self.ny-1))
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Compute the difference between adjacent variable values
-        unknowns[self.con_name] = params[self.var_name][:-1] - params[self.var_name][1:]
+        diff = params[self.var_name][:-1] - params[self.var_name][1:]
+        if self.symmetry:
+            unknowns[self.con_name] = diff
+        else:
+            ny2 = (self.ny - 1) // 2
+            unknowns[self.con_name][:ny2] = diff[:ny2]
+            unknowns[self.con_name][ny2:] = -diff[ny2:]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
+
         np.fill_diagonal(jac[self.con_name, self.var_name][:, :], 1)
         np.fill_diagonal(jac[self.con_name, self.var_name][:, 1:], -1)
+
+        if not self.symmetry:
+            ny2 = (self.ny - 1) // 2
+            jac[self.con_name, self.var_name][ny2:, :] *= -1
+
         return jac
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):

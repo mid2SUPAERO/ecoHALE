@@ -366,7 +366,7 @@ class OASProblem(object):
                 self.prob.driver.options['optimizer'] = "SNOPT"
                 self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                                  'Major feasibility tolerance': 1.0e-8,
-                                                 'Major iterations limit':200,
+                                                 'Major iterations limit':400,
                                                  'Minor iterations limit':2000,
                                                  'Iterations limit':1000
                                                  }
@@ -441,7 +441,7 @@ class OASProblem(object):
             self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+        # view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         # If `optimize` == True in prob_dict, perform optimization. Otherwise,
         # simply pass the problem since analysis has already been run.
@@ -453,7 +453,7 @@ class OASProblem(object):
             self.prob.run()
 
         # Uncomment this to check the partial derivatives of each component
-        self.prob.check_partial_derivatives(compact_print=True)
+        # self.prob.check_partial_derivatives(compact_print=True)
 
 
     def setup_struct(self):
@@ -578,7 +578,7 @@ class OASProblem(object):
                     surface['monotonic_con'] = [surface['monotonic_con']]
                 for var in surface['monotonic_con']:
                     tmp_group.add('monotonic_' + var,
-                        MonotonicConstraint(var, surface['num_y']), promotes=['*'])
+                        MonotonicConstraint(var, surface), promotes=['*'])
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each
