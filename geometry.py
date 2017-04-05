@@ -369,6 +369,9 @@ class GeometryMesh(Component):
         self.add_output('mesh', val=self.mesh)
 
         self.symmetry = surface['symmetry']
+
+        # This flag determines whether or not changes in z (dihedral) add an
+        # additional rotation matrix to modify the twist direction
         self.rotate_x = True
 
         if not fortran_flag:
