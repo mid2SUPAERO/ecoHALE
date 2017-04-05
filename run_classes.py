@@ -1,6 +1,14 @@
 """
 The OASProblem class contains all of the methods necessary to set up and run
 aerostructural optimization using OpenAeroStruct.
+
+Check the default dictionary functions to see the default options for the
+lifting surfaces and for the entire problem.
+Additionally, the setup() and run() methods for each type of analysis and
+optimization are defined below.
+The portions of the code concerning multiple surfaces may be confusing, but if
+you are only interested in using one surface, you can gloss over some of the
+details there.
 """
 
 # =============================================================================
@@ -183,7 +191,7 @@ class OASProblem(object):
         """
 
         defaults = {'optimize' : False,      # flag for analysis or optimization
-                    'optimizer' : 'SNOPT',         # default optimizer
+                    'optimizer' : 'SNOPT',   # default optimizer
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,            # angle of attack
@@ -392,11 +400,16 @@ class OASProblem(object):
                                                 'displaydegree':0,
                                                 'printfile':1
                                                 }
+            elif self.prob_dict['optimizer'] == 'SLSQP':
+                self.prob.driver.options['optimizer'] = 'SLSQP'
+                self.prob.driver.opt_settings = {
+                                                }
+
         except:  # Use Scipy SLSQP optimizer if pyOptSparse not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'
             self.prob.driver.options['disp'] = True
-            self.prob.driver.options['tol'] = 1.0e-6
+            self.prob.driver.options['tol'] = 1.0e-10
 
     def add_desvar(self, *args, **kwargs):
         """
@@ -445,13 +458,15 @@ class OASProblem(object):
             self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        # view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+
+        self.prob.run_once()
 
         # If `optimize` == True in prob_dict, perform optimization. Otherwise,
         # simply pass the problem since analysis has already been run.
         if not self.prob_dict['optimize']:
             # Run a single analysis loop
-            self.prob.run_once()
+            pass
         else:
             # Perform optimization
             self.prob.run()
@@ -732,7 +747,6 @@ class OASProblem(object):
             tmp_group.add('aero_funcs',
                      VLMFunctionals(surface, self.prob_dict),
                      promotes=['*'])
-
 
             root.add(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 

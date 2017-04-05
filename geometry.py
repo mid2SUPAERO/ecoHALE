@@ -15,15 +15,6 @@ except:
     fortran_flag = False
     data_type = complex
 
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
-    import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
-    plt.show()
-
 def rotate(mesh, theta_y, symmetry, rotate_x=True):
     """ Compute rotation matrices given mesh and rotation angles in degrees.
 
@@ -189,7 +180,7 @@ def sweep(mesh, sweep_angle, symmetry):
         dx_left = -(le[:ny2, 1] - y0) * tan_theta
         dx = np.hstack((dx_left, dx_right))
 
-    for i in xrange(num_x):
+    for i in range(num_x):
         mesh[i, :, 0] += dx
 
 def dihedral(mesh, dihedral_angle, symmetry):
@@ -227,7 +218,7 @@ def dihedral(mesh, dihedral_angle, symmetry):
         dx_left = -(le[:ny2, 1] - y0) * tan_theta
         dx = np.hstack((dx_left, dx_right))
 
-    for i in xrange(num_x):
+    for i in range(num_x):
         mesh[i, :, 2] += dx
 
 
@@ -288,8 +279,8 @@ def taper(mesh, taper_ratio, symmetry):
     if symmetry:
         taper = np.linspace(1, taper_ratio, num_y)[::-1]
 
-        for i in xrange(num_x):
-            for ind in xrange(3):
+        for i in range(num_x):
+            for ind in range(3):
                 mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
                     taper + quarter_chord[:, ind]
 
@@ -299,8 +290,8 @@ def taper(mesh, taper_ratio, symmetry):
 
         dx = np.hstack((taper, taper[::-1][1:]))
 
-        for i in xrange(num_x):
-            for ind in xrange(3):
+        for i in range(num_x):
+            for ind in range(3):
                 mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
                     dx + quarter_chord[:, ind]
 
@@ -744,7 +735,7 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
     new_mesh[ 0, :, :] = le
     new_mesh[-1, :, :] = te
 
-    for i in xrange(1, num_x-1):
+    for i in range(1, num_x-1):
         w = full_wing_x[i]
         new_mesh[i, :, :] = (1 - w) * le + w * te
 
@@ -808,8 +799,8 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
     if num_x <= 2:
         full_wing_x = np.array([0., chord])
 
-    for ind_x in xrange(num_x):
-        for ind_y in xrange(num_y):
+    for ind_x in range(num_x):
+        for ind_y in range(num_y):
             mesh[ind_x, ind_y, :] = [full_wing_x[ind_x], full_wing[ind_y], 0]
 
     return mesh

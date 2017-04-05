@@ -22,15 +22,6 @@ except:
     fortran_flag = False
     data_type = complex
 
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
-    import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
-    plt.show()
-
 
 def norm(vec):
     """ Finds the 2-norm of a vector. """
@@ -167,7 +158,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             # Python matrix assembly
             else:
                 # Spanwise loop through horseshoe elements
-                for el_j in xrange(ny_ - 1):
+                for el_j in range(ny_ - 1):
                     el_loc_j = el_j * (nx_ - 1)
                     C_te = mesh[-1, el_j + 1, :]
                     D_te = mesh[-1, el_j + 0, :]
@@ -180,11 +171,11 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                         D_te_sym[1] = -D_te_sym[1]
 
                     # Spanwise loop through control points
-                    for cp_j in xrange(ny - 1):
+                    for cp_j in range(ny - 1):
                         cp_loc_j = cp_j * (nx - 1)
 
                         # Chordwise loop through control points
-                        for cp_i in xrange(nx - 1):
+                        for cp_i in range(nx - 1):
                             cp_loc = cp_i + cp_loc_j
 
                             P = pts[cp_i, cp_j]
@@ -226,7 +217,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                             # to the leading edge. This is done to sum the
                             # AIC contributions from the side vortex filaments
                             # as we loop through the elements
-                            for el_i in reversed(xrange(nx_ - 1)):
+                            for el_i in reversed(range(nx_ - 1)):
                                 el_loc = el_i + el_loc_j
 
                                 A = bpts[el_i, el_j + 0, :]
@@ -547,7 +538,7 @@ class VLMGeometry(Component):
             axis=2)
 
         norms = np.sqrt(np.sum(normals**2, axis=2))
-        for j in xrange(3):
+        for j in range(3):
             normals[:, :, j] /= norms
 
         if self.surface['S_ref_type'] == 'wetted':
@@ -755,7 +746,7 @@ class AssembleAIC(Component):
         # Construct a matrix that is the AIC_mtx dotted by the normals at each
         # collocation point. This is used to compute the circulations
         self.mtx[:, :] = 0.
-        for ind in xrange(3):
+        for ind in range(3):
             self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
                 flattened_normals[:, ind]).T
 
@@ -798,7 +789,7 @@ class AssembleAIC(Component):
             # Construct a matrix that is the AIC_mtx dotted by the normals at each
             # collocation point. This is used to compute the circulations
             self.mtx[:, :] = 0.
-            for ind in xrange(3):
+            for ind in range(3):
                 self.mtx[:, :] += (AIC_mtxd[:, :, ind].T *
                     flattened_normals[:, ind]).T
                 self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
@@ -842,7 +833,7 @@ class AssembleAIC(Component):
 
             AIC_mtxb = np.zeros((self.tot_panels, self.tot_panels, 3))
             flattened_normalsb = np.zeros(flattened_normals.shape)
-            for ind in xrange(3):
+            for ind in range(3):
                 AIC_mtxb[:, :, ind] = (dresids['AIC'].T * flattened_normals[:, ind]).T
                 flattened_normalsb[:, ind] += np.sum(self.AIC_mtx[:, :, ind].real * dresids['AIC'], axis=1).T
 
@@ -1054,7 +1045,7 @@ class VLMForces(Component):
 
         # Compute the induced velocities at the midpoints of the
         # bound vortex filaments
-        for ind in xrange(3):
+        for ind in range(3):
             self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
 
         # Add the freestream velocity to the induced velocity so that
@@ -1085,7 +1076,7 @@ class VLMForces(Component):
 
                 sec_forces = np.zeros(((nx-1)*(ny-1), 3), dtype=data_type)
                 # Compute the sectional forces acting on each panel
-                for ind in xrange(3):
+                for ind in range(3):
                     sec_forces[:, ind] = \
                         (params['rho'] * circ[i:i+num_panels] * cross[:, ind])
 
@@ -1115,7 +1106,7 @@ class VLMForces(Component):
 
             # Compute the induced velocities at the midpoints of the
             # bound vortex filaments
-            for ind in xrange(3):
+            for ind in range(3):
                 vd[:, ind] += mtxd[:, :, ind].dot(circ)
                 vd[:, ind] += self.mtx[:, :, ind].real.dot(dparams['circulations'])
 
