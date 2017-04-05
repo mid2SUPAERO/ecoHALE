@@ -1,11 +1,8 @@
-[![Build Status](https://travis-ci.org/johnjasa/OpenAeroStruct.svg?branch=dev)](https://travis-ci.org/johnjasa/OpenAeroStruct)
-[![Documentation Status](https://readthedocs.org/projects/openaerostruct/badge/?version=latest)](http://openaerostruct.readthedocs.io/en/latest/?badge=latest)
-[![Coverage Status](https://coveralls.io/repos/github/johnjasa/OpenAeroStruct/badge.svg?branch=master)](https://coveralls.io/github/johnjasa/OpenAeroStruct?branch=master)
-
-
 # OpenAeroStruct
 
 OpenAeroStruct is a lightweight Python tool to perform aerostructural optimization of lifting surfaces using OpenMDAO. It uses a vortex lattice method (VLM) for the aerodynamics analysis and a spatial beam model with 6-DOF per element for the structural analysis.
+
+Documentation is available [here](http://openaerostruct.readthedocs.io/en/latest/).
 
 ![Optimized CRM-type wing with 30 panels](/example.png?raw=true "Example Optimization Result and Visualization")
 
