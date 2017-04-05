@@ -221,7 +221,7 @@ class AssembleK(Component):
         self.T = np.zeros((3, 3), dtype=data_type)
 
         self.K = np.zeros((size, size), dtype=data_type)
-        self.forces = np.zeros(size, dtype=data_type)
+        self.forces = np.zeros((size), dtype=data_type)
 
         self.K_a = np.zeros((2, 2), dtype=data_type)
         self.K_t = np.zeros((2, 2), dtype=data_type)

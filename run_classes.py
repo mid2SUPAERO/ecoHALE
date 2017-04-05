@@ -344,7 +344,6 @@ class OASProblem(object):
 
         try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
-            f
             self.prob.driver = pyOptSparseDriver()
             if self.prob_dict['optimizer'] == 'SNOPT':
                 self.prob.driver.options['optimizer'] = "SNOPT"

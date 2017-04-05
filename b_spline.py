@@ -80,35 +80,3 @@ def get_bspline_mtx(num_cp, num_pt, order=4):
 
     return scipy.sparse.csr_matrix((data, (rows, cols)),
                                    shape=(num_pt, num_cp))
-
-if __name__ == "__main__":
-
-
-    num_cp = 5
-    num_pt = 100
-    rng = 5 # 700 * 1.852 / 1e3
-    alt = 11
-
-    lins = np.linspace(0, 1, num_cp)
-    cos_dist = 0.5 * (1 - np.cos(lins * np.pi))
-    x_cp = rng * cos_dist
-    h_cp = alt * np.sin(np.pi * cos_dist)
-
-    import time
-    t0 = time.time()
-    jac = get_bspline_mtx(num_cp, num_pt)
-    print(time.time() - t0)
-
-
-    h_cp[3] += 2
-
-
-    x = jac.dot(x_cp)
-    h = jac.dot(h_cp)
-
-
-
-    import pylab
-    pylab.plot(x_cp, h_cp, 'o')
-    pylab.plot(x, h)
-    pylab.show()

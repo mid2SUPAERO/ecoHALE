@@ -1,8 +1,8 @@
 from __future__ import division, print_function
 import sys
 from time import time
-import numpy as np
 import unittest
+import numpy as np
 
 from OpenAeroStruct import OASProblem
 
@@ -96,6 +96,27 @@ class TestAero(unittest.TestCase):
             OAS_prob = OASProblem({'type' : 'aero',
                                    'optimize' : True,
                                    'optimizer' : 'SLSQP'})
+            OAS_prob.add_surface()
+            OAS_prob.setup()
+
+            OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+            OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
+            OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
+            OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+            OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
+            OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+            OAS_prob.run()
+            prob = OAS_prob.prob
+            self.assertAlmostEqual(prob['wing_perf.CD'], 0.0040728244243814962, places=5)
+
+    if fortran_flag:
+        def test_aero_optimization_fd(self):
+            # Need to use SLSQP here because SNOPT finds a different optimum
+            OAS_prob = OASProblem({'type' : 'aero',
+                                   'optimize' : True,
+                                   'optimizer' : 'SLSQP',
+                                   'force_fd' : True})
             OAS_prob.add_surface()
             OAS_prob.setup()
 
@@ -261,6 +282,21 @@ class TestStruct(unittest.TestCase):
             prob = OAS_prob.prob
             self.assertAlmostEqual(prob['wing.weight'], 532.76522856377937, places=2)
 
+    if fortran_flag:
+        def test_struct_optimization_symmetry_exact(self):
+            OAS_prob = OASProblem({'type' : 'struct',
+                                   'optimize' : True})
+            OAS_prob.add_surface({'exact_failure_constraint' : True})
+            OAS_prob.setup()
+
+            OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+            OAS_prob.add_constraint('wing.failure', upper=0.)
+            OAS_prob.add_objective('wing.weight', scaler=1e-3)
+
+            OAS_prob.run()
+            prob = OAS_prob.prob
+            self.assertAlmostEqual(prob['wing.weight'], 529.63585992333446, places=2)
+
 
 class TestAeroStruct(unittest.TestCase):
 
@@ -303,6 +339,46 @@ class TestAeroStruct(unittest.TestCase):
         self.assertAlmostEqual(prob['wing_perf.CL'], 0.76727243345999141)
         self.assertAlmostEqual(prob['wing_perf.failure'], -0.6066768432330637, places=5)
         self.assertAlmostEqual(prob['fuelburn'], 136257.17861685093, places=2)
+
+    def test_aerostruct_analysis_symmetry_deriv(self):
+        OAS_prob = OASProblem({'type' : 'aerostruct',
+                               'optimize' : False})
+        surf_dict = {'symmetry' : True,
+                  'num_y' : 7,
+                  'num_x' : 2,
+                  'wing_type' : 'CRM',
+                  'CL0' : 0.2,
+                  'CD0' : 0.015}
+        OAS_prob.add_surface(surf_dict)
+        OAS_prob.setup()
+        OAS_prob.run()
+        prob = OAS_prob.prob
+
+        data = prob.check_partial_derivatives(out_stream=None)
+
+        new_dict = {}
+        for key1 in data.keys():
+            for key2 in data[key1].keys():
+                for key3 in data[key1][key2].keys():
+                    if 'rel' in key3:
+                        error = np.linalg.norm(data[key1][key2][key3])
+                        new_key = key1+'_'+key2[0]+'_'+key2[1]+'_'+key3
+                        new_dict.update({new_key : error})
+
+        for key in new_dict.keys():
+            error = new_dict[key]
+            if not np.isnan(error):
+
+                # The FD check is not valid for these cases
+                if 'assembly_forces_Iy' in key or 'assembly_forces_J' in key or \
+                'assembly_forces_A' in key or 'assembly_K_loads' in key or \
+                'assembly_forces_loads' in key or 'assembly_forces_Iz' in key or \
+                'assembly_forces_nodes' in key:
+                    pass
+                elif 'K' in key or 'vonmises' in key:
+                    self.assertAlmostEqual(0., error, places=0)
+                else:
+                    self.assertAlmostEqual(0., error, places=2)
 
     if fortran_flag:
         def test_aerostruct_optimization(self):
