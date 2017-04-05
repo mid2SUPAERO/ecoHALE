@@ -340,22 +340,28 @@ class GeometryMesh(Component):
         # Variables that should be initialized to one
         ones_list = ['taper', 'chord_cp']
         # Variables that should be initialized to zero
-        zeros_list = ['span', 'sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'zshear_cp']
-        all_geo_vars = ones_list + zeros_list
+        zeros_list = ['sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'zshear_cp']
+        # Variables that should be initialized to given value
+        set_list = ['span']
+        all_geo_vars = ones_list + zeros_list + set_list
         self.geo_params = {}
         for var in all_geo_vars:
             if len(var.split('_')) > 1:
                 param = var.split('_')[0]
                 if var in ones_list:
                     val = np.ones(ny)
-                else:
+                elif var in zeros_list:
                     val = np.zeros(ny)
+                else:
+                    val = surface[var]
             else:
                 param = var
                 if var in ones_list:
                     val = 1.0
-                else:
+                elif var in zeros_list:
                     val = 0.0
+                else:
+                    val = surface[var]
             self.geo_params[param] = val
             if var in surface['active_geo_vars']:
                 self.add_param(param, val=val)
@@ -470,9 +476,11 @@ class MonotonicConstraint(Component):
 
     Parameters
     ----------
-    surface['monotonic_con'] : list or string
-        Contains the variables to which the user would like to apply the monotonic
-        constraint.
+    var_name : string
+        The variable to which the user would like to apply the monotonic constraint.
+
+    var_size : int
+        The size of the variable vector.
 
     Returns
     -------
@@ -480,34 +488,21 @@ class MonotonicConstraint(Component):
         Values are greater than 0 if the constrain is violated.
 
     """
-    def __init__(self, surface):
+    def __init__(self, var_name, var_size):
         super(MonotonicConstraint, self).__init__()
-        ny = surface['num_y']
-        self.var_list = []
-        self.con_list = []
-        if type(surface['monotonic_con']) is list:
-            for var in surface['monotonic_con']:
-                self.var_list.append(var)
-                self.con_list.append('monotonic_' + var)
-        else:
-            var = surface['monotonic_con']
-            self.var_list.append(var)
-            self.con_list.append('monotonic_' + var)
-
-        for i in range(len(self.var_list)):
-            self.add_param(self.var_list[i], val=np.zeros(ny), dtype=data_type)
-            self.add_output(self.con_list[i], val=np.zeros(ny-1))
+        self.var_name = var_name
+        self.con_name = 'monotonic_' + var_name
+        self.add_param(self.var_name, val=np.zeros(var_size), dtype=data_type)
+        self.add_output(self.con_name, val=np.zeros(var_size-1))
 
     def solve_nonlinear(self, params, unknowns, resids):
         # Compute the difference between adjacent variable values
-        for i in range(len(self.var_list)):
-            unknowns[self.con_list[i]] = params[self.var_list[i]][:-1] - params[self.var_list[i]][1:]
+        unknowns[self.con_name] = params[self.var_name][:-1] - params[self.var_name][1:]
 
     def linearize(self, params, unknowns, resids):
         jac = self.alloc_jacobian()
-        for i in range(len(self.var_list)):
-            np.fill_diagonal(jac[self.con_list[i], self.var_list[i]][:, :], 1)
-            np.fill_diagonal(jac[self.con_list[i], self.var_list[i]][:, 1:], -1)
+        np.fill_diagonal(jac[self.con_name, self.var_name][:, :], 1)
+        np.fill_diagonal(jac[self.con_name, self.var_name][:, 1:], -1)
         return jac
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):

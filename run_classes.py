@@ -143,9 +143,10 @@ class OASProblem(object):
                     'xshear_cp' : None,
                     'zshear_cp' : None,
 
-                    # Active geometric variables. This list can contain non-redundant
-                    # variables from the simple or b-spline geometric variable lists.
-                    'active_geo_vars' : ['twist_cp'],
+                    # Active geometric variables. This list can be reduced to only the
+                    # design variables if desired.
+                    'active_geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp',
+                        'zshear_cp', 'span', 'chord_cp', 'taper'],
 
                     # Zero-lift aerodynamic performance
                     'CL0' : 0.0,            # CL value at AoA (alpha) = 0
@@ -223,6 +224,8 @@ class OASProblem(object):
         if 'mesh' in surf_dict.keys():
             mesh = surf_dict['mesh']
             num_x, num_y = mesh.shape
+            quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
+            surf_dict['span'] = max(quarter_chord[:,1]) - min(quarter_chord[:,1])
 
         # If the user doesn't provide a mesh, obtain the values from surface
         # to create the mesh
@@ -438,7 +441,7 @@ class OASProblem(object):
             self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        # view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         # If `optimize` == True in prob_dict, perform optimization. Otherwise,
         # simply pass the problem since analysis has already been run.
@@ -450,7 +453,7 @@ class OASProblem(object):
             self.prob.run()
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivatives(compact_print=True)
+        self.prob.check_partial_derivatives(compact_print=True)
 
 
     def setup_struct(self):
@@ -571,7 +574,11 @@ class OASProblem(object):
                          Bspline(var, trunc_var, surface['num_'+var], surface['num_y']),
                          promotes=['*'])
             if surface['monotonic_con'] is not None:
-                tmp_group.add('monotonic_con', MonotonicConstraint(surface), promotes=['*'])
+                if type(surface['monotonic_con']) is not list:
+                    surface['monotonic_con'] = [surface['monotonic_con']]
+                for var in surface['monotonic_con']:
+                    tmp_group.add('monotonic_' + var,
+                        MonotonicConstraint(var, surface['num_y']), promotes=['*'])
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each
