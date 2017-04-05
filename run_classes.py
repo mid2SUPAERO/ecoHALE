@@ -1,6 +1,14 @@
 """
 The OASProblem class contains all of the methods necessary to set up and run
 aerostructural optimization using OpenAeroStruct.
+
+Check the default dictionary functions to see the default options for the
+lifting surfaces and for the entire problem.
+Additionally, the setup() and run() methods for each type of analysis and
+optimization are defined below.
+The portions of the code concerning multiple surfaces may be confusing, but if
+you are only interested in using one surface, you can gloss over some of the
+details there.
 """
 
 # =============================================================================
@@ -166,7 +174,7 @@ class OASProblem(object):
         """
 
         defaults = {'optimize' : False,      # flag for analysis or optimization
-                    'optimizer' : 'SNOPT',         # default optimizer
+                    'optimizer' : 'SNOPT',   # default optimizer
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,            # angle of attack

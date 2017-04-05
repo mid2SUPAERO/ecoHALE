@@ -4,6 +4,11 @@ from time import time
 import unittest
 import numpy as np
 
+# Append the parent directory to the system path so we can call those Python
+# files. If you have OpenAeroStruct in your PYTHONPATH, this is not necessary.
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
 from OpenAeroStruct import OASProblem
 
 try:
@@ -186,13 +191,14 @@ class TestAero(unittest.TestCase):
             OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.chord_dist_cp', lower=0.1, upper=3.)
+            OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
-            OAS_prob.add_constraint('wing.S_ref', equals=10)
+            OAS_prob.add_constraint('wing.S_ref', equals=5)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.018862691500514343, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'], 0.019215656540240725, places=5)
 
     if fortran_flag:
         def test_aero_multiple_opt(self):
