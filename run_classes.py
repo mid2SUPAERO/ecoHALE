@@ -122,6 +122,11 @@ class OASProblem(object):
         Obtain the default settings for the surface descriptions. Note that
         these defaults are overwritten based on user input for each surface.
         Each dictionary describes one surface.
+
+        Returns
+        -------
+        defaults : dict
+            A python dict containing the default surface-level settings.
         """
 
         defaults = {
@@ -147,10 +152,11 @@ class OASProblem(object):
                                     # the surface from its default location
                     'symmetry' : True,     # if true, model one half of wing
                                             # reflected across the plane y = 0
-                    'S_ref_type' : 'wetted',      # 'wetted' or 'projected'
+                    'S_ref_type' : 'wetted', # how we compute the wing area,
+                                             # can be 'wetted' or 'projected'
 
                     # Simple Geometric Variables
-                    'span' : 10.,           # full wingspan
+                    'span' : 10.,           # full wingspan, even for symmetric cases
                     'dihedral' : 0.,        # wing dihedral angle in degrees
                                             # positive is upward
                     'sweep' : 0.,           # wing sweep angle in degrees
@@ -187,8 +193,7 @@ class OASProblem(object):
                     'G' : 30.e9,            # [Pa] shear modulus of the spar
                     'stress' : 20.e6,       # [Pa] yield stress
                     'mrho' : 3.e3,          # [kg/m^3] material density
-                    'fem_origin' : 0.35,    # chordwise location of the spar
-
+                    'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
 
                     # Constraints
@@ -202,24 +207,34 @@ class OASProblem(object):
         """
         Obtain the default settings for the problem description. Note that
         these defaults are overwritten based on user input for the problem.
+
+        Returns
+        -------
+        defaults : dict
+            A python dict containing the default problem-level settings.
         """
 
-        defaults = {'optimize' : False,      # flag for analysis or optimization
+        defaults = {
+                    # Problem and solver options
+                    'optimize' : False,      # flag for analysis or optimization
                     'optimizer' : 'SNOPT',   # default optimizer
-                    'Re' : 1e6,              # Reynolds number
-                    'reynolds_length' : 1.0, # characteristic Reynolds length
-                    'alpha' : 5.,            # angle of attack
-                    'CT' : 9.80665 * 17.e-6, # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
-                    'R' : 14.3e6,            # [m] maximum range
-                    'M' : 0.84,              # Mach number at cruise
-                    'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
-                    'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
                     'force_fd' : False,      # if true, we FD over the whole model
                     'with_viscous' : False,  # if true, compute viscous drag
                     'print_level' : 0,       # int to control output during optimization
                                              # 0 for no additional printing
                                              # 1 for nonlinear solver printing
                                              # 2 for nonlinear and linear solver printing
+                    # Flow properties
+                    'Re' : 1e6,              # Reynolds number
+                    'reynolds_length' : 1.0, # characteristic Reynolds length
+                    'alpha' : 5.,            # [degrees] angle of attack
+                    'M' : 0.84,              # Mach number at cruise
+                    'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
+                    'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
+
+                    # Aircraft properties
+                    'CT' : 9.80665 * 17.e-6, # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
+                    'R' : 14.3e6,            # [m] maximum range
                     }
 
         return defaults
@@ -289,8 +304,7 @@ class OASProblem(object):
         else:
             Error("Please either provide a mesh or a valid set of parameters.")
 
-        # Compute span. Not why exactly, but we need .real to make span
-        # only real and not complex to avoid OpenMDAO warnings.
+        # Compute span. We need .real to make span to avoid OpenMDAO warnings.
         quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
         surf_dict['span'] = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
         if surf_dict['symmetry']:
@@ -360,7 +374,7 @@ class OASProblem(object):
             surf_dict['thickness_cp'] *= np.max(surf_dict['t'])
 
         # Set default loads at the tips
-        loads = np.zeros((r.shape[0] + 1, 6), dtype='complex')
+        loads = np.zeros((r.shape[0] + 1, 6), dtype=data_type)
         loads[0, 2] = 1e3
         if not surf_dict['symmetry']:
             loads[-1, 2] = 1e3
@@ -383,8 +397,8 @@ class OASProblem(object):
 
     def setup_prob(self):
         """
-        Short method to select the optimizer. Uses SNOPT if available,
-        or SLSQP otherwise.
+        Short method to select the optimizer. Uses pyOptSparse if available,
+        or Scipy's SLSQP otherwise.
         """
 
         try:  # Use pyOptSparse optimizer if installed
@@ -689,6 +703,10 @@ class OASProblem(object):
         """
         Specific method to add the necessary components to the problem for an
         aerostructural problem.
+
+        Because this code has been extended to work for multiple aerostructural
+        surfaces, a good portion of it is spent doing the bookkeeping for parameter
+        passing and ensuring that each component modifies the correct data.
         """
 
         # Set the problem name if the user doesn't
@@ -839,7 +857,6 @@ class OASProblem(object):
         coupled.ln_solver = ScipyGMRES()
         coupled.ln_solver.preconditioner = LinearGaussSeidel()
         coupled.aero_states.ln_solver = LinearGaussSeidel()
-
         coupled.nl_solver = NLGaussSeidel()
 
         if self.prob_dict['print_level'] == 2:

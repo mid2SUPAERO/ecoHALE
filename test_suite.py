@@ -145,7 +145,7 @@ class TestAero(unittest.TestCase):
                                    'with_viscous' : False})
             OAS_prob.add_surface({
             'chord_cp' : np.random.random(5),
-            'num_y' : 21,
+            'num_y' : 11,
             'monotonic_con' : ['chord'],
             'span_cos_spacing' : 0.,
             })
@@ -161,8 +161,35 @@ class TestAero(unittest.TestCase):
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.00060238294097975553, places=5)
-            self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -0.88962717780055134, places=4)
+            self.assertAlmostEqual(prob['wing_perf.CD'], 0.00057432581266351113, places=5)
+            self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=4)
+
+        if fortran_flag:
+            def test_aero_optimization_chord_monotonic_no_sym(self):
+                OAS_prob = OASProblem({'type' : 'aero',
+                                       'optimize' : True,
+                                       'symmetry' : False,
+                                       'with_viscous' : False})
+                OAS_prob.add_surface({
+                'chord_cp' : np.random.random(5),
+                'num_y' : 11,
+                'monotonic_con' : ['chord'],
+                'span_cos_spacing' : 0.,
+                })
+
+                OAS_prob.add_desvar('wing.chord_cp', lower=0.1, upper=5.)
+                OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+                OAS_prob.add_constraint('wing_perf.CL', equals=0.1)
+                OAS_prob.add_constraint('wing.S_ref', equals=10)
+                OAS_prob.add_constraint('wing.monotonic_chord', upper=0.)
+                OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+                OAS_prob.setup()
+
+                OAS_prob.run()
+                prob = OAS_prob.prob
+                self.assertAlmostEqual(prob['wing_perf.CD'], 0.00057432581266351113, places=5)
+                self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=4)
 
     if fortran_flag:
         def test_aero_viscous_optimization(self):

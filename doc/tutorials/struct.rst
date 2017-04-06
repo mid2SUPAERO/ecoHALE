@@ -1,8 +1,7 @@
 .. _Struct:
 
-=========
 Structural Optimization
-=========
+=======================
 
 The following Python script performs structural optimization to minimize weight while varying thickness subject to a stress failure constraint.
 
@@ -21,17 +20,17 @@ The following Python script performs structural optimization to minimize weight 
                         'num_y' : 11,
                         'symmetry' : True})
 
-  # Setup problem and add design variables, constraint, and objective
-  OAS_prob.setup()
+  # Add design variables, constraint, and objective then setup problem
   OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
   OAS_prob.add_constraint('wing.failure', upper=0.)
   OAS_prob.add_objective('wing.weight', scaler=1e-3)
+  OAS_prob.setup()
 
   # Actually run the problem
   OAS_prob.run()
   print("\nWing weight:", OAS_prob.prob['wing.weight'])
 
-Which should output:
+Which should output the optimization results and then these lines:
 
 .. code-block:: console
 
@@ -55,7 +54,7 @@ Additionally, we import print_function to ensure compatibility between Python 2 
 
 We then create a dictionary containing options for the problem we want to solve.
 We define our problem as struct-only and that we want to perform optimization.
-Please see :meth:`OASProblem.get_default_prob_dict` within :doc:`../source/run_classes` to see the defaults for the problem options dictionary.
+Please see :meth:`OASProblem.get_default_prob_dict` within the :doc:`../source/run_classes` to see the defaults for the problem options dictionary.
 
 .. code-block:: python
 
@@ -79,11 +78,11 @@ These numbers correspond to the entire surface even though we are using symmetri
 
 .. code-block:: python
 
-  # Setup problem and add design variables, constraint, and objective
-  OAS_prob.setup()
+  # Add design variables, constraint, and objective then setup problem
   OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
   OAS_prob.add_constraint('wing.failure', upper=0.)
   OAS_prob.add_objective('wing.weight', scaler=1e-3)
+  OAS_prob.setup()
 
 First we set up the problem using OASProblem's built-in method and add optimization parameters.
 We set our design variables as the b-spline control points for the thickness distribution with bounds between 0.001 and 0.25 meters.
