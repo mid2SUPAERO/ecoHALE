@@ -24,6 +24,7 @@ import numpy as np
 # =============================================================================
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
 from openmdao.api import view_model
+from six import iteritems
 
 # =============================================================================
 # OpenAeroStruct modules
@@ -452,11 +453,11 @@ class OASProblem(object):
 
         # Actually call the OpenMDAO functions to add the design variables,
         # constraints, and objective.
-        for desvar_name, desvar_data in self.desvars.iteritems():
+        for desvar_name, desvar_data in iteritems(self.desvars):
             self.prob.driver.add_desvar(desvar_name, **desvar_data)
-        for con_name, con_data in self.constraints.iteritems():
+        for con_name, con_data in iteritems(self.constraints):
             self.prob.driver.add_constraint(con_name, **con_data)
-        for obj_name, obj_data in self.objective.iteritems():
+        for obj_name, obj_data in iteritems(self.objective):
             self.prob.driver.add_objective(obj_name, **obj_data)
 
         # Use finite differences over the entire model if user selected it
