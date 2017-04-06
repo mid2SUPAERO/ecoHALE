@@ -35,6 +35,14 @@ from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
+try:
+    import OAS_API
+    fortran_flag = True
+    data_type = float
+except:
+    fortran_flag = False
+    data_type = complex
+
 class Error(Exception):
     """
     Format the error message in a box to make it clear this
@@ -275,9 +283,10 @@ class OASProblem(object):
         else:
             Error("Please either provide a mesh or a valid set of parameters.")
 
-        # Compute span
+        # Compute span. Not why exactly, but we need .real to make span
+        # only real and not complex to avoid OpenMDAO warnings.
         quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
-        surf_dict['span'] = max(quarter_chord[:,1]) - min(quarter_chord[:,1])
+        surf_dict['span'] = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
         if surf_dict['symmetry']:
             surf_dict['span'] *= 2.
 
@@ -300,9 +309,9 @@ class OASProblem(object):
                 if numkey not in input_dict:
                     surf_dict[numkey] = np.max([int((num_y - 1) / 5), 5])
                 if var in ones_list:
-                    surf_dict[var] = np.ones(surf_dict[numkey])
+                    surf_dict[var] = np.ones(surf_dict[numkey], dtype=data_type)
                 else:
-                    surf_dict[var] = np.zeros(surf_dict[numkey])
+                    surf_dict[var] = np.zeros(surf_dict[numkey], dtype=data_type)
             else:
                 surf_dict[numkey] = len(surf_dict[var])
 
@@ -569,7 +578,7 @@ class OASProblem(object):
             tmp_group = Group()
 
             # Add independent variables that do not belong to a specific component
-            indep_vars = [('disp', np.zeros((surface['num_y'], 6)))]
+            indep_vars = [('disp', np.zeros((surface['num_y'], 6), dtype=data_type))]
             for var in surface['active_geo_vars']:
                 indep_vars.append((var, surface[var]))
 

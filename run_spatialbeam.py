@@ -21,6 +21,10 @@ sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 from OpenAeroStruct import OASProblem
 
+# Suppress warnings
+import warnings
+warnings.filterwarnings("ignore")
+
 if __name__ == "__main__":
 
     # Make sure that the user-supplied input is one of the valid options

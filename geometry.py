@@ -225,8 +225,6 @@ def dihedral(mesh, dihedral_angle, symmetry):
 def stretch(mesh, span, symmetry):
     """
 
-    .. warning:: This function does not currently work as intended.
-
     Stretch mesh in spanwise direction to reach specified span.
 
     Parameters
@@ -235,6 +233,8 @@ def stretch(mesh, span, symmetry):
         Nodal mesh defining the initial aerodynamic surface.
     span : float
         Relative stetch ratio in the spanwise direction.
+    symmetry : boolean
+        Flag set to true if surface is reflected about y=0 plane.
 
     Returns
     -------
@@ -514,7 +514,7 @@ class MonotonicConstraint(Component):
         return jac
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
-    """ Generate simple rectangular wing mesh.
+    """ Generate Common Research MOdel wing mesh.
 
     Parameters
     ----------
