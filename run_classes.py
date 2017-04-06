@@ -159,11 +159,12 @@ class OASProblem(object):
                     'xshear_cp' : None,
                     'zshear_cp' : None,
                     'thickness_cp' : None,
+                    'radius_cp' : None,
 
                     # Active geometric variables. This list can be reduced to only the
                     # design variables if desired.
                     'active_geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp',
-                        'zshear_cp', 'span', 'chord_cp', 'taper', 'thickness_cp'],
+                        'zshear_cp', 'span', 'chord_cp', 'taper', 'thickness_cp', 'radius_cp'],
 
                     # Zero-lift aerodynamic performance
                     'CL0' : 0.0,            # CL value at AoA (alpha) = 0
@@ -293,13 +294,18 @@ class OASProblem(object):
         # Apply the user-provided coordinate offset to position the mesh
         mesh = mesh + surf_dict['offset']
 
-        # Get the spar radius
-        r = radii(mesh)
+        # Get spar radii and interpolate to radius control points
+        if surf_dict['radius_cp'] is None:
+            if 'num_radius_cp' not in surf_dict:
+                surf_dict['num_radius_cp'] = np.max([int((num_y - 1) / 5), 5])
+            # Get the spar radius
+            surf_dict['radius'] = radii(mesh, surf_dict['t_over_c'])
+            panel_centers = (mesh[0, :-1, 1].real + mesh[0, 1:, 1].real) / 2.
+            s = panel_centers / (panel_centers[-1] - panel_centers[0])
+            surf_dict['radius_cp'] = np.interp(np.linspace(s[0], s[-1], surf_dict['num_radius_cp']),
+                s, surf_dict['radius'].real)
 
-        # Set the number of twist and thickness control points.
-        # These b-spline control points are what the optimizer sees
-        # and controls
-        ones_list = ['chord_cp', 'thickness_cp']
+        ones_list = ['chord_cp', 'thickness_cp', 'radius_cp']
         zeros_list = ['twist_cp', 'xshear_cp', 'zshear_cp']
         surf_dict['active_bsp_vars'] = list(set(surf_dict['active_geo_vars']) & set(ones_list + zeros_list))
 
@@ -310,13 +316,13 @@ class OASProblem(object):
                     surf_dict[numkey] = np.max([int((num_y - 1) / 5), 5])
                 if var in ones_list:
                     surf_dict[var] = np.ones(surf_dict[numkey], dtype=data_type)
-                else:
+                elif var in zeros_list:
                     surf_dict[var] = np.zeros(surf_dict[numkey], dtype=data_type)
             else:
                 surf_dict[numkey] = len(surf_dict[var])
 
-        # If the mesh generation provided an initial twist, set this within
-        # the surf_dict object
+        # Interpolate the twist values from the CRM wing definition to the twist
+        # control points
         if 'CRM' in surf_dict['wing_type']:
             num_twist = surf_dict['num_twist_cp']
 
@@ -345,16 +351,15 @@ class OASProblem(object):
         surf_dict['num_x'] = num_x
         surf_dict['num_y'] = num_y
         surf_dict['mesh'] = mesh
-        surf_dict['r'] = r
-        if 'CRM' in surf_dict['wing_type']:
-            surf_dict['t'] = r / 10
-        else:
-            surf_dict['t'] = r / 20
+
+        # Set initial thicknesses
+        surf_dict['thickness'] = surf_dict['radius'] / 10
+
         if 'thickness_cp' in surf_dict['active_geo_vars']:
-            surf_dict['thickness_cp'] *= np.max(surf_dict['t'])
+            surf_dict['thickness_cp'] *= np.max(surf_dict['thickness'])
 
         # Set default loads at the tips
-        loads = np.zeros((r.shape[0] + 1, 6), dtype='complex')
+        loads = np.zeros((surf_dict['radius'].shape[0] + 1, 6), dtype='complex')
         loads[0, 2] = 1e3
         if not surf_dict['symmetry']:
             loads[-1, 2] = 1e3
@@ -515,7 +520,7 @@ class OASProblem(object):
             # Add independent variables that do not belong to a specific component.
             # Note that these are the only ones necessary for structual-only
             # analysis and optimization.
-            indep_vars = [('r', surface['r']), ('loads', surface['loads'])]
+            indep_vars = [('loads', surface['loads'])]
             for var in surface['active_geo_vars']:
                 indep_vars.append((var, surface[var]))
 
@@ -538,7 +543,7 @@ class OASProblem(object):
             # Add bspline components for active bspline geometric variables
             for var in surface['active_bsp_vars']:
                 n_pts = surface['num_y']
-                if var == 'thickness_cp':
+                if var in ['thickness_cp', 'radius_cp']:
                     n_pts -= 1
                 trunc_var = var.split('_')[0]
                 tmp_group.add(trunc_var + '_bsp',
@@ -598,7 +603,7 @@ class OASProblem(object):
             # Add bspline components for active bspline geometric variables
             for var in surface['active_bsp_vars']:
                 n_pts = surface['num_y']
-                if var == 'thickness_cp':
+                if var in ['thickness_cp', 'radius_cp']:
                     n_pts -= 1
                 trunc_var = var.split('_')[0]
                 tmp_group.add(trunc_var + '_bsp',
@@ -697,7 +702,7 @@ class OASProblem(object):
             tmp_group = Group()
 
             # Add independent variables that do not belong to a specific component
-            indep_vars = [('r', surface['r'])]
+            indep_vars = []
             for var in surface['active_geo_vars']:
                 indep_vars.append((var, surface[var]))
 
@@ -714,7 +719,7 @@ class OASProblem(object):
             # Add bspline components for active bspline geometric variables
             for var in surface['active_bsp_vars']:
                 n_pts = surface['num_y']
-                if var == 'thickness_cp':
+                if var in ['thickness_cp', 'radius_cp']:
                     n_pts -= 1
                 trunc_var = var.split('_')[0]
                 tmp_group.add(trunc_var + '_bsp',
@@ -801,7 +806,7 @@ class OASProblem(object):
             root.connect(name[:-1] + '.J', 'coupled.' + name[:-1] + '.J')
 
             # Connect performance calculation variables
-            root.connect(name[:-1] + '.r', name + 'perf.r')
+            root.connect(name[:-1] + '.radius', name + 'perf.radius')
             root.connect(name[:-1] + '.A', name + 'perf.A')
 
             # Connection performance functional variables
