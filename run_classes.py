@@ -24,6 +24,7 @@ import numpy as np
 # =============================================================================
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
 from openmdao.api import view_model
+from six import iteritems
 
 # =============================================================================
 # OpenAeroStruct modules
@@ -111,11 +112,21 @@ class OASProblem(object):
         if self.prob_dict['type'] == 'aerostruct':
             self.setup = self.setup_aerostruct
 
+        # Set up dictionaries to hold user-inputted parameters for optimization
+        self.desvars = {}
+        self.constraints = {}
+        self.objective = {}
+
     def get_default_surf_dict(self):
         """
         Obtain the default settings for the surface descriptions. Note that
         these defaults are overwritten based on user input for each surface.
         Each dictionary describes one surface.
+
+        Returns
+        -------
+        defaults : dict
+            A python dict containing the default surface-level settings.
         """
 
         defaults = {
@@ -141,10 +152,11 @@ class OASProblem(object):
                                     # the surface from its default location
                     'symmetry' : True,     # if true, model one half of wing
                                             # reflected across the plane y = 0
-                    'S_ref_type' : 'wetted',      # 'wetted' or 'projected'
+                    'S_ref_type' : 'wetted', # how we compute the wing area,
+                                             # can be 'wetted' or 'projected'
 
                     # Simple Geometric Variables
-                    'span' : 10.,           # full wingspan
+                    'span' : 10.,           # full wingspan, even for symmetric cases
                     'dihedral' : 0.,        # wing dihedral angle in degrees
                                             # positive is upward
                     'sweep' : 0.,           # wing sweep angle in degrees
@@ -182,8 +194,7 @@ class OASProblem(object):
                     'G' : 30.e9,            # [Pa] shear modulus of the spar
                     'stress' : 20.e6,       # [Pa] yield stress
                     'mrho' : 3.e3,          # [kg/m^3] material density
-                    'fem_origin' : 0.35,    # chordwise location of the spar
-
+                    'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
 
                     # Constraints
@@ -197,24 +208,34 @@ class OASProblem(object):
         """
         Obtain the default settings for the problem description. Note that
         these defaults are overwritten based on user input for the problem.
+
+        Returns
+        -------
+        defaults : dict
+            A python dict containing the default problem-level settings.
         """
 
-        defaults = {'optimize' : False,      # flag for analysis or optimization
+        defaults = {
+                    # Problem and solver options
+                    'optimize' : False,      # flag for analysis or optimization
                     'optimizer' : 'SNOPT',   # default optimizer
-                    'Re' : 1e6,              # Reynolds number
-                    'reynolds_length' : 1.0, # characteristic Reynolds length
-                    'alpha' : 5.,            # angle of attack
-                    'CT' : 9.80665 * 17.e-6, # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
-                    'R' : 14.3e6,            # [m] maximum range
-                    'M' : 0.84,              # Mach number at cruise
-                    'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
-                    'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
                     'force_fd' : False,      # if true, we FD over the whole model
                     'with_viscous' : False,  # if true, compute viscous drag
                     'print_level' : 0,       # int to control output during optimization
                                              # 0 for no additional printing
                                              # 1 for nonlinear solver printing
                                              # 2 for nonlinear and linear solver printing
+                    # Flow properties
+                    'Re' : 1e6,              # Reynolds number
+                    'reynolds_length' : 1.0, # characteristic Reynolds length
+                    'alpha' : 5.,            # [degrees] angle of attack
+                    'M' : 0.84,              # Mach number at cruise
+                    'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
+                    'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
+
+                    # Aircraft properties
+                    'CT' : 9.80665 * 17.e-6, # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
+                    'R' : 14.3e6,            # [m] maximum range
                     }
 
         return defaults
@@ -284,8 +305,7 @@ class OASProblem(object):
         else:
             Error("Please either provide a mesh or a valid set of parameters.")
 
-        # Compute span. Not why exactly, but we need .real to make span
-        # only real and not complex to avoid OpenMDAO warnings.
+        # Compute span. We need .real to make span to avoid OpenMDAO warnings.
         quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
         surf_dict['span'] = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
         if surf_dict['symmetry']:
@@ -359,7 +379,7 @@ class OASProblem(object):
             surf_dict['thickness_cp'] *= np.max(surf_dict['thickness'])
 
         # Set default loads at the tips
-        loads = np.zeros((surf_dict['radius'].shape[0] + 1, 6), dtype='complex')
+        loads = np.zeros((surf_dict['radius'].shape[0] + 1, 6), dtype=data_type)
         loads[0, 2] = 1e3
         if not surf_dict['symmetry']:
             loads[-1, 2] = 1e3
@@ -382,8 +402,8 @@ class OASProblem(object):
 
     def setup_prob(self):
         """
-        Short method to select the optimizer. Uses SNOPT if available,
-        or SLSQP otherwise.
+        Short method to select the optimizer. Uses pyOptSparse if available,
+        or Scipy's SLSQP otherwise.
         """
 
         try:  # Use pyOptSparse optimizer if installed
@@ -428,27 +448,36 @@ class OASProblem(object):
 
     def add_desvar(self, *args, **kwargs):
         """
-        Helper function that calls the OpenMDAO method to add design variables.
+        Store the design variables and later add them to the OpenMDAO problem.
         """
-        self.prob.driver.add_desvar(*args, **kwargs)
+        self.desvars[str(*args)] = dict(**kwargs)
 
     def add_constraint(self, *args, **kwargs):
         """
-        Helper function that calls the OpenMDAO method to add constraints.
+        Store the constraints and later add them to the OpenMDAO problem.
         """
-        self.prob.driver.add_constraint(*args, **kwargs)
+        self.constraints[str(*args)] = dict(**kwargs)
 
     def add_objective(self, *args, **kwargs):
         """
-        Helper function that calls the OpenMDAO method to add objectives.
+        Store the objectives and later add them to the OpenMDAO problem.
         """
-        self.prob.driver.add_objective(*args, **kwargs)
+        self.objective[str(*args)] = dict(**kwargs)
 
     def run(self):
         """
         Method to actually run analysis or optimization. Also saves history in
         a .db file and creates an N2 diagram to view the problem hierarchy.
         """
+
+        # Actually call the OpenMDAO functions to add the design variables,
+        # constraints, and objective.
+        for desvar_name, desvar_data in iteritems(self.desvars):
+            self.prob.driver.add_desvar(desvar_name, **desvar_data)
+        for con_name, con_data in iteritems(self.constraints):
+            self.prob.driver.add_constraint(con_name, **con_data)
+        for obj_name, obj_data in iteritems(self.objective):
+            self.prob.driver.add_objective(obj_name, **obj_data)
 
         # Use finite differences over the entire model if user selected it
         if self.prob_dict['force_fd']:
@@ -529,7 +558,7 @@ class OASProblem(object):
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('mesh',
-                     GeometryMesh(surface),
+                     GeometryMesh(surface, self.desvars),
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),
@@ -592,7 +621,7 @@ class OASProblem(object):
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('mesh',
-                     GeometryMesh(surface),
+                     GeometryMesh(surface, self.desvars),
                      promotes=['*'])
             tmp_group.add('def_mesh',
                      TransferDisplacements(surface),
@@ -679,6 +708,10 @@ class OASProblem(object):
         """
         Specific method to add the necessary components to the problem for an
         aerostructural problem.
+
+        Because this code has been extended to work for multiple aerostructural
+        surfaces, a good portion of it is spent doing the bookkeeping for parameter
+        passing and ensuring that each component modifies the correct data.
         """
 
         # Set the problem name if the user doesn't
@@ -714,7 +747,7 @@ class OASProblem(object):
                      MaterialsTube(surface),
                      promotes=['*'])
             tmp_group.add('mesh',
-                     GeometryMesh(surface),
+                     GeometryMesh(surface, self.desvars),
                      promotes=['*'])
             # Add bspline components for active bspline geometric variables
             for var in surface['active_bsp_vars']:
@@ -829,7 +862,6 @@ class OASProblem(object):
         coupled.ln_solver = ScipyGMRES()
         coupled.ln_solver.preconditioner = LinearGaussSeidel()
         coupled.aero_states.ln_solver = LinearGaussSeidel()
-
         coupled.nl_solver = NLGaussSeidel()
 
         if self.prob_dict['print_level'] == 2:

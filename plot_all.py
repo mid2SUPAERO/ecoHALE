@@ -20,6 +20,7 @@ import tkFont
 import Tkinter as Tk
 import sys
 
+from six import iteritems
 import numpy as np
 
 try:
@@ -125,7 +126,7 @@ class Display(object):
         deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
         deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
 
-        for i, (case_name, case_data) in enumerate(self.db.iteritems()):
+        for i, (case_name, case_data) in enumerate(iteritems(self.db)):
 
             if i == 0:
                 pass

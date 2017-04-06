@@ -102,7 +102,6 @@ class TestAero(unittest.TestCase):
                                    'optimize' : True,
                                    'optimizer' : 'SLSQP'})
             OAS_prob.add_surface()
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
             OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
@@ -110,6 +109,8 @@ class TestAero(unittest.TestCase):
             OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -123,7 +124,6 @@ class TestAero(unittest.TestCase):
                                    'optimizer' : 'SLSQP',
                                    'force_fd' : True})
             OAS_prob.add_surface()
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
             OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
@@ -131,6 +131,8 @@ class TestAero(unittest.TestCase):
             OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -143,11 +145,10 @@ class TestAero(unittest.TestCase):
                                    'with_viscous' : False})
             OAS_prob.add_surface({
             'chord_cp' : np.random.random(5),
-            'num_y' : 21,
+            'num_y' : 11,
             'monotonic_con' : ['chord'],
             'span_cos_spacing' : 0.,
             })
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.chord_cp', lower=0.1, upper=5.)
             OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
@@ -156,10 +157,39 @@ class TestAero(unittest.TestCase):
             OAS_prob.add_constraint('wing.monotonic_chord', upper=0.)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 
+            OAS_prob.setup()
+
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.00060238294097975553, places=5)
-            self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -0.88962717780055134, places=4)
+            self.assertAlmostEqual(prob['wing_perf.CD'], 0.00057432581266351113, places=5)
+            self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=4)
+
+        if fortran_flag:
+            def test_aero_optimization_chord_monotonic_no_sym(self):
+                OAS_prob = OASProblem({'type' : 'aero',
+                                       'optimize' : True,
+                                       'symmetry' : False,
+                                       'with_viscous' : False})
+                OAS_prob.add_surface({
+                'chord_cp' : np.random.random(5),
+                'num_y' : 11,
+                'monotonic_con' : ['chord'],
+                'span_cos_spacing' : 0.,
+                })
+
+                OAS_prob.add_desvar('wing.chord_cp', lower=0.1, upper=5.)
+                OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+                OAS_prob.add_constraint('wing_perf.CL', equals=0.1)
+                OAS_prob.add_constraint('wing.S_ref', equals=10)
+                OAS_prob.add_constraint('wing.monotonic_chord', upper=0.)
+                OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+                OAS_prob.setup()
+
+                OAS_prob.run()
+                prob = OAS_prob.prob
+                self.assertAlmostEqual(prob['wing_perf.CD'], 0.00057432581266351113, places=5)
+                self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=4)
 
     if fortran_flag:
         def test_aero_viscous_optimization(self):
@@ -167,7 +197,6 @@ class TestAero(unittest.TestCase):
                                    'optimize' : True,
                                    'with_viscous' : True})
             OAS_prob.add_surface()
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
             OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
@@ -175,6 +204,8 @@ class TestAero(unittest.TestCase):
             OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -188,16 +219,18 @@ class TestAero(unittest.TestCase):
                                    'optimizer' : 'SLSQP',
                                    'with_viscous' : True})
             OAS_prob.add_surface()
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.chord_cp', lower=0.1, upper=3.)
+            OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_constraint('wing.S_ref', equals=10)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 
+            OAS_prob.setup()
+
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.018862691500514343, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'], 0.023507167684282196, places=5)
 
     if fortran_flag:
         def test_aero_multiple_opt(self):
@@ -211,7 +244,6 @@ class TestAero(unittest.TestCase):
             surf_dict.update({'name' : 'tail',
                            'offset' : np.array([0., 0., 10.])})
             OAS_prob.add_surface(surf_dict)
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('tail.twist_cp', lower=-10., upper=15.)
             OAS_prob.add_desvar('tail.sweep', lower=10., upper=30.)
@@ -219,6 +251,8 @@ class TestAero(unittest.TestCase):
             OAS_prob.add_desvar('tail.taper', lower=.5, upper=2.)
             OAS_prob.add_constraint('tail_perf.CL', equals=0.5)
             OAS_prob.add_objective('tail_perf.CD', scaler=1e4)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -264,11 +298,12 @@ class TestStruct(unittest.TestCase):
                                    'optimize' : True})
             OAS_prob.add_surface({'symmetry' : False,
                                 't_over_c': 0.15})
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
             OAS_prob.add_constraint('wing.failure', upper=0.)
             OAS_prob.add_objective('wing.weight', scaler=1e-3)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -280,11 +315,12 @@ class TestStruct(unittest.TestCase):
             OAS_prob = OASProblem({'type' : 'struct',
                                    'optimize' : True})
             OAS_prob.add_surface({'t_over_c': 0.15})
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
             OAS_prob.add_constraint('wing.failure', upper=0.)
             OAS_prob.add_objective('wing.weight', scaler=1e-3)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -296,11 +332,12 @@ class TestStruct(unittest.TestCase):
                                    'optimize' : True})
             OAS_prob.add_surface({'exact_failure_constraint' : True,
                                 't_over_c': 0.15})
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
             OAS_prob.add_constraint('wing.failure', upper=0.)
             OAS_prob.add_objective('wing.weight', scaler=1e-3)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -404,7 +441,6 @@ class TestAeroStruct(unittest.TestCase):
                       'symmetry' : False,
                       't_over_c': 0.15}
             OAS_prob.add_surface(surf_dict)
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
             OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
@@ -412,6 +448,8 @@ class TestAeroStruct(unittest.TestCase):
             OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('eq_con', equals=0.)
             OAS_prob.add_objective('fuelburn', scaler=1e-5)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -430,7 +468,6 @@ class TestAeroStruct(unittest.TestCase):
                       'CD0' : 0.015,
                       't_over_c': 0.15}
             OAS_prob.add_surface(surf_dict)
-            OAS_prob.setup()
 
             OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
             OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.25, scaler=1e2)
@@ -438,6 +475,8 @@ class TestAeroStruct(unittest.TestCase):
             OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('eq_con', equals=0.)
             OAS_prob.add_objective('fuelburn', scaler=1e-4)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
@@ -463,7 +502,6 @@ class TestAeroStruct(unittest.TestCase):
                               'offset':np.array([0., 0., 1.e7]),
                               't_over_c': 0.15})
             OAS_prob.add_surface(surf_dict)
-            OAS_prob.setup()
 
             # Add design variables and constraints for both the wing and tail
             OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
@@ -476,6 +514,8 @@ class TestAeroStruct(unittest.TestCase):
             OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('eq_con', equals=0.)
             OAS_prob.add_objective('fuelburn', scaler=1e-5)
+
+            OAS_prob.setup()
 
             OAS_prob.run()
             prob = OAS_prob.prob
