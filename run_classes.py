@@ -341,7 +341,8 @@ class OASProblem(object):
             surf_dict['t'] = r / 10
         else:
             surf_dict['t'] = r / 20
-        surf_dict['thickness_cp'] *= np.max(surf_dict['t'])
+        if 'thickness_cp' in surf_dict['active_geo_vars']:
+            surf_dict['thickness_cp'] *= np.max(surf_dict['t'])
 
         # Set default loads at the tips
         loads = np.zeros((r.shape[0] + 1, 6), dtype='complex')
