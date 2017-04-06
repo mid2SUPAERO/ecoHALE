@@ -9,7 +9,7 @@ The following Python script performs aerodynamic optimization to minimize drag w
 .. code-block:: python
 
   from __future__ import print_function
-  from run_classes import OASProblem
+  from OpenAeroStruct import OASProblem
 
   # Set problem type and instantiate problem
   prob_dict = {'type' : 'aero',
@@ -47,7 +47,7 @@ We will now go through each block of code to explain what is going on within Ope
 .. code-block:: python
 
   from __future__ import print_function
-  from run_classes import OASProblem
+  from OpenAeroStruct import OASProblem
 
 We import the OASProblem class from OpenAeroStruct, which is how we access the methods within OpenAeroStruct.
 Additionally, we import print_function to ensure compatibility between Python 2 and Python 3.

@@ -21,15 +21,6 @@ except:
     fortran_flag = False
     data_type = complex
 
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
-    import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
-    plt.show()
-
 
 def norm(vec):
     return np.sqrt(np.sum(vec**2))
@@ -80,7 +71,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
         K[:] = 0.
 
         # Loop over each element
-        for ielem in xrange(n-1):
+        for ielem in range(n-1):
 
             # Obtain the element nodes
             P0 = nodes[ielem, :]
@@ -94,7 +85,7 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
             T[1, :] = y_loc
             T[2, :] = z_loc
 
-            for ind in xrange(4):
+            for ind in range(4):
                 T_elem[3*ind:3*ind+3, 3*ind:3*ind+3] = T
 
             L = norm(P1 - P0)
@@ -138,8 +129,8 @@ def _assemble_system(nodes, A, J, Iy, Iz, loads,
         # Include a scaled identity matrix in the rows and columns
         # corresponding to the structural constraints.
         # Hardcoded 1 constraint for now.
-        for ind in xrange(1):
-            for k in xrange(6):
+        for ind in range(1):
+            for k in range(6):
                 K[-6+k, 6*cons+k] = 1.e9
                 K[6*cons+k, -6+k] = 1.e9
 
@@ -221,7 +212,7 @@ class AssembleK(Component):
         self.T = np.zeros((3, 3), dtype=data_type)
 
         self.K = np.zeros((size, size), dtype=data_type)
-        self.forces = np.zeros(size, dtype=data_type)
+        self.forces = np.zeros((size), dtype=data_type)
 
         self.K_a = np.zeros((2, 2), dtype=data_type)
         self.K_t = np.zeros((2, 2), dtype=data_type)
@@ -673,7 +664,7 @@ class SpatialBeamVonMisesTube(Component):
         else:
 
             num_elems = self.ny - 1
-            for ielem in xrange(self.ny-1):
+            for ielem in range(self.ny-1):
 
                 P0 = nodes[ielem, :]
                 P1 = nodes[ielem+1, :]

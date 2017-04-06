@@ -22,15 +22,6 @@ except:
     fortran_flag = False
     data_type = complex
 
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
-    import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
-    plt.show()
-
 
 def norm(vec):
     """ Finds the 2-norm of a vector. """
@@ -167,7 +158,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             # Python matrix assembly
             else:
                 # Spanwise loop through horseshoe elements
-                for el_j in xrange(ny_ - 1):
+                for el_j in range(ny_ - 1):
                     el_loc_j = el_j * (nx_ - 1)
                     C_te = mesh[-1, el_j + 1, :]
                     D_te = mesh[-1, el_j + 0, :]
@@ -180,11 +171,11 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                         D_te_sym[1] = -D_te_sym[1]
 
                     # Spanwise loop through control points
-                    for cp_j in xrange(ny - 1):
+                    for cp_j in range(ny - 1):
                         cp_loc_j = cp_j * (nx - 1)
 
                         # Chordwise loop through control points
-                        for cp_i in xrange(nx - 1):
+                        for cp_i in range(nx - 1):
                             cp_loc = cp_i + cp_loc_j
 
                             P = pts[cp_i, cp_j]
@@ -226,7 +217,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                             # to the leading edge. This is done to sum the
                             # AIC contributions from the side vortex filaments
                             # as we loop through the elements
-                            for el_i in reversed(xrange(nx_ - 1)):
+                            for el_i in reversed(range(nx_ - 1)):
                                 el_loc = el_i + el_loc_j
 
                                 A = bpts[el_i, el_j + 0, :]
@@ -504,6 +495,7 @@ class VLMGeometry(Component):
                         dtype=data_type))
         self.add_output('c_pts', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('widths', val=np.zeros((ny-1)))
+        self.add_output('cos_sweep', val=np.zeros((ny-1)))
         self.add_output('lengths', val=np.zeros((ny)))
         self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=0.)
@@ -522,12 +514,21 @@ class VLMGeometry(Component):
                 0.5 * 0.75 * mesh[1:,  1:, :]
 
         # Compute the widths of each panel
-        widths = mesh[0, 1:, 1] - mesh[0, :-1, 1]
+        qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
+        widths = np.linalg.norm(qc[1:, :] - qc[:-1, :], axis=1)
+
+        # Compute the numerator of the cosine of the sweep angle of each panel
+        # (we need this for the viscous drag dependence on sweep, and we only compute
+        # the numerator because the denominator of the cosine fraction is the width,
+        # which we have already computed. They are combined in the viscous drag
+        # calculation.)
+        cos_sweep = np.linalg.norm(qc[1:, [1,2]] - qc[:-1, [1,2]], axis=1)
 
         # Compute the cambered length of each chordwise set of mesh points
         dx = mesh[1:, :, 0] - mesh[:-1, :, 0]
+        dy = mesh[1:, :, 1] - mesh[:-1, :, 1]
         dz = mesh[1:, :, 2] - mesh[:-1, :, 2]
-        lengths = np.sum(np.sqrt(dx**2 + dz**2), axis=0)
+        lengths = np.sum(np.sqrt(dx**2 + dy**2 + dz**2), axis=0)
 
         # Compute the normal of each panel by taking the cross-product of
         # its diagonals. Note that this could be a nonplanar surface
@@ -537,15 +538,31 @@ class VLMGeometry(Component):
             axis=2)
 
         norms = np.sqrt(np.sum(normals**2, axis=2))
-        for j in xrange(3):
+        for j in range(3):
             normals[:, :, j] /= norms
 
-        S_ref = 0.5 * np.sum(norms)
+        if self.surface['S_ref_type'] == 'wetted':
+            S_ref = 0.5 * np.sum(norms)
+
+        elif self.surface['S_ref_type'] == 'projected':
+            proj_mesh = mesh.copy()
+            proj_mesh[:,:,2] = 0.
+            proj_normals = np.cross(
+                proj_mesh[:-1,  1:, :] - proj_mesh[1:, :-1, :],
+                proj_mesh[:-1, :-1, :] - proj_mesh[1:,  1:, :],
+                axis=2)
+
+            proj_norms = np.sqrt(np.sum(proj_normals**2, axis=2))
+            for j in xrange(3):
+                proj_normals[:, :, j] /= proj_norms
+
+            S_ref = 0.5 * np.sum(proj_norms)
 
         # Store each array
         unknowns['b_pts'] = b_pts
         unknowns['c_pts'] = c_pts
         unknowns['widths'] = widths
+        unknowns['cos_sweep'] = cos_sweep
         unknowns['lengths'] = lengths
         unknowns['normals'] = normals
         unknowns['S_ref'] = S_ref
@@ -561,17 +578,23 @@ class VLMGeometry(Component):
         ny = self.surface['num_y']
 
         if fortran_flag:
+
             normalsb = np.zeros(unknowns['normals'].shape)
             for i in range(nx-1):
                 for j in range(ny-1):
                     for ind in range(3):
                         normalsb[:, :, :] = 0.
                         normalsb[i, j, ind] = 1.
-                        meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 0.)
+                        meshb, _, _ = OAS_API.oas_api.compute_normals_b(mesh, normalsb, 0.)
                         jac['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
 
             normalsb[:, :, :] = 0.
-            meshb, _, _ = OAS_API.oas_api.compute_normals_b(params['def_mesh'], normalsb, 1.)
+            if self.surface['S_ref_type'] == 'wetted':
+                seed_mesh = mesh
+            elif self.surface['S_ref_type'] == 'projected':
+                seed_mesh = mesh.copy()
+                seed_mesh[:,:,2] = 0.
+            meshb, _, _ = OAS_API.oas_api.compute_normals_b(seed_mesh, normalsb, 1.)
             jac['S_ref', 'def_mesh'] = np.atleast_2d(meshb.flatten())
 
         else:
@@ -590,18 +613,40 @@ class VLMGeometry(Component):
                 np.fill_diagonal(jac['c_pts', 'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
+        jac['widths', 'def_mesh'] = np.zeros_like(jac['widths', 'def_mesh'])
+        jac['cos_sweep', 'def_mesh'] = np.zeros_like(jac['cos_sweep', 'def_mesh'])
+        qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
+        gap = [0, (nx-1)*ny*3]
+        factor = [0.75, 0.25]
         for i in range(ny-1):
-            jac['widths', 'def_mesh'][i, 3*i+1] = -1
-            jac['widths', 'def_mesh'][i, 3*i+4] =  1
+            w = unknowns['widths'][i]
+            cos_sweep = unknowns['cos_sweep'][i]
+            dx = (qc[i+1, 0] - qc[i, 0])
+            dy = (qc[i+1, 1] - qc[i, 1])
+            dz = (qc[i+1, 2] - qc[i, 2])
+            for j in range(2):
+                jac['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
+                jac['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w
+                jac['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j] / w
+                jac['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j] / w
+                jac['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j] / w
+                jac['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j] / w
+                jac['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] -= dy / cos_sweep * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy / cos_sweep * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] -= dz / cos_sweep * factor[j]
+                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz / cos_sweep * factor[j]
 
         jac['lengths', 'def_mesh'] = np.zeros_like(jac['lengths', 'def_mesh'])
         for i in range(ny):
             dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
+            dy = mesh[1:, i, 1] - mesh[:-1, i, 1]
             dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
             for j in range(nx-1):
-                l = np.sqrt(dx[j]**2 + dz[j]**2)
+                l = np.sqrt(dx[j]**2 + dy[j]**2 + dz[j]**2)
                 jac['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
                 jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
+                jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 1] -= dy[j] / l
+                jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 1] += dy[j] / l
                 jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
                 jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] += dz[j] / l
 
@@ -701,7 +746,7 @@ class AssembleAIC(Component):
         # Construct a matrix that is the AIC_mtx dotted by the normals at each
         # collocation point. This is used to compute the circulations
         self.mtx[:, :] = 0.
-        for ind in xrange(3):
+        for ind in range(3):
             self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
                 flattened_normals[:, ind]).T
 
@@ -744,7 +789,7 @@ class AssembleAIC(Component):
             # Construct a matrix that is the AIC_mtx dotted by the normals at each
             # collocation point. This is used to compute the circulations
             self.mtx[:, :] = 0.
-            for ind in xrange(3):
+            for ind in range(3):
                 self.mtx[:, :] += (AIC_mtxd[:, :, ind].T *
                     flattened_normals[:, ind]).T
                 self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
@@ -788,7 +833,7 @@ class AssembleAIC(Component):
 
             AIC_mtxb = np.zeros((self.tot_panels, self.tot_panels, 3))
             flattened_normalsb = np.zeros(flattened_normals.shape)
-            for ind in xrange(3):
+            for ind in range(3):
                 AIC_mtxb[:, :, ind] = (dresids['AIC'].T * flattened_normals[:, ind]).T
                 flattened_normalsb[:, ind] += np.sum(self.AIC_mtx[:, :, ind].real * dresids['AIC'], axis=1).T
 
@@ -1000,7 +1045,7 @@ class VLMForces(Component):
 
         # Compute the induced velocities at the midpoints of the
         # bound vortex filaments
-        for ind in xrange(3):
+        for ind in range(3):
             self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
 
         # Add the freestream velocity to the induced velocity so that
@@ -1031,7 +1076,7 @@ class VLMForces(Component):
 
                 sec_forces = np.zeros(((nx-1)*(ny-1), 3), dtype=data_type)
                 # Compute the sectional forces acting on each panel
-                for ind in xrange(3):
+                for ind in range(3):
                     sec_forces[:, ind] = \
                         (params['rho'] * circ[i:i+num_panels] * cross[:, ind])
 
@@ -1061,7 +1106,7 @@ class VLMForces(Component):
 
             # Compute the induced velocities at the midpoints of the
             # bound vortex filaments
-            for ind in xrange(3):
+            for ind in range(3):
                 vd[:, ind] += mtxd[:, :, ind].dot(circ)
                 vd[:, ind] += self.mtx[:, :, ind].real.dot(dparams['circulations'])
 
@@ -1266,7 +1311,7 @@ class ViscousDrag(Component):
         self.add_param('re', val=5.e6)
         self.add_param('M', val=.84)
         self.add_param('S_ref', val=0.)
-        self.add_param('sweep', val=0.0)
+        self.add_param('cos_sweep', val=np.zeros((self.ny-1)))
         self.add_param('widths', val=np.zeros((self.ny-1)))
         self.add_param('lengths', val=np.zeros((self.ny)))
         self.add_output('CDv', val=0.)
@@ -1277,12 +1322,13 @@ class ViscousDrag(Component):
             re = params['re']
             M = params['M']
             S_ref = params['S_ref']
-            sweep = params['sweep'] * np.pi / 180.
             widths = params['widths']
             lengths = params['lengths']
+            cos_sweep = params['cos_sweep'] / widths
 
             self.d_over_q = np.zeros((self.ny - 1))
 
+            # Take panel chord length to be average of its edge lengths
             chords = (lengths[1:] + lengths[:-1]) / 2.
             Re_c = re * chords
 
@@ -1305,16 +1351,18 @@ class ViscousDrag(Component):
             cd = (cdlam_tr - cdturb_tr)*self.k_lam + cdturb_total
 
             # Multiply by section width to get total normalized drag for section
-            # D_over_q = D / 0.5 / rho / v**2
+            # d_over_q = d / 0.5 / rho / v**2
             self.d_over_q = 2 * cd * chords
 
-            self.D_over_q = np.sum(self.d_over_q * widths)
-
             # Calculate form factor
-            FF = 1.34 * M**0.18 * np.cos(sweep)**0.28 * \
-                        (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
+            self.k_FF = 1.34 * M**0.18 * \
+                (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
+            FF = self.k_FF * cos_sweep**0.28
 
-            unknowns['CDv'] = FF * self.D_over_q / S_ref
+            # Sum individual panel drags to get total drag
+            self.D_over_q = np.sum(self.d_over_q * widths * FF)
+
+            unknowns['CDv'] = self.D_over_q / S_ref
         else:
             unknowns['CDv'] = 0.0
 
@@ -1329,16 +1377,13 @@ class ViscousDrag(Component):
             p180 = np.pi / 180.
             M = params['M']
             S_ref = params['S_ref']
-            sweep = params['sweep'] * p180
             widths = params['widths']
             lengths = params['lengths']
+            cos_sweep = params['cos_sweep'] / widths
 
             B = (1. + 0.144*M**2)**0.65
 
-            FF = 1.34 * M**0.18 * np.cos(sweep)**0.28 * \
-                        (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
-            FF_M = FF * 0.18 / M
-            D_over_q = 0.0
+            FF = self.k_FF * cos_sweep**0.28
 
             chords = (lengths[1:] + lengths[:-1]) / 2.
             Re_c = re * chords
@@ -1366,11 +1411,9 @@ class ViscousDrag(Component):
                 (self.d_over_q / 4 / chords + chords * cd_Re * re / 2.)
             jac['CDv', 'lengths'][0, 1:] += CDv_lengths
             jac['CDv', 'lengths'][0, :-1] += CDv_lengths
-
-            jac['CDv', 'widths'][0, :] = self.d_over_q * FF / S_ref
-            jac['CDv', 'S_ref'] = - self.D_over_q * FF / S_ref**2
-            jac['CDv', 'sweep'] = - self.D_over_q * FF / S_ref * \
-                0.28 * np.sin(sweep) / np.cos(sweep) * p180
+            jac['CDv', 'widths'][0, :] = self.d_over_q * FF / S_ref * 0.72
+            jac['CDv', 'S_ref'] = - self.D_over_q / S_ref**2
+            jac['CDv', 'cos_sweep'][0, :] = 0.28 * self.k_FF * self.d_over_q / S_ref / cos_sweep**0.72
 
         return jac
 

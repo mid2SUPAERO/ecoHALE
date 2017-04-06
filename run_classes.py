@@ -1,6 +1,14 @@
 """
 The OASProblem class contains all of the methods necessary to set up and run
 aerostructural optimization using OpenAeroStruct.
+
+Check the default dictionary functions to see the default options for the
+lifting surfaces and for the entire problem.
+Additionally, the setup() and run() methods for each type of analysis and
+optimization are defined below.
+The portions of the code concerning multiple surfaces may be confusing, but if
+you are only interested in using one surface, you can gloss over some of the
+details there.
 """
 
 # =============================================================================
@@ -20,12 +28,20 @@ from openmdao.api import view_model
 # =============================================================================
 # OpenAeroStruct modules
 # =============================================================================
-from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicTaper
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicConstraint
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, radii
 from materials import MaterialsTube
 from functionals import FunctionalBreguetRange, FunctionalEquilibrium
+
+try:
+    import OAS_API
+    fortran_flag = True
+    data_type = float
+except:
+    fortran_flag = False
+    data_type = complex
 
 class Error(Exception):
     """
@@ -103,14 +119,11 @@ class OASProblem(object):
         """
 
         defaults = {
-                    # General mesh shape definitions
+                    # Wing definition
                     'name' : 'wing',        # name of the surface
                     'num_x' : 3,            # number of chordwise points
                     'num_y' : 5,            # number of spanwise points
-                    'span' : 10.,           # full wingspan
-                    'chord' : 1.,           # root chord
-                    'symmetry' : True,      # if true, model one half of wing
-                                            # reflected across the plane y = 0
+                    'root_chord' : 1.,       # root chord
                     'span_cos_spacing' : 1,   # 0 for uniform spanwise panels
                                             # 1 for cosine-spaced panels
                                             # any value between 0 and 1 for
@@ -126,21 +139,37 @@ class OASProblem(object):
                                             # for the CRM shape at alpha=2.75
                     'offset' : np.array([0., 0., 0.]), # coordinates to offset
                                     # the surface from its default location
+                    'symmetry' : True,     # if true, model one half of wing
+                                            # reflected across the plane y = 0
+                    'S_ref_type' : 'wetted',      # 'wetted' or 'projected'
 
-                    # Mesh deformation values and settings
+                    # Simple Geometric Variables
+                    'span' : 10.,           # full wingspan
                     'dihedral' : 0.,        # wing dihedral angle in degrees
                                             # positive is upward
                     'sweep' : 0.,           # wing sweep angle in degrees
                                             # positive sweeps back
                     'taper' : 1.,           # taper ratio; 1. is uniform chord
 
-                    'twist' : None,
-                    'chord_dist' : None,
-                    'monotonic_taper' : False, # apply monotonic taper constraint
+                    # B-spline Geometric Variables. The number of control points
+                    # for each of these variables can be specified in surf_dict
+                    # by adding the prefix "num" to the variable (e.g. num_twist)
+                    'twist_cp' : None,
+                    'chord_cp' : None,
+                    'xshear_cp' : None,
+                    'zshear_cp' : None,
+                    'thickness_cp' : None,
 
-                    # Aerodynamic properties
+                    # Active geometric variables. This list can be reduced to only the
+                    # design variables if desired.
+                    'active_geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp',
+                        'zshear_cp', 'span', 'chord_cp', 'taper', 'thickness_cp'],
+
+                    # Zero-lift aerodynamic performance
                     'CL0' : 0.0,            # CL value at AoA (alpha) = 0
                     'CD0' : 0.0,            # CD value at AoA (alpha) = 0
+
+                    # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
                     't_over_c' : 0.12,      # thickness over chord ratio (NACA0012)
@@ -153,9 +182,13 @@ class OASProblem(object):
                     'stress' : 20.e6,       # [Pa] yield stress
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # chordwise location of the spar
-                    'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
-                    'exact_failure_constraint' : False, # if false, use KS function
 
+                    'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
+
+                    # Constraints
+                    'exact_failure_constraint' : False, # if false, use KS function
+                    'monotonic_con' : None, # add monotonic constraint to the given
+                                                # distributed variable
                     }
         return defaults
 
@@ -166,7 +199,7 @@ class OASProblem(object):
         """
 
         defaults = {'optimize' : False,      # flag for analysis or optimization
-                    'opt' : 'SNOPT',         # default optimizer
+                    'optimizer' : 'SNOPT',   # default optimizer
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,            # angle of attack
@@ -215,7 +248,7 @@ class OASProblem(object):
             num_x = surf_dict['num_x']
             num_y = surf_dict['num_y']
             span = surf_dict['span']
-            chord = surf_dict['chord']
+            chord = surf_dict['root_chord']
             span_cos_spacing = surf_dict['span_cos_spacing']
             chord_cos_spacing = surf_dict['chord_cos_spacing']
 
@@ -235,7 +268,7 @@ class OASProblem(object):
                 mesh, eta, twist = gen_crm_mesh(num_x, num_y, span, chord,
                     span_cos_spacing, chord_cos_spacing, surf_dict['wing_type'])
                 num_x, num_y = mesh.shape[:2]
-                surf_dict['twist'] = twist
+                surf_dict['crm_twist'] = twist
 
             else:
                 Error('wing_type option not understood. Must be either a type of ' +
@@ -250,6 +283,13 @@ class OASProblem(object):
         else:
             Error("Please either provide a mesh or a valid set of parameters.")
 
+        # Compute span. Not why exactly, but we need .real to make span
+        # only real and not complex to avoid OpenMDAO warnings.
+        quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
+        surf_dict['span'] = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
+        if surf_dict['symmetry']:
+            surf_dict['span'] *= 2.
+
         # Apply the user-provided coordinate offset to position the mesh
         mesh = mesh + surf_dict['offset']
 
@@ -259,60 +299,59 @@ class OASProblem(object):
         # Set the number of twist and thickness control points.
         # These b-spline control points are what the optimizer sees
         # and controls
-        if 'num_twist' not in input_dict.keys():
-            surf_dict['num_twist'] = np.max([int((num_y - 1) / 5), 5])
-        if 'num_thickness' not in input_dict.keys():
-            surf_dict['num_thickness'] = np.max([int((num_y - 1) / 5), 5])
-        if 'num_chord_dist' not in input_dict.keys():
-            surf_dict['num_chord_dist'] = np.max([int((num_y - 1) / 5), 5])
+        ones_list = ['chord_cp', 'thickness_cp']
+        zeros_list = ['twist_cp', 'xshear_cp', 'zshear_cp']
+        surf_dict['active_bsp_vars'] = list(set(surf_dict['active_geo_vars']) & set(ones_list + zeros_list))
+
+        for var in surf_dict['active_bsp_vars']:
+            numkey = 'num_' + var
+            if surf_dict[var] is None:
+                if numkey not in input_dict:
+                    surf_dict[numkey] = np.max([int((num_y - 1) / 5), 5])
+                if var in ones_list:
+                    surf_dict[var] = np.ones(surf_dict[numkey], dtype=data_type)
+                else:
+                    surf_dict[var] = np.zeros(surf_dict[numkey], dtype=data_type)
+            else:
+                surf_dict[numkey] = len(surf_dict[var])
 
         # If the mesh generation provided an initial twist, set this within
         # the surf_dict object
-        if surf_dict['twist'] is not None:
-            num_twist = surf_dict['num_twist']
+        if 'CRM' in surf_dict['wing_type']:
+            num_twist = surf_dict['num_twist_cp']
 
-            if 'CRM' in surf_dict['wing_type']:
-                # If the surface is symmetric, simply interpolate the initial
-                # twist_cp values based on the mesh data
-                if surf_dict['symmetry']:
-                    twist = np.interp(np.linspace(0, 1, num_twist), eta, surf_dict['twist'])
+            # If the surface is symmetric, simply interpolate the initial
+            # twist_cp values based on the mesh data
+            if surf_dict['symmetry']:
+                twist = np.interp(np.linspace(0, 1, num_twist), eta, surf_dict['crm_twist'])
+            else:
+
+                # If num_twist is odd, create the twist vector and mirror it
+                # then stack the two together, but remove the duplicated twist
+                # value.
+                if num_twist % 2:
+                    twist = np.interp(np.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['crm_twist'])
+                    twist = np.hstack((twist[:-1], twist[::-1]))
+
+                # If num_twist is even, mirror the twist vector and stack
+                # them together
                 else:
+                    twist = np.interp(np.linspace(0, 1, num_twist/2), eta, surf_dict['crm_twist'])
+                    twist = np.hstack((twist, twist[::-1]))
 
-                    # If num_twist is odd, create the twist vector and mirror it
-                    # then stack the two together, but remove the duplicated twist
-                    # value.
-                    if num_twist % 2:
-                        twist = np.interp(np.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['twist'])
-                        twist = np.hstack((twist[:-1], twist[::-1]))
-
-                    # If num_twist is even, mirror the twist vector and stack
-                    # them together
-                    else:
-                        twist = np.interp(np.linspace(0, 1, num_twist/2), eta, surf_dict['twist'])
-                        twist = np.hstack((twist, twist[::-1]))
-
-                surf_dict['twist'] = twist
-
-        # If not initial twist information is provided, simply use zero twist
-        else:
-            surf_dict['twist'] = np.zeros((surf_dict['num_twist']))
-
-        # If the user did not provide chord distribution information, set
-        # scalars for each chord to 1. so the planform is unchanged
-        if surf_dict['chord_dist'] is None:
-            surf_dict['chord_dist'] = np.ones((surf_dict['num_chord_dist']))
-
-        # If the user chose a random chord distribution, set a random array
-        # of scalars
-        elif surf_dict['chord_dist'] == 'random':
-            surf_dict['chord_dist'] = np.random.random((surf_dict['num_chord_dist']))
+            surf_dict['twist_cp'] = twist
 
         # Store updated values
         surf_dict['num_x'] = num_x
         surf_dict['num_y'] = num_y
         surf_dict['mesh'] = mesh
         surf_dict['r'] = r
-        surf_dict['t'] = r / 10
+        if 'CRM' in surf_dict['wing_type']:
+            surf_dict['t'] = r / 10
+        else:
+            surf_dict['t'] = r / 20
+        if 'thickness_cp' in surf_dict['active_geo_vars']:
+            surf_dict['thickness_cp'] *= np.max(surf_dict['t'])
 
         # Set default loads at the tips
         loads = np.zeros((r.shape[0] + 1, 6), dtype='complex')
@@ -345,7 +384,7 @@ class OASProblem(object):
         try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
-            if self.prob_dict['opt'] == 'SNOPT':
+            if self.prob_dict['optimizer'] == 'SNOPT':
                 self.prob.driver.options['optimizer'] = "SNOPT"
                 self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                                  'Major feasibility tolerance': 1.0e-8,
@@ -353,7 +392,7 @@ class OASProblem(object):
                                                  'Minor iterations limit':2000,
                                                  'Iterations limit':1000
                                                  }
-            elif self.prob_dict['opt'] == 'ALPSO':
+            elif self.prob_dict['optimizer'] == 'ALPSO':
                 self.prob.driver.options['optimizer'] = 'ALPSO'
                 self.prob.driver.opt_settings = {'SwarmSize': 40,
                                                 'maxOuterIter': 200,
@@ -363,7 +402,7 @@ class OASProblem(object):
                                                 'dtol': 1e-5,
                                                 'printOuterIters': 1
                                                  }
-            elif self.prob_dict['opt'] == 'NOMAD':
+            elif self.prob_dict['optimizer'] == 'NOMAD':
                 self.prob.driver.options['optimizer'] = 'NOMAD'
                 self.prob.driver.opt_settings = {'maxiter':1000,
                                                 'minmeshsize':1e-12,
@@ -371,11 +410,16 @@ class OASProblem(object):
                                                 'displaydegree':0,
                                                 'printfile':1
                                                 }
+            elif self.prob_dict['optimizer'] == 'SLSQP':
+                self.prob.driver.options['optimizer'] = 'SLSQP'
+                self.prob.driver.opt_settings = {
+                                                }
+
         except:  # Use Scipy SLSQP optimizer if pyOptSparse not installed
             self.prob.driver = ScipyOptimizer()
             self.prob.driver.options['optimizer'] = 'SLSQP'
             self.prob.driver.options['disp'] = True
-            self.prob.driver.options['tol'] = 1.0e-6
+            self.prob.driver.options['tol'] = 1.0e-10
 
     def add_desvar(self, *args, **kwargs):
         """
@@ -468,26 +512,16 @@ class OASProblem(object):
             name = surface['name']
             tmp_group = Group()
 
-            surface['r'] = surface['r']
-            surface['t'] = surface['r'] / 20
-
             # Add independent variables that do not belong to a specific component.
             # Note that these are the only ones necessary for structual-only
             # analysis and optimization.
-            indep_vars = [
-                ('thickness_cp', np.ones(surface['num_thickness'])*np.max(surface['t'])),
-                ('r', surface['r']),
-                ('loads', surface['loads'])]
+            indep_vars = [('r', surface['r']), ('loads', surface['loads'])]
+            for var in surface['active_geo_vars']:
+                indep_vars.append((var, surface[var]))
 
             # Add structural components to the surface-specific group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
-                     promotes=['*'])
-            tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
-                     promotes=['*'])
-            tmp_group.add('thickness_bsp',
-                     Bspline('thickness_cp', 'thickness', surface['num_thickness'], surface['num_y']-1),
                      promotes=['*'])
             tmp_group.add('mesh',
                      GeometryMesh(surface),
@@ -501,6 +535,15 @@ class OASProblem(object):
             tmp_group.add('struct_funcs',
                      SpatialBeamFunctionals(surface),
                      promotes=['*'])
+            # Add bspline components for active bspline geometric variables
+            for var in surface['active_bsp_vars']:
+                n_pts = surface['num_y']
+                if var == 'thickness_cp':
+                    n_pts -= 1
+                trunc_var = var.split('_')[0]
+                tmp_group.add(trunc_var + '_bsp',
+                         Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                         promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             # The default is 'wing'.
@@ -535,23 +578,13 @@ class OASProblem(object):
             tmp_group = Group()
 
             # Add independent variables that do not belong to a specific component
-            indep_vars = [
-                ('twist_cp', surface['twist']),
-                ('chord_dist_cp', surface['chord_dist']),
-                ('dihedral', surface['dihedral']),
-                ('sweep', surface['sweep']),
-                ('taper', surface['taper']),
-                ('disp', np.zeros((surface['num_y'], 6)))]
+            indep_vars = [('disp', np.zeros((surface['num_y'], 6), dtype=data_type))]
+            for var in surface['active_geo_vars']:
+                indep_vars.append((var, surface[var]))
 
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
-                     promotes=['*'])
-            tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
-                     promotes=['*'])
-            tmp_group.add('chord_dist_bsp',
-                     Bspline('chord_dist_cp', 'chord_dist', surface['num_chord_dist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('mesh',
                      GeometryMesh(surface),
@@ -562,10 +595,21 @@ class OASProblem(object):
             tmp_group.add('vlmgeom',
                      VLMGeometry(surface),
                      promotes=['*'])
-            if surface['monotonic_taper']:
-                tmp_group.add('monotonic_taper',
-                         MonotonicTaper(surface),
+            # Add bspline components for active bspline geometric variables
+            for var in surface['active_bsp_vars']:
+                n_pts = surface['num_y']
+                if var == 'thickness_cp':
+                    n_pts -= 1
+                trunc_var = var.split('_')[0]
+                tmp_group.add(trunc_var + '_bsp',
+                         Bspline(var, trunc_var, surface['num_'+var], n_pts),
                          promotes=['*'])
+            if surface['monotonic_con'] is not None:
+                if type(surface['monotonic_con']) is not list:
+                    surface['monotonic_con'] = [surface['monotonic_con']]
+                for var in surface['monotonic_con']:
+                    tmp_group.add('monotonic_' + var,
+                        MonotonicConstraint(var, surface), promotes=['*'])
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each
@@ -621,7 +665,7 @@ class OASProblem(object):
             root.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
             root.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
             root.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
-            root.connect(name[:-1] + '.sweep', name + 'perf' + '.sweep')
+            root.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
 
         # Actually set up the problem
         self.setup_prob()
@@ -653,27 +697,13 @@ class OASProblem(object):
             tmp_group = Group()
 
             # Add independent variables that do not belong to a specific component
-            indep_vars = [
-                ('twist_cp', surface['twist']),
-                ('thickness_cp', np.ones(surface['num_thickness'])*np.max(surface['t'])),
-                ('chord_dist_cp', surface['chord_dist']),
-                ('r', surface['r']),
-                ('dihedral', surface['dihedral']),
-                ('sweep', surface['sweep']),
-                ('taper', surface['taper'])]
+            indep_vars = [('r', surface['r'])]
+            for var in surface['active_geo_vars']:
+                indep_vars.append((var, surface[var]))
 
             # Add components to include in the surface's group
             tmp_group.add('indep_vars',
                      IndepVarComp(indep_vars),
-                     promotes=['*'])
-            tmp_group.add('twist_bsp',
-                     Bspline('twist_cp', 'twist', surface['num_twist'], surface['num_y']),
-                     promotes=['*'])
-            tmp_group.add('thickness_bsp',
-                     Bspline('thickness_cp', 'thickness', surface['num_thickness'], surface['num_y']-1),
-                     promotes=['*'])
-            tmp_group.add('chord_dist_bsp',
-                     Bspline('chord_dist_cp', 'chord_dist', surface['num_chord_dist'], surface['num_y']),
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),
@@ -681,6 +711,15 @@ class OASProblem(object):
             tmp_group.add('mesh',
                      GeometryMesh(surface),
                      promotes=['*'])
+            # Add bspline components for active bspline geometric variables
+            for var in surface['active_bsp_vars']:
+                n_pts = surface['num_y']
+                if var == 'thickness_cp':
+                    n_pts -= 1
+                trunc_var = var.split('_')[0]
+                tmp_group.add(trunc_var + '_bsp',
+                         Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                         promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name
@@ -777,6 +816,9 @@ class OASProblem(object):
             root.connect('coupled.' + name[:-1] + '.nodes', name + 'perf.nodes')
             root.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
             root.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
+            root.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
+            root.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
+            root.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
 
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyGMRES()

@@ -14,7 +14,16 @@ import sys
 from time import time
 import numpy as np
 
-from run_classes import OASProblem
+# Append the parent directory to the system path so we can call those Python
+# files. If you have OpenAeroStruct in your PYTHONPATH, this is not necessary.
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
+from OpenAeroStruct import OASProblem
+
+# Suppress warnings
+import warnings
+warnings.filterwarnings("ignore")
 
 if __name__ == "__main__":
 

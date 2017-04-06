@@ -70,17 +70,15 @@ Known Issues
 
 
 
-
-
-
-
-Indices and tables
+Tutorials and Indices
 ==================
 
 .. toctree::
    :maxdepth: 2
 
    tutorials.rst
+
+Check out the module index below to see the internal methods within each file and how they're used.
 
 * :ref:`genindex`
 * :ref:`modindex`

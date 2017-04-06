@@ -23,13 +23,6 @@ AR_FLAGS = -rvs
 # ------- Define Linker Flags ------------------------------------------
 LINKER_FLAGS = -undefined dynamic_lookup
 
-
-# ------- Define Petsc Info --- Should not need to modify this -----
-include ${PETSC_DIR}/lib/petsc/conf/variables
-#include ${PETSC_DIR}/conf/variables # PETSc 3.5
-PETSC_INCLUDE_FLAGS= ${PETSC_CC_INCLUDES} -I$(PETSC_DIR)
-PETSC_LINKER_FLAGS= ${PETSC_LIB}
-
 # Define potentially different python, python-config and f2py executables:
 PYTHON = python
 PYTHON-CONFIG = python-config
