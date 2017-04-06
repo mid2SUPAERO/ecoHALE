@@ -111,6 +111,11 @@ class OASProblem(object):
         if self.prob_dict['type'] == 'aerostruct':
             self.setup = self.setup_aerostruct
 
+        # Set up dictionaries to hold user-inputted parameters for optimization
+        self.desvars = {}
+        self.constraints = {}
+        self.objective = {}
+
     def get_default_surf_dict(self):
         """
         Obtain the default settings for the surface descriptions. Note that
@@ -423,27 +428,36 @@ class OASProblem(object):
 
     def add_desvar(self, *args, **kwargs):
         """
-        Helper function that calls the OpenMDAO method to add design variables.
+        Store the design variables and later add them to the OpenMDAO problem.
         """
-        self.prob.driver.add_desvar(*args, **kwargs)
+        self.desvars[str(*args)] = dict(**kwargs)
 
     def add_constraint(self, *args, **kwargs):
         """
-        Helper function that calls the OpenMDAO method to add constraints.
+        Store the constraints and later add them to the OpenMDAO problem.
         """
-        self.prob.driver.add_constraint(*args, **kwargs)
+        self.constraints[str(*args)] = dict(**kwargs)
 
     def add_objective(self, *args, **kwargs):
         """
-        Helper function that calls the OpenMDAO method to add objectives.
+        Store the objectives and later add them to the OpenMDAO problem.
         """
-        self.prob.driver.add_objective(*args, **kwargs)
+        self.objective[str(*args)] = dict(**kwargs)
 
     def run(self):
         """
         Method to actually run analysis or optimization. Also saves history in
         a .db file and creates an N2 diagram to view the problem hierarchy.
         """
+
+        # Actually call the OpenMDAO functions to add the design variables,
+        # constraints, and objective.
+        for desvar_name, desvar_data in self.desvars.iteritems():
+            self.prob.driver.add_desvar(desvar_name, **desvar_data)
+        for con_name, con_data in self.constraints.iteritems():
+            self.prob.driver.add_constraint(con_name, **con_data)
+        for obj_name, obj_data in self.objective.iteritems():
+            self.prob.driver.add_objective(obj_name, **obj_data)
 
         # Use finite differences over the entire model if user selected it
         if self.prob_dict['force_fd']:
@@ -524,7 +538,7 @@ class OASProblem(object):
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('mesh',
-                     GeometryMesh(surface),
+                     GeometryMesh(surface, self.desvars),
                      promotes=['*'])
             tmp_group.add('tube',
                      MaterialsTube(surface),
@@ -587,7 +601,7 @@ class OASProblem(object):
                      IndepVarComp(indep_vars),
                      promotes=['*'])
             tmp_group.add('mesh',
-                     GeometryMesh(surface),
+                     GeometryMesh(surface, self.desvars),
                      promotes=['*'])
             tmp_group.add('def_mesh',
                      TransferDisplacements(surface),
@@ -709,7 +723,7 @@ class OASProblem(object):
                      MaterialsTube(surface),
                      promotes=['*'])
             tmp_group.add('mesh',
-                     GeometryMesh(surface),
+                     GeometryMesh(surface, self.desvars),
                      promotes=['*'])
             # Add bspline components for active bspline geometric variables
             for var in surface['active_bsp_vars']:

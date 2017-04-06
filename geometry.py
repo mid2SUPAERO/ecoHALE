@@ -322,8 +322,21 @@ class GeometryMesh(Component):
         the geometric design variables.
     """
 
-    def __init__(self, surface):
+    def __init__(self, surface, desvars):
         super(GeometryMesh, self).__init__()
+
+        name = surface['name']
+
+        # Strip the surface names from the desvars list and save this
+        # modified list as self.desvars
+        self.desvars = []
+        for desvar in desvars.keys():
+
+            # Check to make sure that the surface's name is in the design
+            # variable and only add the desvar to the list if it corresponds
+            # to this surface.
+            if name[:-1] in desvar:
+                self.desvars.append(''.join(desvar.split('.')[1:]))
 
         ny = surface['num_y']
         self.mesh = surface['mesh']
