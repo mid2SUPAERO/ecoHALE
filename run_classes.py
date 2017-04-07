@@ -175,7 +175,7 @@ class OASProblem(object):
 
                     # Active geometric variables. This list can be reduced to only the
                     # design variables if desired.
-                    'active_geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp',
+                    'geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp',
                         'zshear_cp', 'span', 'chord_cp', 'taper', 'thickness_cp', 'radius_cp'],
 
                     # Zero-lift aerodynamic performance
@@ -327,17 +327,13 @@ class OASProblem(object):
 
         ones_list = ['chord_cp', 'thickness_cp', 'radius_cp']
         zeros_list = ['twist_cp', 'xshear_cp', 'zshear_cp']
-        surf_dict['active_bsp_vars'] = list(set(surf_dict['active_geo_vars']) & set(ones_list + zeros_list))
+        surf_dict['bsp_vars'] = list(set(surf_dict['geo_vars']) & set(ones_list + zeros_list))
 
-        for var in surf_dict['active_bsp_vars']:
+        for var in surf_dict['bsp_vars']:
             numkey = 'num_' + var
             if surf_dict[var] is None:
                 if numkey not in input_dict:
                     surf_dict[numkey] = np.max([int((num_y - 1) / 5), 5])
-                if var in ones_list:
-                    surf_dict[var] = np.ones(surf_dict[numkey], dtype=data_type)
-                elif var in zeros_list:
-                    surf_dict[var] = np.zeros(surf_dict[numkey], dtype=data_type)
             else:
                 surf_dict[numkey] = len(surf_dict[var])
 
@@ -375,7 +371,26 @@ class OASProblem(object):
         # Set initial thicknesses
         surf_dict['thickness'] = surf_dict['radius'] / 10
 
-        if 'thickness_cp' in surf_dict['active_geo_vars']:
+        # We now loop through the possible bspline variables and populate
+        # the 'initial_geo' list with the variables that the geometry
+        # or user provided. For example, the CRM wing defines an initial twist.
+        # We must treat this separately so we add a twist bspline component
+        # even if it is not a desvar.
+        surf_dict['initial_geo'] = []
+        for var in surf_dict['bsp_vars']:
+            numkey = 'num_' + var
+            if surf_dict[var] is None:
+
+                # Add the intialized geometry variables to either ones or zeros.
+                # These initial values do not perturb the mesh.
+                if var in ones_list:
+                    surf_dict[var] = np.ones(surf_dict[numkey], dtype=data_type)
+                elif var in zeros_list:
+                    surf_dict[var] = np.zeros(surf_dict[numkey], dtype=data_type)
+            else:
+                surf_dict['initial_geo'].append(var)
+
+        if 'thickness_cp' in surf_dict['geo_vars']:
             surf_dict['thickness_cp'] *= np.max(surf_dict['thickness'])
 
         # Set default loads at the tips
@@ -546,12 +561,26 @@ class OASProblem(object):
             name = surface['name']
             tmp_group = Group()
 
+            # Strip the surface names from the desvars list and save this
+            # modified list as self.desvars
+            desvar_names = []
+            for desvar in self.desvars.keys():
+
+                # Check to make sure that the surface's name is in the design
+                # variable and only add the desvar to the list if it corresponds
+                # to this surface.
+                if name[:-1] in desvar:
+                    desvar_names.append(''.join(desvar.split('.')[1:]))
+
             # Add independent variables that do not belong to a specific component.
             # Note that these are the only ones necessary for structual-only
             # analysis and optimization.
+            # Here we check and only add the variables that are desvars or a
+            # special var, radius, which is necessary to compute weight.
             indep_vars = [('loads', surface['loads'])]
-            for var in surface['active_geo_vars']:
-                indep_vars.append((var, surface[var]))
+            for var in surface['geo_vars']:
+                if var in desvar_names or 'radius' in var:
+                    indep_vars.append((var, surface[var]))
 
             # Add structural components to the surface-specific group
             tmp_group.add('indep_vars',
@@ -569,15 +598,19 @@ class OASProblem(object):
             tmp_group.add('struct_funcs',
                      SpatialBeamFunctionals(surface),
                      promotes=['*'])
-            # Add bspline components for active bspline geometric variables
-            for var in surface['active_bsp_vars']:
-                n_pts = surface['num_y']
-                if var in ['thickness_cp', 'radius_cp']:
-                    n_pts -= 1
-                trunc_var = var.split('_')[0]
-                tmp_group.add(trunc_var + '_bsp',
-                         Bspline(var, trunc_var, surface['num_'+var], n_pts),
-                         promotes=['*'])
+
+            # Add bspline components for active bspline geometric variables.
+            # We only add the component if the corresponding variable is a desvar
+            # or special (radius).
+            for var in surface['bsp_vars']:
+                if var in desvar_names or 'radius' in var:
+                    n_pts = surface['num_y']
+                    if var in ['thickness_cp', 'radius_cp']:
+                        n_pts -= 1
+                    trunc_var = var.split('_')[0]
+                    tmp_group.add(trunc_var + '_bsp',
+                             Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                             promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             # The default is 'wing'.
@@ -611,10 +644,22 @@ class OASProblem(object):
             name = surface['name']
             tmp_group = Group()
 
+            # Strip the surface names from the desvars list and save this
+            # modified list as self.desvars
+            desvar_names = []
+            for desvar in self.desvars.keys():
+
+                # Check to make sure that the surface's name is in the design
+                # variable and only add the desvar to the list if it corresponds
+                # to this surface.
+                if name[:-1] in desvar:
+                    desvar_names.append(''.join(desvar.split('.')[1:]))
+
             # Add independent variables that do not belong to a specific component
             indep_vars = [('disp', np.zeros((surface['num_y'], 6), dtype=data_type))]
-            for var in surface['active_geo_vars']:
-                indep_vars.append((var, surface[var]))
+            for var in surface['geo_vars']:
+                if var in desvar_names:
+                    indep_vars.append((var, surface[var]))
 
             # Add aero components to the surface-specific group
             tmp_group.add('indep_vars',
@@ -629,15 +674,20 @@ class OASProblem(object):
             tmp_group.add('vlmgeom',
                      VLMGeometry(surface),
                      promotes=['*'])
-            # Add bspline components for active bspline geometric variables
-            for var in surface['active_bsp_vars']:
-                n_pts = surface['num_y']
-                if var in ['thickness_cp', 'radius_cp']:
-                    n_pts -= 1
-                trunc_var = var.split('_')[0]
-                tmp_group.add(trunc_var + '_bsp',
-                         Bspline(var, trunc_var, surface['num_'+var], n_pts),
-                         promotes=['*'])
+
+            # Add bspline components for active bspline geometric variables.
+            # We only add the component if the corresponding variable is a desvar.
+            for var in surface['bsp_vars']:
+                if var in desvar_names:
+                    n_pts = surface['num_y']
+                    if var in ['thickness_cp', 'radius_cp']:
+                        n_pts -= 1
+                    trunc_var = var.split('_')[0]
+                    tmp_group.add(trunc_var + '_bsp',
+                             Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                             promotes=['*'])
+
+            # Add monotonic constraints for selected variables
             if surface['monotonic_con'] is not None:
                 if type(surface['monotonic_con']) is not list:
                     surface['monotonic_con'] = [surface['monotonic_con']]
@@ -734,10 +784,22 @@ class OASProblem(object):
             name = surface['name']
             tmp_group = Group()
 
+            # Strip the surface names from the desvars list and save this
+            # modified list as self.desvars
+            desvar_names = []
+            for desvar in self.desvars.keys():
+
+                # Check to make sure that the surface's name is in the design
+                # variable and only add the desvar to the list if it corresponds
+                # to this surface.
+                if name[:-1] in desvar:
+                    desvar_names.append(''.join(desvar.split('.')[1:]))
+
             # Add independent variables that do not belong to a specific component
             indep_vars = []
-            for var in surface['active_geo_vars']:
-                indep_vars.append((var, surface[var]))
+            for var in surface['geo_vars']:
+                if var in desvar_names or 'radius' in var or var in surface['initial_geo'] or 'thickness' in var:
+                    indep_vars.append((var, surface[var]))
 
             # Add components to include in the surface's group
             tmp_group.add('indep_vars',
@@ -749,15 +811,28 @@ class OASProblem(object):
             tmp_group.add('mesh',
                      GeometryMesh(surface, self.desvars),
                      promotes=['*'])
-            # Add bspline components for active bspline geometric variables
-            for var in surface['active_bsp_vars']:
-                n_pts = surface['num_y']
-                if var in ['thickness_cp', 'radius_cp']:
-                    n_pts -= 1
-                trunc_var = var.split('_')[0]
-                tmp_group.add(trunc_var + '_bsp',
-                         Bspline(var, trunc_var, surface['num_'+var], n_pts),
-                         promotes=['*'])
+
+            # Add bspline components for active bspline geometric variables.
+            # We only add the component if the corresponding variable is a desvar,
+            # a special parameter (radius), or if the user or geometry provided
+            # an initial distribution.
+            for var in surface['bsp_vars']:
+                if var in desvar_names or 'radius' in var or var in surface['initial_geo'] or 'thickness' in var:
+                    n_pts = surface['num_y']
+                    if var in ['thickness_cp', 'radius_cp']:
+                        n_pts -= 1
+                    trunc_var = var.split('_')[0]
+                    tmp_group.add(trunc_var + '_bsp',
+                             Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                             promotes=['*'])
+
+            # Add monotonic constraints for selected variables
+            if surface['monotonic_con'] is not None:
+                if type(surface['monotonic_con']) is not list:
+                    surface['monotonic_con'] = [surface['monotonic_con']]
+                for var in surface['monotonic_con']:
+                    tmp_group.add('monotonic_' + var,
+                        MonotonicConstraint(var, surface), promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name

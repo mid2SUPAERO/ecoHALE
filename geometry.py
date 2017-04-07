@@ -329,14 +329,14 @@ class GeometryMesh(Component):
 
         # Strip the surface names from the desvars list and save this
         # modified list as self.desvars
-        self.desvars = []
+        desvar_names = []
         for desvar in desvars.keys():
 
             # Check to make sure that the surface's name is in the design
             # variable and only add the desvar to the list if it corresponds
             # to this surface.
             if name[:-1] in desvar:
-                self.desvars.append(''.join(desvar.split('.')[1:]))
+                desvar_names.append(''.join(desvar.split('.')[1:]))
 
         ny = surface['num_y']
         self.mesh = surface['mesh']
@@ -353,9 +353,9 @@ class GeometryMesh(Component):
             if len(var.split('_')) > 1:
                 param = var.split('_')[0]
                 if var in ones_list:
-                    val = np.ones(ny)
+                    val = np.ones(ny, dtype=data_type)
                 elif var in zeros_list:
-                    val = np.zeros(ny)
+                    val = np.zeros(ny, dtype=data_type)
                 else:
                     val = surface[var]
             else:
@@ -367,7 +367,7 @@ class GeometryMesh(Component):
                 else:
                     val = surface[var]
             self.geo_params[param] = val
-            if var in surface['active_geo_vars']:
+            if var in desvar_names or var in surface['initial_geo']:
                 self.add_param(param, val=val)
 
         self.add_output('mesh', val=self.mesh)
