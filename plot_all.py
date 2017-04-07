@@ -175,13 +175,13 @@ class Display(object):
                         self.show_tube = False
                     try:
                         self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
-                        self.twist.append(case_data['Unknowns'][name+'.twist'])
                         normals.append(case_data['Unknowns'][name+'.normals'])
                         widths.append(case_data['Unknowns'][name+'.widths'])
                         sec_forces.append(case_data['Unknowns']['aero_states.' + name + '_sec_forces'])
                         self.CL.append(case_data['Unknowns'][name+'_perf.CL1'])
                         self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
                         self.show_wing = True
+                        self.twist.append(case_data['Unknowns'][name+'.twist'])
                     except:
                         self.show_wing = False
                 else:
@@ -194,12 +194,12 @@ class Display(object):
                     self.vonmises.append(
                         np.max(case_data['Unknowns'][short_name+'_perf.vonmises'], axis=1))
                     self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
-                    self.twist.append(case_data['Unknowns'][short_name+'.twist'])
                     normals.append(case_data['Unknowns'][name+'.normals'])
                     widths.append(case_data['Unknowns'][name+'.widths'])
                     sec_forces.append(case_data['Unknowns']['coupled.aero_states.' + short_name + '_sec_forces'])
                     self.CL.append(case_data['Unknowns'][short_name+'_perf.CL1'])
                     self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
+                    self.twist.append(case_data['Unknowns'][short_name+'.twist'])
 
             if self.show_wing:
                 alpha.append(case_data['Unknowns']['alpha'] * np.pi / 180.)

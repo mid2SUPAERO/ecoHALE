@@ -66,9 +66,9 @@ Please see :meth:`OASProblem.get_default_prob_dict` within the :doc:`../source/r
 
 Next, we add a single lifting surface to the problem.
 Even though this is a structures-only problem, we add a lifting surface to define the structure in a manner consistent with the aerostructural case.
-This means that we will create a tubular spar based on the lifting surface's span with its element radii set from the lifting surface's chord.
+This means that we will create a tubular spar based on the lifting surface's span with its element radii set from the lifting surface's chord amd a provided t/c value.
 
-In this case, we provide a name and tell OpenAeroStruct to explicitly model only one half of the surface and compute the effects from the other half of the surface.
+In this case, we provide a name and tell OpenAeroStruct to explicitly model only one half of the beam and compute the effects from the other half of the surface.
 This is less computationally expensive than modeling the entire surface.
 
 We then provide the number of spanwise ('num_y') mesh points to use for the surface.
@@ -85,7 +85,7 @@ These numbers correspond to the entire surface even though we are using symmetri
   OAS_prob.setup()
 
 First we set up the problem using OASProblem's built-in method and add optimization parameters.
-We set our design variables as the b-spline control points for the thickness distribution with bounds between 0.001 and 0.25 meters.
+We set our design variables as the b-spline control points for the thickness distribution with bounds at 0.001 and 0.25 meters.
 We then set the constraint to not allow the KS aggregated stress measures to fail while we minimize structural weight.
 
 Note that the objective and thickness control points have a scaler value which internally multiplies the values that the optimizer sees.

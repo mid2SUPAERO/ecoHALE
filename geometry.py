@@ -29,7 +29,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
     rotate_x : boolean
         Flag set to True if the user desires the twist variable to always be
         applied perpendicular to the wing (say, in the case of a winglet).
-        
+
     Returns
     -------
     mesh[nx, ny, 3] : numpy array
@@ -84,7 +84,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
         row += quarter_chord
 
 def scale_x(mesh, chord_dist):
-    """ Modify the chords along the span of the wing by scaling the x-coord.
+    """ Modify the chords along the span of the wing by scaling only the x-coord.
 
     Parameters
     ----------
@@ -110,7 +110,7 @@ def scale_x(mesh, chord_dist):
             quarter_chord[i, 0]
 
 def shear_x(mesh, xshear):
-    """ Shear the wing in the x direction (distributed sweep)
+    """ Shear the wing in the x direction (distributed sweep).
 
     Parameters
     ----------
@@ -124,11 +124,11 @@ def shear_x(mesh, xshear):
     mesh[nx, ny, 3] : numpy array
         Nodal mesh with the new chord lengths.
     """
-    mesh[0,:,0] += xshear
-    mesh[1,:,0] += xshear
+    mesh[0, :, 0] += xshear
+    mesh[1, :, 0] += xshear
 
 def shear_z(mesh, zshear):
-    """ Shear the wing in the z direction (distributed dihedral)
+    """ Shear the wing in the z direction (distributed dihedral).
 
     Parameters
     ----------
@@ -142,8 +142,8 @@ def shear_z(mesh, zshear):
     mesh[nx, ny, 3] : numpy array
         Nodal mesh with the new chord lengths.
     """
-    mesh[0,:,2] += zshear
-    mesh[1,:,2] += zshear
+    mesh[0, :, 2] += zshear
+    mesh[1, :, 2] += zshear
 
 def sweep(mesh, sweep_angle, symmetry):
     """ Apply shearing sweep. Positive sweeps back.
@@ -303,6 +303,11 @@ class GeometryMesh(Component):
     the initial mesh from the surface dictionary and outputs the altered
     mesh based on the geometric design variables.
 
+    Depending on the design variables selected or the inputted geometry information,
+    only some of the follow parameters will actually be given to this component.
+    If parameters are not active (they do not deform the mesh), then
+    they will not be given to this component.
+
     Parameters
     ----------
     sweep : float
@@ -388,7 +393,6 @@ class GeometryMesh(Component):
         self.geo_params.update(params)
 
         if fortran_flag:
-            # Does not have span stretching coded yet
             mesh = OAS_API.oas_api.manipulate_mesh(mesh, self.geo_params['taper'],
                 self.geo_params['chord'], self.geo_params['sweep'], self.geo_params['xshear'],
                 self.geo_params['dihedral'], self.geo_params['zshear'],

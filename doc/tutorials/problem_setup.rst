@@ -13,7 +13,7 @@ In general, you'll follow these five steps to set up and run a problem in OpenAe
 2. Add your lifting surface(s)
 3. Add your design variables, constraints, and objective
 4. Call setup() on the problem
-5. Call run() to perform analysis/optimization
+5. Call run() to perform analysis or optimization
 
 We'll now investigate these steps individually, using an aerodynamic optimization case as an example.
 
@@ -21,24 +21,11 @@ We'll now investigate these steps individually, using an aerodynamic optimizatio
 --------------------------
 First, you will initialize the OpenAeroStruct problem by creating an `OASProblem` instance
 with an input dictionary containing the problem-level settings you wish to use.
-This includes flow conditions such as Reynolds number and alpha,
+This includes flow conditions such as Reynolds number and angle of attack,
 as well as aircraft info like specific fuel consumption and range.
 Additionally, it contains execution options for the problem, such as
 whether to run analysis or optimization and how to compute derivatives.
 Please see :func:`OASProblem.get_default_prob_dict` within the :doc:`../source/run_classes` to see the defaults for the problem options dictionary.
-
-Although some options are only used for aerostructural cases, each problem always
-has every option defined.
-The user-inputted options overwrite any of the default options.
-Keywords are case-specific.
-
-.. note::
-  Depending on your problem size, using `force_fd = True` might lower
-  the computation time for your optimization. This option simply computes
-  the total derivatives by using finite-differencing over the entire model.
-
-If you install `pyOptSparse <https://bitbucket.org/mdolab/pyoptsparse>`_, you can use `pyOptSparseDriver` within OpenMDAO.
-This allows you to use a wider variety of optimizers.
 
 Here is a sample code block for this step:
 
@@ -52,6 +39,20 @@ Here is a sample code block for this step:
                'optimize' : True}
   OAS_prob = OASProblem(prob_dict)
 
+Although some options are only used for aerostructural cases, each problem always
+has every option defined.
+The user-specified options overwrite any of the default options.
+Keywords are case-specific.
+
+.. note::
+  Depending on your problem size, using `force_fd = True` might lower
+  the computation time for your optimization compared to using the semi-analytic
+  method that is the default. This option simply computes
+  the total derivatives by finite-differencing over the entire model.
+
+If you install `pyOptSparse <https://bitbucket.org/mdolab/pyoptsparse>`_, you can use `pyOptSparseDriver` within OpenMDAO.
+This allows you to use a wider variety of optimizers.
+
 
 2. Add your lifting surface(s)
 ------------------------------
@@ -63,12 +64,12 @@ There are many options for each surface, and they are loosely organized into the
 
 - Wing definition (mesh size, wing position, symmetry option, etc)
 - Geometric variable definitions (span, dihedral, sweep, twist, etc)
-- Aerodynamic performance (CL and CD at alpha=0)
+- Aerodynamic performance (CL and CD at angle of attack=0)
 - Airfoil properties (turbulence transition point, t/c, location of max t)
 - Structural properties (E, G, yield stress, location of spar, etc)
 - Options for constraints (KS aggregation, monotonic design variables)
 
-Again, the user-inputted dictionary will override any defaults.
+Again, the user-specified dictionary will override any defaults.
 Here is a sample code block:
 
 .. code-block:: python
@@ -93,7 +94,7 @@ These OpenAeroStruct methods simply call the OpenMDAO methods that are documente
 
 You can choose a certain set of parameters as design variables, including:
 
-- alpha
+- angle of attack
 - taper
 - span
 - dihedral
@@ -102,11 +103,22 @@ You can choose a certain set of parameters as design variables, including:
 - twist distribution
 - shear deformation in x direction
 - shear deformation in y direction
-- structural spar radii distribution
+- structural spar radius distribution
 - structural spar thickness distribution
 
 For the constraints and objective, you can choose any outputted variable.
-Common examples include weight, fuel burn, CL, and CD.
+Common constraints include:
+
+- structural failure
+- CL = fixed value
+- monotonic constraint on spanwise variable (e.g. chord can only get decrease as you go outboard)
+
+Common objectives include:
+
+- weight
+- fuel burn
+- CL
+- CD
 
 Sample code block:
 
@@ -120,13 +132,18 @@ Sample code block:
 
 4. Call setup() on the problem
 ------------------------------
+
+.. code-block:: python
+
+  OAS_prob.setup()
+
 Depending on the user-defined problem type, this setup function calls
 :func:`OASProblem.setup_aero`,
 :func:`OASProblem.setup_struct`, or
 :func:`OASProblem.setup_aerostruct`.
 Each of these methods is different, but they mainly organize the OpenMDAO
 components for each of the disciplines in the correct manner and then
-setup the OpenMDAO problem.
+set up the OpenMDAO problem.
 
 For aero-only, that means that the lifitng surfaces are added and linked together
 so we can compute the entire AIC matrix.
@@ -138,19 +155,32 @@ The mesh setup and performance components are outside the coupled group, whereas
 the FEM and VLM solvers are within the coupled group so we can converge
 the coupled aerostructural system.
 
-.. code-block:: python
+We'll now take a moment to explain the organization of the coupled aerostructural system.
+See the image below for a simplified :math:`N^2` diagram of the default aerostructural problem.
 
-  OAS_prob.setup()
+.. image:: collapsed_aerostruct_diagram.png
+
+We have four groups and two individual components on the root level:
+
+- `prob_vars` contains problem-level parameters such as Mach number, angle of attack, etc
+- `wing` contains geometric information describing the wing surface
+- `coupled` contains the aerodynamic and structural analyses in a multidisciplinary analysis (MDA) group
+- `wing_perf` evaluates the aerodynamic and structural performance of the wing surface
+- `fuelburn` and `eq_con` evaluate the fuel burn and :math:`L = W` constraint respectively
+
+By default, we converge the MDA within the coupled group using Gauss-Seidel fixed-point iterations.
+Note that the loads from the structural analysis get passed back to the wing mesh.
+We then use this deformed wing mesh within the VLM analysis to obtain the new aerodynamic properties.
+We iterate until the coupling variables do not change.
+
+You can set the linear and non-linear solvers in the :doc:`../source/run_classes`
+file to see what works best for specific problems.
 
 
-5. Call run() to perform analysis/optimization
-----------------------------------------------
+5. Call run() to perform analysis or optimization
+-------------------------------------------------
 
 Lastly, we call :func:`OASProblem.run` to finalize OpenMDAO setup and actually run the problem.
-Here we actually add the design variables, constraints, and objective to the OpenMDAO problem.
-We also set the optimization history recording options and save a model of the problem layout in an .html file.
-Check your run directory for a new .html file and examine this to see your problem layout.
-
 If `optimize = False` in the problem dictionary, then we perform analysis on the initial geometry.
 If `optimize = True`, then we run optimization with the given formulation and optimizer selected.
 The outputted results of the analysis or optimization are available after running by accessing
@@ -164,5 +194,31 @@ the variables as shown below:
   print("\nWing CL:", OAS_prob.prob['wing_perf.CL'])
   print("Wing CD:", OAS_prob.prob['wing_perf.CD'])
 
-If you are unsure of where the variables are located, you can consult the .html file that contains
-the problem layout to see the problem hierarchy.
+Within this method, OpenAeroStruct gives the design variables, constraints, and objective to the OpenMDAO problem.
+We also tell OpenMDAO that we want the optimization history saved in a `.db` file and that we want the problem layout saved in an `.html` file.
+After running an analysis or optimization, you can view these outputted files.
+
+Use any web browser to open the `.html` file and you can examine your problem layout.
+Mouse over components and parameters to see the data-passing connections between them.
+The `.html` file also has a help button (the ? mark) on the far right of the top toolbar with information about more features.
+
+You can visualize the lifting surface and structural spar using:
+
+.. code-block:: terminal
+
+  python plot_all.py aerostruct.db
+
+Here you'll use `aero.db`, `struct.db`, or `aerostruct.db` depending on what type of problem you ran.
+This will produce a window where you can see how the lifting surface and design variables change with each iteration, as shown below.
+
+
+.. image:: plotall.png
+
+You can also use `OptView.py` to see how the design variables, constraints,
+and objective change throughout the optimization.
+You can select what parameters you want to view and plot them in a few different formats.
+
+.. image:: OptView.png
+
+You can monitor the results from your optimization in real-time with both `plot_all.py` and `OptView.py`.
+Simply check the `Automatically refresh` button and the visualization will update with each optimization iteration.

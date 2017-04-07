@@ -828,7 +828,9 @@ class SpatialBeamFailureExact(Component):
 class SparWithinWing(Component):
     """
 
-    ..warning:: This component has not been extensively tested.
+    .. warning::
+        This component has not been extensively tested.
+        It may require additional coding to work as intended.
 
     Parameters
     ----------

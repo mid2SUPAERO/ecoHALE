@@ -320,11 +320,10 @@ class OASProblem(object):
 
         # Get spar radii and interpolate to radius control points.
         # Need to refactor this at some point.
+        surf_dict['radius'] = radii(mesh, surf_dict['t_over_c'])
         if surf_dict['radius_cp'] is None:
             if 'num_radius_cp' not in surf_dict:
                 surf_dict['num_radius_cp'] = np.max([int((num_y - 1) / 5), min(5, num_y-1)])
-            # Get the spar radius
-            surf_dict['radius'] = radii(mesh, surf_dict['t_over_c'])
             panel_centers = (mesh[0, :-1, 1].real + mesh[0, 1:, 1].real) / 2.
             s = panel_centers / (panel_centers[-1] - panel_centers[0])
             surf_dict['radius_cp'] = np.interp(np.linspace(s[0], s[-1], surf_dict['num_radius_cp']),
@@ -665,7 +664,7 @@ class OASProblem(object):
             # Add independent variables that do not belong to a specific component
             indep_vars = [('disp', np.zeros((surface['num_y'], 6), dtype=data_type))]
             for var in surface['geo_vars']:
-                if var in desvar_names:
+                if var in desvar_names or var in surface['initial_geo']:
                     indep_vars.append((var, surface[var]))
 
             # Add aero components to the surface-specific group
@@ -685,7 +684,7 @@ class OASProblem(object):
             # Add bspline components for active bspline geometric variables.
             # We only add the component if the corresponding variable is a desvar.
             for var in surface['bsp_vars']:
-                if var in desvar_names:
+                if var in desvar_names or var in surface['initial_geo']:
                     n_pts = surface['num_y']
                     if var in ['thickness_cp', 'radius_cp']:
                         n_pts -= 1

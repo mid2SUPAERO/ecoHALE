@@ -59,7 +59,7 @@ Additionally, we import print_function to ensure compatibility between Python 2 
   OAS_prob = OASProblem(prob_dict)
 
 We then create a dictionary containing options for the problem we want to solve.
-We define our problem as aero-only and that we want to perform optimization.
+We define our problem as aero-only and specify that we want to perform optimization.
 Please see :meth:`OASProblem.get_default_prob_dict` within the :doc:`../source/run_classes` to see the defaults for the problem options dictionary.
 
 .. code-block:: python
@@ -73,7 +73,7 @@ Please see :meth:`OASProblem.get_default_prob_dict` within the :doc:`../source/r
 
 Next, we add a single lifting surface to the problem.
 In this case, we provide a name and tell OpenAeroStruct to explicitly model only one half of the surface and compute the effects from the other half of the surface.
-This is less computationally expensive than modeling the entire surface.
+This is computationally cheaper than modeling the entire surface.
 
 We then provide the number of spanwise (num_y) and chordwise (num_x) mesh points to use for the surface.
 These numbers correspond to the entire surface even though we are using symmetric effects.
@@ -90,7 +90,7 @@ So, this wing has 10 spanwise panels and 2 chordwise panels, but we only model 5
   OAS_prob.setup()
 
 First we set up the problem using OASProblem's built-in method and add optimization parameters.
-We set our design variables as the b-spline control points for the twist distribution with bounds between -10 and 15 degrees.
+We set our design variables as the b-spline control points for the twist distribution with bounds at -10 and 15 degrees.
 We then set the constraint to keep CL = 0.5 and the objective to minimize CD.
 
 Note that the objective has a scaler value which internally multiplies the values that the optimizer sees.
