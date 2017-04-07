@@ -166,7 +166,7 @@ class Display(object):
                     self.mesh.append(case_data['Unknowns'][name+'.mesh'])
 
                     try:
-                        self.r.append(case_data['Unknowns'][name+'.r'])
+                        self.r.append(case_data['Unknowns'][name+'.radius'])
                         self.thickness.append(case_data['Unknowns'][name+'.thickness'])
                         self.vonmises.append(
                             np.max(case_data['Unknowns'][name+'.vonmises'], axis=1))
@@ -189,7 +189,7 @@ class Display(object):
                     short_name = name.split('.')[1:][0]
 
                     self.mesh.append(case_data['Unknowns'][short_name+'.mesh'])
-                    self.r.append(case_data['Unknowns'][short_name+'.r'])
+                    self.r.append(case_data['Unknowns'][short_name+'.radius'])
                     self.thickness.append(case_data['Unknowns'][short_name+'.thickness'])
                     self.vonmises.append(
                         np.max(case_data['Unknowns'][short_name+'_perf.vonmises'], axis=1))

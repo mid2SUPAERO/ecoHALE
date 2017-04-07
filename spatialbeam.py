@@ -628,7 +628,7 @@ class SpatialBeamVonMisesTube(Component):
 
         self.add_param('nodes', val=np.zeros((self.ny, 3),
                        dtype=data_type))
-        self.add_param('r', val=np.zeros((self.ny - 1),
+        self.add_param('radius', val=np.zeros((self.ny - 1),
                        dtype=data_type))
         self.add_param('disp', val=np.zeros((self.ny, 6),
                        dtype=data_type))
@@ -648,7 +648,7 @@ class SpatialBeamVonMisesTube(Component):
         self.t = 0
 
     def solve_nonlinear(self, params, unknowns, resids):
-        r = params['r']
+        r = params['radius']
         disp = params['disp']
         nodes = params['nodes']
         vonmises = unknowns['vonmises']
@@ -693,7 +693,7 @@ class SpatialBeamVonMisesTube(Component):
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
-        r = params['r'].real
+        r = params['radius'].real
         disp = params['disp'].real
         nodes = params['nodes'].real
         vonmises = unknowns['vonmises'].real
@@ -702,13 +702,13 @@ class SpatialBeamVonMisesTube(Component):
         x_gl = self.x_gl
 
         if mode == 'fwd':
-            _, a = OAS_API.oas_api.calc_vonmises_d(nodes, dparams['nodes'], r, dparams['r'], disp, dparams['disp'], E, G, x_gl)
+            _, a = OAS_API.oas_api.calc_vonmises_d(nodes, dparams['nodes'], r, dparams['radius'], disp, dparams['disp'], E, G, x_gl)
             dresids['vonmises'] += a
 
         if mode == 'rev':
             a, b, c = OAS_API.oas_api.calc_vonmises_b(nodes, r, disp, E, G, x_gl, vonmises, dresids['vonmises'])
             dparams['nodes'] += a
-            dparams['r'] += b
+            dparams['radius'] += b
             dparams['disp'] += c
 
 class SpatialBeamFailureKS(Component):

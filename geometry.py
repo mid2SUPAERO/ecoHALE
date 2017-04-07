@@ -561,7 +561,7 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
         specified parameters.
     eta : numpy array
         Spanwise locations of the airfoil slices. Later used in the
-        interpolation function to obtain correct twist values during at
+        interpolation function to obtain correct twist values at
         points along the span that are not aligned with these slices.
     twist : numpy array
         Twist along the span at the spanwise eta locations. We use these twists
@@ -784,7 +784,6 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
     mesh[nx, ny, 3] : numpy array
         Rectangular nodal mesh defining the final aerodynamic surface with the
         specified parameters.
-
     """
 
     mesh = np.zeros((num_x, num_y, 3), dtype=data_type)
