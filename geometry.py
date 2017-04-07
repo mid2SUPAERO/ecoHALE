@@ -29,6 +29,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
     rotate_x : boolean
         Flag set to True if the user desires the twist variable to always be
         applied perpendicular to the wing (say, in the case of a winglet).
+        
     Returns
     -------
     mesh[nx, ny, 3] : numpy array

@@ -63,6 +63,7 @@ if __name__ == "__main__":
 
         # Setup problem and add design variables, constraint, and objective
         OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+        OAS_prob.add_desvar('wing.radius_cp', lower=0.01, upper=.1, scaler=1e2)
         OAS_prob.add_constraint('wing.failure', upper=0.)
         OAS_prob.add_objective('wing.weight', scaler=1e-3)
         OAS_prob.setup()

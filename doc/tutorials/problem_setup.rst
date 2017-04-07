@@ -22,7 +22,7 @@ We'll now investigate these steps individually, using an aerodynamic optimizatio
 First, you will initialize the OpenAeroStruct problem by creating an `OASProblem` instance
 with an input dictionary containing the problem-level settings you wish to use.
 This includes flow conditions such as Reynolds number and alpha,
-as well as aircraft info like specific thrust and range.
+as well as aircraft info like specific fuel consumption and range.
 Additionally, it contains execution options for the problem, such as
 whether to run analysis or optimization and how to compute derivatives.
 Please see :func:`OASProblem.get_default_prob_dict` within the :doc:`../source/run_classes` to see the defaults for the problem options dictionary.
@@ -36,6 +36,9 @@ Keywords are case-specific.
   Depending on your problem size, using `force_fd = True` might lower
   the computation time for your optimization. This option simply computes
   the total derivatives by using finite-differencing over the entire model.
+
+If you install `pyOptSparse <https://bitbucket.org/mdolab/pyoptsparse>`_, you can use `pyOptSparseDriver` within OpenMDAO.
+This allows you to use a wider variety of optimizers.
 
 Here is a sample code block for this step:
 

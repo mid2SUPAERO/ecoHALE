@@ -65,8 +65,6 @@ if __name__ == "__main__":
                  'wing_type' : 'CRM',
                  'CL0' : 0.2,
                  'CD0' : 0.015,
-                #  'span_cos_spacing' : 1.,
-                #  'chord_cos_spacing' : .8
                  }
 
     # Add the specified wing surface to the problem
@@ -79,6 +77,7 @@ if __name__ == "__main__":
         OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
         OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('wing_perf.failure', upper=0.)
+        OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
         OAS_prob.setup()
 
     # Multiple lifting surfaces
@@ -93,9 +92,11 @@ if __name__ == "__main__":
         OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
         OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('wing_perf.failure', upper=0.)
+        OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
         OAS_prob.add_desvar('tail.twist_cp', lower=-15., upper=15.)
         OAS_prob.add_desvar('tail.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('tail_perf.failure', upper=0.)
+        OAS_prob.add_constraint('tail_perf.thickness_intersects', upper=0.)
 
         # Setup problem
         OAS_prob.setup()

@@ -8,7 +8,7 @@ class MaterialsTube(Component):
 
     Parameters
     ----------
-    r : numpy array
+    radius : numpy array
         Radii for each FEM element.
     thickness : numpy array
         Tube thickness for each FEM element.
@@ -48,9 +48,9 @@ class MaterialsTube(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         name = self.surface['name']
         pi = np.pi
-        r1 = params['radius'] - 0.5 * params['thickness']
-        r2 = params['radius'] + 0.5 * params['thickness']
-
+        r1 = params['radius'] - params['thickness']
+        r2 = params['radius']
+        
         unknowns['A'] = pi * (r2**2 - r1**2)
         unknowns['Iy'] = pi * (r2**4 - r1**4) / 4.
         unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
@@ -61,15 +61,15 @@ class MaterialsTube(Component):
         jac = self.alloc_jacobian()
 
         pi = np.pi
-        r = params['radius'].real
+        radius = params['radius'].real
         t = params['thickness'].real
-        r1 = r - 0.5 * t
-        r2 = r + 0.5 * t
+        r1 = radius - t
+        r2 = radius
 
         dr1_dr = 1.
         dr2_dr = 1.
-        dr1_dt = -0.5
-        dr2_dt =  0.5
+        dr1_dt = -1.
+        dr2_dt =  0.
 
         r1_3 = r1**3
         r2_3 = r2**3

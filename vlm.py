@@ -1512,9 +1512,6 @@ class TotalLift(Component):
     -------
     CL : float
         Total coefficient of lift (CL) for the lifting surface.
-    CL_wing : float
-        CL of the main wing, used for CL constrained optimization.
-
     """
 
     def __init__(self, surface):
@@ -1541,13 +1538,12 @@ class TotalDrag(Component):
     CDi : float
         Induced coefficient of drag (CD) for the lifting surface.
     CDv : float
-        Calculated viscous drag for the lifting surface..
+        Calculated viscous drag for the lifting surface.
 
     Returns
     -------
     CD : float
         Total coefficient of drag (CD) for the lifting surface.
-
     """
 
     def __init__(self, surface):

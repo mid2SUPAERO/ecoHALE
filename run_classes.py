@@ -195,7 +195,7 @@ class OASProblem(object):
                     'stress' : 20.e6,       # [Pa] yield stress
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
-                    'W0' : 0.4 * 3e5,       # [kg] MTOW of B777 is 3e5 kg with fuel
+                    'W0' : 0.4 * 3e5,       # [kg] MTOW of B777-300 is 3e5 kg with fuel
 
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
@@ -225,17 +225,21 @@ class OASProblem(object):
                                              # 0 for no additional printing
                                              # 1 for nonlinear solver printing
                                              # 2 for nonlinear and linear solver printing
-                    # Flow properties
+                    # Flow/environment properties
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
                     'alpha' : 5.,            # [degrees] angle of attack
                     'M' : 0.84,              # Mach number at cruise
                     'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
                     'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
+                    'g' : 9.80665,           # [m/s^2] acceleration due to gravity
+                                             # also change the 'CT' value below
+                                             # accordingly if you alter this value
 
                     # Aircraft properties
-                    'CT' : 9.80665 * 17.e-6, # [1/s] (9.81 N/kg * 17e-6 kg/N/s)
-                    'R' : 14.3e6,            # [m] maximum range
+                    'CT' : 9.80665 * 17.e-6, # [1/s] (9.80665 N/kg * 17e-6 kg/N/s)
+                                             # specific fuel consumption
+                    'R' : 11.165e6,            # [m] maximum range (B777-300)
                     }
 
         return defaults
@@ -314,10 +318,11 @@ class OASProblem(object):
         # Apply the user-provided coordinate offset to position the mesh
         mesh = mesh + surf_dict['offset']
 
-        # Get spar radii and interpolate to radius control points
+        # Get spar radii and interpolate to radius control points.
+        # Need to refactor this at some point.
         if surf_dict['radius_cp'] is None:
             if 'num_radius_cp' not in surf_dict:
-                surf_dict['num_radius_cp'] = np.max([int((num_y - 1) / 5), 5])
+                surf_dict['num_radius_cp'] = np.max([int((num_y - 1) / 5), min(5, num_y-1)])
             # Get the spar radius
             surf_dict['radius'] = radii(mesh, surf_dict['t_over_c'])
             panel_centers = (mesh[0, :-1, 1].real + mesh[0, 1:, 1].real) / 2.
@@ -327,13 +332,15 @@ class OASProblem(object):
 
         ones_list = ['chord_cp', 'thickness_cp', 'radius_cp']
         zeros_list = ['twist_cp', 'xshear_cp', 'zshear_cp']
-        surf_dict['bsp_vars'] = list(set(surf_dict['geo_vars']) & set(ones_list + zeros_list))
+        surf_dict['bsp_vars'] = ones_list + zeros_list
 
+        # Loop through bspline variables and set the number of control points if
+        # the user hasn't initalized the array.
         for var in surf_dict['bsp_vars']:
             numkey = 'num_' + var
             if surf_dict[var] is None:
                 if numkey not in input_dict:
-                    surf_dict[numkey] = np.max([int((num_y - 1) / 5), 5])
+                    surf_dict[numkey] = np.max([int((num_y - 1) / 5), min(5, num_y-1)])
             else:
                 surf_dict[numkey] = len(surf_dict[var])
 
@@ -579,7 +586,7 @@ class OASProblem(object):
             # special var, radius, which is necessary to compute weight.
             indep_vars = [('loads', surface['loads'])]
             for var in surface['geo_vars']:
-                if var in desvar_names or 'radius' in var:
+                if var in desvar_names or 'radius' in var or 'thickness' in var:
                     indep_vars.append((var, surface[var]))
 
             # Add structural components to the surface-specific group
@@ -603,7 +610,7 @@ class OASProblem(object):
             # We only add the component if the corresponding variable is a desvar
             # or special (radius).
             for var in surface['bsp_vars']:
-                if var in desvar_names or 'radius' in var:
+                if var in desvar_names or 'radius' in var or var in surface['initial_geo'] or 'thickness' in var:
                     n_pts = surface['num_y']
                     if var in ['thickness_cp', 'radius_cp']:
                         n_pts -= 1
@@ -916,6 +923,7 @@ class OASProblem(object):
             # Connect performance calculation variables
             root.connect(name[:-1] + '.radius', name + 'perf.radius')
             root.connect(name[:-1] + '.A', name + 'perf.A')
+            root.connect(name[:-1] + '.thickness', name + 'perf.thickness')
 
             # Connection performance functional variables
             root.connect(name + 'perf.weight', 'fuelburn.' + name + 'weight')
@@ -932,6 +940,7 @@ class OASProblem(object):
             root.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
             root.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
             root.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
+            # root.connect('coupled.' + name[:-1] + '.mesh', name + 'perf.mesh')
 
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyGMRES()
