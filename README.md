@@ -15,7 +15,7 @@ To use OpenAeroStruct, you must first install OpenMDAO 1.7.3 by following the in
 
 Next, clone this repository:
 
-    git clone https://github.com/johnjasa/OpenAeroStruct.git
+    git clone https://github.com/mdolab/OpenAeroStruct.git
 
 Lastly, from within the OpenAeroStruct folder, make the Fortran files:
 

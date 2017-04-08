@@ -19,7 +19,7 @@ Next, clone this repository:
 
 .. code-block:: bash
 
-    git clone https://github.com/johnjasa/OpenAeroStruct.git
+    git clone https://github.com/mdolab/OpenAeroStruct.git
 
 Lastly, from within the OpenAeroStruct folder, compile the Fortran files:
 
