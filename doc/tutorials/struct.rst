@@ -34,7 +34,7 @@ Which should output the optimization results and then these lines:
 
 .. code-block:: console
 
-  Wing weight: 547.375784603
+  Wing weight: 666.582239683
 
 We will now go through each block of code to explain what is going on within OpenAeroStruct.
 
