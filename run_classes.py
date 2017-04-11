@@ -22,7 +22,7 @@ import numpy as np
 # =============================================================================
 # OpenMDAO modules
 # =============================================================================
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile, CaseReader
 from openmdao.api import view_model
 from six import iteritems
 
@@ -229,6 +229,12 @@ class OASProblem(object):
                                              # 0 for no additional printing
                                              # 1 for nonlinear solver printing
                                              # 2 for nonlinear and linear solver printing
+                    'previous_case_db' : None,  # name of the .db file for warm restart
+                                                # example: 'aerostruct.db'
+                    'record_db' : True,      # True to output .db file
+                    'profile' : False,       # True to profile the problem's time costs
+                                             # view results using `view_profile prof_raw.0`
+
                     # Flow/environment properties
                     'Re' : 1e6,              # Reynolds number
                     'reynolds_length' : 1.0, # characteristic Reynolds length
@@ -373,7 +379,10 @@ class OASProblem(object):
                     twist = np.interp(np.linspace(0, 1, num_twist/2), eta, surf_dict['crm_twist'])
                     twist = np.hstack((twist, twist[::-1]))
 
-            surf_dict['twist_cp'] = twist
+            # Continue to use the user-defined twist_cp if inputted to the
+            # surface dictionary. Otherwise, use the prescribed CRM twist.
+            if surf_dict['twist_cp'] is None:
+                surf_dict['twist_cp'] = twist
 
         # Store updated values
         surf_dict['num_x'] = num_x
@@ -389,17 +398,25 @@ class OASProblem(object):
         # We must treat this separately so we add a twist bspline component
         # even if it is not a desvar.
         surf_dict['initial_geo'] = []
-        for var in surf_dict['bsp_vars']:
-            numkey = 'num_' + var
-            if surf_dict[var] is None:
+        for var in surf_dict['geo_vars']:
 
-                # Add the intialized geometry variables to either ones or zeros.
-                # These initial values do not perturb the mesh.
-                if var in ones_list:
-                    surf_dict[var] = np.ones(surf_dict[numkey], dtype=data_type)
-                elif var in zeros_list:
-                    surf_dict[var] = np.zeros(surf_dict[numkey], dtype=data_type)
-            else:
+            # Add the bspline variables when they're needed
+            if var in surf_dict['bsp_vars']:
+                numkey = 'num_' + var
+                if surf_dict[var] is None:
+
+                    # Add the intialized geometry variables to either ones or zeros.
+                    # These initial values do not perturb the mesh.
+                    if var in ones_list:
+                        surf_dict[var] = np.ones(surf_dict[numkey], dtype=data_type)
+                    elif var in zeros_list:
+                        surf_dict[var] = np.zeros(surf_dict[numkey], dtype=data_type)
+                else:
+                    surf_dict['initial_geo'].append(var)
+
+            # If the user provided a scalar variable (span, sweep, taper, etc),
+            # then include that in the initial_geo list
+            elif var in input_dict.keys():
                 surf_dict['initial_geo'].append(var)
 
         if 'thickness_cp' in surf_dict['geo_vars']:
@@ -433,6 +450,7 @@ class OASProblem(object):
         or Scipy's SLSQP otherwise.
         """
 
+        self.prob_dict['optimizer'] = 'SNOPT'
         try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
@@ -473,6 +491,48 @@ class OASProblem(object):
             self.prob.driver.options['disp'] = True
             self.prob.driver.options['tol'] = 1.0e-10
 
+        # Actually call the OpenMDAO functions to add the design variables,
+        # constraints, and objective.
+        for desvar_name, desvar_data in iteritems(self.desvars):
+            self.prob.driver.add_desvar(desvar_name, **desvar_data)
+        for con_name, con_data in iteritems(self.constraints):
+            self.prob.driver.add_constraint(con_name, **con_data)
+        for obj_name, obj_data in iteritems(self.objective):
+            self.prob.driver.add_objective(obj_name, **obj_data)
+
+        # Use finite differences over the entire model if user selected it
+        if self.prob_dict['force_fd']:
+            self.prob.root.deriv_options['type'] = 'fd'
+
+        # Record optimization history to a database.
+        # Data saved here can be examined using `plot_all.py` or `OptView.py`
+        if self.prob_dict['record_db']:
+            recorder = SqliteRecorder(self.prob_dict['prob_name']+".db")
+            recorder.options['record_params'] = True
+            recorder.options['record_derivs'] = True
+            self.prob.driver.add_recorder(recorder)
+
+        # Profile (time) the problem
+        if self.prob_dict['profile']:
+            profile.setup(self.prob)
+            profile.start()
+
+        # Set up the problem
+        self.prob.setup()
+
+        # Use warm start from previous db file if desired.
+        # Note that we only have access to the unknowns, not the gradient history.
+        if self.prob_dict['previous_case_db'] is not None:
+
+            # Open the previous case and start from the last iteration.
+            # Change the -1 value in get_case() if you want to select a different iteration.
+            cr = CaseReader(self.prob_dict['previous_case_db'])
+            case = cr.get_case(-1)
+
+            # Loop through the unknowns and set them for this problem.
+            for param_name, param_data in iteritems(case.unknowns):
+                self.prob[param_name] = param_data
+
     def add_desvar(self, *args, **kwargs):
         """
         Store the design variables and later add them to the OpenMDAO problem.
@@ -497,39 +557,13 @@ class OASProblem(object):
         a .db file and creates an N2 diagram to view the problem hierarchy.
         """
 
-        # Actually call the OpenMDAO functions to add the design variables,
-        # constraints, and objective.
-        for desvar_name, desvar_data in iteritems(self.desvars):
-            self.prob.driver.add_desvar(desvar_name, **desvar_data)
-        for con_name, con_data in iteritems(self.constraints):
-            self.prob.driver.add_constraint(con_name, **con_data)
-        for obj_name, obj_data in iteritems(self.objective):
-            self.prob.driver.add_objective(obj_name, **obj_data)
-
-        # Use finite differences over the entire model if user selected it
-        if self.prob_dict['force_fd']:
-            self.prob.root.deriv_options['type'] = 'fd'
-
-        # Record optimization history to a database
-        # Data saved here can be examined using `plot_all.py`
-        recorder = SqliteRecorder(self.prob_dict['prob_name']+".db")
-        recorder.options['record_params'] = True
-        recorder.options['record_derivs'] = True
-        self.prob.driver.add_recorder(recorder)
-
-        # Profile (time) the problem
-        # profile.setup(self.prob)
-        # profile.start()
-
-        # Set up the problem
-        self.prob.setup()
-
         # Have more verbose output about optimization convergence
         if self.prob_dict['print_level']:
             self.prob.print_all_convergence()
 
         # Save an N2 diagram for the problem
-        view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+        if self.prob_dict['record_db']:
+            view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
 
         self.prob.run_once()
 

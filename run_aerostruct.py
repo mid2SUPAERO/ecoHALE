@@ -70,6 +70,11 @@ if __name__ == "__main__":
     # Add the specified wing surface to the problem
     OAS_prob.add_surface(surf_dict)
 
+    # Add design variables, constraint, and objective on the problem
+    OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+    OAS_prob.add_constraint('eq_con', equals=0.)
+    OAS_prob.add_objective('fuelburn', scaler=1e-4)
+
     # Single lifting surface
     if not sys.argv[1].endswith('m'):
 
@@ -100,11 +105,6 @@ if __name__ == "__main__":
 
         # Setup problem
         OAS_prob.setup()
-
-    # Add design variables, constraint, and objective on the problem
-    OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
-    OAS_prob.add_constraint('eq_con', equals=0.)
-    OAS_prob.add_objective('fuelburn', scaler=1e-4)
 
     st = time()
     # Actually run the problem

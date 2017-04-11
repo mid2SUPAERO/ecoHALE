@@ -27,7 +27,8 @@ class TestAero(unittest.TestCase):
 
     def test_aero_analysis_flat(self):
         OAS_prob = OASProblem({'type' : 'aero',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         OAS_prob.add_surface({'span_cos_spacing' : 0})
         OAS_prob.setup()
         OAS_prob.run()
@@ -38,7 +39,8 @@ class TestAero(unittest.TestCase):
 
     def test_aero_analysis_flat_multiple(self):
         OAS_prob = OASProblem({'type' : 'aero',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         OAS_prob.add_surface({'span_cos_spacing' : 0.})
         OAS_prob.add_surface({'name' : 'tail',
                               'span_cos_spacing' : 0.,
@@ -51,7 +53,8 @@ class TestAero(unittest.TestCase):
 
     def test_aero_analysis_flat_side_by_side(self):
         OAS_prob = OASProblem({'type' : 'aero',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         OAS_prob.add_surface({'name' : 'wing',
                               'span' : 5.,
                               'num_y' : 3,
@@ -74,7 +77,8 @@ class TestAero(unittest.TestCase):
 
     def test_aero_analysis_flat_full(self):
         OAS_prob = OASProblem({'type' : 'aero',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         surf_dict = {'symmetry' : False}
         OAS_prob.add_surface(surf_dict)
         OAS_prob.setup()
@@ -86,6 +90,7 @@ class TestAero(unittest.TestCase):
     def test_aero_analysis_flat_viscous_full(self):
         OAS_prob = OASProblem({'type' : 'aero',
                                'optimize' : False,
+                               'record_db' : False,
                                'with_viscous' : True})
         surf_dict = {'symmetry' : False}
         OAS_prob.add_surface(surf_dict)
@@ -100,6 +105,7 @@ class TestAero(unittest.TestCase):
             # Need to use SLSQP here because SNOPT finds a different optimum
             OAS_prob = OASProblem({'type' : 'aero',
                                    'optimize' : True,
+                                   'record_db' : False,
                                    'optimizer' : 'SLSQP'})
             OAS_prob.add_surface()
 
@@ -121,6 +127,7 @@ class TestAero(unittest.TestCase):
             # Need to use SLSQP here because SNOPT finds a different optimum
             OAS_prob = OASProblem({'type' : 'aero',
                                    'optimize' : True,
+                                   'record_db' : False,
                                    'optimizer' : 'SLSQP',
                                    'force_fd' : True})
             OAS_prob.add_surface()
@@ -142,6 +149,7 @@ class TestAero(unittest.TestCase):
         def test_aero_optimization_chord_monotonic(self):
             OAS_prob = OASProblem({'type' : 'aero',
                                    'optimize' : True,
+                                   'record_db' : False,
                                    'with_viscous' : False})
             OAS_prob.add_surface({
             'chord_cp' : np.random.random(5),
@@ -168,6 +176,7 @@ class TestAero(unittest.TestCase):
         def test_aero_optimization_chord_monotonic_no_sym(self):
             OAS_prob = OASProblem({'type' : 'aero',
                                    'optimize' : True,
+                                   'record_db' : False,
                                    'symmetry' : False,
                                    'with_viscous' : False})
             OAS_prob.add_surface({
@@ -195,6 +204,7 @@ class TestAero(unittest.TestCase):
         def test_aero_viscous_optimization(self):
             OAS_prob = OASProblem({'type' : 'aero',
                                    'optimize' : True,
+                                   'record_db' : False,
                                    'with_viscous' : True})
             OAS_prob.add_surface()
 
@@ -216,6 +226,7 @@ class TestAero(unittest.TestCase):
             # Need to use SLSQP here because SNOPT finds a different optimum
             OAS_prob = OASProblem({'type' : 'aero',
                                    'optimize' : True,
+                                   'record_db' : False,
                                    'optimizer' : 'SLSQP',
                                    'with_viscous' : True})
             OAS_prob.add_surface()
@@ -235,7 +246,8 @@ class TestAero(unittest.TestCase):
     if fortran_flag:
         def test_aero_multiple_opt(self):
             OAS_prob = OASProblem({'type' : 'aero',
-                                   'optimize' : True})
+                                   'optimize' : True,
+                                   'record_db' : False})
             surf_dict = { 'name' : 'wing',
                           'span' : 5.,
                           'num_y' : 3,
@@ -272,7 +284,8 @@ class TestStruct(unittest.TestCase):
 
     def test_struct_analysis(self):
         OAS_prob = OASProblem({'type' : 'struct',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         surf_dict = {'symmetry' : False,
                     't_over_c' : 0.15}
         OAS_prob.add_surface(surf_dict)
@@ -283,7 +296,8 @@ class TestStruct(unittest.TestCase):
 
     def test_struct_analysis_symmetry(self):
         OAS_prob = OASProblem({'type' : 'struct',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         surf_dict = {'symmetry' : True,
                     't_over_c' : 0.15}
         OAS_prob.add_surface(surf_dict)
@@ -295,7 +309,8 @@ class TestStruct(unittest.TestCase):
     if fortran_flag:
         def test_struct_optimization(self):
             OAS_prob = OASProblem({'type' : 'struct',
-                                   'optimize' : True})
+                                   'optimize' : True,
+                                   'record_db' : False})
             OAS_prob.add_surface({'symmetry' : False,
                                 't_over_c': 0.15})
 
@@ -314,7 +329,8 @@ class TestStruct(unittest.TestCase):
     if fortran_flag:
         def test_struct_optimization_symmetry(self):
             OAS_prob = OASProblem({'type' : 'struct',
-                                   'optimize' : True})
+                                   'optimize' : True,
+                                   'record_db' : False})
             OAS_prob.add_surface({'t_over_c': 0.15})
 
             OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
@@ -331,7 +347,8 @@ class TestStruct(unittest.TestCase):
     if fortran_flag:
         def test_struct_optimization_symmetry_exact(self):
             OAS_prob = OASProblem({'type' : 'struct',
-                                   'optimize' : True})
+                                   'optimize' : True,
+                                   'record_db' : False})
             OAS_prob.add_surface({'exact_failure_constraint' : True,
                                 't_over_c': 0.15})
 
@@ -357,7 +374,8 @@ class TestAeroStruct(unittest.TestCase):
 
     def test_aerostruct_analysis(self):
         OAS_prob = OASProblem({'type' : 'aerostruct',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         surf_dict = {'num_y' : 13,
                   'num_x' : 2,
                   'wing_type' : 'CRM',
@@ -375,7 +393,8 @@ class TestAeroStruct(unittest.TestCase):
 
     def test_aerostruct_analysis_symmetry(self):
         OAS_prob = OASProblem({'type' : 'aerostruct',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         surf_dict = {'symmetry' : True,
                   'num_y' : 13,
                   'num_x' : 2,
@@ -393,7 +412,8 @@ class TestAeroStruct(unittest.TestCase):
 
     def test_aerostruct_analysis_symmetry_deriv(self):
         OAS_prob = OASProblem({'type' : 'aerostruct',
-                               'optimize' : False})
+                               'optimize' : False,
+                               'record_db' : False})
         surf_dict = {'symmetry' : True,
                   'num_y' : 7,
                   'num_x' : 2,
@@ -435,7 +455,8 @@ class TestAeroStruct(unittest.TestCase):
     if fortran_flag:
         def test_aerostruct_optimization(self):
             OAS_prob = OASProblem({'type' : 'aerostruct',
-                                   'optimize' : True})
+                                   'optimize' : True,
+                                   'record_db' : False})
             surf_dict = {'num_y' : 7,
                       'num_x' : 2,
                       'wing_type' : 'CRM',
@@ -463,7 +484,8 @@ class TestAeroStruct(unittest.TestCase):
     if fortran_flag:
         def test_aerostruct_optimization_symmetry(self):
             OAS_prob = OASProblem({'type' : 'aerostruct',
-                                   'optimize' : True})
+                                   'optimize' : True,
+                                   'record_db' : False})
             surf_dict = {'symmetry' : True,
                       'num_y' : 7,
                       'num_x' : 3,
@@ -491,7 +513,8 @@ class TestAeroStruct(unittest.TestCase):
     if fortran_flag:
         def test_aerostruct_optimization_symmetry_multiple(self):
             OAS_prob = OASProblem({'type' : 'aerostruct',
-                                   'optimize' : True})
+                                   'optimize' : True,
+                                   'record_db' : False})
             surf_dict = {'name' : 'wing',
                          'symmetry' : True,
                          'num_y' : 5,
