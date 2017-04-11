@@ -131,7 +131,8 @@ class Display(object):
             if i == 0:
                 pass
             elif i not in deriv_keys:
-                continue # don't plot these cases
+                if deriv_keys:
+                    continue # don't plot these cases
 
             if self.opt:
                 self.obj.append(case_data['Unknowns'][self.obj_key])

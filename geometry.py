@@ -124,8 +124,7 @@ def shear_x(mesh, xshear):
     mesh[nx, ny, 3] : numpy array
         Nodal mesh with the new chord lengths.
     """
-    mesh[0, :, 0] += xshear
-    mesh[1, :, 0] += xshear
+    mesh[:, :, 0] += xshear
 
 def shear_z(mesh, zshear):
     """ Shear the wing in the z direction (distributed dihedral).
@@ -142,8 +141,7 @@ def shear_z(mesh, zshear):
     mesh[nx, ny, 3] : numpy array
         Nodal mesh with the new chord lengths.
     """
-    mesh[0, :, 2] += zshear
-    mesh[1, :, 2] += zshear
+    mesh[:, :, 2] += zshear
 
 def sweep(mesh, sweep_angle, symmetry):
     """ Apply shearing sweep. Positive sweeps back.
