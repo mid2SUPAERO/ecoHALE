@@ -22,6 +22,7 @@ The following Python script performs structural optimization to minimize weight 
 
   # Add design variables, constraint, and objective then setup problem
   OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+  OAS_prob.add_constraint('wing.thickness_intersects', upper=0.)
   OAS_prob.add_constraint('wing.failure', upper=0.)
   OAS_prob.add_objective('wing.weight', scaler=1e-3)
   OAS_prob.setup()
@@ -80,12 +81,15 @@ These numbers correspond to the entire surface even though we are using symmetri
 
   # Add design variables, constraint, and objective then setup problem
   OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+  OAS_prob.add_constraint('wing.thickness_intersects', upper=0.)
   OAS_prob.add_constraint('wing.failure', upper=0.)
   OAS_prob.add_objective('wing.weight', scaler=1e-3)
   OAS_prob.setup()
 
 First we set up the problem using OASProblem's built-in method and add optimization parameters.
 We set our design variables as the b-spline control points for the thickness distribution with bounds at 0.001 and 0.25 meters.
+We add a constraint that prevents the thickness of the tube from increasing past what is physically possible.
+Because we add thickness to the interior of the tube, the limiting case is a solid cylinder.
 We then set the constraint to not allow the KS aggregated stress measures to fail while we minimize structural weight.
 
 Note that the objective and thickness control points have a scaler value which internally multiplies the values that the optimizer sees.
