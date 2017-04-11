@@ -701,14 +701,14 @@ class SpatialBeamVonMisesTube(Component):
         x_gl = self.x_gl
 
         if mode == 'fwd':
-            _, a = OAS_API.oas_api.calc_vonmises_d(nodes, dparams['nodes'], radius, dparams['radius'], disp, dparams['disp'], E, G, x_gl)
-            dresids['vonmises'] += a
+            _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(nodes, dparams['nodes'], radius, dparams['radius'], disp, dparams['disp'], E, G, x_gl)
+            dresids['vonmises'] += vonmisesd
 
         if mode == 'rev':
-            a, b, c = OAS_API.oas_api.calc_vonmises_b(nodes, radius, disp, E, G, x_gl, vonmises, dresids['vonmises'])
-            dparams['nodes'] += a
-            dparams['radius'] += b
-            dparams['disp'] += c
+            nodesb, radiusb, dispb = OAS_API.oas_api.calc_vonmises_b(nodes, radius, disp, E, G, x_gl, vonmises, dresids['vonmises'])
+            dparams['nodes'] += nodesb
+            dparams['radius'] += radiusb
+            dparams['disp'] += dispb
 
 class SpatialBeamFailureKS(Component):
     """
