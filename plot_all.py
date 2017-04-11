@@ -20,6 +20,7 @@ import tkFont
 import Tkinter as Tk
 import sys
 
+from six import iteritems
 import numpy as np
 
 try:
@@ -98,7 +99,7 @@ class Display(object):
         self.twist = []
         self.mesh = []
         self.def_mesh = []
-        self.r = []
+        self.radius = []
         self.thickness = []
         sec_forces = []
         normals = []
@@ -125,7 +126,7 @@ class Display(object):
         deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
         deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
 
-        for i, (case_name, case_data) in enumerate(self.db.iteritems()):
+        for i, (case_name, case_data) in enumerate(iteritems(self.db)):
 
             if i == 0:
                 pass
@@ -165,7 +166,7 @@ class Display(object):
                     self.mesh.append(case_data['Unknowns'][name+'.mesh'])
 
                     try:
-                        self.r.append(case_data['Unknowns'][name+'.r'])
+                        self.radius.append(case_data['Unknowns'][name+'.radius'])
                         self.thickness.append(case_data['Unknowns'][name+'.thickness'])
                         self.vonmises.append(
                             np.max(case_data['Unknowns'][name+'.vonmises'], axis=1))
@@ -174,13 +175,20 @@ class Display(object):
                         self.show_tube = False
                     try:
                         self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
-                        self.twist.append(case_data['Unknowns'][name+'.twist'])
                         normals.append(case_data['Unknowns'][name+'.normals'])
                         widths.append(case_data['Unknowns'][name+'.widths'])
                         sec_forces.append(case_data['Unknowns']['aero_states.' + name + '_sec_forces'])
                         self.CL.append(case_data['Unknowns'][name+'_perf.CL1'])
                         self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
                         self.show_wing = True
+
+                        # Not the best solution for now, but this will ensure
+                        # that this plots corectly even if twist isn't a desvar
+                        try:
+                            self.twist.append(case_data['Unknowns'][name+'.twist'])
+                            self.twist_included = True
+                        except:
+                            self.twist_included = False
                     except:
                         self.show_wing = False
                 else:
@@ -188,17 +196,28 @@ class Display(object):
                     short_name = name.split('.')[1:][0]
 
                     self.mesh.append(case_data['Unknowns'][short_name+'.mesh'])
-                    self.r.append(case_data['Unknowns'][short_name+'.r'])
+                    self.radius.append(case_data['Unknowns'][short_name+'.radius'])
                     self.thickness.append(case_data['Unknowns'][short_name+'.thickness'])
                     self.vonmises.append(
                         np.max(case_data['Unknowns'][short_name+'_perf.vonmises'], axis=1))
                     self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
-                    self.twist.append(case_data['Unknowns'][short_name+'.twist'])
                     normals.append(case_data['Unknowns'][name+'.normals'])
                     widths.append(case_data['Unknowns'][name+'.widths'])
                     sec_forces.append(case_data['Unknowns']['coupled.aero_states.' + short_name + '_sec_forces'])
                     self.CL.append(case_data['Unknowns'][short_name+'_perf.CL1'])
                     self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
+
+                    # Not the best solution for now, but this will ensure
+                    # that this plots corectly even if twist isn't a desvar
+                    try:
+                        self.twist.append(case_data['Unknowns'][short_name+'.twist'])
+                        self.twist_included = True
+                    except:
+                        self.twist_included = False
+
+                if not self.twist_included:
+                    ny = len(widths[0])
+                    self.twist.append(np.zeros(ny+1))
 
             if self.show_wing:
                 alpha.append(case_data['Unknowns']['alpha'] * np.pi / 180.)
@@ -243,7 +262,7 @@ class Display(object):
                     if self.show_tube:
                         thickness = self.thickness[i*n_names+j]
                         new_thickness.append(np.hstack((thickness, thickness[::-1])))
-                        r = self.r[i*n_names+j]
+                        r = self.radius[i*n_names+j]
                         new_r.append(np.hstack((r, r[::-1])))
                         vonmises = self.vonmises[i*n_names+j]
                         new_vonmises.append(np.hstack((vonmises, vonmises[::-1])))
@@ -269,7 +288,7 @@ class Display(object):
             self.mesh = new_mesh
             if self.show_tube:
                 self.thickness = new_thickness
-                self.r = new_r
+                self.radius = new_r
                 self.vonmises = new_vonmises
             if self.show_wing:
                 self.def_mesh = new_def_mesh
@@ -448,7 +467,7 @@ class Display(object):
                     self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
             if self.show_tube:
-                r0 = self.r[self.curr_pos*n_names+j]
+                r0 = self.radius[self.curr_pos*n_names+j]
                 t0 = self.thickness[self.curr_pos*n_names+j]
                 colors = t0
                 colors = colors / np.max(colors)

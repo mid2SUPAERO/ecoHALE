@@ -1354,7 +1354,7 @@ class ViscousDrag(Component):
             # d_over_q = d / 0.5 / rho / v**2
             self.d_over_q = 2 * cd * chords
 
-            # Calculate form factor
+            # Calculate form factor (Raymer Eq. 12.30)
             self.k_FF = 1.34 * M**0.18 * \
                 (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
             FF = self.k_FF * cos_sweep**0.28
@@ -1512,9 +1512,6 @@ class TotalLift(Component):
     -------
     CL : float
         Total coefficient of lift (CL) for the lifting surface.
-    CL_wing : float
-        CL of the main wing, used for CL constrained optimization.
-
     """
 
     def __init__(self, surface):
@@ -1541,13 +1538,12 @@ class TotalDrag(Component):
     CDi : float
         Induced coefficient of drag (CD) for the lifting surface.
     CDv : float
-        Calculated viscous drag for the lifting surface..
+        Calculated viscous drag for the lifting surface.
 
     Returns
     -------
     CD : float
         Total coefficient of drag (CD) for the lifting surface.
-
     """
 
     def __init__(self, surface):

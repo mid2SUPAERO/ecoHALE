@@ -1,8 +1,11 @@
 """
 
 Provides interactive visualization of optimization results created by
-pyOptSparse. Figures produced here can be saved as images or pickled
-for future customization.
+pyOptSparse and OpenMDAO. Figures produced here can be saved as images
+or pickled for future customization.
+
+Usage is `python OptView.py filename' where filename is often `snopt_hist.hst`
+for pyOptSparse or `aero.db` for OpenMDAO, as examples.
 
 John Jasa 2015-2017
 
@@ -21,7 +24,7 @@ import warnings
 
 # ======================================================================
 # External Python modules
-# ====================================================================== 
+# ======================================================================
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
@@ -32,7 +35,7 @@ import mpl_toolkits.axisartist as AA
 warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 warnings.filterwarnings("ignore",category=UserWarning)
 import numpy as np
-from pyoptsparse import SqliteDict
+from sqlitedict import SqliteDict
 
 class Display(object):
 
@@ -63,7 +66,7 @@ class Display(object):
             figsize = (14, 10)
         else: # Otherwise, use a slightly smaller window
               # so everything fits on the screen
-            figsize = (6, 6)
+            figsize = (5, 4)
 
         # Instantiate the MPL figure
         self.f = plt.figure(figsize=figsize, dpi=100, facecolor='white')
@@ -854,7 +857,7 @@ class Display(object):
 
     def var_search(self, _):
         """
-        Remove listbox entries that do not contain user-inputted string,
+        Remove listbox entries that do not contain user-supplied string,
         used to search through outputted data.
         """
         self.lb_func.delete(0, Tk.END)
