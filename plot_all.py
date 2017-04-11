@@ -181,7 +181,14 @@ class Display(object):
                         self.CL.append(case_data['Unknowns'][name+'_perf.CL1'])
                         self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
                         self.show_wing = True
-                        self.twist.append(case_data['Unknowns'][name+'.twist'])
+
+                        # Not the best solution for now, but this will ensure
+                        # that this plots corectly even if twist isn't a desvar
+                        try:
+                            self.twist.append(case_data['Unknowns'][name+'.twist'])
+                            self.twist_included = True
+                        except:
+                            self.twist_included = False
                     except:
                         self.show_wing = False
                 else:
@@ -199,7 +206,18 @@ class Display(object):
                     sec_forces.append(case_data['Unknowns']['coupled.aero_states.' + short_name + '_sec_forces'])
                     self.CL.append(case_data['Unknowns'][short_name+'_perf.CL1'])
                     self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
-                    self.twist.append(case_data['Unknowns'][short_name+'.twist'])
+
+                    # Not the best solution for now, but this will ensure
+                    # that this plots corectly even if twist isn't a desvar
+                    try:
+                        self.twist.append(case_data['Unknowns'][short_name+'.twist'])
+                        self.twist_included = True
+                    except:
+                        self.twist_included = False
+
+                if not self.twist_included:
+                    ny = len(widths[0])
+                    self.twist.append(np.zeros(ny+1))
 
             if self.show_wing:
                 alpha.append(case_data['Unknowns']['alpha'] * np.pi / 180.)

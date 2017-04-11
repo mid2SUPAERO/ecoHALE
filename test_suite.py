@@ -189,7 +189,7 @@ class TestAero(unittest.TestCase):
             OAS_prob.run()
             prob = OAS_prob.prob
             self.assertAlmostEqual(prob['wing_perf.CD'], 0.00057432581266351113, places=5)
-            self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=4)
+            self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=2)
 
     if fortran_flag:
         def test_aero_viscous_optimization(self):
@@ -533,7 +533,7 @@ class TestAeroStruct(unittest.TestCase):
 
 if __name__ == "__main__":
 
-    # Get user-inputted argument if provided
+    # Get user-supplied argument if provided
     try:
         arg = sys.argv[1]
         arg_provided = True
@@ -560,7 +560,9 @@ if __name__ == "__main__":
 
     failures = []
     errors = []
+    num_tests = 0
 
+    # Loop through each requested discipline test
     for test_class in test_classes:
 
         # Set up the test suite and run the tests corresponding to this subgroup
@@ -569,6 +571,14 @@ if __name__ == "__main__":
 
         failures.extend(test_class.currentResult[-1].failures)
         errors.extend(test_class.currentResult[-1].errors)
+        num_tests += len(test_class.currentResult)
 
+    # Print results and force an exit if an error or failure occurred
+    print()
     if len(failures) or len(errors):
+        print("There have been errors or failures! Please check the log to " +
+              "see which tests failed.\n")
         sys.exit(1)
+
+    else:
+        print("Successfully ran {} tests with no errors!\n".format(num_tests))

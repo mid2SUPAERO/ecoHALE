@@ -95,11 +95,13 @@ class OASProblem(object):
 
     def __init__(self, input_dict={}):
 
+        print('Fortran =', fortran_flag)
+
         # Update prob_dict with user-provided values after getting defaults
         self.prob_dict = self.get_default_prob_dict()
         self.prob_dict.update(input_dict)
 
-        # Set the airspeed velocity based on the inputted Mach number
+        # Set the airspeed velocity based on the supplied Mach number
         # and speed of sound
         self.prob_dict['v'] = self.prob_dict['M'] * self.prob_dict['a']
         self.surfaces = []
@@ -112,7 +114,7 @@ class OASProblem(object):
         if self.prob_dict['type'] == 'aerostruct':
             self.setup = self.setup_aerostruct
 
-        # Set up dictionaries to hold user-inputted parameters for optimization
+        # Set up dictionaries to hold user-supplied parameters for optimization
         self.desvars = {}
         self.constraints = {}
         self.objective = {}
@@ -134,8 +136,7 @@ class OASProblem(object):
                     'name' : 'wing',        # name of the surface
                     'num_x' : 3,            # number of chordwise points
                     'num_y' : 5,            # number of spanwise points
-                    'root_chord' : 1.,       # root chord
-                    'span_cos_spacing' : 1,   # 0 for uniform spanwise panels
+                    'span_cos_spacing' : 1, # 0 for uniform spanwise panels
                                             # 1 for cosine-spaced panels
                                             # any value between 0 and 1 for
                                             # a mixed spacing
@@ -157,6 +158,7 @@ class OASProblem(object):
 
                     # Simple Geometric Variables
                     'span' : 10.,           # full wingspan, even for symmetric cases
+                    'root_chord' : 1.,      # root chord
                     'dihedral' : 0.,        # wing dihedral angle in degrees
                                             # positive is upward
                     'sweep' : 0.,           # wing sweep angle in degrees
@@ -173,8 +175,10 @@ class OASProblem(object):
                     'thickness_cp' : None,
                     'radius_cp' : None,
 
-                    # Active geometric variables. This list can be reduced to only the
-                    # design variables if desired.
+                    # Geometric variables. The user generally does not need
+                    # to change these geometry variables. This is simply
+                    # a list of possible geometry variables that is later
+                    # filtered down based on which are active.
                     'geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp',
                         'zshear_cp', 'span', 'chord_cp', 'taper', 'thickness_cp', 'radius_cp'],
 
@@ -218,7 +222,7 @@ class OASProblem(object):
         defaults = {
                     # Problem and solver options
                     'optimize' : False,      # flag for analysis or optimization
-                    'optimizer' : 'SNOPT',   # default optimizer
+                    'optimizer' : 'SLSQP',   # default optimizer
                     'force_fd' : False,      # if true, we FD over the whole model
                     'with_viscous' : False,  # if true, compute viscous drag
                     'print_level' : 0,       # int to control output during optimization
@@ -266,7 +270,7 @@ class OASProblem(object):
         # get the chordwise and spanwise number of points
         if 'mesh' in surf_dict.keys():
             mesh = surf_dict['mesh']
-            num_x, num_y = mesh.shape
+            num_x, num_y = mesh.shape[:2]
 
         # If the user doesn't provide a mesh, obtain the values from surface
         # to create the mesh
@@ -329,6 +333,8 @@ class OASProblem(object):
             surf_dict['radius_cp'] = np.interp(np.linspace(s[0], s[-1], surf_dict['num_radius_cp']),
                 s, surf_dict['radius'].real)
 
+        # We need to initialize some variables to ones and some others to zeros.
+        # Here we define the lists for each case.
         ones_list = ['chord_cp', 'thickness_cp', 'radius_cp']
         zeros_list = ['twist_cp', 'xshear_cp', 'zshear_cp']
         surf_dict['bsp_vars'] = ones_list + zeros_list
@@ -458,7 +464,7 @@ class OASProblem(object):
                                                 }
             elif self.prob_dict['optimizer'] == 'SLSQP':
                 self.prob.driver.options['optimizer'] = 'SLSQP'
-                self.prob.driver.opt_settings = {
+                self.prob.driver.opt_settings = {'ACC' : 1e-10
                                                 }
 
         except:  # Use Scipy SLSQP optimizer if pyOptSparse not installed

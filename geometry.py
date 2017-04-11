@@ -303,7 +303,7 @@ class GeometryMesh(Component):
     the initial mesh from the surface dictionary and outputs the altered
     mesh based on the geometric design variables.
 
-    Depending on the design variables selected or the inputted geometry information,
+    Depending on the design variables selected or the supplied geometry information,
     only some of the follow parameters will actually be given to this component.
     If parameters are not active (they do not deform the mesh), then
     they will not be given to this component.

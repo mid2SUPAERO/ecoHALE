@@ -30,6 +30,12 @@ Lastly, from within the OpenAeroStruct folder, compile the Fortran files:
 Note that the code will run without compiling the Fortran library, but it will run significantly faster when using Fortran.
 The Fortran code has been tested extensively on Linux, partially on MacOS, and not at all on Windows.
 
+We include a script that runs a variety of aerodynamic, structural, and aerostructural tests. To check your installation, run:
+
+.. code-block:: bash
+
+    python test_suite.py
+
 Usage
 -----
 

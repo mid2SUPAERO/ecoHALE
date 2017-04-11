@@ -857,7 +857,7 @@ class Display(object):
 
     def var_search(self, _):
         """
-        Remove listbox entries that do not contain user-inputted string,
+        Remove listbox entries that do not contain user-supplied string,
         used to search through outputted data.
         """
         self.lb_func.delete(0, Tk.END)
