@@ -376,6 +376,7 @@ class GeometryMesh(Component):
 
         self.add_output('mesh', val=self.mesh)
 
+
         self.symmetry = surface['symmetry']
 
         # This flag determines whether or not changes in z (dihedral) add an
