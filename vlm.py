@@ -484,20 +484,20 @@ class VLMGeometry(Component):
 
         self.surface = surface
 
-        ny = surface['num_y']
-        nx = surface['num_x']
+        self.ny = surface['num_y']
+        self.nx = surface['num_x']
 
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('def_mesh', val=np.zeros((nx, ny, 3),
+        self.add_param('def_mesh', val=np.zeros((self.nx, self.ny, 3),
                        dtype=data_type))
-        self.add_output('b_pts', val=np.zeros((nx-1, ny, 3),
+        self.add_output('b_pts', val=np.zeros((self.nx-1, self.ny, 3),
                         dtype=data_type))
-        self.add_output('c_pts', val=np.zeros((nx-1, ny-1, 3)))
-        self.add_output('widths', val=np.zeros((ny-1)))
-        self.add_output('cos_sweep', val=np.zeros((ny-1)))
-        self.add_output('lengths', val=np.zeros((ny)))
-        self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
+        self.add_output('c_pts', val=np.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output('widths', val=np.zeros((self.ny-1)))
+        self.add_output('cos_sweep', val=np.zeros((self.ny-1)))
+        self.add_output('lengths', val=np.zeros((self.ny)))
+        self.add_output('normals', val=np.zeros((self.nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=0.)
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -1488,9 +1488,6 @@ class VLMCoeffs(Component):
         L = params['L']
         D = params['D']
 
-        # if self.surface['symmetry']:
-        #     S_ref *= 2
-
         jac = self.alloc_jacobian()
 
         jac['CL1', 'L'] = 1. / (0.5 * rho * v**2 * S_ref)
@@ -1502,10 +1499,6 @@ class VLMCoeffs(Component):
         jac['CL1', 'rho'] = -L / (0.5 * rho**2 * v**2 * S_ref)
         jac['CDi', 'rho'] = -D / (0.5 * rho**2 * v**2 * S_ref)
 
-        # if self.surface['symmetry']:
-        #     jac['CL1', 'S_ref'] = -L / (.25 * rho * v**2 * S_ref**2)
-        #     jac['CDi', 'S_ref'] = -D / (.25 * rho * v**2 * S_ref**2)
-        # else:
         jac['CL1', 'S_ref'] = -L / (0.5 * rho * v**2 * S_ref**2)
         jac['CDi', 'S_ref'] = -D / (0.5 * rho * v**2 * S_ref**2)
 
