@@ -170,6 +170,7 @@ class OASProblem(object):
                                             # The default is 40% of the MTOW of
                                             # B777-300 is 3e5 kg.
                     'beta' : 1.,            # weighting factor for mixed objective
+                    'S_ref_total' : None,   # [m^2] total reference area for the aircraft
                     }
 
         return defaults
@@ -705,6 +706,7 @@ class OASProblem(object):
             root.add(name[:-1], tmp_group, promotes=[])
 
             root.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
+            root.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
 
         # Actually set up the problem
         self.setup_prob()
@@ -805,6 +807,7 @@ class OASProblem(object):
             ('re', self.prob_dict['Re']/self.prob_dict['reynolds_length']),
             ('rho', self.prob_dict['rho']),
             ('cg', self.prob_dict['cg'])]
+
         root.add('prob_vars',
                  IndepVarComp(prob_vars),
                  promotes=['*'])
@@ -845,13 +848,15 @@ class OASProblem(object):
             # Connect S_ref for performance calcs
             root.connect(name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
             root.connect(name[:-1] + '.widths', 'total_perf.' + name + 'widths')
-            root.connect(name[:-1] + '.lengths', 'total_perf.' + name + 'lengths')
+            root.connect(name[:-1] + '.chords', 'total_perf.' + name + 'chords')
             root.connect(name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
+            root.connect(name + 'perf' + '.CL', 'total_perf.' + name + 'CL')
+            root.connect(name + 'perf' + '.CD', 'total_perf.' + name + 'CD')
             root.connect('aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
         root.add('total_perf',
                   TotalAeroPerformance(self.surfaces, self.prob_dict),
-                  promotes=['CM', 'v', 'rho', 'cg'])
+                  promotes=['CM', 'CL', 'CD', 'v', 'rho', 'cg'])
 
         # Actually set up the problem
         self.setup_prob()
@@ -980,6 +985,7 @@ class OASProblem(object):
             root.add(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
             root.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
+            root.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
 
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
@@ -1040,7 +1046,7 @@ class OASProblem(object):
             # Connect parameters from the 'coupled' group to the total performance group.
             root.connect('coupled.' + name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
             root.connect('coupled.' + name[:-1] + '.widths', 'total_perf.' + name + 'widths')
-            root.connect('coupled.' + name[:-1] + '.lengths', 'total_perf.' + name + 'lengths')
+            root.connect('coupled.' + name[:-1] + '.chords', 'total_perf.' + name + 'chords')
             root.connect('coupled.' + name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
             root.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
 
@@ -1064,16 +1070,6 @@ class OASProblem(object):
         if self.prob_dict['print_level']:
             coupled.nl_solver.options['iprint'] = 1
 
-        # Ensure that the groups are ordered correctly within the coupled group
-        # so that a system with multiple surfaces is solved corretly.
-        order_list = []
-        for surface in self.surfaces:
-            order_list.append(surface['name'][:-1])
-        order_list.append('aero_states')
-        for surface in self.surfaces:
-            order_list.append(surface['name']+'loads')
-        coupled.set_order(order_list)
-
         # Add the coupled group to the root problem
         root.add('coupled', coupled, promotes=['v', 'alpha', 'rho'])
 
@@ -1083,6 +1079,7 @@ class OASProblem(object):
             ('M', self.prob_dict['M']),
             ('re', self.prob_dict['Re']/self.prob_dict['reynolds_length']),
             ('rho', self.prob_dict['rho'])]
+
         root.add('prob_vars',
                  IndepVarComp(prob_vars),
                  promotes=['*'])
@@ -1092,7 +1089,7 @@ class OASProblem(object):
         # of the parameters.
         root.add('total_perf',
                  TotalPerformance(self.surfaces, self.prob_dict),
-                 promotes=['L_equals_W', 'fuelburn', 'CM', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
+                 promotes=['L_equals_W', 'fuelburn', 'CM', 'CL', 'CD', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
 
         # Actually set up the system
         self.setup_prob()
