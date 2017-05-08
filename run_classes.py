@@ -84,7 +84,8 @@ class OASWarning(object):
 
 class OASProblem(object):
     """
-    Contain surface and problem information for aerostructural optimization.
+    Contain surface and problem information for aero, struct, or aerostructural
+    analysis and optimization.
 
     Parameters
     ----------
@@ -161,16 +162,16 @@ class OASProblem(object):
                     # Aircraft properties
                     'CT' : 9.80665 * 17.e-6, # [1/s] (9.80665 N/kg * 17e-6 kg/N/s)
                                              # specific fuel consumption
-                    'R' : 11.165e6,            # [m] maximum range (B777-300)
-                    'cg' : np.zeros((3)), # Center of gravity for the
-                                                 # entire aircraft. Used in trim
-                                                 # and stability calculations.
-                    'W0' : 0.4 * 3e5,       # [kg] weight of the airplane without
-                                            # the wing structure and fuel.
-                                            # The default is 40% of the MTOW of
-                                            # B777-300 is 3e5 kg.
-                    'beta' : 1.,            # weighting factor for mixed objective
-                    'S_ref_total' : None,   # [m^2] total reference area for the aircraft
+                    'R' : 11.165e6,          # [m] maximum range (B777-300)
+                    'cg' : np.zeros((3)),    # Center of gravity for the
+                                             # entire aircraft. Used in trim
+                                             # and stability calculations.
+                    'W0' : 0.4 * 3e5,        # [kg] weight of the airplane without
+                                             # the wing structure and fuel.
+                                             # The default is 40% of the MTOW of
+                                             # B777-300 is 3e5 kg.
+                    'beta' : 1.,             # weighting factor for mixed objective
+                    'S_ref_total' : None,    # [m^2] total reference area for the aircraft
                     }
 
         return defaults
@@ -274,8 +275,8 @@ class OASProblem(object):
 
     def add_surface(self, input_dict={}):
         """
-        Add a surface to the problem. One surface definition is needed for
-        each planar lifting surface.
+        Add a surface to the problem. You would call this once for each surface
+        of your aircraft.
 
         Parameters
         ----------
@@ -395,6 +396,7 @@ class OASProblem(object):
         surf_dict['num_y'] = num_y
         surf_dict['mesh'] = mesh
 
+        # Compute and set initial radii
         radius = radii(mesh, surf_dict['t_over_c'])
         surf_dict['radius'] = radius
 

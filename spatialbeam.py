@@ -149,10 +149,10 @@ class ComputeNodes(Component):
         super(ComputeNodes, self).__init__()
 
         self.ny = surface['num_y']
-        self.nx = surface['num_x']
+        nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_param('mesh', val=np.zeros((nx, self.ny, 3), dtype=data_type))
         self.add_output('nodes', val=np.zeros((self.ny, 3), dtype=data_type))
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -538,7 +538,7 @@ class SpatialBeamEnergy(Component):
         return jac
 
 class SpatialBeamWeight(Component):
-    """ Compute total weight.
+    """ Compute total weight and center-of-gravity location of the spar elements.
 
     Parameters
     ----------
@@ -572,15 +572,17 @@ class SpatialBeamWeight(Component):
         A = params['A']
         nodes = params['nodes']
 
-        # Calculate the volume and weight of the total structure
+        # Calculate the volume and weight of the structure
         element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
         volume = np.sum(element_volumes)
+        weight = volume * self.surface['mrho'] * 9.81
 
+        # Calculate the center-of-gravity location of the spar elements only
         center_of_elements = (nodes[1:, :] + nodes[:-1, :]) / 2.
         cg_loc = np.sum(center_of_elements.T * element_volumes, axis=1) / volume
 
-        weight = volume * self.surface['mrho'] * 9.81
-
+        # If the tube is symmetric, double the computed weight and set the
+        # y-location of the cg to 0, at the symmetry plane
         if self.surface['symmetry']:
             weight *= 2.
             cg_loc[1] = 0.
@@ -676,7 +678,6 @@ class SpatialBeamVonMisesTube(Component):
 
         self.T = np.zeros((3, 3), dtype=data_type)
         self.x_gl = np.array([1, 0, 0], dtype=data_type)
-        self.t = 0
 
     def solve_nonlinear(self, params, unknowns, resids):
         radius = params['radius']
@@ -824,7 +825,7 @@ class SpatialBeamFailureKS(Component):
 
 class SpatialBeamFailureExact(Component):
     """
-    Outputs individual failure constraints on each FEM element.
+    Output individual failure constraints on each FEM element.
 
     Parameters
     ----------
@@ -859,6 +860,8 @@ class SpatialBeamFailureExact(Component):
 
 class SparWithinWing(Component):
     """
+    Create a constraint to see if the spar is within the wing.
+    This is based on the wing's t/c and the spar radius.
 
     .. warning::
         This component has not been extensively tested.
@@ -885,9 +888,9 @@ class SparWithinWing(Component):
 
         self.surface = surface
         self.ny = surface['num_y']
-        self.nx = surface['num_x']
+        nx = surface['num_x']
 
-        self.add_param('mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_param('mesh', val=np.zeros((nx, self.ny, 3), dtype=data_type))
         self.add_param('radius', val=np.zeros((self.ny-1), dtype=data_type))
         self.add_output('spar_within_wing', val=np.zeros((self.ny-1), dtype=data_type))
 
@@ -911,6 +914,9 @@ class SparWithinWing(Component):
 
 class NonIntersectingThickness(Component):
     """
+    Create a constraint so the thickness of the spar does not intersect
+    itself in the center of the spar. Basically, the thickness must be less
+    than or equal to the radius.
 
     Parameters
     ----------
@@ -933,7 +939,6 @@ class NonIntersectingThickness(Component):
         super(NonIntersectingThickness, self).__init__()
 
         self.ny = surface['num_y']
-        self.nx = surface['num_x']
 
         self.add_param('thickness', val=np.zeros((self.ny-1)))
         self.add_param('radius', val=np.zeros((self.ny-1)))

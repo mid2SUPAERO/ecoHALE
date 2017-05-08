@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # Create a dictionary to store options about the surface
     surf_dict = {'num_y' : 7,
                  'num_x' : 2,
-                 'wing_type' : 'rect',
+                 'wing_type' : 'CRM',
                  'CD0' : 0.015,
                  'symmetry' : True,
                  'num_twist_cp' : 5,

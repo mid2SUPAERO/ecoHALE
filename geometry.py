@@ -18,7 +18,8 @@ except:
     data_type = complex
 
 def rotate(mesh, theta_y, symmetry, rotate_x=True):
-    """ Compute rotation matrices given mesh and rotation angles in degrees.
+    """
+    Compute rotation matrices given mesh and rotation angles in degrees.
 
     Parameters
     ----------
@@ -63,7 +64,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
             dy_qc_right = quarter_chord[root_index+1:,1] - quarter_chord[root_index:-1,1]
             theta_x_right = np.arctan(dz_qc_right/dy_qc_right)
 
-            # Concatenate theta's
+            # Concatenate thetas
             rad_theta_x = np.concatenate((theta_x_left, np.zeros(1), theta_x_right))
 
     else:
@@ -86,7 +87,8 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
         row += quarter_chord
 
 def scale_x(mesh, chord_dist):
-    """ Modify the chords along the span of the wing by scaling only the x-coord.
+    """
+    Modify the chords along the span of the wing by scaling only the x-coord.
 
     Parameters
     ----------
@@ -105,14 +107,14 @@ def scale_x(mesh, chord_dist):
     quarter_chord = 0.25 * te + 0.75 * le
 
     ny = mesh.shape[1]
-    nx = mesh.shape[0]
 
     for i in range(ny):
         mesh[:, i, 0] = (mesh[:, i, 0] - quarter_chord[i, 0]) * chord_dist[i] + \
             quarter_chord[i, 0]
 
 def shear_x(mesh, xshear):
-    """ Shear the wing in the x direction (distributed sweep).
+    """
+    Shear the wing in the x direction (distributed sweep).
 
     Parameters
     ----------
@@ -129,7 +131,8 @@ def shear_x(mesh, xshear):
     mesh[:, :, 0] += xshear
 
 def shear_z(mesh, zshear):
-    """ Shear the wing in the z direction (distributed dihedral).
+    """
+    Shear the wing in the z direction (distributed dihedral).
 
     Parameters
     ----------
@@ -146,7 +149,8 @@ def shear_z(mesh, zshear):
     mesh[:, :, 2] += zshear
 
 def sweep(mesh, sweep_angle, symmetry):
-    """ Apply shearing sweep. Positive sweeps back.
+    """
+    Apply shearing sweep. Positive sweeps back.
 
     Parameters
     ----------
@@ -164,15 +168,19 @@ def sweep(mesh, sweep_angle, symmetry):
 
     """
 
+    # Get the mesh parameters and desired sweep angle
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
     p180 = np.pi / 180
     tan_theta = tan(p180*sweep_angle)
 
+    # If symmetric, simply vary the x-coord based on the distance from the
+    # center of the wing
     if symmetry:
         y0 = le[-1, 1]
         dx = -(le[:, 1] - y0) * tan_theta
 
+    # Else, vary the x-coord on either side of the wing
     else:
         ny2 = (num_y - 1) // 2
         y0 = le[ny2, 1]
@@ -185,7 +193,8 @@ def sweep(mesh, sweep_angle, symmetry):
         mesh[i, :, 0] += dx
 
 def dihedral(mesh, dihedral_angle, symmetry):
-    """ Apply dihedral angle. Positive angles up.
+    """
+    Apply dihedral angle. Positive angles up.
 
     Parameters
     ----------
@@ -203,29 +212,31 @@ def dihedral(mesh, dihedral_angle, symmetry):
 
     """
 
+    # Get the mesh parameters and desired sweep angle
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
     p180 = np.pi / 180
     tan_theta = tan(p180*dihedral_angle)
 
+    # If symmetric, simply vary the z-coord based on the distance from the
+    # center of the wing
     if symmetry:
         y0 = le[-1, 1]
-        dx = -(le[:, 1] - y0) * tan_theta
+        dz = -(le[:, 1] - y0) * tan_theta
 
     else:
         ny2 = (num_y-1) // 2
         y0 = le[ny2, 1]
-        dx_right = (le[ny2:, 1] - y0) * tan_theta
-        dx_left = -(le[:ny2, 1] - y0) * tan_theta
-        dx = np.hstack((dx_left, dx_right))
+        dz_right = (le[ny2:, 1] - y0) * tan_theta
+        dz_left = -(le[:ny2, 1] - y0) * tan_theta
+        dz = np.hstack((dz_left, dz_right))
 
     for i in range(num_x):
-        mesh[i, :, 2] += dx
+        mesh[i, :, 2] += dz
 
 
 def stretch(mesh, span, symmetry):
     """
-
     Stretch mesh in spanwise direction to reach specified span.
 
     Parameters
@@ -243,18 +254,27 @@ def stretch(mesh, span, symmetry):
         Nodal mesh defining the stretched aerodynamic surface.
 
     """
+
+    # Set the span along the quarter-chord line
     le = mesh[0]
     te = mesh[-1]
     quarter_chord = 0.25 * te + 0.75 * le
+
+    # The user always deals with the full span, so if they input a specific
+    # span value and have symmetry enabled, we divide this value by 2.
     if symmetry:
         span /= 2.
 
+    # Compute the previous span and determine the scalar needed to reach the
+    # desired span
     prev_span = quarter_chord[-1, 1] - quarter_chord[0, 1]
     s = quarter_chord[:,1] / prev_span
     mesh[:, :, 1] = s * span
 
 def taper(mesh, taper_ratio, symmetry):
-    """ Alter the spanwise chord linearly to produce a tapered wing.
+    """
+    Alter the spanwise chord linearly to produce a tapered wing. Note that
+    we apply taper around the quarter-chord line.
 
     Parameters
     ----------
@@ -272,11 +292,14 @@ def taper(mesh, taper_ratio, symmetry):
 
     """
 
+    # Get mesh parameters and the quarter-chord
     le = mesh[0]
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
     quarter_chord = 0.25 * te + 0.75 * le
 
+    # If symmetric, solve for the correct taper ratio, which is a linear
+    # interpolation problem
     if symmetry:
         x = quarter_chord[:, 1]
         span = x[-1] - x[0]
@@ -284,11 +307,14 @@ def taper(mesh, taper_ratio, symmetry):
         fp = np.array([taper_ratio, 1.])
         taper = np.interp(x.real, xp.real, fp.real)
 
+        # Modify the mesh based on the taper amount computed per spanwise section
         for i in range(num_x):
             for ind in range(3):
                 mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
                     taper + quarter_chord[:, ind]
 
+    # Otherwise, we set up an interpolation problem for the entire wing, which
+    # consists of two linear segments
     else:
         x = quarter_chord[:, 1]
         span = x[-1] - x[0]
@@ -394,7 +420,7 @@ class GeometryMesh(Component):
         self.add_output('mesh', val=self.mesh)
 
         # If the user doesn't provide the radius or it's not a desver, then we must
-        # compute it here.
+        # compute it here
         if 'radius_cp' not in desvar_names and 'radius_cp' not in surface['initial_geo']:
             self.compute_radius = True
             self.add_output('radius', val=np.zeros((ny - 1)))
@@ -431,10 +457,10 @@ class GeometryMesh(Component):
             shear_z(mesh, self.geo_params['zshear'])
             rotate(mesh, self.geo_params['twist'], self.symmetry, self.rotate_x)
 
-        # Only compute the radius on the first iteration.
+        # Only compute the radius on the first iteration
         if self.compute_radius and 'radius_cp' not in self.desvar_names:
             # Get spar radii and interpolate to radius control points.
-            # Need to refactor this at some point.
+            # Need to refactor this at some point since the derivatives are wrong.
             unknowns['radius'] = radii(mesh, self.surface['t_over_c'])
             self.compute_radius = False
 
@@ -519,8 +545,9 @@ class GeometryMesh(Component):
                 dparams['span'] = spanb
 
 class MonotonicConstraint(Component):
-    """ Produce a constraint that is violated if the chord lengths of the wing
-        do not decrease monotonically from the root to the taper.
+    """
+    Produce a constraint that is violated if a user-chosen measure on the
+    wing does not decrease monotonically from the root to the tip.
 
     Parameters
     ----------
@@ -535,10 +562,13 @@ class MonotonicConstraint(Component):
     """
     def __init__(self, var_name, surface):
         super(MonotonicConstraint, self).__init__()
+
         self.var_name = var_name
         self.con_name = 'monotonic_' + var_name
+
         self.symmetry = surface['symmetry']
         self.ny = surface['num_y']
+
         self.add_param(self.var_name, val=np.zeros(self.ny))
         self.add_output(self.con_name, val=np.zeros(self.ny-1))
 
@@ -565,7 +595,8 @@ class MonotonicConstraint(Component):
         return jac
 
 def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
-    """ Generate Common Research Model wing mesh.
+    """
+    Generate Common Research Model wing mesh.
 
     Parameters
     ----------
@@ -678,7 +709,8 @@ def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spaci
 
 
 def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
-    """ Generate a new mesh with multiple chordwise panels.
+    """
+    Generate a new mesh with multiple chordwise panels.
 
     Parameters
     ----------
@@ -736,7 +768,8 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
 
 def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
-    """ Generate simple rectangular wing mesh.
+    """
+    Generate simple rectangular wing mesh.
 
     Parameters
     ----------
@@ -777,19 +810,19 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
     half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
     full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
-    nx2 = (num_x + 1) / 2
-    beta = np.linspace(0, np.pi/2, nx2)
+    if chord_cos_spacing == 0.:
+        full_wing_x = np.linspace(0, chord, num_x)
 
-    # mixed spacing with span_cos_spacing as a weighting factor
-    # this is for the chordwise spacing
-    cosine = .5 * np.cos(beta)  # cosine spacing
-    uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
-    half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
-    full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) * chord
+    else:
+        nx2 = (num_x + 1) / 2
+        beta = np.linspace(0, np.pi/2, nx2)
 
-    # Special case if there are only 2 chordwise nodes
-    if num_x <= 2:
-        full_wing_x = np.array([0., chord])
+        # mixed spacing with span_cos_spacing as a weighting factor
+        # this is for the chordwise spacing
+        cosine = .5 * np.cos(beta)  # cosine spacing
+        uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
+        half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
+        full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) * chord
 
     for ind_x in range(num_x):
         for ind_y in range(num_y):

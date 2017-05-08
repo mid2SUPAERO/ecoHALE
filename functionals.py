@@ -13,7 +13,7 @@ except:
 
 class FunctionalBreguetRange(Component):
     """
-    Computes the fuel burn using the Breguet range equation using
+    Compute the fuel burn using the Breguet range equation using
     the computed CL, CD, weight, and provided specific fuel consumption, speed of sound,
     Mach number, initial weight, and range.
 
@@ -132,11 +132,15 @@ class FunctionalEquilibrium(Component):
         structural_weight = 0.
         L = 0.
         W0 = self.prob_dict['W0'] * self.prob_dict['g']
+
+        # Loop through the surfaces and sum the lifts and weights
         for surface in self.surfaces:
             name = surface['name']
             structural_weight += params[name+'structural_weight']
             L += params[name+'L']
 
+        # Compute the total weight based on the empty weight,
+        # structural weight, and fuel weight
         tot_weight = structural_weight + params['fuelburn'] * self.prob_dict['g'] + W0
 
         unknowns['total_weight'] = tot_weight
@@ -152,8 +156,6 @@ class ComputeCG(Component):
 
     Parameters
     ----------
-    nodes[ny, 3] : numpy array
-        Flattened array with coordinates for each FEM node.
     structural_weight : float
         Total weight of the structural spar for a given surface.
     cg_location[3] : numpy array
@@ -180,7 +182,6 @@ class ComputeCG(Component):
         for surface in surfaces:
             name = surface['name']
 
-            self.add_param(name+'nodes', val=0.)
             self.add_param(name+'structural_weight', val=0.)
             self.add_param(name+'cg_location', val=np.zeros((3), dtype=data_type))
 
@@ -193,18 +194,22 @@ class ComputeCG(Component):
         self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
+
+        # Compute the weighted cg of the aircraft without fuel or structures
         g = self.prob_dict['g']
         W0 = self.prob_dict['W0']
         W0_cg = W0 * self.prob_dict['cg'] * g
 
         spar_cg = 0.
-        structural_weight = 0.
+
+        # Loop through the surfaces and compute the weighted cg location
+        # of all structural spars
         for surface in self.surfaces:
             name = surface['name']
             spar_cg = params[name + 'cg_location'] * params[name + 'structural_weight']
-            structural_weight += params[name + 'structural_weight']
-        tot_weight = structural_weight + params['fuelburn'] * g + W0
 
+        # Compute the total cg of the aircraft based on the empty weight cg and
+        # the structures cg. Here we assume the fuel weight is at the cg.
         unknowns['cg'] = (W0_cg + spar_cg) / (params['total_weight'] - params['fuelburn'] * g)
 
 class ComputeCM(Component):
@@ -274,6 +279,8 @@ class ComputeCM(Component):
         S_ref_tot = 0.
         M = np.zeros((3), dtype=data_type)
 
+        # Loop through each surface and find its contributions to the moment
+        # of the aircraft based on the section forces and their location
         for j, surface in enumerate(self.surfaces):
             name = surface['name']
             nx = surface['num_x']
@@ -285,9 +292,14 @@ class ComputeCM(Component):
             S_ref = params[name+'S_ref']
             sec_forces = params[name+'sec_forces']
 
+            # Compute the average chord for each panel and then the
+            # mean aerodynamic chord (MAC) based on these chords and the
+            # computed area
             panel_chords = (chords[1:] + chords[:-1]) / 2.
             MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
 
+            # If the surface is symmetric, then the previously computed MAC
+            # is half what it should be
             if surface['symmetry']:
                 MAC *= 2
 
@@ -296,20 +308,28 @@ class ComputeCM(Component):
                 M += M_tmp
 
             else:
+
+                # Get the moment arm acting on each panel, relative to the cg
                 pts = (params[name+'b_pts'][:, 1:, :] + \
                     params[name+'b_pts'][:, :-1, :]) / 2
                 diff = (pts - cg) / MAC
+
+                # Compute the moment based on the previously computed moment
+                # arm and the section forces
                 moment = np.zeros((ny - 1, 3), dtype=data_type)
                 for ind in range(nx-1):
                     moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
+                # If the surface is symmetric, set the x- and z-direction moments
+                # to 0 and double the y-direction moment
                 if surface['symmetry']:
                     moment[:, 0] = 0.
                     moment[:, 1] *= 2
                     moment[:, 2] = 0.
                 M += np.sum(moment, axis=0)
 
-            # For the first (main) lifting surface, we save the MAC
+            # For the first (main) lifting surface, we save the MAC to correctly
+            # normalize CM
             if j == 0:
                 MAC_wing = MAC
             S_ref_tot += S_ref
@@ -323,6 +343,7 @@ class ComputeCM(Component):
         else:
             self.S_ref_tot = self.prob_dict['S_ref_total']
 
+        # Compute the normalized CM
         unknowns['CM'] = M / (0.5 * rho * params['v']**2 * self.S_ref_tot * MAC_wing)
 
     def linearize(self, params, unknowns, resids):
@@ -333,6 +354,8 @@ class ComputeCM(Component):
         rho = params['rho']
         v = params['v']
 
+        # Here we just use the reverse mode AD results to compute the
+        # Jacobian since we'll always have much fewer outputs than inputs
         for j in range(3):
             CMb = np.zeros((3))
             CMb[j] = 1.
@@ -439,6 +462,8 @@ class ComputeTotalCLCD(Component):
         rho = params['rho']
         v = params['v']
 
+        # Compute the weighted CL and CD contributions from each surface,
+        # weighted by the individual surface areas
         CL = 0.
         CD = 0.
         computed_total_S_ref = 0.
@@ -449,6 +474,7 @@ class ComputeTotalCLCD(Component):
             CD += params[name+'CD'] * S_ref
             computed_total_S_ref += S_ref
 
+        # Use the user-provided area; otherwise, use the computed area
         if self.prob_dict['S_ref_total'] is not None:
             S_ref_total = self.prob_dict['S_ref_total']
         else:

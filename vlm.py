@@ -14,15 +14,6 @@ import numpy as np
 from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
-    import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = numpy.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
-    plt.show()
-
 try:
     import OAS_API
     fortran_flag = True
@@ -110,7 +101,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     u = np.array([cosa, 0, sina])
 
     i_ = 0
-    i_bpts_ = 0
     i_panels_ = 0
 
     # Loop over the lifting surfaces to compute their influence on the flow
@@ -122,8 +112,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         name_ = surface_['name']
         nx_ = surface_['num_x']
         ny_ = surface_['num_y']
-        n_ = nx_ * ny_
-        n_bpts_ = (nx_ - 1) * ny_
         n_panels_ = (nx_ - 1) * (ny_ - 1)
 
         # Obtain the lifting surface mesh in the form expected by the solver,
@@ -131,9 +119,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         mesh = params[name_+'def_mesh']
         bpts = params[name_+'b_pts']
 
-        # Set counters to know where to index the sub-matrix within the full mtx
-        i = 0
-        i_bpts = 0
+        # Set a counter to know where to index the sub-matrix within the full mtx
         i_panels = 0
 
         for surface in surfaces:
@@ -141,8 +127,6 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             name = surface['name']
             nx = surface['num_x']
             ny = surface['num_y']
-            n = nx * ny
-            n_bpts = (nx - 1) * ny
             n_panels = (nx - 1) * (ny - 1)
             symmetry = surface['symmetry']
 
@@ -296,12 +280,8 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             mtx[i_panels:i_panels+n_panels,
                 i_panels_:i_panels_+n_panels_, :] = small_mat
 
-            i += n
-            i_bpts += n_bpts
             i_panels += n_panels
 
-        i_ += n_
-        i_bpts_ += n_bpts_
         i_panels_ += n_panels_
 
     mtx /= 4 * np.pi
@@ -314,8 +294,6 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
     alpha = params['alpha']
     alphad = dparams['alpha']
 
-    i_ = 0
-    i_bpts_ = 0
     i_panels_ = 0
 
     # Loop over the lifting surfaces to compute their influence on the flow
@@ -327,8 +305,6 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
         name_ = surface_['name']
         nx_ = surface_['num_x']
         ny_ = surface_['num_y']
-        n_ = nx_ * ny_
-        n_bpts_ = (nx_ - 1) * ny_
         n_panels_ = (nx_ - 1) * (ny_ - 1)
 
         # Obtain the lifting surface mesh in the form expected by the solver,
@@ -339,9 +315,7 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
         meshd = dparams[name_+'def_mesh']
         bptsd = dparams[name_+'b_pts']
 
-        # Set counters to know where to index the sub-matrix within the full mtx
-        i = 0
-        i_bpts = 0
+        # Set a counter to know where to index the sub-matrix within the full mtx
         i_panels = 0
 
         for surface in surfaces:
@@ -349,8 +323,6 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
             name = surface['name']
             nx = surface['num_x']
             ny = surface['num_y']
-            n = nx * ny
-            n_bpts = (nx - 1) * ny
             n_panels = (nx - 1) * (ny - 1)
             symmetry = surface['symmetry']
 
@@ -376,12 +348,8 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
             mtxd[i_panels:i_panels+n_panels,
                  i_panels_:i_panels_+n_panels_, :] = small_mat
 
-            i += n
-            i_bpts += n_bpts
             i_panels += n_panels
 
-        i_ += n_
-        i_bpts_ += n_bpts_
         i_panels_ += n_panels_
 
     mtxd /= 4 * np.pi
@@ -395,8 +363,6 @@ def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, ski
 
     mtxb /= 4 * np.pi
 
-    i_ = 0
-    i_bpts_ = 0
     i_panels_ = 0
 
     # Loop over the lifting surfaces to compute their influence on the flow
@@ -408,8 +374,6 @@ def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, ski
         name_ = surface_['name']
         nx_ = surface_['num_x']
         ny_ = surface_['num_y']
-        n_ = nx_ * ny_
-        n_bpts_ = (nx_ - 1) * ny_
         n_panels_ = (nx_ - 1) * (ny_ - 1)
 
         # Obtain the lifting surface mesh in the form expected by the solver,
@@ -417,9 +381,7 @@ def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, ski
         mesh = params[name_+'def_mesh']
         bpts = params[name_+'b_pts']
 
-        # Set counters to know where to index the sub-matrix within the full mtx
-        i = 0
-        i_bpts = 0
+        # Set a counter to know where to index the sub-matrix within the full mtx
         i_panels = 0
 
         for surface in surfaces:
@@ -427,8 +389,6 @@ def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, ski
             name = surface['name']
             nx = surface['num_x']
             ny = surface['num_y']
-            n = nx * ny
-            n_bpts = (nx - 1) * ny
             n_panels = (nx - 1) * (ny - 1)
             symmetry = surface['symmetry']
 
@@ -458,12 +418,8 @@ def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, ski
                 dparams[name+'c_pts'] += ptsb.real
             dparams['alpha'] += alphab
 
-            i += n
-            i_bpts += n_bpts
             i_panels += n_panels
 
-        i_ += n_
-        i_bpts_ += n_bpts_
         i_panels_ += n_panels_
 
 class VLMGeometry(Component):
@@ -502,8 +458,6 @@ class VLMGeometry(Component):
         self.ny = surface['num_y']
         self.nx = surface['num_x']
 
-        self.fem_origin = surface['fem_origin']
-
         self.add_param('def_mesh', val=np.zeros((self.nx, self.ny, 3),
                        dtype=data_type))
         self.add_output('b_pts', val=np.zeros((self.nx-1, self.ny, 3),
@@ -519,7 +473,7 @@ class VLMGeometry(Component):
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = params['def_mesh']
 
-        # Compute the bound points at 1/4 chord
+        # Compute the bound points at quart-chord
         b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
 
         # Compute the collocation points at the midpoints of each
@@ -581,6 +535,8 @@ class VLMGeometry(Component):
         if self.surface['symmetry']:
             S_ref *= 2
 
+        # Compute the chord for each spanwise portion.
+        # This is the distance from the leading to trailing edge.
         chords = np.linalg.norm(mesh[0, :, :] - mesh[-1, :, :], axis=1)
 
         # Store each array in the unknowns dict
@@ -1103,7 +1059,6 @@ class VLMForces(Component):
             name = surface['name']
             nx = surface['num_x']
             ny = surface['num_y']
-
             num_panels = (nx - 1) * (ny - 1)
 
             b_pts = params[name+'b_pts']
@@ -1112,6 +1067,7 @@ class VLMForces(Component):
                 sec_forces = OAS_API.oas_api.forcecalc(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
             else:
 
+                # Get the vectors for each bound vortex of the horseshoe vortices
                 bound = b_pts[:, 1:, :] - b_pts[:, :-1, :]
 
                 # Cross the obtained velocities with the bound vortex filament
@@ -1119,14 +1075,14 @@ class VLMForces(Component):
                 cross = np.cross(self.v[i:i+num_panels],
                                     bound.reshape(-1, bound.shape[-1], order='F'))
 
-                sec_forces = np.zeros(((nx-1)*(ny-1), 3), dtype=data_type)
+                sec_forces = np.zeros((num_panels, 3), dtype=data_type)
                 # Compute the sectional forces acting on each panel
                 for ind in range(3):
                     sec_forces[:, ind] = \
                         (params['rho'] * circ[i:i+num_panels] * cross[:, ind])
 
-            sec_forces = sec_forces.reshape((nx-1, ny-1, 3), order='F')
-            unknowns[name+'sec_forces'] = sec_forces
+            # Reshape the forces into the expected form
+            unknowns[name+'sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
 
             i += num_panels
 
@@ -1265,9 +1221,9 @@ class VLMLiftDrag(Component):
         self.surface = surface
         ny = surface['num_y']
         nx = surface['num_x']
-        self.num_panels = (nx -1) * (ny - 1)
+        self.num_panels = (nx - 1) * (ny - 1)
 
-        self.add_param('sec_forces', val=np.zeros((nx - 1, ny - 1, 3)))
+        self.add_param('sec_forces', val=np.zeros((nx-1, ny-1, 3)))
         self.add_param('alpha', val=3.)
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)
