@@ -8,3 +8,5 @@ omit =
     gs_newton.py
     test_suite.py
     view_geometry.py
+    analysis.py
+    CRM_definitions.py

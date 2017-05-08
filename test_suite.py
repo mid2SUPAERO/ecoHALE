@@ -516,7 +516,8 @@ class TestAeroStruct(unittest.TestCase):
             OAS_prob = OASProblem({'type' : 'aerostruct',
                                    'optimize' : True,
                                    'with_viscous' : True,
-                                   'record_db' : False})
+                                   'record_db' : False,
+                                   'optimizer' : 'SNOPT'})
             surf_dict = {'name' : 'wing',
                          'symmetry' : True,
                          'num_y' : 5,

@@ -503,6 +503,7 @@ class OASProblem(object):
             self.prob.driver.options['optimizer'] = 'SLSQP'
             self.prob.driver.options['disp'] = True
             self.prob.driver.options['tol'] = 1.0e-10
+            self.prob_dict['optimizer'] == 'SLSQP'
 
         # Actually call the OpenMDAO functions to add the design variables,
         # constraints, and objective.
