@@ -748,8 +748,12 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
     # Create half of the wing in the chordwise direction
     half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
 
-    # Mirror this half wing into a full wing; offset by 0.5 so it goes 0 to 1
-    full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) + .5
+    if chord_cos_spacing == 0.:
+        full_wing_x = np.linspace(0, 1., num_x)
+
+    else:
+        # Mirror this half wing into a full wing; offset by 0.5 so it goes 0 to 1
+        full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) + .5
 
     # Obtain the leading and trailing edges
     le = mesh[ 0, :, :]

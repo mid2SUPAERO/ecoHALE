@@ -49,7 +49,8 @@ if __name__ == "__main__":
     # Set problem type
     prob_dict = {'type' : 'aerostruct',
                  'with_viscous' : True,
-                 'cg' : np.array([30., 0., 5.])
+                 'cg' : np.array([30., 0., 5.]),
+                 'optimizer' : 'SNOPT',
                  }
 
     if sys.argv[1].startswith('0'):  # run analysis once
@@ -61,13 +62,13 @@ if __name__ == "__main__":
     OAS_prob = OASProblem(prob_dict)
 
     # Create a dictionary to store options about the surface
-    surf_dict = {'num_y' : 7,
-                 'num_x' : 2,
+    surf_dict = {'num_y' : 41,
+                 'num_x' : 5,
                  'wing_type' : 'CRM',
                  'CD0' : 0.015,
                  'symmetry' : True,
-                 'num_twist_cp' : 3,
-                 'num_thickness_cp' : 3,
+                #  'num_twist_cp' : 3,
+                #  'num_thickness_cp' : 3,
                  }
 
     # Add the specified wing surface to the problem

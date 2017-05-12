@@ -51,7 +51,7 @@ class FunctionalBreguetRange(Component):
         self.add_output('fuelburn', val=0.)
         self.add_output('weighted_obj', val=0.)
 
-        self.deriv_options['type'] = 'cs'
+        self.deriv_options['type'] = 'fd'
         self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -78,10 +78,10 @@ class FunctionalBreguetRange(Component):
         unknowns['fuelburn'] = fuelburn / self.prob_dict['g']
 
         # This lines makes the 'weight' the total aircraft weight
-        unknowns['weighted_obj'] = (beta * fuelburn + (1 - beta) * (W0 + Ws + fuelburn)) / self.prob_dict['g']
+        # unknowns['weighted_obj'] = (beta * fuelburn + (1 - beta) * (W0 + Ws + fuelburn)) / self.prob_dict['g']
 
         # Whereas this line only considers the structural weight
-        # unknowns['weighted_obj'] = (beta * fuelburn + (1 - beta) * Ws) / self.prob_dict['g']
+        unknowns['weighted_obj'] = (beta * fuelburn + (1 - beta) * Ws) / self.prob_dict['g']
 
 class FunctionalEquilibrium(Component):
     """

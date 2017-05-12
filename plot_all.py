@@ -494,7 +494,7 @@ class Display(object):
                     self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
                 cg = self.cg[self.curr_pos]
-                self.ax.scatter(cg[0], cg[1], cg[2], s=100, color='r')
+                # self.ax.scatter(cg[0], cg[1], cg[2], s=100, color='r')
 
             if self.show_tube:
                 # Get the array of radii and thickness values for the FEM system
