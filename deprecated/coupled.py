@@ -83,13 +83,13 @@ def setup(num_inboard=2, num_outboard=3, check=False, out_stream=sys.stdout):
 
     root = Group()
 
-    root.add('des_vars',
+    root.add_subsystem('des_vars',
          IndepVarComp(des_vars),
          promotes=['twist_cp','span','v','alpha','rho','disp','dihedral'])
-    root.add('mesh',  # This component is needed, otherwise resulting loads matrix is NaN
+    root.add_subsystem('mesh',  # This component is needed, otherwise resulting loads matrix is NaN
          GeometryMesh(mesh, aero_ind), # changes mesh given span, sweep, twist, and des_vars
          promotes=['span','sweep','dihedral','twist','taper','mesh'])
-    root.add('def_mesh',
+    root.add_subsystem('def_mesh',
          TransferDisplacements(aero_ind, fem_ind),
          promotes=['mesh','disp','def_mesh'])
 
@@ -189,27 +189,27 @@ def aero(def_mesh=None, params=None):
 
     root = Group()
 
-    root.add('des_vars',
+    root.add_subsystem('des_vars',
              IndepVarComp(des_vars),
              promotes=['twist_cp','span','v','alpha','rho','disp','dihedral','def_mesh'])
-    # root.add('twist_bsp',  # What is this doing?
+    # root.add_subsystem('twist_bsp',  # What is this doing?
     #          Bspline('twist_cp', 'twist', jac_twist),
     #          promotes=['*'])
-    # root.add('thickness_bsp',    # What is this doing?
+    # root.add_subsystem('thickness_bsp',    # What is this doing?
     #          Bspline('thickness_cp', 'thickness', jac_thickness),
     #          promotes=['*'])
-    # root.add('tube',
+    # root.add_subsystem('tube',
     #          MaterialsTube(fem_ind),
     #          promotes=['*'])
 
-    root.add('VLMstates',
+    root.add_subsystem('VLMstates',
              VLMStates(aero_ind),
              promotes=[
                 'def_mesh','b_pts','mid_b','c_pts','widths','normals','S_ref', # VLMGeometry
                 'alpha','circulations','v',  # VLMCirculations
                 'rho','sec_forces'           # VLMForces
              ])
-    root.add('loads',
+    root.add_subsystem('loads',
              TransferLoads(aero_ind, fem_ind),
              promotes=['def_mesh','sec_forces','loads'])
 
@@ -272,28 +272,28 @@ def struct(loads, params):
 
     root = Group()
 
-    root.add('des_vars',
+    root.add_subsystem('des_vars',
              IndepVarComp(des_vars),
             #  promotes=['thickness_cp','r','loads'])
             promotes=['*'])
-    # root.add('twist_bsp',  # What is this doing?
+    # root.add_subsystem('twist_bsp',  # What is this doing?
     #          Bspline('twist_cp', 'twist', jac_twist),
     #          promotes=['*'])
-    root.add('twist_bsp',
+    root.add_subsystem('twist_bsp',
              Bspline('twist_cp', 'twist', jac_twist),
              promotes=['*'])
-    root.add('thickness_bsp',    # What is this doing?
+    root.add_subsystem('thickness_bsp',    # What is this doing?
              Bspline('thickness_cp', 'thickness', jac_thickness),
             #  promotes=['thickness'])
             promotes=['*'])
-    root.add('mesh',
+    root.add_subsystem('mesh',
              GeometryMesh(mesh, aero_ind),
              promotes=['*'])
-    root.add('tube',
+    root.add_subsystem('tube',
              MaterialsTube(fem_ind),
             #  promotes=['r','thickness','A','Iy','Iz','J'])
             promotes=['*'])
-    root.add('spatialbeamstates',
+    root.add_subsystem('spatialbeamstates',
              SpatialBeamStates(aero_ind, fem_ind, E, G),
             #  promotes=[
             #     'mesh', # ComputeNodes
@@ -301,7 +301,7 @@ def struct(loads, params):
             #     'disp' # SpatialBeamDisp
             #  ])
             promotes=['*'])
-    root.add('transferdisp',
+    root.add_subsystem('transferdisp',
              TransferDisplacements(aero_ind, fem_ind),
             #  promotes=['mesh','disp','def_mesh'])
             promotes=['*'])

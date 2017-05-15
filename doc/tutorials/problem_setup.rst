@@ -127,7 +127,7 @@ Sample code block:
 .. code-block:: python
 
   # Add design variables, constraint, and objective and setup problem
-  OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+  OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
   OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
   OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 

@@ -506,19 +506,19 @@ class TotalPerformance(Group):
     def __init__(self, surfaces, prob_dict):
         super(TotalPerformance, self).__init__()
 
-        self.add('fuelburn',
+        self.add_subsystem('fuelburn',
                  FunctionalBreguetRange(surfaces, prob_dict),
                  promotes=['*'])
-        self.add('L_equals_W',
+        self.add_subsystem('L_equals_W',
                  FunctionalEquilibrium(surfaces, prob_dict),
                  promotes=['*'])
-        self.add('CG',
+        self.add_subsystem('CG',
                  ComputeCG(surfaces, prob_dict),
                  promotes=['*'])
-        self.add('moment',
+        self.add_subsystem('moment',
                  ComputeCM(surfaces, prob_dict),
                  promotes=['*'])
-        self.add('CL_CD',
+        self.add_subsystem('CL_CD',
                  ComputeTotalCLCD(surfaces, prob_dict),
                  promotes=['*'])
 
@@ -530,9 +530,9 @@ class TotalAeroPerformance(Group):
     def __init__(self, surfaces, prob_dict):
         super(TotalAeroPerformance, self).__init__()
 
-        self.add('moment',
+        self.add_subsystem('moment',
                  ComputeCM(surfaces, prob_dict),
                  promotes=['*'])
-        self.add('CL_CD',
+        self.add_subsystem('CL_CD',
                  ComputeTotalCLCD(surfaces, prob_dict),
                  promotes=['*'])

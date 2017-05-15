@@ -71,10 +71,10 @@ if __name__ == "__main__":
     if not sys.argv[1].endswith('m'):
 
         # Setup problem and add design variables, constraint, and objective
-        OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
-        OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
-        OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+        OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
+        OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
         OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
         OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
         OAS_prob.setup()
@@ -91,18 +91,18 @@ if __name__ == "__main__":
                               'symmetry' : True})
 
         # Set up wing variables
-        OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
-        OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
-        OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+        OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
+        OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
         OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
         OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 
         # Set up tail variables
-        OAS_prob.add_desvar('tail.twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_desvar('tail.sweep', lower=10., upper=30.)
-        OAS_prob.add_desvar('tail.dihedral', lower=-10., upper=20.)
-        OAS_prob.add_desvar('tail.taper', lower=.5, upper=2.)
+        OAS_prob.add_design_var('tail.twist_cp', lower=-10., upper=15.)
+        OAS_prob.add_design_var('tail.sweep', lower=10., upper=30.)
+        OAS_prob.add_design_var('tail.dihedral', lower=-10., upper=20.)
+        OAS_prob.add_design_var('tail.taper', lower=.5, upper=2.)
         OAS_prob.add_constraint('tail_perf.CL', equals=0.5)
 
         # Setup problem

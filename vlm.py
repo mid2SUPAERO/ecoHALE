@@ -1584,13 +1584,13 @@ class VLMStates(Group):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-        self.add('assembly',
+        self.add_subsystem('assembly',
                  AssembleAIC(surfaces),
                  promotes=['*'])
-        self.add('circulations',
+        self.add_subsystem('circulations',
                  AeroCirculations(tot_panels),
                  promotes=['*'])
-        self.add('forces',
+        self.add_subsystem('forces',
                  VLMForces(surfaces),
                  promotes=['*'])
 
@@ -1606,18 +1606,18 @@ class VLMFunctionals(Group):
 
         with_viscous = prob_dict['with_viscous']
 
-        self.add('liftdrag',
+        self.add_subsystem('liftdrag',
                  VLMLiftDrag(surface),
                  promotes=['*'])
-        self.add('coeffs',
+        self.add_subsystem('coeffs',
                  VLMCoeffs(surface),
                  promotes=['*'])
-        self.add('CL',
+        self.add_subsystem('CL',
                  TotalLift(surface),
                  promotes=['*'])
-        self.add('CD',
+        self.add_subsystem('CD',
                  TotalDrag(surface),
                  promotes=['*'])
-        self.add('viscousdrag',
+        self.add_subsystem('viscousdrag',
                  ViscousDrag(surface, with_viscous),
                  promotes=['*'])

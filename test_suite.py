@@ -109,9 +109,9 @@ class TestAero(unittest.TestCase):
                                    'optimizer' : 'SLSQP'})
             OAS_prob.add_surface()
 
-            OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
-            OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
-            OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
+            OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+            OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
+            OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 
@@ -131,10 +131,10 @@ class TestAero(unittest.TestCase):
                                    'force_fd' : True})
             OAS_prob.add_surface()
 
-            OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
-            OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
-            OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
-            OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+            OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+            OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
+            OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
+            OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 
@@ -157,8 +157,8 @@ class TestAero(unittest.TestCase):
             'span_cos_spacing' : 0.,
             })
 
-            OAS_prob.add_desvar('wing.chord_cp', lower=0.1, upper=5.)
-            OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+            OAS_prob.add_design_var('wing.chord_cp', lower=0.1, upper=5.)
+            OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.1)
             OAS_prob.add_constraint('wing.S_ref', equals=20)
             OAS_prob.add_constraint('wing.monotonic_chord', upper=0.)
@@ -185,8 +185,8 @@ class TestAero(unittest.TestCase):
             'span_cos_spacing' : 0.,
             })
 
-            OAS_prob.add_desvar('wing.chord_cp', lower=0.1, upper=5.)
-            OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+            OAS_prob.add_design_var('wing.chord_cp', lower=0.1, upper=5.)
+            OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.1)
             OAS_prob.add_constraint('wing.S_ref', equals=20)
             OAS_prob.add_constraint('wing.monotonic_chord', upper=0.)
@@ -207,9 +207,9 @@ class TestAero(unittest.TestCase):
                                    'with_viscous' : True})
             OAS_prob.add_surface()
 
-            OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
-            OAS_prob.add_desvar('wing.sweep', lower=10., upper=30.)
-            OAS_prob.add_desvar('wing.dihedral', lower=-10., upper=20.)
+            OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+            OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
+            OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
 
@@ -229,8 +229,8 @@ class TestAero(unittest.TestCase):
                                    'with_viscous' : True})
             OAS_prob.add_surface()
 
-            OAS_prob.add_desvar('wing.chord_cp', lower=0.1, upper=3.)
-            OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+            OAS_prob.add_design_var('wing.chord_cp', lower=0.1, upper=3.)
+            OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
             OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
             OAS_prob.add_constraint('wing.S_ref', equals=20)
             OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
@@ -255,10 +255,10 @@ class TestAero(unittest.TestCase):
                            'offset' : np.array([0., 0., 10.])})
             OAS_prob.add_surface(surf_dict)
 
-            OAS_prob.add_desvar('tail.twist_cp', lower=-10., upper=15.)
-            OAS_prob.add_desvar('tail.sweep', lower=10., upper=30.)
-            OAS_prob.add_desvar('tail.dihedral', lower=-10., upper=20.)
-            OAS_prob.add_desvar('tail.taper', lower=.5, upper=2.)
+            OAS_prob.add_design_var('tail.twist_cp', lower=-10., upper=15.)
+            OAS_prob.add_design_var('tail.sweep', lower=10., upper=30.)
+            OAS_prob.add_design_var('tail.dihedral', lower=-10., upper=20.)
+            OAS_prob.add_design_var('tail.taper', lower=.5, upper=2.)
             OAS_prob.add_constraint('tail_perf.CL', equals=0.5)
             OAS_prob.add_objective('tail_perf.CD', scaler=1e4)
 
@@ -312,7 +312,7 @@ class TestStruct(unittest.TestCase):
             OAS_prob.add_surface({'symmetry' : False,
                                 't_over_c': 0.15})
 
-            OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+            OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
             OAS_prob.add_constraint('wing.failure', upper=0.)
             OAS_prob.add_constraint('wing.thickness_intersects', upper=0.)
             OAS_prob.add_objective('wing.structural_weight', scaler=1e-3)
@@ -330,7 +330,7 @@ class TestStruct(unittest.TestCase):
                                'record_db' : False})
         OAS_prob.add_surface({'t_over_c': 0.15})
 
-        OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+        OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('wing.failure', upper=0.)
         OAS_prob.add_constraint('wing.thickness_intersects', upper=0.)
         OAS_prob.add_objective('wing.structural_weight', scaler=1e-3)
@@ -349,7 +349,7 @@ class TestStruct(unittest.TestCase):
             OAS_prob.add_surface({'exact_failure_constraint' : True,
                                 't_over_c': 0.15})
 
-            OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+            OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
             OAS_prob.add_constraint('wing.failure', upper=0.)
             OAS_prob.add_constraint('wing.thickness_intersects', upper=0.)
             OAS_prob.add_objective('wing.structural_weight', scaler=1e-3)
@@ -463,11 +463,11 @@ class TestAeroStruct(unittest.TestCase):
     #                   'num_thickness_cp' : 2}
     #         OAS_prob.add_surface(surf_dict)
     #
-    #         OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
-    #         OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+    #         OAS_prob.add_design_var('wing.twist_cp', lower=-15., upper=15.)
+    #         OAS_prob.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
     #         OAS_prob.add_constraint('wing_perf.failure', upper=0.)
     #         OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
-    #         OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+    #         OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
     #         OAS_prob.add_constraint('L_equals_W', equals=0.)
     #         OAS_prob.add_objective('fuelburn', scaler=1e-5)
     #
@@ -495,11 +495,11 @@ class TestAeroStruct(unittest.TestCase):
     #                   'num_thickness_cp' : 2}
     #         OAS_prob.add_surface(surf_dict)
     #
-    #         OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
-    #         OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+    #         OAS_prob.add_design_var('wing.twist_cp', lower=-15., upper=15.)
+    #         OAS_prob.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
     #         OAS_prob.add_constraint('wing_perf.failure', upper=0.)
     #         OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
-    #         OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+    #         OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
     #         OAS_prob.add_constraint('L_equals_W', equals=0.)
     #         OAS_prob.add_objective('fuelburn', scaler=1e-4)
     #
@@ -532,16 +532,16 @@ class TestAeroStruct(unittest.TestCase):
     #         OAS_prob.add_surface(surf_dict)
     #
     #         # Add design variables and constraints for both the wing and tail
-    #         OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
-    #         OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+    #         OAS_prob.add_design_var('wing.twist_cp', lower=-15., upper=15.)
+    #         OAS_prob.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
     #         OAS_prob.add_constraint('wing_perf.failure', upper=0.)
     #         OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
-    #         OAS_prob.add_desvar('tail.twist_cp', lower=-15., upper=15.)
-    #         OAS_prob.add_desvar('tail.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+    #         OAS_prob.add_design_var('tail.twist_cp', lower=-15., upper=15.)
+    #         OAS_prob.add_design_var('tail.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
     #         OAS_prob.add_constraint('tail_perf.failure', upper=0.)
     #         OAS_prob.add_constraint('tail_perf.thickness_intersects', upper=0.)
     #
-    #         OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+    #         OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
     #         OAS_prob.add_constraint('L_equals_W', equals=0.)
     #         OAS_prob.add_objective('fuelburn', scaler=1e-5)
     #

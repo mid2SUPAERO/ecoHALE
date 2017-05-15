@@ -21,7 +21,7 @@ The following Python script performs structural optimization to minimize weight 
                         'symmetry' : True})
 
   # Add design variables, constraint, and objective then setup problem
-  OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+  OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
   OAS_prob.add_constraint('wing.thickness_intersects', upper=0.)
   OAS_prob.add_constraint('wing.failure', upper=0.)
   OAS_prob.add_objective('wing.structural_weight', scaler=1e-3)
@@ -80,7 +80,7 @@ These numbers correspond to the entire surface even though we are using symmetri
 .. code-block:: python
 
   # Add design variables, constraint, and objective then setup problem
-  OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+  OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
   OAS_prob.add_constraint('wing.thickness_intersects', upper=0.)
   OAS_prob.add_constraint('wing.failure', upper=0.)
   OAS_prob.add_objective('wing.structural_weight', scaler=1e-3)

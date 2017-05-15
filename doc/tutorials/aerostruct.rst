@@ -31,13 +31,13 @@ The following Python script performs aerostructural optimization to minimize fue
   OAS_prob.add_surface(surf_dict)
 
   # Add design variables, constraint, and objective on the problem
-  OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+  OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
   OAS_prob.add_constraint('eq_con', equals=0.)
   OAS_prob.add_objective('fuelburn', scaler=1e-4)
 
   # Setup problem and add design variables, constraint, and objective
-  OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
-  OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+  OAS_prob.add_design_var('wing.twist_cp', lower=-15., upper=15.)
+  OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
   OAS_prob.add_constraint('wing_perf.failure', upper=0.)
   OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
   OAS_prob.setup()
@@ -111,9 +111,9 @@ These scalars are simply added to the wing CL and CD to get the total coefficien
 .. code-block:: python
 
   # Add design variables, constraint, and objective for the problem
-  OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
-  OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
-  OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
+  OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
+  OAS_prob.add_design_var('wing.twist_cp', lower=-15., upper=15.)
+  OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
 
   OAS_prob.add_constraint('wing_perf.failure', upper=0.)
   OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)

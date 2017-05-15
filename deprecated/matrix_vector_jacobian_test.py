@@ -32,8 +32,8 @@ class simple_multiplication(Component):
             dparams['x'] += OAS_API.oas_api.mult_b(params['x'], unknowns['y'], dresids['y'])
 
 root = Group()
-root.add('x', IndepVarComp('x', np.linspace(0., 1., nx)))
-root.add('simp_mult', simple_multiplication())
+root.add_subsystem('x', IndepVarComp('x', np.linspace(0., 1., nx)))
+root.add_subsystem('simp_mult', simple_multiplication())
 root.connect('x.x', 'simp_mult.x')
 
 prob = Problem(root)
@@ -45,7 +45,7 @@ prob.driver.options['maxiter'] = 11
 # prob.print_all_convergence(level=2)
 
 
-prob.driver.add_desvar('x.x', lower=-50, upper=50)
+prob.driver.add_design_var('x.x', lower=-50, upper=50)
 prob.driver.add_objective('simp_mult.y')
 
 prob.setup()

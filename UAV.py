@@ -104,13 +104,13 @@ OAS_prob.add_surface(surf_dict)
 if prob_type == 'aero':
 
     # Setup problem and add design variables, constraint, and objective
-    # OAS_prob.add_desvar('alpha', lower=-10., upper=15.)
-    OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+    # OAS_prob.add_design_var('alpha', lower=-10., upper=15.)
+    OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
 
-    # OAS_prob.add_desvar('wing.chord_cp', lower=0.5, upper=3.)
-    # OAS_prob.add_desvar('wing.xshear_cp', lower=-10., upper=15.)
-    # OAS_prob.add_desvar('wing.sweep', lower=-60., upper=60.)
-    # OAS_prob.add_desvar('wing.taper', lower=.5, upper=2.)
+    # OAS_prob.add_design_var('wing.chord_cp', lower=0.5, upper=3.)
+    # OAS_prob.add_design_var('wing.xshear_cp', lower=-10., upper=15.)
+    # OAS_prob.add_design_var('wing.sweep', lower=-60., upper=60.)
+    # OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
     OAS_prob.add_constraint('wing_perf.CL', equals=0.6032)
     # OAS_prob.add_constraint('CM', equals=0.)
     OAS_prob.add_objective('wing_perf.CD', scaler=1e3)
@@ -118,14 +118,14 @@ if prob_type == 'aero':
 else:
 
     # Add design variables, constraint, and objective on the problem
-    # OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+    # OAS_prob.add_design_var('alpha', lower=-10., upper=10.)
     OAS_prob.add_constraint('L_equals_W', equals=0.)
     OAS_prob.add_objective('fuelburn', scaler=0.1)
 
     # Setup problem and add design variables, constraint, and objective
-    OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
-    OAS_prob.add_desvar('wing.thickness_cp', lower=0.0001, upper=0.5, scaler=1e3)
-    OAS_prob.add_desvar('wing.sweep', lower=-60., upper=60., scaler=1e-1)
+    OAS_prob.add_design_var('wing.twist_cp', lower=-15., upper=15.)
+    OAS_prob.add_design_var('wing.thickness_cp', lower=0.0001, upper=0.5, scaler=1e3)
+    OAS_prob.add_design_var('wing.sweep', lower=-60., upper=60., scaler=1e-1)
     OAS_prob.add_constraint('wing_perf.failure', upper=0.)
     OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
     OAS_prob.add_constraint('CM', equals=0.)

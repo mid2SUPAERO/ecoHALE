@@ -23,7 +23,7 @@ The following Python script performs aerodynamic optimization to minimize drag w
   OAS_prob.add_surface(surf_dict)
 
   # Add design variables, constraint, and objective and setup problem
-  OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+  OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
   OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
   OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
   OAS_prob.setup()
@@ -84,7 +84,7 @@ So, this wing has 10 spanwise panels and 2 chordwise panels, but we only model 5
 .. code-block:: python
 
   # Add design variables, constraint, and objective and setup problem
-  OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
+  OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
   OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
   OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
   OAS_prob.setup()

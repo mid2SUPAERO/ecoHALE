@@ -960,10 +960,10 @@ class SpatialBeamSetup(Group):
     def __init__(self, surface):
         super(SpatialBeamSetup, self).__init__()
 
-        self.add('nodes',
+        self.add_subsystem('nodes',
                  ComputeNodes(surface),
                  promotes=['*'])
-        self.add('assembly',
+        self.add_subsystem('assembly',
                  AssembleK(surface),
                  promotes=['*'])
 
@@ -975,13 +975,13 @@ class SpatialBeamStates(Group):
 
         size = 6 * surface['num_y'] + 6
 
-        self.add('create_rhs',
+        self.add_subsystem('create_rhs',
                  CreateRHS(surface),
                  promotes=['*'])
-        self.add('fem',
+        self.add_subsystem('fem',
                  SpatialBeamFEM(size),
                  promotes=['*'])
-        self.add('disp',
+        self.add_subsystem('disp',
                  SpatialBeamDisp(surface),
                  promotes=['*'])
 
@@ -994,29 +994,29 @@ class SpatialBeamFunctionals(Group):
         super(SpatialBeamFunctionals, self).__init__()
 
         # Commented out energy for now since we haven't ever used its output
-        # self.add('energy',
+        # self.add_subsystem('energy',
         #          SpatialBeamEnergy(surface),
         #          promotes=['*'])
-        self.add('structural_weight',
+        self.add_subsystem('structural_weight',
                  SpatialBeamWeight(surface),
                  promotes=['*'])
-        self.add('vonmises',
+        self.add_subsystem('vonmises',
                  SpatialBeamVonMisesTube(surface),
                  promotes=['*'])
-        self.add('thicknessconstraint',
+        self.add_subsystem('thicknessconstraint',
                  NonIntersectingThickness(surface),
                  promotes=['*'])
         # The following component has not been fully tested so we leave it
         # commented out for now. Use at own risk.
-        # self.add('sparconstraint',
+        # self.add_subsystem('sparconstraint',
         #          SparWithinWing(surface),
         #          promotes=['*'])
 
         if surface['exact_failure_constraint']:
-            self.add('failure',
+            self.add_subsystem('failure',
                      SpatialBeamFailureExact(surface),
                      promotes=['*'])
         else:
-            self.add('failure',
+            self.add_subsystem('failure',
                     SpatialBeamFailureKS(surface),
                     promotes=['*'])

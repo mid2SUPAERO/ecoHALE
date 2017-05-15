@@ -22,20 +22,22 @@ import numpy as np
 # =============================================================================
 # OpenMDAO modules
 # =============================================================================
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizer, Newton, ScipyGMRES, LinearGaussSeidel, NLGaussSeidel, SqliteRecorder, profile, CaseReader, DirectSolver
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver # TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
 
 # =============================================================================
 # OpenAeroStruct modules
 # =============================================================================
-from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicConstraint
+from geometry import gen_crm_mesh, gen_rect_mesh, MonotonicConstraint
+from openaerostruct.geometry.geometry_mesh import GeometryMesh
+from openaerostruct.geometry.bsplines import Bsplines
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, SpatialBeamSetup, radii
 from materials import MaterialsTube
 from functionals import TotalPerformance, TotalAeroPerformance, FunctionalBreguetRange, FunctionalEquilibrium
-from gs_newton import HybridGSNewton
+# from gs_newton import HybridGSNewton
 
 try:
     import OAS_API
@@ -216,7 +218,7 @@ class OASProblem(object):
 
                     # Simple Geometric Variables
                     'span' : 10.,           # full wingspan, even for symmetric cases
-                    'root_chord' : 1.,      # root chord
+                    'model_chord' : 1.,      # model chord
                     'dihedral' : 0.,        # wing dihedral angle in degrees
                                             # positive is upward
                     'sweep' : 0.,           # wing sweep angle in degrees
@@ -302,7 +304,7 @@ class OASProblem(object):
             num_x = surf_dict['num_x']
             num_y = surf_dict['num_y']
             span = surf_dict['span']
-            chord = surf_dict['root_chord']
+            chord = surf_dict['model_chord']
             span_cos_spacing = surf_dict['span_cos_spacing']
             chord_cos_spacing = surf_dict['chord_cos_spacing']
 
@@ -510,23 +512,23 @@ class OASProblem(object):
         # Actually call the OpenMDAO functions to add the design variables,
         # constraints, and objective.
         for desvar_name, desvar_data in iteritems(self.desvars):
-            self.prob.driver.add_desvar(desvar_name, **desvar_data)
+            self.prob.model.add_design_var(desvar_name, **desvar_data)
         for con_name, con_data in iteritems(self.constraints):
-            self.prob.driver.add_constraint(con_name, **con_data)
+            self.prob.model.add_constraint(con_name, **con_data)
         for obj_name, obj_data in iteritems(self.objective):
-            self.prob.driver.add_objective(obj_name, **obj_data)
+            self.prob.model.add_objective(obj_name, **obj_data)
 
         # Use finite differences over the entire model if user selected it
         if self.prob_dict['force_fd']:
-            self.prob.root.deriv_options['type'] = 'fd'
+            self.prob.model.deriv_options['type'] = 'fd'
 
-        # Record optimization history to a database.
-        # Data saved here can be examined using `plot_all.py` or `OptView.py`
-        if self.prob_dict['record_db']:
-            recorder = SqliteRecorder(self.prob_dict['prob_name']+".db")
-            recorder.options['record_params'] = True
-            recorder.options['record_derivs'] = True
-            self.prob.driver.add_recorder(recorder)
+        # # Record optimization history to a database.
+        # # Data saved here can be examined using `plot_all.py` or `OptView.py`
+        # if self.prob_dict['record_db']:
+        #     recorder = SqliteRecorder(self.prob_dict['prob_name']+".db")
+        #     recorder.options['record_params'] = True
+        #     recorder.options['record_derivs'] = True
+        #     self.prob.driver.add_recorder(recorder)
 
         # Profile (time) the problem
         if self.prob_dict['profile']:
@@ -549,7 +551,7 @@ class OASProblem(object):
             for param_name, param_data in iteritems(case.unknowns):
                 self.prob[param_name] = param_data
 
-    def add_desvar(self, *args, **kwargs):
+    def add_design_var(self, *args, **kwargs):
         """
         Store the design variables and later add them to the OpenMDAO problem.
         """
@@ -617,7 +619,7 @@ class OASProblem(object):
             # Compute, print, and save the static margin in metadata.
             static_margin = -(CM_new - CM) / (CL_new - CL)
             print("Static margin is:", static_margin)
-            self.prob.root.add_metadata('static_margin', static_margin)
+            self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
         # self.prob.check_partial_derivatives(compact_print=True)
@@ -633,12 +635,12 @@ class OASProblem(object):
         if 'prob_name' not in self.prob_dict.keys():
             self.prob_dict['prob_name'] = 'struct'
 
-        # Create the base root-level group
-        root = Group()
+        # Create the base model-level group
+        model = Group()
 
-        # Create the problem and assign the root group
+        # Create the problem and assign the model group
         self.prob = Problem()
-        self.prob.root = root
+        self.prob.model = model
 
         # Loop over each surface in the surfaces list
         for surface in self.surfaces:
@@ -666,29 +668,19 @@ class OASProblem(object):
             # analysis and optimization.
             # Here we check and only add the variables that are desvars or a
             # special var, radius, which is necessary to compute weight.
-            indep_vars = [('loads', surface['loads'])]
+            indep_var_comp = IndepVarComp('indep_vars')
+            indep_var_comp.add_output('loads', val=surface['loads'])
             for var in surface['geo_vars']:
                 if var in desvar_names or 'thickness' in var or var in surface['initial_geo']:
-                    indep_vars.append((var, surface[var]))
+                    # indep_vars.append((var, surface[var]))
+                    indep_var_comp.add_output(var, val=surface[var])
 
             # Add structural components to the surface-specific group
-            tmp_group.add('indep_vars',
-                     IndepVarComp(indep_vars),
+            tmp_group.add_subsystem('indep_vars',
+                     indep_var_comp,
                      promotes=['*'])
-            tmp_group.add('mesh',
-                     GeometryMesh(surface, self.desvars),
-                     promotes=['*'])
-            tmp_group.add('tube',
-                     MaterialsTube(surface),
-                     promotes=['*'])
-            tmp_group.add('struct_setup',
-                     SpatialBeamSetup(surface),
-                     promotes=['*'])
-            tmp_group.add('struct_states',
-                     SpatialBeamStates(surface),
-                     promotes=['*'])
-            tmp_group.add('struct_funcs',
-                     SpatialBeamFunctionals(surface),
+            tmp_group.add_subsystem('mesh',
+                     GeometryMesh(surface=surface, desvars=self.desvars),
                      promotes=['*'])
 
             # Add bspline components for active bspline geometric variables.
@@ -700,16 +692,29 @@ class OASProblem(object):
                     if var in ['thickness_cp', 'radius_cp']:
                         n_pts -= 1
                     trunc_var = var.split('_')[0]
-                    tmp_group.add(trunc_var + '_bsp',
-                             Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                    tmp_group.add_subsystem(trunc_var + '_bsp',
+                             Bsplines(in_name=var, out_name=trunc_var, num_cp=surface['num_'+var], num_pt=n_pts),
                              promotes=['*'])
+
+            tmp_group.add_subsystem('tube',
+                     MaterialsTube(surface),
+                     promotes=['*'])
+            tmp_group.add_subsystem('struct_setup',
+                     SpatialBeamSetup(surface),
+                     promotes=['*'])
+            tmp_group.add_subsystem('struct_states',
+                     SpatialBeamStates(surface),
+                     promotes=['*'])
+            tmp_group.add_subsystem('struct_funcs',
+                     SpatialBeamFunctionals(surface),
+                     promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             # The default is 'wing'.
-            root.add(name[:-1], tmp_group, promotes=[])
+            model.add_subsystem(name[:-1], tmp_group, promotes=[])
 
-            root.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
-            root.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
+            # model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
+            # model.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
 
         # Actually set up the problem
         self.setup_prob()
@@ -724,12 +729,12 @@ class OASProblem(object):
         if 'prob_name' not in self.prob_dict.keys():
             self.prob_dict['prob_name'] = 'aero'
 
-        # Create the base root-level group
-        root = Group()
+        # Create the base model-level group
+        model = Group()
 
-        # Create the problem and assign the root group
+        # Create the problem and assign the model group
         self.prob = Problem()
-        self.prob.root = root
+        self.prob.model = model
 
         # Loop over each surface in the surfaces list
         for surface in self.surfaces:
@@ -757,16 +762,16 @@ class OASProblem(object):
                     indep_vars.append((var, surface[var]))
 
             # Add aero components to the surface-specific group
-            tmp_group.add('indep_vars',
+            tmp_group.add_subsystem('indep_vars',
                      IndepVarComp(indep_vars),
                      promotes=['*'])
-            tmp_group.add('mesh',
+            tmp_group.add_subsystem('mesh',
                      GeometryMesh(surface, self.desvars),
                      promotes=['*'])
-            tmp_group.add('def_mesh',
+            tmp_group.add_subsystem('def_mesh',
                      TransferDisplacements(surface),
                      promotes=['*'])
-            tmp_group.add('vlmgeom',
+            tmp_group.add_subsystem('vlmgeom',
                      VLMGeometry(surface),
                      promotes=['*'])
 
@@ -778,8 +783,8 @@ class OASProblem(object):
                     if var in ['thickness_cp', 'radius_cp']:
                         n_pts -= 1
                     trunc_var = var.split('_')[0]
-                    tmp_group.add(trunc_var + '_bsp',
-                             Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                    tmp_group.add_subsystem(trunc_var + '_bsp',
+                             Bsplines(var, trunc_var, surface['num_'+var], n_pts),
                              promotes=['*'])
 
             # Add monotonic constraints for selected variables
@@ -787,15 +792,15 @@ class OASProblem(object):
                 if type(surface['monotonic_con']) is not list:
                     surface['monotonic_con'] = [surface['monotonic_con']]
                 for var in surface['monotonic_con']:
-                    tmp_group.add('monotonic_' + var,
+                    tmp_group.add_subsystem('monotonic_' + var,
                         MonotonicConstraint(var, surface), promotes=['*'])
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each
             # individual surface.
             name_orig = name.strip('_')
-            root.add(name_orig, tmp_group, promotes=[])
-            root.add(name_orig+'_perf', VLMFunctionals(surface, self.prob_dict),
+            model.add_subsystem(name_orig, tmp_group, promotes=[])
+            model.add_subsystem(name_orig+'_perf', VLMFunctionals(surface, self.prob_dict),
                     promotes=["v", "alpha", "M", "re", "rho"])
 
         # Add problem information as an independent variables component
@@ -811,7 +816,7 @@ class OASProblem(object):
             ('rho', self.prob_dict['rho']),
             ('cg', self.prob_dict['cg'])]
 
-        root.add('prob_vars',
+        model.add_subsystem('prob_vars',
                  IndepVarComp(prob_vars),
                  promotes=['*'])
 
@@ -820,7 +825,7 @@ class OASProblem(object):
         # While other components only depends on a single surface,
         # this component requires information from all surfaces because
         # each surface interacts with the others.
-        root.add('aero_states',
+        model.add_subsystem('aero_states',
                  VLMStates(self.surfaces),
                  promotes=['circulations', 'v', 'alpha', 'rho'])
 
@@ -834,30 +839,30 @@ class OASProblem(object):
 
             # Perform the connections with the modified names within the
             # 'aero_states' group.
-            root.connect(name[:-1] + '.def_mesh', 'aero_states.' + name + 'def_mesh')
-            root.connect(name[:-1] + '.b_pts', 'aero_states.' + name + 'b_pts')
-            root.connect(name[:-1] + '.c_pts', 'aero_states.' + name + 'c_pts')
-            root.connect(name[:-1] + '.normals', 'aero_states.' + name + 'normals')
+            model.connect(name[:-1] + '.def_mesh', 'aero_states.' + name + 'def_mesh')
+            model.connect(name[:-1] + '.b_pts', 'aero_states.' + name + 'b_pts')
+            model.connect(name[:-1] + '.c_pts', 'aero_states.' + name + 'c_pts')
+            model.connect(name[:-1] + '.normals', 'aero_states.' + name + 'normals')
 
             # Connect the results from 'aero_states' to the performance groups
-            root.connect('aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
+            model.connect('aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
 
             # Connect S_ref for performance calcs
-            root.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
-            root.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
-            root.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
-            root.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
+            model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
+            model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
+            model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
+            model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
 
             # Connect S_ref for performance calcs
-            root.connect(name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
-            root.connect(name[:-1] + '.widths', 'total_perf.' + name + 'widths')
-            root.connect(name[:-1] + '.chords', 'total_perf.' + name + 'chords')
-            root.connect(name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
-            root.connect(name + 'perf' + '.CL', 'total_perf.' + name + 'CL')
-            root.connect(name + 'perf' + '.CD', 'total_perf.' + name + 'CD')
-            root.connect('aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
+            model.connect(name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
+            model.connect(name[:-1] + '.widths', 'total_perf.' + name + 'widths')
+            model.connect(name[:-1] + '.chords', 'total_perf.' + name + 'chords')
+            model.connect(name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
+            model.connect(name + 'perf' + '.CL', 'total_perf.' + name + 'CL')
+            model.connect(name + 'perf' + '.CD', 'total_perf.' + name + 'CD')
+            model.connect('aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
-        root.add('total_perf',
+        model.add_subsystem('total_perf',
                   TotalAeroPerformance(self.surfaces, self.prob_dict),
                   promotes=['CM', 'CL', 'CD', 'v', 'rho', 'cg'])
 
@@ -878,13 +883,13 @@ class OASProblem(object):
         if 'prob_name' not in self.prob_dict.keys():
             self.prob_dict['prob_name'] = 'aerostruct'
 
-        # Create the base root-level group
-        root = Group()
+        # Create the base model-level group
+        model = Group()
         coupled = Group()
 
-        # Create the problem and assign the root group
+        # Create the problem and assign the model group
         self.prob = Problem()
-        self.prob.root = root
+        self.prob.model = model
 
         # Loop over each surface in the surfaces list
         for surface in self.surfaces:
@@ -912,16 +917,16 @@ class OASProblem(object):
                     indep_vars.append((var, surface[var]))
 
             # Add components to include in the surface's group
-            tmp_group.add('indep_vars',
+            tmp_group.add_subsystem('indep_vars',
                      IndepVarComp(indep_vars),
                      promotes=['*'])
-            tmp_group.add('tube',
+            tmp_group.add_subsystem('tube',
                      MaterialsTube(surface),
                      promotes=['*'])
-            tmp_group.add('mesh',
+            tmp_group.add_subsystem('mesh',
                      GeometryMesh(surface, self.desvars),
                      promotes=['*'])
-            tmp_group.add('struct_setup',
+            tmp_group.add_subsystem('struct_setup',
                      SpatialBeamSetup(surface),
                      promotes=['*'])
 
@@ -935,8 +940,8 @@ class OASProblem(object):
                     if var in ['thickness_cp', 'radius_cp']:
                         n_pts -= 1
                     trunc_var = var.split('_')[0]
-                    tmp_group.add(trunc_var + '_bsp',
-                             Bspline(var, trunc_var, surface['num_'+var], n_pts),
+                    tmp_group.add_subsystem(trunc_var + '_bsp',
+                             Bsplines(var, trunc_var, surface['num_'+var], n_pts),
                              promotes=['*'])
 
             # Add monotonic constraints for selected variables
@@ -944,55 +949,55 @@ class OASProblem(object):
                 if type(surface['monotonic_con']) is not list:
                     surface['monotonic_con'] = [surface['monotonic_con']]
                 for var in surface['monotonic_con']:
-                    tmp_group.add('monotonic_' + var,
+                    tmp_group.add_subsystem('monotonic_' + var,
                         MonotonicConstraint(var, surface), promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name
             name = name[:-1]
-            root.add(name, tmp_group, promotes=[])
+            model.add_subsystem(name, tmp_group, promotes=[])
 
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
             tmp_group = Group()
-            tmp_group.add('def_mesh',
+            tmp_group.add_subsystem('def_mesh',
                      TransferDisplacements(surface),
                      promotes=['*'])
-            tmp_group.add('aero_geom',
+            tmp_group.add_subsystem('aero_geom',
                      VLMGeometry(surface),
                      promotes=['*'])
-            tmp_group.add('struct_states',
+            tmp_group.add_subsystem('struct_states',
                      SpatialBeamStates(surface),
                      promotes=['*'])
             tmp_group.struct_states.ln_solver = LinearGaussSeidel()
             tmp_group.struct_states.ln_solver.options['atol'] = 1e-20
 
             name = name_orig
-            coupled.add(name[:-1], tmp_group, promotes=[])
+            coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
 
             # Add a loads component to the coupled group
-            coupled.add(name_orig + 'loads', TransferLoads(surface), promotes=[])
+            coupled.add_subsystem(name_orig + 'loads', TransferLoads(surface), promotes=[])
 
             # Add a performance group which evaluates the data after solving
             # the coupled system
             tmp_group = Group()
 
-            tmp_group.add('struct_funcs',
+            tmp_group.add_subsystem('struct_funcs',
                      SpatialBeamFunctionals(surface),
                      promotes=['*'])
-            tmp_group.add('aero_funcs',
+            tmp_group.add_subsystem('aero_funcs',
                      VLMFunctionals(surface, self.prob_dict),
                      promotes=['*'])
 
-            root.add(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
+            model.add_subsystem(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
-            root.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
-            root.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
+            model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
+            model.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
 
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
-        coupled.add('aero_states',
+        coupled.add_subsystem('aero_states',
                  VLMStates(self.surfaces),
                  promotes=['v', 'alpha', 'rho'])
 
@@ -1001,57 +1006,57 @@ class OASProblem(object):
         for surface in self.surfaces:
             name = surface['name']
 
-            root.connect(name[:-1] + '.K', 'coupled.' + name[:-1] + '.K')
+            model.connect(name[:-1] + '.K', 'coupled.' + name[:-1] + '.K')
 
             # Perform the connections with the modified names within the
             # 'aero_states' group.
-            root.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.aero_states.' + name + 'def_mesh')
-            root.connect('coupled.' + name[:-1] + '.b_pts', 'coupled.aero_states.' + name + 'b_pts')
-            root.connect('coupled.' + name[:-1] + '.c_pts', 'coupled.aero_states.' + name + 'c_pts')
-            root.connect('coupled.' + name[:-1] + '.normals', 'coupled.aero_states.' + name + 'normals')
+            model.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.aero_states.' + name + 'def_mesh')
+            model.connect('coupled.' + name[:-1] + '.b_pts', 'coupled.aero_states.' + name + 'b_pts')
+            model.connect('coupled.' + name[:-1] + '.c_pts', 'coupled.aero_states.' + name + 'c_pts')
+            model.connect('coupled.' + name[:-1] + '.normals', 'coupled.aero_states.' + name + 'normals')
 
             # Connect the results from 'aero_states' to the performance groups
-            root.connect('coupled.aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
+            model.connect('coupled.aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
 
             # Connect the results from 'coupled' to the performance groups
-            root.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.' + name + 'loads.def_mesh')
-            root.connect('coupled.aero_states.' + name + 'sec_forces', 'coupled.' + name + 'loads.sec_forces')
+            model.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.' + name + 'loads.def_mesh')
+            model.connect('coupled.aero_states.' + name + 'sec_forces', 'coupled.' + name + 'loads.sec_forces')
 
             # Connect the output of the loads component with the FEM
             # displacement parameter. This links the coupling within the coupled
             # group that necessitates the subgroup solver.
-            root.connect('coupled.' + name + 'loads.loads', 'coupled.' + name[:-1] + '.loads')
+            model.connect('coupled.' + name + 'loads.loads', 'coupled.' + name[:-1] + '.loads')
 
             # Connect aerodyamic mesh to coupled group mesh
-            root.connect(name[:-1] + '.mesh', 'coupled.' + name[:-1] + '.mesh')
+            model.connect(name[:-1] + '.mesh', 'coupled.' + name[:-1] + '.mesh')
 
             # Connect performance calculation variables
-            root.connect(name[:-1] + '.radius', name + 'perf.radius')
-            root.connect(name[:-1] + '.A', name + 'perf.A')
-            root.connect(name[:-1] + '.thickness', name + 'perf.thickness')
+            model.connect(name[:-1] + '.radius', name + 'perf.radius')
+            model.connect(name[:-1] + '.A', name + 'perf.A')
+            model.connect(name[:-1] + '.thickness', name + 'perf.thickness')
 
             # Connection performance functional variables
-            root.connect(name + 'perf.structural_weight', 'total_perf.' + name + 'structural_weight')
-            root.connect(name + 'perf.L', 'total_perf.' + name + 'L')
-            root.connect(name + 'perf.CL', 'total_perf.' + name + 'CL')
-            root.connect(name + 'perf.CD', 'total_perf.' + name + 'CD')
-            root.connect('coupled.aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
+            model.connect(name + 'perf.structural_weight', 'total_perf.' + name + 'structural_weight')
+            model.connect(name + 'perf.L', 'total_perf.' + name + 'L')
+            model.connect(name + 'perf.CL', 'total_perf.' + name + 'CL')
+            model.connect(name + 'perf.CD', 'total_perf.' + name + 'CD')
+            model.connect('coupled.aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
             # Connect parameters from the 'coupled' group to the performance
             # groups for the individual surfaces.
-            root.connect(name[:-1] + '.nodes', name + 'perf.nodes')
-            root.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
-            root.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
-            root.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
-            root.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
-            root.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
+            model.connect(name[:-1] + '.nodes', name + 'perf.nodes')
+            model.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
+            model.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
+            model.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
+            model.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
+            model.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
 
             # Connect parameters from the 'coupled' group to the total performance group.
-            root.connect('coupled.' + name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
-            root.connect('coupled.' + name[:-1] + '.widths', 'total_perf.' + name + 'widths')
-            root.connect('coupled.' + name[:-1] + '.chords', 'total_perf.' + name + 'chords')
-            root.connect('coupled.' + name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
-            root.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
+            model.connect('coupled.' + name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
+            model.connect('coupled.' + name[:-1] + '.widths', 'total_perf.' + name + 'widths')
+            model.connect('coupled.' + name[:-1] + '.chords', 'total_perf.' + name + 'chords')
+            model.connect('coupled.' + name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
+            model.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
 
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyGMRES()
@@ -1073,8 +1078,8 @@ class OASProblem(object):
         if self.prob_dict['print_level']:
             coupled.nl_solver.options['iprint'] = 1
 
-        # Add the coupled group to the root problem
-        root.add('coupled', coupled, promotes=['v', 'alpha', 'rho'])
+        # Add the coupled group to the model problem
+        model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
 
         # Add problem information as an independent variables component
         prob_vars = [('v', self.prob_dict['v']),
@@ -1083,14 +1088,14 @@ class OASProblem(object):
             ('re', self.prob_dict['Re']/self.prob_dict['reynolds_length']),
             ('rho', self.prob_dict['rho'])]
 
-        root.add('prob_vars',
+        model.add_subsystem('prob_vars',
                  IndepVarComp(prob_vars),
                  promotes=['*'])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all
         # of the parameters.
-        root.add('total_perf',
+        model.add_subsystem('total_perf',
                  TotalPerformance(self.surfaces, self.prob_dict),
                  promotes=['L_equals_W', 'fuelburn', 'CM', 'CL', 'CD', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
 
