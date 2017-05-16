@@ -17,7 +17,7 @@ class Test(unittest.TestCase):
         jac = get_bspline_mtx(num_cp, num_pt)
 
         prob = Problem(model=Bsplines(
-            num_cp=num_cp, num_pt=num_pt, jac=jac, in_name='x', out_name='y',
+            num_cp=num_cp, num_pt=num_pt, in_name='x', out_name='y',
         ))
         prob.setup()
 

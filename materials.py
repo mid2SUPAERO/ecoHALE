@@ -1,15 +1,15 @@
 from __future__ import division, print_function
 import numpy as np
 
-from openmdao.api import Component
+from openmdao.api import ExplicitComponent
 
-class MaterialsTube(Component):
+class MaterialsTube(ExplicitComponent):
     """
     Compute geometric properties for a tube element.
     The thicknesses are added to the interior of the element, so the
     'radius' value is the outer radius of the tube.
 
-    Parameters
+    inputeters
     ----------
     radius : numpy array
         Outer radii for each FEM element.
@@ -28,17 +28,18 @@ class MaterialsTube(Component):
         Polar moment of inertia for each FEM element.
     """
 
-    def __init__(self, surface):
-        super(MaterialsTube, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict)
 
-        self.surface = surface
+    def initialize_variables(self):
+        self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
         self.mesh = surface['mesh']
         name = surface['name']
 
-        self.add_param('radius', val=np.zeros((self.ny - 1)))
-        self.add_param('thickness', val=np.zeros((self.ny - 1)))
+        self.add_input('radius', val=np.zeros((self.ny - 1)))
+        self.add_input('thickness', val=np.zeros((self.ny - 1)))
         self.add_output('A', val=np.zeros((self.ny - 1)))
         self.add_output('Iy', val=np.zeros((self.ny - 1)))
         self.add_output('Iz', val=np.zeros((self.ny - 1)))
@@ -46,28 +47,25 @@ class MaterialsTube(Component):
 
         self.arange = np.arange((self.ny - 1))
 
-    def solve_nonlinear(self, params, unknowns, resids):
+    def compute(self, inputs, outputs):
         name = self.surface['name']
         pi = np.pi
 
         # Add thickness to the interior of the radius.
-        # The outer radius is the params['radius'] amount.
-        r1 = params['radius'] - params['thickness']
-        r2 = params['radius']
+        # The outer radius is the inputs['radius'] amount.
+        r1 = inputs['radius'] - inputs['thickness']
+        r2 = inputs['radius']
 
         # Compute the area, area moments of inertia, and polar moment of inertia
-        unknowns['A'] = pi * (r2**2 - r1**2)
-        unknowns['Iy'] = pi * (r2**4 - r1**4) / 4.
-        unknowns['Iz'] = pi * (r2**4 - r1**4) / 4.
-        unknowns['J'] = pi * (r2**4 - r1**4) / 2.
+        outputs['A'] = pi * (r2**2 - r1**2)
+        outputs['Iy'] = pi * (r2**4 - r1**4) / 4.
+        outputs['Iz'] = pi * (r2**4 - r1**4) / 4.
+        outputs['J'] = pi * (r2**4 - r1**4) / 2.
 
-    def linearize(self, params, unknowns, resids):
-        name = self.surface['name']
-        jac = self.alloc_jacobian()
-
+    def compute_partial_derivs(self, inputs, outputs, partials):
         pi = np.pi
-        radius = params['radius'].real
-        t = params['thickness'].real
+        radius = inputs['radius'].real
+        t = inputs['thickness'].real
         r1 = radius - t
         r2 = radius
 
@@ -80,13 +78,13 @@ class MaterialsTube(Component):
         r2_3 = r2**3
 
         a = self.arange
-        jac['A', 'radius'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
-        jac['A', 'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
-        jac['Iy', 'radius'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['Iy', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        jac['Iz', 'radius'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['Iz', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        jac['J', 'radius'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        jac['J', 'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        partials['A', 'radius'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
+        partials['A', 'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
+        partials['Iy', 'radius'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        partials['Iy', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        partials['Iz', 'radius'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        partials['Iz', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        partials['J', 'radius'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        partials['J', 'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
 
-        return jac
+        return partials

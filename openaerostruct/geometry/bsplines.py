@@ -87,6 +87,22 @@ def get_bspline_mtx(num_cp, num_pt, order=4):
 
 
 class Bsplines(ExplicitComponent):
+    """
+    General function to translate from control points to actual points
+    using a b-spline representation.
+
+    Parameters
+    ----------
+    cpname : string
+        Name of the OpenMDAO component containing the control point values.
+    ptname : string
+        Name of the OpenMDAO component that will contain the interpolated
+        b-spline values.
+    n_input : int
+        Number of input control points.
+    n_output : int
+        Number of outputted interpolated b-spline points.
+    """
 
     def initialize(self):
         self.metadata.declare('jac', is_valid=lambda jac: len(jac.shape) == 2)

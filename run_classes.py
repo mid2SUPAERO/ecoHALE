@@ -29,9 +29,10 @@ from six import iteritems
 # =============================================================================
 # OpenAeroStruct modules
 # =============================================================================
-from geometry import gen_crm_mesh, gen_rect_mesh, MonotonicConstraint
+from geometry import gen_crm_mesh, gen_rect_mesh
 from openaerostruct.geometry.geometry_mesh import GeometryMesh
 from openaerostruct.geometry.bsplines import Bsplines
+from openaerostruct.geometry.monotonic_constraint import MonotonicConstraint
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMStates, VLMFunctionals, VLMGeometry
 from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, SpatialBeamSetup, radii
