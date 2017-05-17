@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
 
-from openmdao.api import Component, Group
+from openmdao.api import Component, ExplicitComponent, Group
 
 try:
     import OAS_API
@@ -54,7 +54,7 @@ class FunctionalBreguetRange(Component):
         # self.deriv_options['type'] = 'fd'
         # self.deriv_options['form'] = 'central'
 
-    def solve_nonlinear(self, params, unknowns, resids):
+    def compute(self, params, unknowns, resids):
         CT = self.prob_dict['CT']
         a = self.prob_dict['a']
         R = self.prob_dict['R']
@@ -125,10 +125,10 @@ class FunctionalEquilibrium(Component):
         self.add_output('L_equals_W', val=0.)
         self.add_output('total_weight', val=0.)
 
-    # def initialize_partials(self):
-    #     self.approx_partials('*', '*')
+    def initialize_partials(self):
+        self.approx_partials('*', '*')
 
-    def solve_nonlinear(self, params, unknowns, resids):
+    def compute(self, params, unknowns, resids):
         structural_weight = 0.
         L = 0.
         W0 = self.prob_dict['W0'] * self.prob_dict['g']
@@ -193,7 +193,7 @@ class ComputeCG(Component):
     # def initialize_partials(self):
     #     self.approx_partials('*', '*')
 
-    def solve_nonlinear(self, params, unknowns, resids):
+    def compute(self, params, unknowns, resids):
 
         # Compute the weighted cg of the aircraft without fuel or structures
         g = self.prob_dict['g']
@@ -212,7 +212,7 @@ class ComputeCG(Component):
         # the structures cg. Here we assume the fuel weight is at the cg.
         unknowns['cg'] = (W0_cg + spar_cg) / (params['total_weight'] - params['fuelburn'] * g)
 
-class ComputeCM(Component):
+class ComputeCM(ExplicitComponent):
     """
     Compute the coefficient of moment (CM) for the entire aircraft.
 
@@ -244,8 +244,13 @@ class ComputeCM(Component):
         The coefficient of moment around the x-, y-, and z-axes at the cg point.
     """
 
-    def __init__(self, surfaces, prob_dict):
-        super(ComputeCM, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surfaces', type_=list)
+        self.metadata.declare('prob_dict', type_=dict)
+
+    def initialize_variables(self):
+        self.surfaces = surfaces = self.metadata['surfaces']
+        self.prob_dict = prob_dict = self.metadata['prob_dict']
 
         tot_panels = 0
         for surface in surfaces:
@@ -253,28 +258,25 @@ class ComputeCM(Component):
             ny = surface['num_y']
             nx = surface['num_x']
 
-            self.add_param(name+'b_pts', val=np.zeros((nx-1, ny, 3), dtype=data_type))
-            self.add_param(name+'widths', val=np.zeros((ny-1), dtype=data_type))
-            self.add_param(name+'chords', val=np.zeros((ny), dtype=data_type))
-            self.add_param(name+'S_ref', val=0.)
-            self.add_param(name+'sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
+            self.add_input(name+'b_pts', val=np.zeros((nx-1, ny, 3), dtype=data_type))
+            self.add_input(name+'widths', val=np.zeros((ny-1), dtype=data_type))
+            self.add_input(name+'chords', val=np.zeros((ny), dtype=data_type))
+            self.add_input(name+'S_ref', val=0.)
+            self.add_input(name+'sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
 
-        self.add_param('cg', val=np.zeros((3), dtype=data_type))
-        self.add_param('v', val=10.)
-        self.add_param('rho', val=3.)
+        self.add_input('cg', val=np.zeros((3), dtype=data_type))
+        self.add_input('v', val=10.)
+        self.add_input('rho', val=3.)
 
         self.add_output('CM', val=np.zeros((3), dtype=data_type))
 
-        self.surfaces = surfaces
-        self.prob_dict = prob_dict
+    def initialize_partials(self):
+        if not fortran_flag:
+            self.approx_partials('*', '*')
 
-    # def initialize_partials(self):
-    #     if not fortran_flag:
-    #         self.approx_partials('*', '*')
-
-    def solve_nonlinear(self, params, unknowns, resids):
-        rho = params['rho']
-        cg = params['cg']
+    def compute(self, inputs, outputs):
+        rho = inputs['rho'][0]
+        cg = inputs['cg']
 
         S_ref_tot = 0.
         M = np.zeros((3), dtype=data_type)
@@ -286,11 +288,11 @@ class ComputeCM(Component):
             nx = surface['num_x']
             ny = surface['num_y']
 
-            b_pts = params[name+'b_pts']
-            widths = params[name+'widths']
-            chords = params[name+'chords']
-            S_ref = params[name+'S_ref']
-            sec_forces = params[name+'sec_forces']
+            b_pts = inputs[name+'b_pts']
+            widths = inputs[name+'widths']
+            chords = inputs[name+'chords']
+            S_ref = inputs[name+'S_ref'][0  ]
+            sec_forces = inputs[name+'sec_forces']
 
             # Compute the average chord for each panel and then the
             # mean aerodynamic chord (MAC) based on these chords and the
@@ -310,8 +312,8 @@ class ComputeCM(Component):
             else:
 
                 # Get the moment arm acting on each panel, relative to the cg
-                pts = (params[name+'b_pts'][:, 1:, :] + \
-                    params[name+'b_pts'][:, :-1, :]) / 2
+                pts = (inputs[name+'b_pts'][:, 1:, :] + \
+                    inputs[name+'b_pts'][:, :-1, :]) / 2
                 diff = (pts - cg) / MAC
 
                 # Compute the moment based on the previously computed moment
@@ -344,75 +346,72 @@ class ComputeCM(Component):
             self.S_ref_tot = self.prob_dict['S_ref_total']
 
         # Compute the normalized CM
-        unknowns['CM'] = M / (0.5 * rho * params['v']**2 * self.S_ref_tot * MAC_wing)
+        outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * MAC_wing)
 
-    def linearize(self, params, unknowns, resids):
+    def compute_partial_derivs(self, inputs, outputs, partials):
+        if fortran_flag:
 
-        jac = self.alloc_jacobian()
+            cg = inputs['cg']
+            rho = inputs['rho'][0]
+            v = inputs['v'][0]
 
-        cg = params['cg']
-        rho = params['rho']
-        v = params['v']
+            # Here we just use the reverse mode AD results to compute the
+            # Jacobian since we'll always have much fewer outputs than inputs
+            for j in range(3):
+                CMb = np.zeros((3))
+                CMb[j] = 1.
 
-        # Here we just use the reverse mode AD results to compute the
-        # Jacobian since we'll always have much fewer outputs than inputs
-        for j in range(3):
-            CMb = np.zeros((3))
-            CMb[j] = 1.
+                for i, surface in enumerate(self.surfaces):
+                    name = surface['name']
+                    ny = surface['num_y']
 
-            for i, surface in enumerate(self.surfaces):
-                name = surface['name']
-                ny = surface['num_y']
+                    b_pts = inputs[name+'b_pts']
+                    widths = inputs[name+'widths']
+                    chords = inputs[name+'chords']
+                    S_ref = inputs[name+'S_ref'][0]
+                    sec_forces = inputs[name+'sec_forces']
 
-                b_pts = params[name+'b_pts']
-                widths = params[name+'widths']
-                chords = params[name+'chords']
-                S_ref = params[name+'S_ref']
-                sec_forces = params[name+'sec_forces']
+                    if i == 0:
+                        panel_chords = (chords[1:] + chords[:-1]) / 2.
+                        MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
+                        if surface['symmetry']:
+                            MAC *= 2
+                        temp1 = self.S_ref_tot * MAC
+                        temp0 = 0.5 * rho * v**2
+                        temp = temp0 * temp1
+                        tempb = np.sum(-(self.M * CMb / temp)) / temp
+                        Mb = CMb / temp
+                        Mb_master = Mb.copy()
+                        partials['CM', 'rho'][j] += v**2*temp1*0.5*tempb
+                        partials['CM', 'v'][j] += 0.5*rho*temp1*2*v*tempb
+                        s_totb = temp0 * MAC * tempb
+                        macb = temp0 * self.S_ref_tot * tempb
+                        if surface['symmetry']:
+                            macb *= 2
+                        chordsb = np.zeros((ny))
+                        tempb0 = macb / S_ref
+                        panel_chordsb = 2*panel_chords*widths*tempb0
+                        widthsb = panel_chords**2*tempb0
+                        sb = -np.sum(panel_chords**2*widths)*tempb0/S_ref
+                        chordsb[1:] += panel_chordsb/2.
+                        chordsb[:-1] += panel_chordsb/2.
+                        cb = chordsb
+                        wb = widthsb
 
-                if i == 0:
-                    panel_chords = (chords[1:] + chords[:-1]) / 2.
-                    MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
-                    if surface['symmetry']:
-                        MAC *= 2
-                    temp1 = self.S_ref_tot * MAC
-                    temp0 = 0.5 * rho * v**2
-                    temp = temp0 * temp1
-                    tempb = np.sum(-(self.M * CMb / temp)) / temp
-                    Mb = CMb / temp
-                    Mb_master = Mb.copy()
-                    jac['CM', 'rho'][j] += v**2*temp1*0.5*tempb
-                    jac['CM', 'v'][j] += 0.5*rho*temp1*2*v*tempb
-                    s_totb = temp0 * MAC * tempb
-                    macb = temp0 * self.S_ref_tot * tempb
-                    if surface['symmetry']:
-                        macb *= 2
-                    chordsb = np.zeros((ny))
-                    tempb0 = macb / S_ref
-                    panel_chordsb = 2*panel_chords*widths*tempb0
-                    widthsb = panel_chords**2*tempb0
-                    sb = -np.sum(panel_chords**2*widths)*tempb0/S_ref
-                    chordsb[1:] += panel_chordsb/2.
-                    chordsb[:-1] += panel_chordsb/2.
-                    cb = chordsb
-                    wb = widthsb
+                    else:
+                        cb = 0.
+                        wb = 0.
+                        sb = 0.
+                        Mb = Mb_master.copy()
 
-                else:
-                    cb = 0.
-                    wb = 0.
-                    sb = 0.
-                    Mb = Mb_master.copy()
+                    bptsb, cgb, chordsb, widthsb, S_refb, sec_forcesb, _ = OAS_API.oas_api.momentcalc_b(b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'], Mb)
 
-                bptsb, cgb, chordsb, widthsb, S_refb, sec_forcesb, _ = OAS_API.oas_api.momentcalc_b(b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'], Mb)
-
-                jac['CM', 'cg'][j, :] += cgb
-                jac['CM', name+'b_pts'][j, :] += bptsb.flatten()
-                jac['CM', name+'chords'][j, :] += chordsb + cb
-                jac['CM', name+'widths'][j, :] += widthsb + wb
-                jac['CM', name+'sec_forces'][j, :] += sec_forcesb.flatten()
-                jac['CM', name+'S_ref'][j, :] += S_refb + sb + s_totb
-
-        return jac
+                    partials['CM', 'cg'][j, :] += cgb
+                    partials['CM', name+'b_pts'][j, :] += bptsb.flatten()
+                    partials['CM', name+'chords'][j, :] += chordsb + cb
+                    partials['CM', name+'widths'][j, :] += widthsb + wb
+                    partials['CM', name+'sec_forces'][j, :] += sec_forcesb.flatten()
+                    partials['CM', name+'S_ref'][j, :] += S_refb + sb + s_totb
 
 class ComputeTotalCLCD(Component):
     """
@@ -440,8 +439,13 @@ class ComputeTotalCLCD(Component):
 
     """
 
-    def __init__(self, surfaces, prob_dict):
-        super(ComputeTotalCLCD, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surfaces', type_=list)
+        self.metadata.declare('prob_dict', type_=dict)
+
+    def initialize_variables(self):
+        self.surfaces = surfaces = self.metadata['surfaces']
+        self.prob_dict = prob_dict = self.metadata['prob_dict']
 
         for surface in surfaces:
             name = surface['name']
@@ -458,9 +462,9 @@ class ComputeTotalCLCD(Component):
         self.surfaces = surfaces
         self.prob_dict = prob_dict
 
-    def solve_nonlinear(self, params, unknowns, resids):
-        rho = params['rho']
-        v = params['v']
+    def compute(self, params, unknowns):
+        rho = params['rho'][0]
+        v = params['v'][0]
 
         # Compute the weighted CL and CD contributions from each surface,
         # weighted by the individual surface areas
@@ -484,18 +488,15 @@ class ComputeTotalCLCD(Component):
         unknowns['CD'] = CD / S_ref_total
         self.S_ref_total = S_ref_total
 
-    def linearize(self, params, unknowns, resids):
-        jac = self.alloc_jacobian()
+    def computer_partial_derivs(self, params, unknowns, partials):
 
         for surface in self.surfaces:
             name = surface['name']
             S_ref = params[name+'S_ref']
-            jac['CL', name+'CL'] = S_ref / self.S_ref_total
-            jac['CD', name+'CD'] = S_ref / self.S_ref_total
-            jac['CL', name+'S_ref'] = params[name+'CL'] / self.S_ref_total
-            jac['CD', name+'S_ref'] = params[name+'CD'] / self.S_ref_total
-
-        return jac
+            partials['CL', name+'CL'] = S_ref / self.S_ref_total
+            partials['CD', name+'CD'] = S_ref / self.S_ref_total
+            partials['CL', name+'S_ref'] = params[name+'CL'] / self.S_ref_total
+            partials['CD', name+'S_ref'] = params[name+'CD'] / self.S_ref_total
 
 
 class TotalPerformance(Group):
@@ -531,8 +532,8 @@ class TotalAeroPerformance(Group):
         super(TotalAeroPerformance, self).__init__()
 
         self.add_subsystem('moment',
-                 ComputeCM(surfaces, prob_dict),
+                 ComputeCM(surfaces=surfaces, prob_dict=prob_dict),
                  promotes=['*'])
         self.add_subsystem('CL_CD',
-                 ComputeTotalCLCD(surfaces, prob_dict),
+                 ComputeTotalCLCD(surfaces=surfaces, prob_dict=prob_dict),
                  promotes=['*'])

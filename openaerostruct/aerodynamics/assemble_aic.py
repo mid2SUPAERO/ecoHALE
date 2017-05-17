@@ -113,10 +113,10 @@ class AssembleAIC(ExplicitComponent):
 
         # Obtain the freestream velocity direction and magnitude by taking
         # alpha into account
-        alpha = inputs['alpha'] * np.pi / 180.
+        alpha = inputs['alpha'][0] * np.pi / 180.
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
-        v_inf = inputs['v'] * np.array([cosa, 0., sina], dtype=data_type)
+        v_inf = inputs['v'][0] * np.array([cosa, 0., sina], dtype=data_type)
 
         # Populate the right-hand side of the linear system with the
         # expected velocities at each collocation point
@@ -158,17 +158,17 @@ class AssembleAIC(ExplicitComponent):
 
             # Obtain the freestream velocity direction and magnitude by taking
             # alpha into account
-            alpha = inputs['alpha'] * np.pi / 180.
-            alphad = d_inputs['alpha'] * np.pi / 180.
+            alpha = inputs['alpha'][0] * np.pi / 180.
+            alphad = d_inputs['alpha'][0] * np.pi / 180.
             cosa = np.cos(alpha)
             sina = np.sin(alpha)
             cosad = -sina * alphad
             sinad = cosa * alphad
 
             freestream_direction = np.array([cosa, 0., sina])
-            v_inf = inputs['v'] * freestream_direction
-            v_infd = d_inputs['v'] * freestream_direction
-            v_infd += inputs['v'] * np.array([cosad, 0., sinad])
+            v_inf = inputs['v'][0] * freestream_direction
+            v_infd = d_inputs['v'][0] * freestream_direction
+            v_infd += inputs['v'][0] * np.array([cosad, 0., sinad])
 
             # Populate the right-hand side of the linear system with the
             # expected velocities at each collocation point
@@ -203,11 +203,11 @@ class AssembleAIC(ExplicitComponent):
 
             # Obtain the freestream velocity direction and magnitude by taking
             # alpha into account
-            alpha = inputs['alpha'] * np.pi / 180.
+            alpha = inputs['alpha'][0] * np.pi / 180.
             cosa = np.cos(alpha)
             sina = np.sin(alpha)
             arr = np.array([cosa, 0., sina])
-            v_inf = inputs['v'] * arr
+            v_inf = inputs['v'][0] * arr
 
             fn = flattened_normals
             fnb = np.zeros(fn.shape)
@@ -218,13 +218,15 @@ class AssembleAIC(ExplicitComponent):
                 fnb[ind, :] -= v_inf * rhsb[ind]
                 v_infb -= fn[ind, :] * rhsb[ind]
 
-            d_inputs['v'] += sum(arr * v_infb)
+            if 'v' in d_inputs:
+                d_inputs['v'] += sum(arr * v_infb)
             arrb = inputs['v'] * v_infb
             alphab = np.cos(alpha) * arrb[2]
             alphab -= np.sin(alpha) * arrb[0]
             alphab *= np.pi / 180.
 
-            d_inputs['alpha'] += alphab
+            if 'alpha' in d_inputs:
+                d_inputs['alpha'] += alphab
 
             i = 0
             for surface in self.surfaces:
@@ -232,6 +234,7 @@ class AssembleAIC(ExplicitComponent):
                 nx = surface['num_x']
                 ny = surface['num_y']
                 num_panels = (nx - 1) * (ny - 1)
-                d_inputs[name+'normals'] += flattened_normalsb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
-                d_inputs[name+'normals'] += fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
+                if name+'normals' in d_inputs:
+                    d_inputs[name+'normals'] += flattened_normalsb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
+                    d_inputs[name+'normals'] += fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
                 i += num_panels

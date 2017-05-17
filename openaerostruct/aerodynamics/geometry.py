@@ -65,18 +65,6 @@ class VLMGeometry(ExplicitComponent):
             self.approx_partials('normals', 'def_mesh')
             self.approx_partials('S_ref', 'def_mesh')
 
-        self.declare_partials('b_pts', 'def_mesh')
-        self.declare_partials('c_pts', 'def_mesh')
-        self.declare_partials('widths', 'def_mesh')
-        self.declare_partials('cos_sweep', 'def_mesh')
-        self.declare_partials('lengths', 'def_mesh')
-        self.declare_partials('chords', 'def_mesh')
-        self.declare_partials('normals', 'def_mesh')
-        self.declare_partials('S_ref', 'def_mesh')
-
-
-
-
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']
 
@@ -158,9 +146,6 @@ class VLMGeometry(ExplicitComponent):
 
     def compute_partial_derivs(self, inputs, outputs, partials):
         """ Jacobian for VLM geometry."""
-
-        for item in partials._subjacs.keys():
-            print(item)
 
         mesh = inputs['def_mesh']
 

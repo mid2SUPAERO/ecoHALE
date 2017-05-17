@@ -602,7 +602,7 @@ class OASProblem(object):
         if not self.prob_dict['optimize']:
             # Run a single analysis loop. This shouldn't actually be
             # necessary, but sometimes the .db file is not complete unless we do this.
-            self.prob.run_driver()
+            self.prob.run_once()
         else:
             # Perform optimization
             self.prob.run()
@@ -751,6 +751,24 @@ class OASProblem(object):
         self.prob = Problem()
         self.prob.model = model
 
+        # Add problem information as an independent variables component
+        if self.prob_dict['Re'] == 0:
+            Error('Reynolds number must be greater than zero for viscous drag ' +
+            'calculation. If only inviscid drag is desired, set with_viscous ' +
+            'flag to False.')
+
+        indep_var_comp = IndepVarComp('indep_vars')
+        indep_var_comp.add_output('v', val=self.prob_dict['v'])
+        indep_var_comp.add_output('alpha', val=self.prob_dict['alpha'])
+        indep_var_comp.add_output('M', val=self.prob_dict['M'])
+        indep_var_comp.add_output('re', val=self.prob_dict['Re']/self.prob_dict['reynolds_length'])
+        indep_var_comp.add_output('rho', val=self.prob_dict['rho'])
+        indep_var_comp.add_output('cg', val=self.prob_dict['cg'])
+
+        model.add_subsystem('prob_vars',
+                 indep_var_comp,
+                 promotes=['*'])
+
         # Loop over each surface in the surfaces list
         for surface in self.surfaces:
 
@@ -775,21 +793,11 @@ class OASProblem(object):
             indep_var_comp.add_output('disp', val=surface['disp'])
             for var in surface['geo_vars']:
                 if var in desvar_names or var in surface['initial_geo']:
-                    # indep_vars.append((var, surface[var]))
                     indep_var_comp.add_output(var, val=surface[var])
 
             # Add aero components to the surface-specific group
             tmp_group.add_subsystem('indep_vars',
                      indep_var_comp,
-                     promotes=['*'])
-            tmp_group.add_subsystem('mesh',
-                     GeometryMesh(surface=surface, desvars=self.desvars),
-                     promotes=['*'])
-            tmp_group.add_subsystem('def_mesh',
-                     TransferDisplacements(surface=surface),
-                     promotes=['*'])
-            tmp_group.add_subsystem('vlmgeom',
-                     VLMGeometry(surface=surface),
                      promotes=['*'])
 
             # Add bspline components for active bspline geometric variables.
@@ -801,8 +809,18 @@ class OASProblem(object):
                         n_pts -= 1
                     trunc_var = var.split('_')[0]
                     tmp_group.add_subsystem(trunc_var + '_bsp',
-                             Bsplines(in_name=var, out_name=trunc_var, num_cp=surface['num_'+var], num_pt=n_pts),
-                             promotes=['*'])
+                          Bsplines(in_name=var, out_name=trunc_var, num_cp=surface['num_'+var], num_pt=n_pts),
+                          promotes=['*'])
+
+            tmp_group.add_subsystem('mesh',
+                     GeometryMesh(surface=surface, desvars=self.desvars),
+                     promotes=['*'])
+            tmp_group.add_subsystem('def_mesh',
+                     TransferDisplacements(surface=surface),
+                     promotes=['*'])
+            tmp_group.add_subsystem('vlmgeom',
+                     VLMGeometry(surface=surface),
+                     promotes=['*'])
 
             # Add monotonic constraints for selected variables
             if surface['monotonic_con'] is not None:
@@ -817,26 +835,6 @@ class OASProblem(object):
             # individual surface.
             name_orig = name.strip('_')
             model.add_subsystem(name_orig, tmp_group, promotes=[])
-            model.add_subsystem(name_orig+'_perf', VLMFunctionals(surface, self.prob_dict),
-                    promotes=["v", "alpha", "M", "re", "rho"])
-
-        # Add problem information as an independent variables component
-        if self.prob_dict['Re'] == 0:
-            Error('Reynolds number must be greater than zero for viscous drag ' +
-            'calculation. If only inviscid drag is desired, set with_viscous ' +
-            'flag to False.')
-
-        indep_var_comp = IndepVarComp('indep_vars')
-        indep_var_comp.add_output('v', val=self.prob_dict['v'])
-        indep_var_comp.add_output('alpha', val=self.prob_dict['alpha'])
-        indep_var_comp.add_output('M', val=self.prob_dict['M'])
-        indep_var_comp.add_output('re', val=self.prob_dict['Re']/self.prob_dict['reynolds_length'])
-        indep_var_comp.add_output('rho', val=self.prob_dict['rho'])
-        indep_var_comp.add_output('cg', val=self.prob_dict['cg'])
-
-        model.add_subsystem('prob_vars',
-                 indep_var_comp,
-                 promotes=['*'])
 
         # Add a single 'aero_states' component that solves for the circulations
         # and forces from all the surfaces.
@@ -854,6 +852,9 @@ class OASProblem(object):
         # surface's group.
         for surface in self.surfaces:
             name = surface['name']
+            name_orig = name.strip('_')
+            model.add_subsystem(name_orig+'_perf', VLMFunctionals(surface, self.prob_dict),
+                    promotes=["v", "alpha", "M", "re", "rho"])
 
             # Perform the connections with the modified names within the
             # 'aero_states' group.
@@ -867,10 +868,10 @@ class OASProblem(object):
 
             # TODO: figure out why these aren't working correctly
             # Connect S_ref for performance calcs
-            # model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
-            # model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
-            # model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
-            # model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
+            model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
+            model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
+            model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
+            model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
 
             # Connect S_ref for performance calcs
             model.connect(name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')

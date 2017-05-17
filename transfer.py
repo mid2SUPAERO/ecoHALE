@@ -103,19 +103,20 @@ class TransferDisplacements(Component):
         unknowns['def_mesh'] = def_mesh
 
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-        mesh = params['mesh']
-        disp = params['disp']
+        if fortran_flag:
+            mesh = params['mesh']
+            disp = params['disp']
 
-        w = self.surface['fem_origin']
+            w = self.surface['fem_origin']
 
-        if mode == 'fwd':
-            a, b = OAS_API.oas_api.transferdisplacements_d(mesh, dparams['mesh'], disp, dparams['disp'], w)
-            dresids['def_mesh'] += b.real
+            if mode == 'fwd':
+                a, b = OAS_API.oas_api.transferdisplacements_d(mesh, dparams['mesh'], disp, dparams['disp'], w)
+                dresids['def_mesh'] += b.real
 
-        if mode == 'rev':
-            a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, unknowns['def_mesh'], dresids['def_mesh'])
-            dparams['mesh'] += a.real
-            dparams['disp'] += b.real
+            if mode == 'rev':
+                a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, unknowns['def_mesh'], dresids['def_mesh'])
+                dparams['mesh'] += a.real
+                dparams['disp'] += b.real
 
 class TransferLoads(Component):
     """

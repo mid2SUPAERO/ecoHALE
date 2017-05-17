@@ -291,134 +291,136 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, surfaces, skip=False):
     """
     Differentiated code to get the forward mode seeds for the AIC matrix assembly.
     """
+    if fortran_flag:
+        alpha = params['alpha']
+        alphad = dparams['alpha']
 
-    alpha = params['alpha']
-    alphad = dparams['alpha']
+        i_panels_ = 0
 
-    i_panels_ = 0
+        # Loop over the lifting surfaces to compute their influence on the flow
+        # velocity at the collocation points
+        for surface_ in surfaces:
 
-    # Loop over the lifting surfaces to compute their influence on the flow
-    # velocity at the collocation points
-    for surface_ in surfaces:
+            # Variable names with a trailing underscore correspond to the lifting
+            # surface being examined, not the collocation point
+            name_ = surface_['name']
+            nx_ = surface_['num_x']
+            ny_ = surface_['num_y']
+            n_panels_ = (nx_ - 1) * (ny_ - 1)
 
-        # Variable names with a trailing underscore correspond to the lifting
-        # surface being examined, not the collocation point
-        name_ = surface_['name']
-        nx_ = surface_['num_x']
-        ny_ = surface_['num_y']
-        n_panels_ = (nx_ - 1) * (ny_ - 1)
+            # Obtain the lifting surface mesh in the form expected by the solver,
+            # with shape [nx_, ny_, 3]
+            mesh = params[name_+'def_mesh']
+            bpts = params[name_+'b_pts']
 
-        # Obtain the lifting surface mesh in the form expected by the solver,
-        # with shape [nx_, ny_, 3]
-        mesh = params[name_+'def_mesh']
-        bpts = params[name_+'b_pts']
+            meshd = dparams[name_+'def_mesh']
+            bptsd = dparams[name_+'b_pts']
 
-        meshd = dparams[name_+'def_mesh']
-        bptsd = dparams[name_+'b_pts']
+            # Set a counter to know where to index the sub-matrix within the full mtx
+            i_panels = 0
 
-        # Set a counter to know where to index the sub-matrix within the full mtx
-        i_panels = 0
+            for surface in surfaces:
+                # These variables correspond to the collocation points
+                name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+                n_panels = (nx - 1) * (ny - 1)
+                symmetry = surface['symmetry']
 
-        for surface in surfaces:
-            # These variables correspond to the collocation points
-            name = surface['name']
-            nx = surface['num_x']
-            ny = surface['num_y']
-            n_panels = (nx - 1) * (ny - 1)
-            symmetry = surface['symmetry']
+                # Obtain the collocation points used to compute the AIC mtx.
+                # If setting up the AIC mtx, we use the collocation points (c_pts),
+                # but if setting up the matrix to solve for drag, we use the
+                # midpoints of the bound vortices.
+                if skip:
+                    # Find the midpoints of the bound points, used in drag computations
+                    pts = (params[name+'b_pts'][:, 1:, :] + \
+                        params[name+'b_pts'][:, :-1, :]) / 2
+                    ptsd = (dparams[name+'b_pts'][:, 1:, :] + \
+                        dparams[name+'b_pts'][:, :-1, :]) / 2
+                else:
+                    pts = params[name+'c_pts']
+                    ptsd = dparams[name+'c_pts']
 
-            # Obtain the collocation points used to compute the AIC mtx.
-            # If setting up the AIC mtx, we use the collocation points (c_pts),
-            # but if setting up the matrix to solve for drag, we use the
-            # midpoints of the bound vortices.
-            if skip:
-                # Find the midpoints of the bound points, used in drag computations
-                pts = (params[name+'b_pts'][:, 1:, :] + \
-                    params[name+'b_pts'][:, :-1, :]) / 2
-                ptsd = (dparams[name+'b_pts'][:, 1:, :] + \
-                    dparams[name+'b_pts'][:, :-1, :]) / 2
-            else:
-                pts = params[name+'c_pts']
-                ptsd = dparams[name+'c_pts']
+                _, small_mat = OAS_API.oas_api.assembleaeromtx_d(alpha, alphad, pts, ptsd,
+                                                              bpts, bptsd, mesh, meshd,
+                                                              skip, symmetry)
 
-            _, small_mat = OAS_API.oas_api.assembleaeromtx_d(alpha, alphad, pts, ptsd,
-                                                          bpts, bptsd, mesh, meshd,
-                                                          skip, symmetry)
+                # Populate the full-size matrix with these surface-surface AICs
+                mtxd[i_panels:i_panels+n_panels,
+                     i_panels_:i_panels_+n_panels_, :] = small_mat
 
-            # Populate the full-size matrix with these surface-surface AICs
-            mtxd[i_panels:i_panels+n_panels,
-                 i_panels_:i_panels_+n_panels_, :] = small_mat
+                i_panels += n_panels
 
-            i_panels += n_panels
+            i_panels_ += n_panels_
 
-        i_panels_ += n_panels_
-
-    mtxd /= 4 * np.pi
+        mtxd /= 4 * np.pi
 
 def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, surfaces, skip=False):
     """
     Differentiated code to get the reverse mode seeds for the AIC matrix assembly.
     """
 
-    alpha = params['alpha']
+    if fortran_flag:
 
-    mtxb /= 4 * np.pi
+        alpha = params['alpha']
 
-    i_panels_ = 0
+        mtxb /= 4 * np.pi
 
-    # Loop over the lifting surfaces to compute their influence on the flow
-    # velocity at the collocation points
-    for surface_ in surfaces:
+        i_panels_ = 0
 
-        # Variable names with a trailing underscore correspond to the lifting
-        # surface being examined, not the collocation point
-        name_ = surface_['name']
-        nx_ = surface_['num_x']
-        ny_ = surface_['num_y']
-        n_panels_ = (nx_ - 1) * (ny_ - 1)
+        # Loop over the lifting surfaces to compute their influence on the flow
+        # velocity at the collocation points
+        for surface_ in surfaces:
 
-        # Obtain the lifting surface mesh in the form expected by the solver,
-        # with shape [nx_, ny_, 3]
-        mesh = params[name_+'def_mesh']
-        bpts = params[name_+'b_pts']
+            # Variable names with a trailing underscore correspond to the lifting
+            # surface being examined, not the collocation point
+            name_ = surface_['name']
+            nx_ = surface_['num_x']
+            ny_ = surface_['num_y']
+            n_panels_ = (nx_ - 1) * (ny_ - 1)
 
-        # Set a counter to know where to index the sub-matrix within the full mtx
-        i_panels = 0
+            # Obtain the lifting surface mesh in the form expected by the solver,
+            # with shape [nx_, ny_, 3]
+            mesh = params[name_+'def_mesh']
+            bpts = params[name_+'b_pts']
 
-        for surface in surfaces:
-            # These variables correspond to the collocation points
-            name = surface['name']
-            nx = surface['num_x']
-            ny = surface['num_y']
-            n_panels = (nx - 1) * (ny - 1)
-            symmetry = surface['symmetry']
+            # Set a counter to know where to index the sub-matrix within the full mtx
+            i_panels = 0
 
-            # Obtain the collocation points used to compute the AIC mtx.
-            # If setting up the AIC mtx, we use the collocation points (c_pts),
-            # but if setting up the matrix to solve for drag, we use the
-            # midpoints of the bound vortices.
-            if skip:
-                # Find the midpoints of the bound points, used in drag computations
-                pts = (params[name+'b_pts'][:, 1:, :] + \
-                    params[name+'b_pts'][:, :-1, :]) / 2
-            else:
-                pts = params[name+'c_pts']
+            for surface in surfaces:
+                # These variables correspond to the collocation points
+                name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+                n_panels = (nx - 1) * (ny - 1)
+                symmetry = surface['symmetry']
 
-            small_mtxb = mtxb[i_panels:i_panels+n_panels, i_panels_:i_panels_+n_panels_, :]
+                # Obtain the collocation points used to compute the AIC mtx.
+                # If setting up the AIC mtx, we use the collocation points (c_pts),
+                # but if setting up the matrix to solve for drag, we use the
+                # midpoints of the bound vortices.
+                if skip:
+                    # Find the midpoints of the bound points, used in drag computations
+                    pts = (params[name+'b_pts'][:, 1:, :] + \
+                        params[name+'b_pts'][:, :-1, :]) / 2
+                else:
+                    pts = params[name+'c_pts']
 
-            alphab, ptsb, bptsb, meshb, mtx = OAS_API.oas_api.assembleaeromtx_b(alpha, pts, bpts,
-                                                     mesh, skip, symmetry, small_mtxb)
+                small_mtxb = mtxb[i_panels:i_panels+n_panels, i_panels_:i_panels_+n_panels_, :]
 
-            dparams[name_+'def_mesh'] += meshb.real
-            dparams[name_+'b_pts'] += bptsb.real
+                alphab, ptsb, bptsb, meshb, mtx = OAS_API.oas_api.assembleaeromtx_b(alpha, pts, bpts,
+                                                         mesh, skip, symmetry, small_mtxb)
 
-            if skip:
-                dparams[name+'b_pts'][:, 1:, :] += ptsb.real / 2
-                dparams[name+'b_pts'][:, :-1, :] += ptsb.real / 2
-            else:
-                dparams[name+'c_pts'] += ptsb.real
-            dparams['alpha'] += alphab
+                dparams[name_+'def_mesh'] += meshb.real
+                dparams[name_+'b_pts'] += bptsb.real
 
-            i_panels += n_panels
+                if skip:
+                    dparams[name+'b_pts'][:, 1:, :] += ptsb.real / 2
+                    dparams[name+'b_pts'][:, :-1, :] += ptsb.real / 2
+                else:
+                    dparams[name+'c_pts'] += ptsb.real
+                dparams['alpha'] += alphab
 
-        i_panels_ += n_panels_
+                i_panels += n_panels
+
+            i_panels_ += n_panels_
