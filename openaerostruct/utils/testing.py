@@ -2,6 +2,7 @@ from openmdao.api import Problem
 
 from six import iteritems
 from numpy.testing import assert_almost_equal
+from openaerostruct.integration.integration import OASProblem
 
 
 def run_test(obj, comp, decimal=3):
@@ -17,18 +18,11 @@ def run_test(obj, comp, decimal=3):
 
 
 def get_default_prob_dict():
-    prob_dict = {
-        'g': 9.81,
-        'CT': 9.80665 * 17.e-6,
-        'a': 295.4,
-        'R': 14.3e6,
-        'M': 0.84,
-        'W0': 1e6,
-        'beta': 0.5,
-    }
-    return prob_dict
+    return OASProblem().get_default_prob_dict()
 
+def get_default_surf_dict():
+    return OASProblem().get_default_surf_dict()
 
 def get_default_surfaces():
-    surfaces = [{'name': 'wing'}]
-    return surfaces
+    surf_dict = OASProblem().get_default_surf_dict()
+    return [surf_dict]

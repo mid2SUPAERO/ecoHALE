@@ -148,6 +148,7 @@ class OASProblem(object):
 
         defaults = {
                     # Problem and solver options
+                    'type' : 'aerostruct',   # type of problem to run
                     'optimize' : False,      # flag for analysis or optimization
                     'optimizer' : 'SLSQP',   # default optimizer
                     'force_fd' : False,      # if true, we FD over the whole model

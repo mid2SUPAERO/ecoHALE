@@ -60,10 +60,27 @@ class VLMGeometry(ExplicitComponent):
         self.add_output('normals', val=np.zeros((self.nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=0.)
 
+    def initialize_partials(self):
+        if not fortran_flag:
+            self.approx_partials('normals', 'def_mesh')
+            self.approx_partials('S_ref', 'def_mesh')
+
+        self.declare_partials('b_pts', 'def_mesh')
+        self.declare_partials('c_pts', 'def_mesh')
+        self.declare_partials('widths', 'def_mesh')
+        self.declare_partials('cos_sweep', 'def_mesh')
+        self.declare_partials('lengths', 'def_mesh')
+        self.declare_partials('chords', 'def_mesh')
+        self.declare_partials('normals', 'def_mesh')
+        self.declare_partials('S_ref', 'def_mesh')
+
+
+
+
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']
 
-        # Compute the bound points at quart-chord
+        # Compute the bound points at quarter-chord
         b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
 
         # Compute the collocation points at the midpoints of each
@@ -139,13 +156,11 @@ class VLMGeometry(ExplicitComponent):
         outputs['S_ref'] = S_ref
         outputs['chords'] = chords
 
-    def initialize_partials(self):
-        if not fortran_flag:
-            self.approx_partials('normals', 'def_mesh')
-            self.approx_partials('S_ref', 'def_mesh')
-
     def compute_partial_derivs(self, inputs, outputs, partials):
         """ Jacobian for VLM geometry."""
+
+        for item in partials._subjacs.keys():
+            print(item)
 
         mesh = inputs['def_mesh']
 
