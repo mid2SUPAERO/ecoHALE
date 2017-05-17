@@ -348,9 +348,8 @@ class ComputeCM(ExplicitComponent):
         # Compute the normalized CM
         outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * MAC_wing)
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
-        if fortran_flag:
-
+    if fortran_flag:
+        def compute_partial_derivs(self, inputs, outputs, partials):
             cg = inputs['cg']
             rho = inputs['rho'][0]
             v = inputs['v'][0]

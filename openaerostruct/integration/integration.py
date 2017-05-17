@@ -481,6 +481,8 @@ class OASProblem(object):
         or Scipy's SLSQP otherwise.
         """
 
+        # TODO: change this back to SLSQP; delete this line
+        self.prob_dict['optimizer'] = 'SNOPT'
         try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
@@ -602,7 +604,7 @@ class OASProblem(object):
         if not self.prob_dict['optimize']:
             # Run a single analysis loop. This shouldn't actually be
             # necessary, but sometimes the .db file is not complete unless we do this.
-            self.prob.run_once()
+            self.prob.run_model()
         else:
             # Perform optimization
             self.prob.run_driver()
@@ -638,8 +640,6 @@ class OASProblem(object):
         # Uncomment this to check the partial derivatives of each component
         self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
-
-
 
     def setup_struct(self):
         """

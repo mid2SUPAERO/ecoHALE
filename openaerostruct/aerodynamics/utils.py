@@ -287,13 +287,13 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     mtx /= 4 * np.pi
 
-def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, surfaces, skip=False):
+def _assemble_AIC_mtx_d(mtxd, params, d_inputs, d_outputs, surfaces, skip=False):
     """
     Differentiated code to get the forward mode seeds for the AIC matrix assembly.
     """
     if fortran_flag:
         alpha = params['alpha']
-        alphad = dparams['alpha']
+        alphad = d_inputs['alpha']
 
         i_panels_ = 0
 
@@ -313,8 +313,8 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, surfaces, skip=False):
             mesh = params[name_+'def_mesh']
             bpts = params[name_+'b_pts']
 
-            meshd = dparams[name_+'def_mesh']
-            bptsd = dparams[name_+'b_pts']
+            meshd = d_inputs[name_+'def_mesh']
+            bptsd = d_inputs[name_+'b_pts']
 
             # Set a counter to know where to index the sub-matrix within the full mtx
             i_panels = 0
@@ -335,11 +335,11 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, surfaces, skip=False):
                     # Find the midpoints of the bound points, used in drag computations
                     pts = (params[name+'b_pts'][:, 1:, :] + \
                         params[name+'b_pts'][:, :-1, :]) / 2
-                    ptsd = (dparams[name+'b_pts'][:, 1:, :] + \
-                        dparams[name+'b_pts'][:, :-1, :]) / 2
+                    ptsd = (d_inputs[name+'b_pts'][:, 1:, :] + \
+                        d_inputs[name+'b_pts'][:, :-1, :]) / 2
                 else:
                     pts = params[name+'c_pts']
-                    ptsd = dparams[name+'c_pts']
+                    ptsd = d_inputs[name+'c_pts']
 
                 _, small_mat = OAS_API.oas_api.assembleaeromtx_d(alpha, alphad, pts, ptsd,
                                                               bpts, bptsd, mesh, meshd,
@@ -355,7 +355,7 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, surfaces, skip=False):
 
         mtxd /= 4 * np.pi
 
-def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, surfaces, skip=False):
+def _assemble_AIC_mtx_b(mtxb, params, d_inputs, d_outputs, surfaces, skip=False):
     """
     Differentiated code to get the reverse mode seeds for the AIC matrix assembly.
     """
@@ -411,15 +411,20 @@ def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, surfaces, skip=False):
                 alphab, ptsb, bptsb, meshb, mtx = OAS_API.oas_api.assembleaeromtx_b(alpha, pts, bpts,
                                                          mesh, skip, symmetry, small_mtxb)
 
-                dparams[name_+'def_mesh'] += meshb.real
-                dparams[name_+'b_pts'] += bptsb.real
+                if name_+'def_mesh' in d_inputs:
+                    d_inputs[name_+'def_mesh'] += meshb.real
 
-                if skip:
-                    dparams[name+'b_pts'][:, 1:, :] += ptsb.real / 2
-                    dparams[name+'b_pts'][:, :-1, :] += ptsb.real / 2
-                else:
-                    dparams[name+'c_pts'] += ptsb.real
-                dparams['alpha'] += alphab
+                if name_+'b_pts' in d_inputs:
+                    d_inputs[name_+'b_pts'] += bptsb.real
+                    if skip:
+                        d_inputs[name+'b_pts'][:, 1:, :] += ptsb.real / 2
+                        d_inputs[name+'b_pts'][:, :-1, :] += ptsb.real / 2
+
+                if not skip and name+'c_pts' in d_inputs:
+                    d_inputs[name+'c_pts'] += ptsb.real
+
+                if 'alpha' in d_inputs:
+                    d_inputs['alpha'] += alphab
 
                 i_panels += n_panels
 

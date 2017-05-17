@@ -132,10 +132,8 @@ class Forces(ExplicitComponent):
 
             i += num_panels
 
-    def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
-
-        if fortran_flag:
-
+    if fortran_flag:
+        def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
             if mode == 'fwd':
 
                 circ = inputs['circulations']
@@ -215,18 +213,23 @@ class Forces(ExplicitComponent):
 
                     v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts, sec_forcesb)
 
-                    d_inputs['circulations'][i:i+num_panels] += circb
+                    if 'ciculations' in d_inputs:
+                        d_inputs['circulations'][i:i+num_panels] += circb
                     vb[i:i+num_panels] = v_b
-                    d_inputs['rho'] += rhob
-                    d_inputs[name+'b_pts'] += bptsb
+                    if 'rho' in d_inputs:
+                        d_inputs['rho'] += rhob
+                    if name+'b_pts' in d_inputs:
+                        d_inputs[name+'b_pts'] += bptsb
 
                     i += num_panels
 
                 sinab = inputs['v'] * np.sum(vb[:, 2])
-                d_inputs['v'] += cosa * np.sum(vb[:, 0]) + sina * np.sum(vb[:, 2])
+                if 'v' in d_inputs:
+                    d_inputs['v'] += cosa * np.sum(vb[:, 0]) + sina * np.sum(vb[:, 2])
                 cosab = inputs['v'] * np.sum(vb[:, 0])
                 ab = np.cos(alpha) * sinab - np.sin(alpha) * cosab
-                d_inputs['alpha'] += np.pi * ab / 180.
+                if 'alpha' in d_inputs:
+                    d_inputs['alpha'] += np.pi * ab / 180.
 
                 mtxb = np.zeros(self.mtx.shape)
                 circb = np.zeros(circ.shape)
@@ -235,6 +238,7 @@ class Forces(ExplicitComponent):
                         mtxb[j, :, i] += circ * vb[j, i]
                         circb += self.mtx[j, :, i].real * vb[j, i]
 
-                d_inputs['circulations'] += circb
+                if 'circulations' in d_inputs:
+                    d_inputs['circulations'] += circb
 
                 _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, d_outputs, self.surfaces, skip=True)

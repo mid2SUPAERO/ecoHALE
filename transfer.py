@@ -13,9 +13,9 @@ except:
     fortran_flag = False
     data_type = complex
 
-from openmdao.api import Component
+from openmdao.api import Component, ExplicitComponent
 
-class TransferDisplacements(Component):
+class TransferDisplacements(ExplicitComponent):
     """
     Perform displacement transfer.
 
@@ -38,26 +38,27 @@ class TransferDisplacements(Component):
         Flattened array defining the lifting surfaces after deformation.
     """
 
-    def __init__(self, surface):
-        super(TransferDisplacements, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict)
 
-        self.surface = surface
+    def initialize_variables(self):
+        self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
-        self.add_param('disp', val=np.zeros((self.ny, 6), dtype=data_type))
+        self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
+        self.add_input('disp', val=np.zeros((self.ny, 6), dtype=data_type))
         self.add_output('def_mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
 
-    # def initialize_partials(self):
-    #     if not fortran_flag:
-    #         self.approx_partials('*', '*')
+    def initialize_partials(self):
+        if not fortran_flag:
+            self.approx_partials('*', '*')
 
-    def solve_nonlinear(self, params, unknowns, resids):
-        mesh = params['mesh']
-        disp = params['disp']
+    def compute(self, inputs, outputs):
+        mesh = inputs['mesh']
+        disp = inputs['disp']
 
         # Get the location of the spar within the wing and save as w
         w = self.surface['fem_origin']
@@ -100,25 +101,27 @@ class TransferDisplacements(Component):
             # Apply the displacements to the mesh
             def_mesh = mesh + mesh_disp
 
-        unknowns['def_mesh'] = def_mesh
+        outputs['def_mesh'] = def_mesh
 
-    def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
-        if fortran_flag:
-            mesh = params['mesh']
-            disp = params['disp']
+    if fortran_flag:
+        def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
+            mesh = inputs['mesh']
+            disp = inputs['disp']
 
             w = self.surface['fem_origin']
 
             if mode == 'fwd':
-                a, b = OAS_API.oas_api.transferdisplacements_d(mesh, dparams['mesh'], disp, dparams['disp'], w)
-                dresids['def_mesh'] += b.real
+                a, b = OAS_API.oas_api.transferdisplacements_d(mesh, d_inputs['mesh'], disp, d_inputs['disp'], w)
+                d_outputs['def_mesh'] += b.real
 
             if mode == 'rev':
-                a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, unknowns['def_mesh'], dresids['def_mesh'])
-                dparams['mesh'] += a.real
-                dparams['disp'] += b.real
+                a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, outputs['def_mesh'], d_outputs['def_mesh'])
+                if 'mesh' in d_inputs:
+                    d_inputs['mesh'] += a.real
+                if 'disp' in d_inputs:
+                    d_inputs['disp'] += b.real
 
-class TransferLoads(Component):
+class TransferLoads(ExplicitComponent):
     """
     Perform aerodynamic load transfer.
 
@@ -141,28 +144,29 @@ class TransferLoads(Component):
         computed from the sectional forces.
     """
 
-    def __init__(self, surface):
-        super(TransferLoads, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict)
 
-        self.surface = surface
+    def initialize_variables(self):
+        self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_param('def_mesh', val=np.zeros((self.nx, self.ny, 3), dtype=complex))
-        self.add_param('sec_forces', val=np.zeros((self.nx-1, self.ny-1, 3),
+        self.add_input('def_mesh', val=np.zeros((self.nx, self.ny, 3), dtype=complex))
+        self.add_input('sec_forces', val=np.zeros((self.nx-1, self.ny-1, 3),
                        dtype=complex))
         self.add_output('loads', val=np.zeros((self.ny, 6),
                         dtype=complex))
 
-    # def initialize_partials(self):
-    #     self.approx_partials('*', '*')
+    def initialize_partials(self):
+        self.approx_partials('*', '*')
 
-    def solve_nonlinear(self, params, unknowns, resids):
-        mesh = params['def_mesh']
+    def compute(self, inputs, outputs):
+        mesh = inputs['def_mesh']
 
-        sec_forces = params['sec_forces']
+        sec_forces = inputs['sec_forces']
 
         # Compute the aerodynamic centers at the quarter-chord point of each panel
         w = 0.25
@@ -193,4 +197,4 @@ class TransferLoads(Component):
         loads[:-1, 3:] += 0.5 * moment
         loads[ 1:, 3:] += 0.5 * moment
 
-        unknowns['loads'] = loads
+        outputs['loads'] = loads
