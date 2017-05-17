@@ -11,7 +11,7 @@ except:
     fortran_flag = False
     data_type = complex
 
-class ViscousDrag(Component):
+class ViscousDrag(ExplicitComponent):
     """
     Compute the skin friction drag if the with_viscous option is True.
     If not, the CDv is 0.
@@ -59,14 +59,13 @@ class ViscousDrag(Component):
 
         ny = surface['num_y']
 
-        self.add_param('re', val=5.e6)
-        self.add_param('M', val=.84)
-        self.add_param('S_ref', val=0.)
-        self.add_param('cos_sweep', val=np.zeros((ny-1)))
-        self.add_param('widths', val=np.zeros((ny-1)))
-        self.add_param('lengths', val=np.zeros((ny)))
+        self.add_input('re', val=5.e6)
+        self.add_input('M', val=.84)
+        self.add_input('S_ref', val=0.)
+        self.add_input('cos_sweep', val=np.zeros((ny-1)))
+        self.add_input('widths', val=np.zeros((ny-1)))
+        self.add_input('lengths', val=np.zeros((ny)))
         self.add_output('CDv', val=0.)
-
 
     def compute(self, inputs, outputs):
         if self.with_viscous:

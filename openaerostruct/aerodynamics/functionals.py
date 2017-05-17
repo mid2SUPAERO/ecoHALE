@@ -1,8 +1,8 @@
 from openmdao.api import Group
 from openaerostruct.aerodynamics.lift_drag import LiftDrag
 from openaerostruct.aerodynamics.coeffs import Coeffs
-from openaerostruct.aerodynamics.toatl_lift import TotalLift
-from openaerostruct.aerodynamics.toatl_drag import TotalDrag
+from openaerostruct.aerodynamics.total_lift import TotalLift
+from openaerostruct.aerodynamics.total_drag import TotalDrag
 from openaerostruct.aerodynamics.viscous_drag import ViscousDrag
 
 class VLMFunctionals(Group):

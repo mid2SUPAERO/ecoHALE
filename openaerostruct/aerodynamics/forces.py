@@ -1,0 +1,238 @@
+from __future__ import print_function, division
+import numpy as np
+
+from openmdao.api import ExplicitComponent
+
+from openaerostruct.aerodynamics.utils import _assemble_AIC_mtx, _assemble_AIC_mtx_b, _assemble_AIC_mtx_d
+
+try:
+    import OAS_API
+    fortran_flag = True
+    data_type = float
+except:
+    fortran_flag = False
+    data_type = complex
+
+class Forces(ExplicitComponent):
+    """ Compute aerodynamic forces acting on each section.
+
+    Note that the first two inputs and the output have the surface name
+    prepended on it. E.g., 'def_mesh' on a surface called 'wing' would be
+    'wing.def_mesh', etc.
+
+    Parameters
+    ----------
+    def_mesh[nx, ny, 3] : numpy array
+        Array defining the nodal coordinates of the lifting surface.
+    b_pts[nx-1, ny, 3] : numpy array
+        Bound points for the horseshoe vortices, found along the 1/4 chord.
+
+    circulations[(nx-1)*(ny-1)] : numpy array
+        Flattened vector of horseshoe vortex strengths calculated by solving
+        the linear system of AIC_mtx * circulations = rhs, where rhs is
+        based on the air velocity at each collocation point.
+    alpha : float
+        Angle of attack in degrees.
+    v : float
+        Freestream air velocity in m/s.
+    rho : float
+        Air density in kg/m^3.
+
+    Returns
+    -------
+    sec_forces[nx-1, ny-1, 3] : numpy array
+        Contains the sectional forces acting on each panel.
+        Stored in Fortran order (only relevant with more than one chordwise
+        panel).
+
+    """
+
+    def initialize(self):
+        self.metadata.declare('surfaces', type_=list)
+
+    def initialize_variables(self):
+        self.surfaces = surfaces = self.metadata['surfaces']
+
+        tot_panels = 0
+        for surface in surfaces:
+            name = surface['name']
+            ny = surface['num_y']
+            nx = surface['num_x']
+            tot_panels += (nx - 1) * (ny - 1)
+
+            self.add_input(name+'def_mesh', val=np.zeros((nx, ny, 3), dtype=data_type))
+            self.add_input(name+'b_pts', val=np.zeros((nx-1, ny, 3), dtype=data_type))
+            self.add_output(name+'sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
+
+        self.tot_panels = tot_panels
+
+        self.add_input('circulations', val=np.zeros((tot_panels)))
+        self.add_input('alpha', val=3.)
+        self.add_input('v', val=10.)
+        self.add_input('rho', val=3.)
+
+        self.mtx = np.zeros((tot_panels, tot_panels, 3), dtype=data_type)
+        self.v = np.zeros((tot_panels, 3), dtype=data_type)
+
+    def initialize_partials(self):
+        if not fortran_flag:
+            self.approx_partials('*', '*')
+
+    def compute(self, inputs, outputs):
+        circ = inputs['circulations']
+        alpha = inputs['alpha'] * np.pi / 180.
+        rho = inputs['rho']
+        cosa = np.cos(alpha)
+        sina = np.sin(alpha)
+
+        # Assemble a different matrix here than the AIC_mtx from above; Note
+        # that the collocation points used here are the midpoints of each
+        # bound vortex filament, not the collocation points from above
+        _assemble_AIC_mtx(self.mtx, inputs, self.surfaces, skip=True)
+
+        # Compute the induced velocities at the midpoints of the
+        # bound vortex filaments
+        for ind in range(3):
+            self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
+
+        # Add the freestream velocity to the induced velocity so that
+        # self.v is the total velocity seen at the point
+        self.v[:, 0] += cosa * inputs['v']
+        self.v[:, 2] += sina * inputs['v']
+
+        i = 0
+        for surface in self.surfaces:
+            name = surface['name']
+            nx = surface['num_x']
+            ny = surface['num_y']
+            num_panels = (nx - 1) * (ny - 1)
+
+            b_pts = inputs[name+'b_pts']
+
+            if fortran_flag:
+                sec_forces = OAS_API.oas_api.forcecalc(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
+            else:
+
+                # Get the vectors for each bound vortex of the horseshoe vortices
+                bound = b_pts[:, 1:, :] - b_pts[:, :-1, :]
+
+                # Cross the obtained velocities with the bound vortex filament
+                # vectors
+                cross = np.cross(self.v[i:i+num_panels],
+                                    bound.reshape(-1, bound.shape[-1], order='F'))
+
+                sec_forces = np.zeros((num_panels, 3), dtype=data_type)
+                # Compute the sectional forces acting on each panel
+                for ind in range(3):
+                    sec_forces[:, ind] = \
+                        (inputs['rho'] * circ[i:i+num_panels] * cross[:, ind])
+
+            # Reshape the forces into the expected form
+            outputs[name+'sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
+
+            i += num_panels
+
+    def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
+
+        if mode == 'fwd':
+
+            circ = inputs['circulations']
+            alpha = inputs['alpha'] * np.pi / 180.
+            alphad = d_inputs['alpha'] * np.pi / 180.
+            cosa = np.cos(alpha)
+            sina = np.sin(alpha)
+            cosad = -sina * alphad
+            sinad = cosa * alphad
+            rho = inputs['rho']
+            v = inputs['v']
+
+            mtxd = np.zeros(self.mtx.shape)
+
+            # Actually assemble the AIC matrix
+            _assemble_AIC_mtx_d(mtxd, inputs, d_inputs, d_outputs, self.surfaces, skip=True)
+
+            vd = np.zeros(self.v.shape)
+
+            # Compute the induced velocities at the midpoints of the
+            # bound vortex filaments
+            for ind in range(3):
+                vd[:, ind] += mtxd[:, :, ind].dot(circ)
+                vd[:, ind] += self.mtx[:, :, ind].real.dot(d_inputs['circulations'])
+
+            # Add the freestream velocity to the induced velocity so that
+            # self.v is the total velocity seen at the point
+            vd[:, 0] += cosa * d_inputs['v']
+            vd[:, 2] += sina * d_inputs['v']
+            vd[:, 0] += cosad * v
+            vd[:, 2] += sinad * v
+
+            i = 0
+            rho = inputs['rho'].real
+            for surface in self.surfaces:
+                name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+
+                num_panels = (nx - 1) * (ny - 1)
+
+                b_pts = inputs[name+'b_pts']
+
+                sec_forces = outputs[name+'sec_forces'].real
+
+                sec_forces, sec_forcesd = OAS_API.oas_api.forcecalc_d(self.v[i:i+num_panels, :], vd[i:i+num_panels],
+                                            circ[i:i+num_panels], d_inputs['circulations'][i:i+num_panels],
+                                            rho, d_inputs['rho'],
+                                            b_pts, d_inputs[name+'b_pts'])
+
+                d_outputs[name+'sec_forces'] += sec_forcesd.reshape((nx-1, ny-1, 3), order='F')
+                i += num_panels
+
+
+        if mode == 'rev':
+
+            circ = inputs['circulations']
+            alpha = inputs['alpha'] * np.pi / 180.
+            cosa = np.cos(alpha)
+            sina = np.sin(alpha)
+
+            i = 0
+            rho = inputs['rho'].real
+            v = inputs['v']
+            vb = np.zeros(self.v.shape)
+
+            for surface in self.surfaces:
+                name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+                num_panels = (nx - 1) * (ny - 1)
+
+                b_pts = inputs[name+'b_pts']
+
+                sec_forcesb = d_outputs[name+'sec_forces'].reshape((num_panels, 3), order='F')
+                sec_forces = outputs[name+'sec_forces'].real
+
+                v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts, sec_forcesb)
+
+                d_inputs['circulations'][i:i+num_panels] += circb
+                vb[i:i+num_panels] = v_b
+                d_inputs['rho'] += rhob
+                d_inputs[name+'b_pts'] += bptsb
+
+                i += num_panels
+
+            sinab = inputs['v'] * np.sum(vb[:, 2])
+            d_inputs['v'] += cosa * np.sum(vb[:, 0]) + sina * np.sum(vb[:, 2])
+            cosab = inputs['v'] * np.sum(vb[:, 0])
+            ab = np.cos(alpha) * sinab - np.sin(alpha) * cosab
+            d_inputs['alpha'] += np.pi * ab / 180.
+
+            mtxb = np.zeros(self.mtx.shape)
+            circb = np.zeros(circ.shape)
+            for i in range(3):
+                for j in range(self.tot_panels):
+                    mtxb[j, :, i] += circ * vb[j, i]
+                    circb += self.mtx[j, :, i].real * vb[j, i]
+
+            d_inputs['circulations'] += circb
+
+            _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, d_outputs, self.surfaces, skip=True)

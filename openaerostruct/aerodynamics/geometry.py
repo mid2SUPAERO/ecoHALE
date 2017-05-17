@@ -11,10 +11,10 @@ except:
     fortran_flag = False
     data_type = complex
 
-class VLMGeometry(Component):
+class VLMGeometry(ExplicitComponent):
     """ Compute various geometric properties for VLM analysis.
 
-    Parameters
+    inputeters
     ----------
     def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
@@ -39,15 +39,16 @@ class VLMGeometry(Component):
         The reference area of the lifting surface.
     """
 
-    def __init__(self, surface):
-        super(VLMGeometry, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict)
 
-        self.surface = surface
+    def initialize_variables(self):
+        self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
 
-        self.add_param('def_mesh', val=np.zeros((self.nx, self.ny, 3),
+        self.add_input('def_mesh', val=np.zeros((self.nx, self.ny, 3),
                        dtype=data_type))
         self.add_output('b_pts', val=np.zeros((self.nx-1, self.ny, 3),
                         dtype=data_type))
@@ -59,8 +60,8 @@ class VLMGeometry(Component):
         self.add_output('normals', val=np.zeros((self.nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=0.)
 
-    def solve_nonlinear(self, params, unknowns, resids):
-        mesh = params['def_mesh']
+    def compute(self, inputs, outputs):
+        mesh = inputs['def_mesh']
 
         # Compute the bound points at quart-chord
         b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
@@ -128,36 +129,39 @@ class VLMGeometry(Component):
         # This is the distance from the leading to trailing edge.
         chords = np.linalg.norm(mesh[0, :, :] - mesh[-1, :, :], axis=1)
 
-        # Store each array in the unknowns dict
-        unknowns['b_pts'] = b_pts
-        unknowns['c_pts'] = c_pts
-        unknowns['widths'] = widths
-        unknowns['cos_sweep'] = cos_sweep
-        unknowns['lengths'] = lengths
-        unknowns['normals'] = normals
-        unknowns['S_ref'] = S_ref
-        unknowns['chords'] = chords
+        # Store each array in the outputs dict
+        outputs['b_pts'] = b_pts
+        outputs['c_pts'] = c_pts
+        outputs['widths'] = widths
+        outputs['cos_sweep'] = cos_sweep
+        outputs['lengths'] = lengths
+        outputs['normals'] = normals
+        outputs['S_ref'] = S_ref
+        outputs['chords'] = chords
 
-    def linearize(self, params, unknowns, resids):
+    def initialize_partials(self):
+        if not fortran_flag:
+            self.approx_partials('normals', 'def_mesh')
+            self.approx_partials('S_ref', 'def_mesh')
+
+    def compute_partial_derivs(self, inputs, outputs, partials):
         """ Jacobian for VLM geometry."""
 
-        jac = self.alloc_jacobian()
-        name = self.surface['name']
-        mesh = params['def_mesh']
+        mesh = inputs['def_mesh']
 
         nx = self.surface['num_x']
         ny = self.surface['num_y']
 
         if fortran_flag:
 
-            normalsb = np.zeros(unknowns['normals'].shape)
+            normalsb = np.zeros(outputs['normals'].shape)
             for i in range(nx-1):
                 for j in range(ny-1):
                     for ind in range(3):
                         normalsb[:, :, :] = 0.
                         normalsb[i, j, ind] = 1.
                         meshb, _, _ = OAS_API.oas_api.compute_normals_b(mesh, normalsb, 0.)
-                        jac['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
+                        partials['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
 
             normalsb[:, :, :] = 0.
             if self.surface['S_ref_type'] == 'wetted':
@@ -167,75 +171,66 @@ class VLMGeometry(Component):
                 seed_mesh[:, :, 2] = 0.
             meshb, _, _ = OAS_API.oas_api.compute_normals_b(seed_mesh, normalsb, 1.)
 
-            jac['S_ref', 'def_mesh'] = np.atleast_2d(meshb.flatten())
+            partials['S_ref', 'def_mesh'] = np.atleast_2d(meshb.flatten())
             if self.surface['symmetry']:
-                jac['S_ref', 'def_mesh'] *= 2
-
-        else:
-            cs_jac = self.complex_step_jacobian(params, unknowns, resids,
-                                            fd_params=['def_mesh'],
-                                            fd_unknowns=['normals', 'S_ref'],
-                                            fd_states=[])
-            jac.update(cs_jac)
+                partials['S_ref', 'def_mesh'] *= 2
 
         for iz, v in zip((0, ny*3), (.75, .25)):
-            np.fill_diagonal(jac['b_pts', 'def_mesh'][:, iz:], v)
+            np.fill_diagonal(partials['b_pts', 'def_mesh'][:, iz:], v)
 
         for iz, v in zip((0, 3, ny*3, (ny+1)*3),
                          (.125, .125, .375, .375)):
             for ix in range(nx-1):
-                np.fill_diagonal(jac['c_pts', 'def_mesh']
+                np.fill_diagonal(partials['c_pts', 'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
-        jac['widths', 'def_mesh'] = np.zeros_like(jac['widths', 'def_mesh'])
-        jac['cos_sweep', 'def_mesh'] = np.zeros_like(jac['cos_sweep', 'def_mesh'])
+        partials['widths', 'def_mesh'] = np.zeros_like(partials['widths', 'def_mesh'])
+        partials['cos_sweep', 'def_mesh'] = np.zeros_like(partials['cos_sweep', 'def_mesh'])
         qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
         gap = [0, (nx-1)*ny*3]
         factor = [0.75, 0.25]
         for i in range(ny-1):
-            w = unknowns['widths'][i]
-            cos_sweep = unknowns['cos_sweep'][i]
+            w = outputs['widths'][i]
+            cos_sweep = outputs['cos_sweep'][i]
             dx = (qc[i+1, 0] - qc[i, 0])
             dy = (qc[i+1, 1] - qc[i, 1])
             dz = (qc[i+1, 2] - qc[i, 2])
             for j in range(2):
-                jac['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
-                jac['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w
-                jac['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j] / w
-                jac['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j] / w
-                jac['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j] / w
-                jac['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j] / w
-                jac['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] -= dy / cos_sweep * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy / cos_sweep * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] -= dz / cos_sweep * factor[j]
-                jac['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz / cos_sweep * factor[j]
+                partials['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
+                partials['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w
+                partials['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j] / w
+                partials['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j] / w
+                partials['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j] / w
+                partials['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j] / w
+                partials['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] -= dy / cos_sweep * factor[j]
+                partials['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy / cos_sweep * factor[j]
+                partials['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] -= dz / cos_sweep * factor[j]
+                partials['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz / cos_sweep * factor[j]
 
-        jac['lengths', 'def_mesh'] = np.zeros_like(jac['lengths', 'def_mesh'])
+        partials['lengths', 'def_mesh'] = np.zeros_like(partials['lengths', 'def_mesh'])
         for i in range(ny):
             dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
             dy = mesh[1:, i, 1] - mesh[:-1, i, 1]
             dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
             for j in range(nx-1):
                 l = np.sqrt(dx[j]**2 + dy[j]**2 + dz[j]**2)
-                jac['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
-                jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
-                jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 1] -= dy[j] / l
-                jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 1] += dy[j] / l
-                jac['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
-                jac['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] += dz[j] / l
+                partials['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
+                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
+                partials['lengths', 'def_mesh'][i, (j*ny+i)*3 + 1] -= dy[j] / l
+                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 1] += dy[j] / l
+                partials['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
+                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] += dz[j] / l
 
-        jac['chords', 'def_mesh'] = np.zeros_like(jac['chords', 'def_mesh'])
+        partials['chords', 'def_mesh'] = np.zeros_like(partials['chords', 'def_mesh'])
         for i in range(ny):
             dx = mesh[0, i, 0] - mesh[-1, i, 0]
             dy = mesh[0, i, 1] - mesh[-1, i, 1]
             dz = mesh[0, i, 2] - mesh[-1, i, 2]
 
             l = np.sqrt(dx**2 + dy**2 + dz**2)
-            jac['chords', 'def_mesh'][i, i*3] += dx / l
-            jac['chords', 'def_mesh'][i, (ny+i)*3] -= dx / l
-            jac['chords', 'def_mesh'][i, i*3 + 1] += dy / l
-            jac['chords', 'def_mesh'][i, (ny+i)*3 + 1] -= dy / l
-            jac['chords', 'def_mesh'][i, i*3 + 2] += dz / l
-            jac['chords', 'def_mesh'][i, (ny+i)*3 + 2] -= dz / l
-
-        return jac
+            partials['chords', 'def_mesh'][i, i*3] += dx / l
+            partials['chords', 'def_mesh'][i, (ny+i)*3] -= dx / l
+            partials['chords', 'def_mesh'][i, i*3 + 1] += dy / l
+            partials['chords', 'def_mesh'][i, (ny+i)*3 + 1] -= dy / l
+            partials['chords', 'def_mesh'][i, i*3 + 2] += dz / l
+            partials['chords', 'def_mesh'][i, (ny+i)*3 + 2] -= dz / l

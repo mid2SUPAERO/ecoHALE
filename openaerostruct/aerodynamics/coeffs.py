@@ -11,7 +11,7 @@ except:
     fortran_flag = False
     data_type = complex
 
-class Coeffs(ExplictComponent):
+class Coeffs(ExplicitComponent):
     """ Compute lift and drag coefficients for each individual lifting surface.
 
     Parameters

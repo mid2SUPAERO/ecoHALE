@@ -19,7 +19,7 @@ class VLMStates(Group):
                  AssembleAIC(surfaces=surfaces),
                  promotes=['*'])
         self.add_subsystem('circulations',
-                 Circulations(tot_panels=tot_panels),
+                 Circulations(size=int(tot_panels)),
                  promotes=['*'])
         self.add_subsystem('forces',
                  Forces(surfaces=surfaces),

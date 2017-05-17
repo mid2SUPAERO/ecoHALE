@@ -94,7 +94,8 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         derivative of v w.r.t. circulations.
     """
 
-    alpha = params['alpha']
+    # TODO: check if the float is needed; remove hopefully
+    alpha = float(params['alpha'])
     mtx[:, :, :] = 0.0
     cosa = np.cos(alpha * np.pi / 180.)
     sina = np.sin(alpha * np.pi / 180.)
@@ -286,7 +287,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     mtx /= 4 * np.pi
 
-def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, skip=False):
+def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, surfaces, skip=False):
     """
     Differentiated code to get the forward mode seeds for the AIC matrix assembly.
     """
@@ -354,7 +355,7 @@ def _assemble_AIC_mtx_d(mtxd, params, dparams, dunknowns, dresids, surfaces, ski
 
     mtxd /= 4 * np.pi
 
-def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, dresids, surfaces, skip=False):
+def _assemble_AIC_mtx_b(mtxb, params, dparams, dunknowns, surfaces, skip=False):
     """
     Differentiated code to get the reverse mode seeds for the AIC matrix assembly.
     """

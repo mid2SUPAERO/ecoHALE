@@ -51,8 +51,9 @@ class TransferDisplacements(Component):
         self.add_param('disp', val=np.zeros((self.ny, 6), dtype=data_type))
         self.add_output('def_mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
 
-        if not fortran_flag:
-            self.deriv_options['type'] = 'cs'
+    # def initialize_partials(self):
+    #     if not fortran_flag:
+    #         self.approx_partials('*', '*')
 
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = params['mesh']
@@ -154,8 +155,8 @@ class TransferLoads(Component):
         self.add_output('loads', val=np.zeros((self.ny, 6),
                         dtype=complex))
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+    # def initialize_partials(self):
+    #     self.approx_partials('*', '*')
 
     def solve_nonlinear(self, params, unknowns, resids):
         mesh = params['def_mesh']

@@ -51,8 +51,8 @@ class FunctionalBreguetRange(Component):
         self.add_output('fuelburn', val=0.)
         self.add_output('weighted_obj', val=0.)
 
-        self.deriv_options['type'] = 'fd'
-        self.deriv_options['form'] = 'central'
+        # self.deriv_options['type'] = 'fd'
+        # self.deriv_options['form'] = 'central'
 
     def solve_nonlinear(self, params, unknowns, resids):
         CT = self.prob_dict['CT']
@@ -125,8 +125,8 @@ class FunctionalEquilibrium(Component):
         self.add_output('L_equals_W', val=0.)
         self.add_output('total_weight', val=0.)
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+    # def initialize_partials(self):
+    #     self.approx_partials('*', '*')
 
     def solve_nonlinear(self, params, unknowns, resids):
         structural_weight = 0.
@@ -190,8 +190,8 @@ class ComputeCG(Component):
 
         self.add_output('cg', val=np.zeros((3), dtype=complex))
 
-        self.deriv_options['type'] = 'cs'
-        self.deriv_options['form'] = 'central'
+    # def initialize_partials(self):
+    #     self.approx_partials('*', '*')
 
     def solve_nonlinear(self, params, unknowns, resids):
 
@@ -268,9 +268,9 @@ class ComputeCM(Component):
         self.surfaces = surfaces
         self.prob_dict = prob_dict
 
-        if not fortran_flag:
-            self.deriv_options['type'] = 'cs'
-            self.deriv_options['form'] = 'central'
+    # def initialize_partials(self):
+    #     if not fortran_flag:
+    #         self.approx_partials('*', '*')
 
     def solve_nonlinear(self, params, unknowns, resids):
         rho = params['rho']

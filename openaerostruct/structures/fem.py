@@ -42,9 +42,9 @@ class FEM(ImplicitComponent):
         if self.metadata['partial_type'] == "matrix_free":
             self.apply_linear = self._mat_vec_prod
 
-        self.add_input("K", val=np.eye(size))
-        self.add_input("forces", val=np.ones(size))
-        self.add_output("disp_aug", shape=size, val=.1)
+        self.add_input('K', val=np.eye(size))
+        self.add_input('forces', val=np.ones(size))
+        self.add_output('disp_aug', shape=size, val=.1)
 
     def initialize_partials(self):
         """
