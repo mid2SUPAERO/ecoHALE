@@ -605,7 +605,7 @@ class OASProblem(object):
             self.prob.run_once()
         else:
             # Perform optimization
-            self.prob.run()
+            self.prob.run_driver()
 
         # If the problem type is aero or aerostruct, we can compute the static margin.
         # This is a naive tempoerary implementation that currently finite differences
@@ -636,7 +636,9 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivatives(compact_print=True)
+        self.prob.check_partial_derivs(compact_print=True)
+        # self.prob.check_partial_derivs(compact_print=False)
+
 
 
     def setup_struct(self):
