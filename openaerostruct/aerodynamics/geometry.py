@@ -58,7 +58,7 @@ class VLMGeometry(ExplicitComponent):
         self.add_output('lengths', val=np.zeros((self.ny)))
         self.add_output('chords', val=np.zeros((self.ny)))
         self.add_output('normals', val=np.zeros((self.nx-1, self.ny-1, 3)))
-        self.add_output('S_ref', val=0.)
+        self.add_output('S_ref', val=1.)
 
     def initialize_partials(self):
         if not fortran_flag:

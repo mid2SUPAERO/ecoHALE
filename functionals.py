@@ -43,10 +43,10 @@ class FunctionalBreguetRange(Component):
 
         for surface in surfaces:
             name = surface['name']
-            self.add_param(name+'structural_weight', val=0.)
+            self.add_input(name+'structural_weight', val=0.)
 
-        self.add_param('CL', val=0.)
-        self.add_param('CD', val=0.)
+        self.add_input('CL', val=0.)
+        self.add_input('CD', val=0.)
 
         self.add_output('fuelburn', val=0.)
         self.add_output('weighted_obj', val=0.)
@@ -54,7 +54,7 @@ class FunctionalBreguetRange(Component):
         # self.deriv_options['type'] = 'fd'
         # self.deriv_options['form'] = 'central'
 
-    def compute(self, params, unknowns, resids):
+    def compute(self, inputs, outputs, resids):
         CT = self.prob_dict['CT']
         a = self.prob_dict['a']
         R = self.prob_dict['R']
@@ -68,20 +68,20 @@ class FunctionalBreguetRange(Component):
         Ws = 0.
         for surface in self.surfaces:
             name = surface['name']
-            Ws += params[name+'structural_weight']
+            Ws += inputs[name+'structural_weight']
 
-        CL = params['CL']
-        CD = params['CD']
+        CL = inputs['CL']
+        CD = inputs['CD']
         fuelburn = np.sum((W0 + Ws) * (np.exp(R * CT / a / M * CD / CL) - 1))
 
         # Convert fuelburn from N to kg
-        unknowns['fuelburn'] = fuelburn / self.prob_dict['g']
+        outputs['fuelburn'] = fuelburn / self.prob_dict['g']
 
         # This lines makes the 'weight' the total aircraft weight
-        # unknowns['weighted_obj'] = (beta * fuelburn + (1 - beta) * (W0 + Ws + fuelburn)) / self.prob_dict['g']
+        # outputs['weighted_obj'] = (beta * fuelburn + (1 - beta) * (W0 + Ws + fuelburn)) / self.prob_dict['g']
 
         # Whereas this line only considers the structural weight
-        unknowns['weighted_obj'] = (beta * fuelburn + (1 - beta) * Ws) / self.prob_dict['g']
+        outputs['weighted_obj'] = (beta * fuelburn + (1 - beta) * Ws) / self.prob_dict['g']
 
 class FunctionalEquilibrium(Component):
     """
@@ -118,17 +118,17 @@ class FunctionalEquilibrium(Component):
         for surface in surfaces:
             name = surface['name']
 
-            self.add_param(name+'L', val=0.)
-            self.add_param(name+'structural_weight', val=0.)
+            self.add_input(name+'L', val=0.)
+            self.add_input(name+'structural_weight', val=0.)
 
-        self.add_param('fuelburn', val=0.)
+        self.add_input('fuelburn', val=0.)
         self.add_output('L_equals_W', val=0.)
         self.add_output('total_weight', val=0.)
 
     def initialize_partials(self):
         self.approx_partials('*', '*')
 
-    def compute(self, params, unknowns, resids):
+    def compute(self, inputs, outputs, resids):
         structural_weight = 0.
         L = 0.
         W0 = self.prob_dict['W0'] * self.prob_dict['g']
@@ -136,15 +136,15 @@ class FunctionalEquilibrium(Component):
         # Loop through the surfaces and sum the lifts and weights
         for surface in self.surfaces:
             name = surface['name']
-            structural_weight += params[name+'structural_weight']
-            L += params[name+'L']
+            structural_weight += inputs[name+'structural_weight']
+            L += inputs[name+'L']
 
         # Compute the total weight based on the empty weight,
         # structural weight, and fuel weight
-        tot_weight = structural_weight + params['fuelburn'] * self.prob_dict['g'] + W0
+        tot_weight = structural_weight + inputs['fuelburn'] * self.prob_dict['g'] + W0
 
-        unknowns['total_weight'] = tot_weight
-        unknowns['L_equals_W'] = (tot_weight - L) / tot_weight
+        outputs['total_weight'] = tot_weight
+        outputs['L_equals_W'] = (tot_weight - L) / tot_weight
 
 class ComputeCG(Component):
     """
@@ -182,18 +182,18 @@ class ComputeCG(Component):
         for surface in surfaces:
             name = surface['name']
 
-            self.add_param(name+'structural_weight', val=0.)
-            self.add_param(name+'cg_location', val=np.zeros((3), dtype=data_type))
+            self.add_input(name+'structural_weight', val=0.)
+            self.add_input(name+'cg_location', val=np.zeros((3), dtype=data_type))
 
-        self.add_param('total_weight', val=0.)
-        self.add_param('fuelburn', val=0.)
+        self.add_input('total_weight', val=0.)
+        self.add_input('fuelburn', val=0.)
 
         self.add_output('cg', val=np.zeros((3), dtype=complex))
 
     # def initialize_partials(self):
     #     self.approx_partials('*', '*')
 
-    def compute(self, params, unknowns, resids):
+    def compute(self, inputs, outputs, resids):
 
         # Compute the weighted cg of the aircraft without fuel or structures
         g = self.prob_dict['g']
@@ -206,11 +206,11 @@ class ComputeCG(Component):
         # of all structural spars
         for surface in self.surfaces:
             name = surface['name']
-            spar_cg = params[name + 'cg_location'] * params[name + 'structural_weight']
+            spar_cg = inputs[name + 'cg_location'] * inputs[name + 'structural_weight']
 
         # Compute the total cg of the aircraft based on the empty weight cg and
         # the structures cg. Here we assume the fuel weight is at the cg.
-        unknowns['cg'] = (W0_cg + spar_cg) / (params['total_weight'] - params['fuelburn'] * g)
+        outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] - inputs['fuelburn'] * g)
 
 class ComputeCM(ExplicitComponent):
     """
@@ -261,7 +261,7 @@ class ComputeCM(ExplicitComponent):
             self.add_input(name+'b_pts', val=np.zeros((nx-1, ny, 3), dtype=data_type))
             self.add_input(name+'widths', val=np.zeros((ny-1), dtype=data_type))
             self.add_input(name+'chords', val=np.zeros((ny), dtype=data_type))
-            self.add_input(name+'S_ref', val=0.)
+            self.add_input(name+'S_ref', val=1.)
             self.add_input(name+'sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
 
         self.add_input('cg', val=np.zeros((3), dtype=data_type))
@@ -354,6 +354,9 @@ class ComputeCM(ExplicitComponent):
             rho = inputs['rho'][0]
             v = inputs['v'][0]
 
+            partials['CM', 'rho'][:] = 0.
+            partials['CM', 'v'][:] = 0.
+
             # Here we just use the reverse mode AD results to compute the
             # Jacobian since we'll always have much fewer outputs than inputs
             for j in range(3):
@@ -405,14 +408,14 @@ class ComputeCM(ExplicitComponent):
 
                     bptsb, cgb, chordsb, widthsb, S_refb, sec_forcesb, _ = OAS_API.oas_api.momentcalc_b(b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'], Mb)
 
-                    partials['CM', 'cg'][j, :] += cgb
-                    partials['CM', name+'b_pts'][j, :] += bptsb.flatten()
-                    partials['CM', name+'chords'][j, :] += chordsb + cb
-                    partials['CM', name+'widths'][j, :] += widthsb + wb
-                    partials['CM', name+'sec_forces'][j, :] += sec_forcesb.flatten()
-                    partials['CM', name+'S_ref'][j, :] += S_refb + sb + s_totb
+                    partials['CM', 'cg'][j, :] = cgb
+                    partials['CM', name+'b_pts'][j, :] = bptsb.flatten()
+                    partials['CM', name+'chords'][j, :] = chordsb + cb
+                    partials['CM', name+'widths'][j, :] = widthsb + wb
+                    partials['CM', name+'sec_forces'][j, :] = sec_forcesb.flatten()
+                    partials['CM', name+'S_ref'][j, :] = S_refb + sb + s_totb
 
-class ComputeTotalCLCD(Component):
+class ComputeTotalCLCD(ExplicitComponent):
     """
     Compute the coefficients of lift (CL) and drag (CD) for the entire aircraft.
 
@@ -448,12 +451,12 @@ class ComputeTotalCLCD(Component):
 
         for surface in surfaces:
             name = surface['name']
-            self.add_param(name+'CL', val=0.)
-            self.add_param(name+'CD', val=0.)
-            self.add_param(name+'S_ref', val=0.)
+            self.add_input(name+'CL', val=0.)
+            self.add_input(name+'CD', val=0.)
+            self.add_input(name+'S_ref', val=1.)
 
-        self.add_param('v', val=10.)
-        self.add_param('rho', val=3.)
+        self.add_input('v', val=10.)
+        self.add_input('rho', val=3.)
 
         self.add_output('CL', val=0.)
         self.add_output('CD', val=0.)
@@ -461,9 +464,9 @@ class ComputeTotalCLCD(Component):
         self.surfaces = surfaces
         self.prob_dict = prob_dict
 
-    def compute(self, params, unknowns):
-        rho = params['rho'][0]
-        v = params['v'][0]
+    def compute(self, inputs, outputs):
+        rho = inputs['rho'][0]
+        v = inputs['v'][0]
 
         # Compute the weighted CL and CD contributions from each surface,
         # weighted by the individual surface areas
@@ -472,9 +475,9 @@ class ComputeTotalCLCD(Component):
         computed_total_S_ref = 0.
         for surface in self.surfaces:
             name = surface['name']
-            S_ref = params[name+'S_ref']
-            CL += params[name+'CL'] * S_ref
-            CD += params[name+'CD'] * S_ref
+            S_ref = inputs[name+'S_ref']
+            CL += inputs[name+'CL'] * S_ref
+            CD += inputs[name+'CD'] * S_ref
             computed_total_S_ref += S_ref
 
         # Use the user-provided area; otherwise, use the computed area
@@ -483,19 +486,19 @@ class ComputeTotalCLCD(Component):
         else:
             S_ref_total = computed_total_S_ref
 
-        unknowns['CL'] = CL / S_ref_total
-        unknowns['CD'] = CD / S_ref_total
+        outputs['CL'] = CL / S_ref_total
+        outputs['CD'] = CD / S_ref_total
         self.S_ref_total = S_ref_total
 
-    def computer_partial_derivs(self, params, unknowns, partials):
+    def compute_partial_derivs(self, inputs, outputs, partials):
 
         for surface in self.surfaces:
             name = surface['name']
-            S_ref = params[name+'S_ref']
+            S_ref = inputs[name+'S_ref']
             partials['CL', name+'CL'] = S_ref / self.S_ref_total
             partials['CD', name+'CD'] = S_ref / self.S_ref_total
-            partials['CL', name+'S_ref'] = params[name+'CL'] / self.S_ref_total
-            partials['CD', name+'S_ref'] = params[name+'CD'] / self.S_ref_total
+            partials['CL', name+'S_ref'] = inputs[name+'CL'] / self.S_ref_total
+            partials['CD', name+'S_ref'] = inputs[name+'CD'] / self.S_ref_total
 
 
 class TotalPerformance(Group):

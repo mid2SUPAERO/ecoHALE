@@ -870,10 +870,10 @@ class OASProblem(object):
 
             # TODO: figure out why these aren't working correctly
             # Connect S_ref for performance calcs
-            model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
-            model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
-            model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
-            model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
+            # model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
+            # model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
+            # model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
+            # model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
 
             # Connect S_ref for performance calcs
             model.connect(name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
