@@ -9,7 +9,7 @@ class SpatialBeamStates(Group):
     def __init__(self, surface):
         super(SpatialBeamStates, self).__init__()
 
-        size = 6 * surface['num_y'] + 6
+        size = int(6 * surface['num_y'] + 6)
 
         self.add_subsystem('create_rhs',
                  CreateRHS(surface=surface),

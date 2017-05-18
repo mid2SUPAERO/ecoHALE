@@ -48,7 +48,8 @@ from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFuncti
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
 
 from materials import MaterialsTube
-from functionals import TotalPerformance, TotalAeroPerformance, FunctionalBreguetRange, FunctionalEquilibrium
+from openaerostruct.functionals.total_performance import TotalPerformance
+from openaerostruct.functionals.total_aero_performance import TotalAeroPerformance
 # from gs_newton import HybridGSNewton
 
 try:
@@ -407,8 +408,8 @@ class OASProblem(object):
                 surf_dict['twist_cp'] = twist
 
         # Store updated values
-        surf_dict['num_x'] = num_x
-        surf_dict['num_y'] = num_y
+        surf_dict['num_x'] = int(num_x)
+        surf_dict['num_y'] = int(num_y)
         surf_dict['mesh'] = mesh
 
         # Compute and set initial radii
@@ -638,7 +639,7 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivs(compact_print=True)
+        self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
@@ -684,7 +685,7 @@ class OASProblem(object):
             # analysis and optimization.
             # Here we check and only add the variables that are desvars or a
             # special var, radius, which is necessary to compute weight.
-            indep_var_comp = IndepVarComp('indep_vars')
+            indep_var_comp = IndepVarComp()
             indep_var_comp.add_output('loads', val=surface['loads'])
             for var in surface['geo_vars']:
                 if var in desvar_names or 'thickness' in var or var in surface['initial_geo']:
@@ -963,7 +964,7 @@ class OASProblem(object):
                         n_pts -= 1
                     trunc_var = var.split('_')[0]
                     tmp_group.add_subsystem(trunc_var + '_bsp',
-                             Bsplines(in_name=var, out_name=trunc_var, num_cp=surface['num_'+var], num_pt=n_pts),
+                             Bsplines(in_name=var, out_name=trunc_var, num_cp=surface['num_'+var], num_pt=int(n_pts)),
                              promotes=['*'])
 
             # Add monotonic constraints for selected variables
@@ -1000,7 +1001,7 @@ class OASProblem(object):
             coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
 
             # Add a loads component to the coupled group
-            coupled.add_subsystem(name_orig + 'loads', TransferLoads(surface), promotes=[])
+            coupled.add_subsystem(name_orig + 'loads', TransferLoads(surface=surface), promotes=[])
 
             # Add a performance group which evaluates the data after solving
             # the coupled system
@@ -1056,9 +1057,9 @@ class OASProblem(object):
 
             # TODO: find out why these connections are not working properly
             # Connect performance calculation variables
-            # model.connect(name[:-1] + '.radius', name + 'perf.radius')
-            # model.connect(name[:-1] + '.A', name + 'perf.A')
-            # model.connect(name[:-1] + '.thickness', name + 'perf.thickness')
+            model.connect(name[:-1] + '.radius', name + 'perf.radius')
+            model.connect(name[:-1] + '.A', name + 'perf.A')
+            model.connect(name[:-1] + '.thickness', name + 'perf.thickness')
 
             # Connection performance functional variables
             model.connect(name + 'perf.structural_weight', 'total_perf.' + name + 'structural_weight')
@@ -1070,12 +1071,12 @@ class OASProblem(object):
             # TODO: figure out why these connections are not working properly
             # Connect parameters from the 'coupled' group to the performance
             # groups for the individual surfaces.
-            # model.connect(name[:-1] + '.nodes', name + 'perf.nodes')
-            # model.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
-            # model.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
-            # model.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
-            # model.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
-            # model.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
+            model.connect(name[:-1] + '.nodes', name + 'perf.nodes')
+            model.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
+            model.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
+            model.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
+            model.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
+            model.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
 
             # Connect parameters from the 'coupled' group to the total performance group.
             model.connect('coupled.' + name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
