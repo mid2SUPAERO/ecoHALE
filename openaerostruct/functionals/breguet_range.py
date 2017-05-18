@@ -43,7 +43,7 @@ class BreguetRange(ExplicitComponent):
     def initialize_variables(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.add_input(name + 'structural_weight', val=0.)
+            self.add_input(name + 'structural_weight', val=1.)
 
         self.add_input('CL', val=1.)
         self.add_input('CD', val=1.)
