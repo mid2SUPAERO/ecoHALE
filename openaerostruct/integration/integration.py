@@ -709,9 +709,10 @@ class OASProblem(object):
                     if var in ['thickness_cp', 'radius_cp']:
                         n_pts -= 1
                     trunc_var = var.split('_')[0]
-                    tmp_group.add_subsystem(trunc_var + '_bsp',
-                             Bsplines(in_name=var, out_name=trunc_var, num_cp=surface['num_'+var], num_pt=n_pts),
-                             promotes=['*'])
+                    tmp_group.add_subsystem(trunc_var + '_bsp', Bsplines(
+                        in_name=var, out_name=trunc_var,
+                        num_cp=int(surface['num_'+var]), num_pt=n_pts),
+                        promotes=['*'])
 
             tmp_group.add_subsystem('tube',
                      MaterialsTube(surface=surface),
