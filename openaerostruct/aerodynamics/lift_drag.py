@@ -69,7 +69,7 @@ class LiftDrag(ExplicitComponent):
         """ Jacobian for lift and drag."""
 
         # Analytic derivatives for sec_forces
-        alpha = inputs['alpha'] * np.pi / 180.
+        alpha = float(inputs['alpha']) * np.pi / 180.
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
 

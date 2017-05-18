@@ -46,7 +46,7 @@ class NonIntersectingThickness(ExplicitComponent):
         self.add_input('radius', val=np.zeros((self.ny-1)))
         self.add_output('thickness_intersects', val=np.zeros((self.ny-1)))
 
-    def solve_nonlinear(self, inputs, outputs):
+    def compute(self, inputs, outputs):
         outputs['thickness_intersects'] = inputs['thickness'] - inputs['radius']
 
     def initialize_partials(self):

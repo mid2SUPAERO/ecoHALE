@@ -25,9 +25,9 @@ class VLMFunctionals(Group):
         self.add_subsystem('CL',
                  TotalLift(surface=surface),
                  promotes=['*'])
-        self.add_subsystem('CD',
-                 TotalDrag(surface=surface),
-                 promotes=['*'])
         self.add_subsystem('viscousdrag',
                  ViscousDrag(surface=surface, with_viscous=with_viscous),
+                 promotes=['*'])
+        self.add_subsystem('CD',
+                 TotalDrag(surface=surface),
                  promotes=['*'])

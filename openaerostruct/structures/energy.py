@@ -37,14 +37,13 @@ class Energy(ExplicitComponent):
 
         ny = surface['num_y']
 
-        self.add_input('disp', val=np.zeros((ny, 6), dtype=data_type))
-        self.add_input('loads', val=np.zeros((ny, 6), dtype=data_type))
+        self.add_input('disp', val=np.ones((ny, 6), dtype=data_type))
+        self.add_input('loads', val=np.ones((ny, 6), dtype=data_type))
         self.add_output('energy', val=0.)
 
     def compute(self, inputs, outputs):
-        unknowns['energy'] = np.sum(params['disp'] * params['loads'])
+        outputs['energy'] = np.sum(inputs['disp'] * inputs['loads'])
 
     def compute_partial_derivs(self, inputs, outputs, partials):
         partials['energy', 'disp'][0, :] = inputs['loads'].real.flatten()
         partials['energy', 'loads'][0, :] = inputs['disp'].real.flatten()
-        return jac

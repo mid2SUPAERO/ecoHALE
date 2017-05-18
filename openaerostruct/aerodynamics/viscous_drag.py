@@ -61,7 +61,7 @@ class ViscousDrag(ExplicitComponent):
 
         self.add_input('re', val=5.e6)
         self.add_input('M', val=.84)
-        self.add_input('S_ref', val=0.)
+        self.add_input('S_ref', val=1.)
         self.add_input('cos_sweep', val=np.zeros((ny-1)))
         self.add_input('widths', val=np.zeros((ny-1)))
         self.add_input('lengths', val=np.zeros((ny)))

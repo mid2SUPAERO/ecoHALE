@@ -40,15 +40,11 @@ class VonMisesTube(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('nodes', val=np.zeros((self.ny, 3),
-                       dtype=data_type))
-        self.add_input('radius', val=np.zeros((self.ny - 1),
-                       dtype=data_type))
-        self.add_input('disp', val=np.zeros((self.ny, 6),
-                       dtype=data_type))
+        self.add_input('nodes', val=np.random.random_sample((self.ny, 3)))#,  dtype=data_type))
+        self.add_input('radius', val=np.random.rand((self.ny - 1)))#,  dtype=data_type))
+        self.add_input('disp', val=np.random.random_sample((self.ny, 6)))#,  dtype=data_type))
 
-        self.add_output('vonmises', val=np.zeros((self.ny-1, 2),
-                        dtype=data_type))
+        self.add_output('vonmises', val=np.random.random_sample((self.ny-1, 2)))#,dtype=data_type))
 
         self.E = surface['E']
         self.G = surface['G']
@@ -104,23 +100,27 @@ class VonMisesTube(ExplicitComponent):
                 vonmises[ielem, 0] = np.sqrt(sxx0**2 + sxt**2)
                 vonmises[ielem, 1] = np.sqrt(sxx1**2 + sxt**2)
 
-    def compute_jacvec_product(
-            self, inputs, outputs, d_inputs, d_outputs, mode):
+    if fortran_flag:
+        def compute_jacvec_product(
+                self, inputs, outputs, d_inputs, d_outputs, mode):
 
-        radius = inputs['radius'].real
-        disp = inputs['disp'].real
-        nodes = inputs['nodes'].real
-        vonmises = outputs['vonmises'].real
-        E = self.E
-        G = self.G
-        x_gl = self.x_gl
+            radius = inputs['radius'].real
+            disp = inputs['disp'].real
+            nodes = inputs['nodes'].real
+            vonmises = outputs['vonmises'].real
+            E = self.E
+            G = self.G
+            x_gl = self.x_gl
 
-        if mode == 'fwd':
-            _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(nodes, d_inputs['nodes'], radius, d_inputs['radius'], disp, d_inputs['disp'], E, G, x_gl)
-            d_outputs['vonmises'] += vonmisesd
+            if mode == 'fwd':
+                _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(nodes, d_inputs['nodes'], radius, d_inputs['radius'], disp, d_inputs['disp'], E, G, x_gl)
+                d_outputs['vonmises'] += vonmisesd
 
-        if mode == 'rev':
-            nodesb, radiusb, dispb = OAS_API.oas_api.calc_vonmises_b(nodes, radius, disp, E, G, x_gl, vonmises, d_outputs['vonmises'])
-            d_inputs['nodes'] += nodesb
-            d_inputs['radius'] += radiusb
-            d_inputs['disp'] += dispb
+            if mode == 'rev':
+                nodesb, radiusb, dispb = OAS_API.oas_api.calc_vonmises_b(nodes, radius, disp, E, G, x_gl, vonmises, d_outputs['vonmises'])
+                if 'nodes' in d_inputs:
+                    d_inputs['nodes'] += nodesb
+                if 'radius' in d_inputs:
+                    d_inputs['radius'] += radiusb
+                if 'disp' in d_inputs:
+                    d_inputs['disp'] += dispb

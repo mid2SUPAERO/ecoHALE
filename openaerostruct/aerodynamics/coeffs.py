@@ -41,7 +41,7 @@ class Coeffs(ExplicitComponent):
     def initialize_variables(self):
         self.surface = surface = self.metadata['surface']
 
-        self.add_input('S_ref', val=0.)
+        self.add_input('S_ref', val=1.)
         self.add_input('L', val=0.)
         self.add_input('D', val=0.)
         self.add_input('v', val=0.)
