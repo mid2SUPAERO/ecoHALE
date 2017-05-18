@@ -35,11 +35,9 @@ class MaterialsTube(ExplicitComponent):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
-        self.mesh = surface['mesh']
-        name = surface['name']
 
-        self.add_input('radius', val=np.zeros((self.ny - 1)))
-        self.add_input('thickness', val=np.zeros((self.ny - 1)))
+        self.add_input('radius', val=np.random.rand((self.ny - 1)))
+        self.add_input('thickness', val=np.random.rand((self.ny - 1)))
         self.add_output('A', val=np.zeros((self.ny - 1)))
         self.add_output('Iy', val=np.zeros((self.ny - 1)))
         self.add_output('Iz', val=np.zeros((self.ny - 1)))
@@ -48,7 +46,6 @@ class MaterialsTube(ExplicitComponent):
         self.arange = np.arange((self.ny - 1))
 
     def compute(self, inputs, outputs):
-        name = self.surface['name']
         pi = np.pi
 
         # Add thickness to the interior of the radius.
@@ -86,5 +83,3 @@ class MaterialsTube(ExplicitComponent):
         partials['Iz', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
         partials['J', 'radius'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
         partials['J', 'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-
-        return partials
