@@ -48,12 +48,12 @@ class CenterOfGravity(ExplicitComponent):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.add_input(name + 'structural_weight', val=1.)
-            self.add_input(name + 'cg_location', shape=3)
+            self.add_input(name + 'cg_location', val=np.random.rand(3))
 
         self.add_input('total_weight', val=1.)
         self.add_input('fuelburn', val=1.)
 
-        self.add_output('cg', shape=3)
+        self.add_output('cg', val=np.random.rand(3))
 
     def compute(self, inputs, outputs):
         prob_dict = self.metadata['prob_dict']

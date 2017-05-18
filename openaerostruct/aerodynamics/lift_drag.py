@@ -6,10 +6,11 @@ from openmdao.api import ExplicitComponent
 try:
     import OAS_API
     fortran_flag = True
-    data_type = float
 except:
     fortran_flag = False
-    data_type = complex
+
+data_type = float
+
 
 class LiftDrag(ExplicitComponent):
     """
@@ -44,7 +45,7 @@ class LiftDrag(ExplicitComponent):
         nx = surface['num_x']
         self.num_panels = (nx - 1) * (ny - 1)
 
-        self.add_input('sec_forces', val=np.zeros((nx-1, ny-1, 3)))
+        self.add_input('sec_forces', val=np.random.random((nx-1, ny-1, 3)))
         self.add_input('alpha', val=3.)
         self.add_output('L', val=0.)
         self.add_output('D', val=0.)

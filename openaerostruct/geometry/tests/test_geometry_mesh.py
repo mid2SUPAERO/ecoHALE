@@ -7,6 +7,8 @@ from openmdao.api import Problem, Group
 
 from openaerostruct.geometry.geometry_mesh import GeometryMesh
 
+from openaerostruct.utils.testing import run_test, get_default_prob_dict, get_default_surfaces
+
 
 class Test(unittest.TestCase):
 
@@ -25,13 +27,9 @@ class Test(unittest.TestCase):
         surface['span'] = span
         surface['t_over_c'] = .12
 
-        prob = Problem(model=GeometryMesh(
-            surface=surface, desvars={'taper': .4}))
-        prob.setup()
+        comp = GeometryMesh(surface=surface, desvars={'taper': .4})
 
-        prob.run_model()
-
-        prob.check_partial_derivs(compact_print=True)
+        run_test(self, comp)
 
 
 if __name__ == '__main__':

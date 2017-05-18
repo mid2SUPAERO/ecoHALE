@@ -61,7 +61,7 @@ class MomentCoefficient(ExplicitComponent):
             self.add_input(name + 'sec_forces', val=np.random.rand(nx-1, ny-1, 3))
 
             self.add_input(name + 'structural_weight', val=1.)
-            self.add_input(name + 'cg_location', shape=3)
+            self.add_input(name + 'cg_location', val=np.random.rand(3))
 
         self.add_input('cg', val=np.random.rand(3))
         self.add_input('v', val=10.)

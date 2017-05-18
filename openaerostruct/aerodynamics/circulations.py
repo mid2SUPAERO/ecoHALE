@@ -37,7 +37,7 @@ class Circulations(ImplicitComponent):
         self._lup = None
 
         self.add_input('AIC', val=np.eye(size))
-        self.add_input('rhs', val=np.ones(size))
+        self.add_input('rhs', val=np.random.rand(size))
         self.add_output('circulations', shape=size, val=.1)
 
     def initialize_partials(self):

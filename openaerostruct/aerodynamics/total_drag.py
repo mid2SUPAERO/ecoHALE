@@ -24,9 +24,9 @@ class TotalDrag(ExplicitComponent):
     def initialize_variables(self):
         surface = self.metadata['surface']
 
-        self.add_input('CDi', val=0.)
-        self.add_input('CDv', val=0.)
-        self.add_output('CD', val=0.)
+        self.add_input('CDi', val=1.)
+        self.add_input('CDv', val=1.)
+        self.add_output('CD', val=1.)
         self.CD0 = surface['CD0']
 
     def compute(self, inputs, outputs):
