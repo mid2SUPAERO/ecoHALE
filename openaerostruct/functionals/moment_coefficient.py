@@ -69,6 +69,10 @@ class MomentCoefficient(ExplicitComponent):
 
         self.add_output('CM', val=np.ones((3)))
 
+    def initialize_partials(self):
+        if not fortran_flag:
+            self.approx_partials('*', '*')
+
     def compute(self, inputs, outputs):
         rho = inputs['rho']
         cg = inputs['cg']
@@ -143,71 +147,72 @@ class MomentCoefficient(ExplicitComponent):
         # Compute the normalized CM
         outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * MAC_wing)
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
-        cg = inputs['cg']
-        rho = inputs['rho']
-        v = inputs['v']
+    if fortran_flag:
+        def compute_partial_derivs(self, inputs, outputs, partials):
+            cg = inputs['cg']
+            rho = inputs['rho']
+            v = inputs['v']
 
-        # Here we just use the reverse mode AD results to compute the
-        # partialsobian since we'll always have much fewer outputs than inputs
-        for j in range(3):
-            CMb = np.zeros((3))
-            CMb[j] = 1.
+            # Here we just use the reverse mode AD results to compute the
+            # partialsobian since we'll always have much fewer outputs than inputs
+            for j in range(3):
+                CMb = np.zeros((3))
+                CMb[j] = 1.
 
-            partials['CM', 'cg'][j, :] = 0.
-            partials['CM', 'rho'][j] = 0.
-            partials['CM', 'v'][j] = 0.
+                partials['CM', 'cg'][j, :] = 0.
+                partials['CM', 'rho'][j] = 0.
+                partials['CM', 'v'][j] = 0.
 
-            for i, surface in enumerate(self.metadata['surfaces']):
-                name = surface['name']
-                ny = surface['num_y']
+                for i, surface in enumerate(self.metadata['surfaces']):
+                    name = surface['name']
+                    ny = surface['num_y']
 
-                b_pts = inputs[name + 'b_pts']
-                widths = inputs[name + 'widths']
-                chords = inputs[name + 'chords']
-                S_ref = inputs[name + 'S_ref']
-                sec_forces = inputs[name + 'sec_forces']
+                    b_pts = inputs[name + 'b_pts']
+                    widths = inputs[name + 'widths']
+                    chords = inputs[name + 'chords']
+                    S_ref = inputs[name + 'S_ref']
+                    sec_forces = inputs[name + 'sec_forces']
 
-                if i == 0:
-                    panel_chords = (chords[1:] + chords[:-1]) / 2.
-                    MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
-                    if surface['symmetry']:
-                        MAC *= 2
-                    temp1 = self.S_ref_tot * MAC
-                    temp0 = 0.5 * rho * v**2
-                    temp = temp0 * temp1
-                    tempb = np.sum(-(self.M * CMb / temp)) / temp
-                    Mb = CMb / temp
-                    Mb_master = Mb.copy()
-                    partials['CM', 'rho'][j] += v**2*temp1*0.5*tempb
-                    partials['CM', 'v'][j] += 0.5*rho*temp1*2*v*tempb
-                    s_totb = temp0 * MAC * tempb
-                    macb = temp0 * self.S_ref_tot * tempb
-                    if surface['symmetry']:
-                        macb *= 2
-                    chordsb = np.zeros((ny))
-                    tempb0 = macb / S_ref
-                    panel_chordsb = 2*panel_chords*widths*tempb0
-                    widthsb = panel_chords**2*tempb0
-                    sb = -np.sum(panel_chords**2*widths)*tempb0/S_ref
-                    chordsb[1:] += panel_chordsb/2.
-                    chordsb[:-1] += panel_chordsb/2.
-                    cb = chordsb
-                    wb = widthsb
+                    if i == 0:
+                        panel_chords = (chords[1:] + chords[:-1]) / 2.
+                        MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
+                        if surface['symmetry']:
+                            MAC *= 2
+                        temp1 = self.S_ref_tot * MAC
+                        temp0 = 0.5 * rho * v**2
+                        temp = temp0 * temp1
+                        tempb = np.sum(-(self.M * CMb / temp)) / temp
+                        Mb = CMb / temp
+                        Mb_master = Mb.copy()
+                        partials['CM', 'rho'][j] += v**2*temp1*0.5*tempb
+                        partials['CM', 'v'][j] += 0.5*rho*temp1*2*v*tempb
+                        s_totb = temp0 * MAC * tempb
+                        macb = temp0 * self.S_ref_tot * tempb
+                        if surface['symmetry']:
+                            macb *= 2
+                        chordsb = np.zeros((ny))
+                        tempb0 = macb / S_ref
+                        panel_chordsb = 2*panel_chords*widths*tempb0
+                        widthsb = panel_chords**2*tempb0
+                        sb = -np.sum(panel_chords**2*widths)*tempb0/S_ref
+                        chordsb[1:] += panel_chordsb/2.
+                        chordsb[:-1] += panel_chordsb/2.
+                        cb = chordsb
+                        wb = widthsb
 
-                else:
-                    cb = 0.
-                    wb = 0.
-                    sb = 0.
-                    Mb = Mb_master.copy()
+                    else:
+                        cb = 0.
+                        wb = 0.
+                        sb = 0.
+                        Mb = Mb_master.copy()
 
-                bptsb, cgb, chordsb, widthsb, S_refb, sec_forcesb, _ = \
-                    OAS_API.oas_api.momentcalc_b(
-                        b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'], Mb)
+                    bptsb, cgb, chordsb, widthsb, S_refb, sec_forcesb, _ = \
+                        OAS_API.oas_api.momentcalc_b(
+                            b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'], Mb)
 
-                partials['CM', 'cg'][j, :] += cgb
-                partials['CM', name + 'b_pts'][j, :] = bptsb.flatten()
-                partials['CM', name + 'chords'][j, :] = chordsb + cb
-                partials['CM', name + 'widths'][j, :] = widthsb + wb
-                partials['CM', name + 'sec_forces'][j, :] = sec_forcesb.flatten()
-                partials['CM', name + 'S_ref'][j, :] = S_refb + sb + s_totb
+                    partials['CM', 'cg'][j, :] += cgb
+                    partials['CM', name + 'b_pts'][j, :] = bptsb.flatten()
+                    partials['CM', name + 'chords'][j, :] = chordsb + cb
+                    partials['CM', name + 'widths'][j, :] = widthsb + wb
+                    partials['CM', name + 'sec_forces'][j, :] = sec_forcesb.flatten()
+                    partials['CM', name + 'S_ref'][j, :] = S_refb + sb + s_totb

@@ -45,7 +45,8 @@ if __name__ == "__main__":
         raise
 
     # Set problem type
-    prob_dict = {'type' : 'aero'}
+    prob_dict = {'type' : 'aero',
+                 'with_viscous' : True,}
 
     if sys.argv[1].startswith('0'):  # run analysis once
         prob_dict.update({'optimize' : False})

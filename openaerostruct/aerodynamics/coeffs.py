@@ -42,10 +42,10 @@ class Coeffs(ExplicitComponent):
         self.surface = surface = self.metadata['surface']
 
         self.add_input('S_ref', val=1.)
-        self.add_input('L', val=0.)
-        self.add_input('D', val=0.)
-        self.add_input('v', val=0.)
-        self.add_input('rho', val=0.)
+        self.add_input('L', val=1.)
+        self.add_input('D', val=1.)
+        self.add_input('v', val=1.)
+        self.add_input('rho', val=1.)
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
 

@@ -26,9 +26,9 @@ class MonotonicConstraint(ExplicitComponent):
 
     def initialize_variables(self):
 
-        self.surface = self.metadata['surface']
+        self.surface = surface = self.metadata['surface']
         self.var_name = self.metadata['var_name']
-        self.con_name = 'monotonic_' + var_name
+        self.con_name = 'monotonic_' + self.var_name
 
         self.symmetry = surface['symmetry']
         self.ny = surface['num_y']
@@ -36,24 +36,20 @@ class MonotonicConstraint(ExplicitComponent):
         self.add_input(self.var_name, val=np.zeros(self.ny))
         self.add_output(self.con_name, val=np.zeros(self.ny-1))
 
-    def compute(self, params, unknowns, resids):
+    def compute(self, inputs, outputs):
         # Compute the difference between adjacent variable values
-        diff = params[self.var_name][:-1] - params[self.var_name][1:]
+        diff = inputs[self.var_name][:-1] - inputs[self.var_name][1:]
         if self.symmetry:
-            unknowns[self.con_name] = diff
+            outputs[self.con_name] = diff
         else:
             ny2 = (self.ny - 1) // 2
-            unknowns[self.con_name][:ny2] = diff[:ny2]
-            unknowns[self.con_name][ny2:] = -diff[ny2:]
+            outputs[self.con_name][:ny2] = diff[:ny2]
+            outputs[self.con_name][ny2:] = -diff[ny2:]
 
-    def linearize(self, params, unknowns, resids):
-        jac = self.alloc_jacobian()
-
-        np.fill_diagonal(jac[self.con_name, self.var_name][:, :], 1)
-        np.fill_diagonal(jac[self.con_name, self.var_name][:, 1:], -1)
+    def compute_partial_derivs(self, inputs, outputs, partials):
+        np.fill_diagonal(partials[self.con_name, self.var_name][:, :], 1)
+        np.fill_diagonal(partials[self.con_name, self.var_name][:, 1:], -1)
 
         if not self.symmetry:
             ny2 = (self.ny - 1) // 2
-            jac[self.con_name, self.var_name][ny2:, :] *= -1
-
-        return jac
+            partials[self.con_name, self.var_name][ny2:, :] *= -1
