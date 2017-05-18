@@ -639,7 +639,7 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivs(compact_print=True)
+        self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
@@ -770,8 +770,8 @@ class OASProblem(object):
         indep_var_comp.add_output('cg', val=self.prob_dict['cg'])
 
         model.add_subsystem('prob_vars',
-                 indep_var_comp,
-                 promotes=['*'])
+            indep_var_comp,
+            promotes=['*'])
 
         # Loop over each surface in the surfaces list
         for surface in self.surfaces:
@@ -818,14 +818,14 @@ class OASProblem(object):
                         promotes=['*'])
 
             tmp_group.add_subsystem('mesh',
-                     GeometryMesh(surface=surface, desvars=self.desvars),
-                     promotes=['*'])
+                GeometryMesh(surface=surface, desvars=self.desvars),
+                promotes=['*'])
             tmp_group.add_subsystem('def_mesh',
-                     DisplacementTransfer(surface=surface),
-                     promotes=['*'])
+                DisplacementTransfer(surface=surface),
+                promotes=['*'])
             tmp_group.add_subsystem('vlmgeom',
-                     VLMGeometry(surface=surface),
-                     promotes=['*'])
+                VLMGeometry(surface=surface),
+                promotes=['*'])
 
             # Add monotonic constraints for selected variables
             if surface['monotonic_con'] is not None:
@@ -888,8 +888,8 @@ class OASProblem(object):
             model.connect('aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
         model.add_subsystem('total_perf',
-                  TotalAeroPerformance(surfaces=self.surfaces, prob_dict=self.prob_dict),
-                  promotes=['CM', 'CL', 'CD', 'v', 'rho', 'cg'])
+            TotalAeroPerformance(surfaces=self.surfaces, prob_dict=self.prob_dict),
+            promotes=['CM', 'CL', 'CD', 'v', 'rho', 'cg'])
 
         # Actually set up the problem
         self.setup_prob()
@@ -916,6 +916,18 @@ class OASProblem(object):
         self.prob = Problem()
         self.prob.model = model
 
+        # Add problem information as an independent variables component
+        indep_var_comp = IndepVarComp('indep_vars')
+        indep_var_comp.add_output('v', val=self.prob_dict['v'])
+        indep_var_comp.add_output('alpha', val=self.prob_dict['alpha'])
+        indep_var_comp.add_output('M', val=self.prob_dict['M'])
+        indep_var_comp.add_output('re', val=self.prob_dict['Re']/self.prob_dict['reynolds_length'])
+        indep_var_comp.add_output('rho', val=self.prob_dict['rho'])
+
+        model.add_subsystem('prob_vars',
+             indep_var_comp,
+             promotes=['*'])
+
         # Loop over each surface in the surfaces list
         for surface in self.surfaces:
 
@@ -935,24 +947,20 @@ class OASProblem(object):
                 if name[:-1] in desvar:
                     desvar_names.append(''.join(desvar.split('.')[1:]))
 
-            # Add independent variables that do not belong to a specific component
-            indep_vars = []
+            # Add independent variables that do not belong to a specific component.
+            # Note that these are the only ones necessary for structual-only
+            # analysis and optimization.
+            # Here we check and only add the variables that are desvars or a
+            # special var, radius, which is necessary to compute weight.
+            indep_var_comp = IndepVarComp()
             for var in surface['geo_vars']:
-                if var in desvar_names or var in surface['initial_geo'] or 'thickness' in var:
-                    indep_vars.append((var, surface[var]))
+                if var in desvar_names or 'thickness' in var or var in surface['initial_geo']:
+                    # indep_vars.append((var, surface[var]))
+                    indep_var_comp.add_output(var, val=surface[var])
 
             # Add components to include in the surface's group
             tmp_group.add_subsystem('indep_vars',
-                IndepVarComp(indep_vars),
-                promotes=['*'])
-            tmp_group.add_subsystem('tube',
-                MaterialsTube(surface=surface),
-                promotes=['*'])
-            tmp_group.add_subsystem('mesh',
-                GeometryMesh(surface=surface, desvars=self.desvars),
-                promotes=['*'])
-            tmp_group.add_subsystem('struct_setup',
-                SpatialBeamSetup(surface=surface),
+                indep_var_comp,
                 promotes=['*'])
 
             # Add bspline components for active bspline geometric variables.
@@ -970,6 +978,14 @@ class OASProblem(object):
                         num_cp=int(surface['num_'+var]), num_pt=int(n_pts)),
                         promotes=['*'])
 
+
+            tmp_group.add_subsystem('mesh',
+                GeometryMesh(surface=surface, desvars=self.desvars),
+                promotes=['*'])
+            tmp_group.add_subsystem('tube',
+                MaterialsTube(surface=surface),
+                promotes=['*'])
+
             # Add monotonic constraints for selected variables
             if surface['monotonic_con'] is not None:
                 if type(surface['monotonic_con']) is not list:
@@ -977,6 +993,10 @@ class OASProblem(object):
                 for var in surface['monotonic_con']:
                     tmp_group.add_subsystem('monotonic_' + var,
                         MonotonicConstraint(var, surface), promotes=['*'])
+
+            tmp_group.add_subsystem('struct_setup',
+                SpatialBeamSetup(surface=surface),
+                promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name
@@ -987,14 +1007,14 @@ class OASProblem(object):
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
             tmp_group = Group()
+            tmp_group.add_subsystem('struct_states',
+                SpatialBeamStates(surface=surface),
+                promotes=['*'])
             tmp_group.add_subsystem('def_mesh',
                 DisplacementTransfer(surface=surface),
                 promotes=['*'])
             tmp_group.add_subsystem('aero_geom',
                 VLMGeometry(surface=surface),
-                promotes=['*'])
-            tmp_group.add_subsystem('struct_states',
-                SpatialBeamStates(surface=surface),
                 promotes=['*'])
             # TODO: why doesn't this work?
             # tmp_group.struct_states.ln_solver = LinearBlockGS()
@@ -1002,22 +1022,6 @@ class OASProblem(object):
 
             name = name_orig
             coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
-
-            # Add a loads component to the coupled group
-            coupled.add_subsystem(name_orig + 'loads', LoadTransfer(surface=surface), promotes=[])
-
-            # Add a performance group which evaluates the data after solving
-            # the coupled system
-            tmp_group = Group()
-
-            tmp_group.add_subsystem('struct_funcs',
-                SpatialBeamFunctionals(surface=surface),
-                promotes=['*'])
-            tmp_group.add_subsystem('aero_funcs',
-                VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
-                promotes=['*'])
-
-            model.add_subsystem(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
             # TODO: add this info to the metadata
             # model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
@@ -1033,6 +1037,9 @@ class OASProblem(object):
         # 'aero_states' group.
         for surface in self.surfaces:
             name = surface['name']
+
+            # Add a loads component to the coupled group
+            coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface), promotes=[])
 
             model.connect(name[:-1] + '.K', 'coupled.' + name[:-1] + '.K')
 
@@ -1112,16 +1119,21 @@ class OASProblem(object):
         # Add the coupled group to the model problem
         model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
 
-        # Add problem information as an independent variables component
-        prob_vars = [('v', self.prob_dict['v']),
-            ('alpha', self.prob_dict['alpha']),
-            ('M', self.prob_dict['M']),
-            ('re', self.prob_dict['Re']/self.prob_dict['reynolds_length']),
-            ('rho', self.prob_dict['rho'])]
+        for surface in self.surfaces:
+            name = surface['name']
 
-        model.add_subsystem('prob_vars',
-                 IndepVarComp(prob_vars),
-                 promotes=['*'])
+            # Add a performance group which evaluates the data after solving
+            # the coupled system
+            tmp_group = Group()
+
+            tmp_group.add_subsystem('struct_funcs',
+                SpatialBeamFunctionals(surface=surface),
+                promotes=['*'])
+            tmp_group.add_subsystem('aero_funcs',
+                VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
+                promotes=['*'])
+
+            model.add_subsystem(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all
@@ -1132,6 +1144,3 @@ class OASProblem(object):
 
         # Actually set up the system
         self.setup_prob()
-
-        from openmdao.api import view_model
-        view_model(self.prob)

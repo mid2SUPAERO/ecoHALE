@@ -24,18 +24,18 @@ class TotalPerformance(Group):
         with_viscous = prob_dict['with_viscous']
         surfaces = self.metadata['surfaces']
 
-        self.add_subsystem('fuelburn',
-                 BreguetRange(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
-        self.add_subsystem('L_equals_W',
-                 Equilibrium(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
-        self.add_subsystem('CG',
-                 CenterOfGravity(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
-        self.add_subsystem('moment',
-                 MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
         self.add_subsystem('CL_CD',
-                 TotalLiftDrag(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
+             TotalLiftDrag(surfaces=surfaces, prob_dict=prob_dict),
+             promotes=['*'])
+        self.add_subsystem('fuelburn',
+             BreguetRange(surfaces=surfaces, prob_dict=prob_dict),
+             promotes=['*'])
+        self.add_subsystem('L_equals_W',
+             Equilibrium(surfaces=surfaces, prob_dict=prob_dict),
+             promotes=['*'])
+        self.add_subsystem('CG',
+             CenterOfGravity(surfaces=surfaces, prob_dict=prob_dict),
+             promotes=['*'])
+        self.add_subsystem('moment',
+             MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
+             promotes=['*'])
