@@ -46,8 +46,8 @@ from spatialbeam import radii
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
+from openaerostruct.structures.materials_tube import MaterialsTube
 
-from materials import MaterialsTube
 from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.functionals.total_aero_performance import TotalAeroPerformance
 # from gs_newton import HybridGSNewton
@@ -887,7 +887,7 @@ class OASProblem(object):
             model.connect('aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
         model.add_subsystem('total_perf',
-                  TotalAeroPerformance(self.surfaces, self.prob_dict),
+                  TotalAeroPerformance(surfaces=self.surfaces, prob_dict=self.prob_dict),
                   promotes=['CM', 'CL', 'CD', 'v', 'rho', 'cg'])
 
         # Actually set up the problem
