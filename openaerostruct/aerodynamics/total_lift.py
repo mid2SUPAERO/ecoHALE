@@ -23,8 +23,8 @@ class TotalLift(ExplicitComponent):
     def initialize_variables(self):
         surface = self.metadata['surface']
 
-        self.add_input('CL1', val=0.)
-        self.add_output('CL', val=0.)
+        self.add_input('CL1', val=1.)
+        self.add_output('CL', val=1.)
         self.CL0 = surface['CL0']
 
     def compute(self, inputs, outputs):
