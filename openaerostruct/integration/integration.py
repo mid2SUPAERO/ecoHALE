@@ -640,7 +640,7 @@ class OASProblem(object):
 
         # Uncomment this to check the partial derivatives of each component
         # self.prob.check_partial_derivs(compact_print=True)
-        self.prob.check_partial_derivs(compact_print=False)
+        # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
         """
@@ -1008,10 +1008,10 @@ class OASProblem(object):
             tmp_group = Group()
 
             tmp_group.add_subsystem('struct_funcs',
-                     SpatialBeamFunctionals(surface),
+                     SpatialBeamFunctionals(surface=surface),
                      promotes=['*'])
             tmp_group.add_subsystem('aero_funcs',
-                     VLMFunctionals(surface, self.prob_dict),
+                     VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
                      promotes=['*'])
 
             model.add_subsystem(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
@@ -1023,7 +1023,7 @@ class OASProblem(object):
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
         coupled.add_subsystem('aero_states',
-                 VLMStates(self.surfaces),
+                 VLMStates(surfaces=self.surfaces),
                  promotes=['v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
@@ -1124,7 +1124,7 @@ class OASProblem(object):
         # Note that only the interesting results are promoted here; not all
         # of the parameters.
         model.add_subsystem('total_perf',
-                 TotalPerformance(self.surfaces, self.prob_dict),
+                 TotalPerformance(surfaces=self.surfaces, prob_dict=self.prob_dict),
                  promotes=['L_equals_W', 'fuelburn', 'CM', 'CL', 'CD', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
 
         # Actually set up the system

@@ -20,11 +20,9 @@ class TotalPerformance(Group):
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def initialize_subsystems(self):
-        with_viscous = self.metadata['prob_dict']['with_viscous']
+        prob_dict = self.metadata['prob_dict']
+        with_viscous = prob_dict['with_viscous']
         surfaces = self.metadata['surfaces']
-
-    def __init__(self, surfaces, prob_dict):
-        super(TotalPerformance, self).__init__()
 
         self.add_subsystem('fuelburn',
                  BreguetRange(surfaces=surfaces, prob_dict=prob_dict),
