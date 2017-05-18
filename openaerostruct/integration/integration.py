@@ -29,20 +29,20 @@ from six import iteritems
 # =============================================================================
 # OpenAeroStruct modules
 # =============================================================================
-from geometry import gen_crm_mesh, gen_rect_mesh
+from openaerostruct.geometry.utils import gen_crm_mesh, gen_rect_mesh
 
 from openaerostruct.geometry.geometry_mesh import GeometryMesh
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.monotonic_constraint import MonotonicConstraint
 
-from transfer import TransferDisplacements, TransferLoads
-# from vlm import VLMStates, VLMFunctionals, VLMGeometry
+from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
+from openaerostruct.transfer.load_transfer import LoadTransfer
+
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 
-
-from spatialbeam import radii
+from openaerostruct.structures.utils import radii
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
@@ -820,7 +820,7 @@ class OASProblem(object):
                      GeometryMesh(surface=surface, desvars=self.desvars),
                      promotes=['*'])
             tmp_group.add_subsystem('def_mesh',
-                     TransferDisplacements(surface=surface),
+                     DisplacementTransfer(surface=surface),
                      promotes=['*'])
             tmp_group.add_subsystem('vlmgeom',
                      VLMGeometry(surface=surface),
@@ -987,7 +987,7 @@ class OASProblem(object):
             # needed to converge the aerostructural system.
             tmp_group = Group()
             tmp_group.add_subsystem('def_mesh',
-                TransferDisplacements(surface=surface),
+                DisplacementTransfer(surface=surface),
                 promotes=['*'])
             tmp_group.add_subsystem('aero_geom',
                 VLMGeometry(surface=surface),
@@ -1003,7 +1003,7 @@ class OASProblem(object):
             coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
 
             # Add a loads component to the coupled group
-            coupled.add_subsystem(name_orig + 'loads', TransferLoads(surface=surface), promotes=[])
+            coupled.add_subsystem(name_orig + 'loads', LoadTransfer(surface=surface), promotes=[])
 
             # Add a performance group which evaluates the data after solving
             # the coupled system

@@ -2,6 +2,8 @@ from __future__ import print_function, division
 import numpy as np
 from numpy import cos, sin, tan
 
+from CRM_definitions import get_crm_points
+
 
 def rotate(mesh, theta_y, symmetry, rotate_x=True):
     """
@@ -312,3 +314,243 @@ def taper(mesh, taper_ratio, symmetry):
             for ind in range(3):
                 mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
                     taper + quarter_chord[:, ind]
+
+def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
+    """
+    Generate simple rectangular wing mesh.
+
+    Parameters
+    ----------
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+    num_y : float
+        Desired number of chordwise node points for the final mesh.
+    span : float
+        Total wingspan.
+    chord : float
+        Root chord.
+    span_cos_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the spanwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        spanwise node points near the wingtips.
+    chord_cos_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the chordwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        chordwise node points near the wingtips.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Rectangular nodal mesh defining the final aerodynamic surface with the
+        specified parameters.
+    """
+
+    mesh = np.zeros((num_x, num_y, 3))
+    ny2 = (num_y + 1) // 2
+    beta = np.linspace(0, np.pi/2, ny2)
+
+    # mixed spacing with span_cos_spacing as a weighting factor
+    # this is for the spanwise spacing
+    cosine = .5 * np.cos(beta)  # cosine spacing
+    uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
+    half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
+    full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
+
+    if chord_cos_spacing == 0.:
+        full_wing_x = np.linspace(0, chord, num_x)
+
+    else:
+        nx2 = (num_x + 1) / 2
+        beta = np.linspace(0, np.pi/2, nx2)
+
+        # mixed spacing with span_cos_spacing as a weighting factor
+        # this is for the chordwise spacing
+        cosine = .5 * np.cos(beta)  # cosine spacing
+        uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
+        half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
+        full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) * chord
+
+    for ind_x in range(num_x):
+        for ind_y in range(num_y):
+            mesh[ind_x, ind_y, :] = [full_wing_x[ind_x], full_wing[ind_y], 0]
+
+    return mesh
+
+
+def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
+    """
+    Generate Common Research Model wing mesh.
+
+    Parameters
+    ----------
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+    num_y : float
+        Desired number of chordwise node points for the final mesh.
+    span : float
+        Total wingspan.
+    chord : float
+        Root chord.
+    span_cos_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the spanwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        spanwise node points near the wingtips.
+    chord_cos_spacing : float (optional)
+        Blending ratio of uniform and cosine spacing in the chordwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        chordwise node points near the wingtips.
+    wing_type : string (optional)
+        Describes the desired CRM shape. Current options are:
+        "CRM:jig" (undeformed jig shape),
+        "CRM:alpha_2.75" (shape from wind tunnel testing at a=2.75 from DPW6)
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Rectangular nodal mesh defining the final aerodynamic surface with the
+        specified parameters.
+    eta : numpy array
+        Spanwise locations of the airfoil slices. Later used in the
+        interpolation function to obtain correct twist values at
+        points along the span that are not aligned with these slices.
+    twist : numpy array
+        Twist along the span at the spanwise eta locations. We use these twists
+        as training points for interpolation to obtain twist values at
+        arbitrary points along the span.
+
+    """
+
+    # Call an external function to get the data points for the specific CRM
+    # type requested. See `CRM_definitions.py` for more information and the
+    # raw data.
+    raw_crm_points = get_crm_points(wing_type)
+
+    # Get the leading edge of the raw crm points
+    le = np.vstack((raw_crm_points[:,1],
+                    raw_crm_points[:,2],
+                    raw_crm_points[:,3]))
+
+    # Get the chord, twist(in correct order), and eta values from the points
+    chord = raw_crm_points[:, 5]
+    twist = raw_crm_points[:, 4][::-1]
+    eta = raw_crm_points[:, 0]
+
+    # Get the trailing edge of the crm points, based on the chord + le distance.
+    # Note that we do not account for twist here; instead we set that using
+    # the twist design variable later in run_classes.py.
+    te = np.vstack((raw_crm_points[:,1] + chord,
+                       raw_crm_points[:,2],
+                       raw_crm_points[:,3]))
+
+    # Get the number of points that define this CRM shape and create a mesh
+    # array based on this size
+    n_raw_points = raw_crm_points.shape[0]
+    mesh = np.empty((2, n_raw_points, 3))
+
+    # Set the leading and trailing edges of the mesh matrix
+    mesh[0, :, :] = le.T
+    mesh[1, :, :] = te.T
+
+    # Convert the mesh points to meters from inches.
+    raw_mesh = mesh * 0.0254
+
+    # Create the blended spacing using the user input for span_cos_spacing
+    ny2 = (num_y + 1) // 2
+    beta = np.linspace(0, np.pi/2, ny2)
+
+    # Distribution for cosine spacing
+    cosine = np.cos(beta)
+
+    # Distribution for uniform spacing
+    uniform = np.linspace(0, 1., ny2)[::-1]
+
+    # Combine the two distrubtions using span_cos_spacing as the weighting factor.
+    # span_cos_spacing == 1. is for fully cosine, 0. for uniform
+    lins = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
+
+    # Populate a mesh object with the desired num_y dimension based on
+    # interpolated values from the raw CRM points.
+    mesh = np.empty((2, ny2, 3))
+    for j in range(2):
+        for i in range(3):
+            mesh[j, :, i] = np.interp(lins[::-1], eta, raw_mesh[j, :, i].real)
+
+    # That is just one half of the mesh and we later expect the full mesh,
+    # even if we're using symmetry == True.
+    # So here we mirror and stack the two halves of the wing.
+    left_half = mesh.copy()
+    left_half[:, :, 1] *= -1.
+    mesh = np.hstack((left_half[:, ::-1, :], mesh[:, 1:, :]))
+
+    # If we need to add chordwise panels, do so
+    if num_x > 2:
+        mesh = add_chordwise_panels(mesh, num_x, chord_cos_spacing)
+
+    return mesh, eta, twist
+
+
+def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
+    """
+    Generate a new mesh with multiple chordwise panels.
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface with only
+        the leading and trailing edges defined.
+    num_x : float
+        Desired number of chordwise node points for the final mesh.
+    chord_cos_spacing : float
+        Blending ratio of uniform and cosine spacing in the chordwise direction.
+        A value of 0. corresponds to uniform spacing and a value of 1.
+        corresponds to regular cosine spacing. This increases the number of
+        chordwise node points near the wingtips.
+
+    Returns
+    -------
+    new_mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the final aerodynamic surface with the
+        specified number of chordwise node points.
+
+    """
+
+    # Obtain mesh and num properties
+    num_y = mesh.shape[1]
+    ny2 = (num_y + 1) // 2
+    nx2 = (num_x + 1) // 2
+
+    # Create beta, an array of linear sampling points to pi/2
+    beta = np.linspace(0, np.pi/2, nx2)
+
+    # Obtain the two spacings that we will use to blend
+    cosine = .5 * np.cos(beta)  # cosine spacing
+    uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
+
+    # Create half of the wing in the chordwise direction
+    half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
+
+    if chord_cos_spacing == 0.:
+        full_wing_x = np.linspace(0, 1., num_x)
+
+    else:
+        # Mirror this half wing into a full wing; offset by 0.5 so it goes 0 to 1
+        full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) + .5
+
+    # Obtain the leading and trailing edges
+    le = mesh[ 0, :, :]
+    te = mesh[-1, :, :]
+
+    # Create a new mesh with the desired num_x and set the leading and trailing edge values
+    new_mesh = np.zeros((num_x, num_y, 3))
+    new_mesh[ 0, :, :] = le
+    new_mesh[-1, :, :] = te
+
+    for i in range(1, num_x-1):
+        w = full_wing_x[i]
+        new_mesh[i, :, :] = (1 - w) * le + w * te
+
+    return new_mesh

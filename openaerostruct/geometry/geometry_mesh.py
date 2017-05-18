@@ -9,9 +9,7 @@ from openaerostruct.geometry.utils import \
     sweep, dihedral, stretch, taper
 
 from openmdao.api import ExplicitComponent
-from b_spline import get_bspline_mtx
-from spatialbeam import radii
-from CRM_definitions import get_crm_points
+from openaerostruct.structures.utils import radii
 
 try:
     import OAS_API
