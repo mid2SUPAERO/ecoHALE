@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import numpy as np
 
 from openmdao.api import ExplicitComponent
+from openaerostruct.structures.utils import radii
 
 try:
     import OAS_API
@@ -55,8 +56,7 @@ class SparWithinWing(ExplicitComponent):
     def compute(self, inputs, outputs):
         mesh = inputs['mesh']
         max_radius = radii(mesh, self.surface['t_over_c'])
-        unknowns['spar_within_wing'] = inputs['radius'] - max_radius
+        outputs['spar_within_wing'] = inputs['radius'] - max_radius
 
     def compute_partial_derivs(self, inputs, outputs, partials):
-        # This hasn't been tested TODO: test this
-        partials['spar_within_wing', 'radius'] = -np.eye(self.ny-1)
+        partials['spar_within_wing', 'radius'] = np.eye(self.ny-1)

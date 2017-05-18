@@ -1,27 +1,17 @@
-from __future__ import print_function, division
-import numpy as np
-
 import unittest
 
-from openmdao.api import Problem, Group
 from openaerostruct.structures.create_rhs import CreateRHS
+from openaerostruct.utils.testing import run_test, get_default_surf_dict
+
 
 class Test(unittest.TestCase):
 
     def test(self):
-        OASprob = OASProblem({'type' : 'struct'})
-        OASprob.add_surface()
-        surface = OASprob.surfaces[0]
+        surface = get_default_surf_dict()
 
-        prob = Problem(model=CreateRHS(
-            surface=surface))
-        prob.setup()
+        comp = CreateRHS(surface=surface)
 
-        prob.run_model()
-
-        check = prob.check_partial_derivs(compact_print=True)
-        self.assertTrue(
-            check['']['forces', 'loads']['rel error'].forward < 1e-6)
+        run_test(self, comp)
 
 
 if __name__ == '__main__':

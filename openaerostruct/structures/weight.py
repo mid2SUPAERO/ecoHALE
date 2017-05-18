@@ -38,10 +38,10 @@ class Weight(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('A', val=np.zeros((self.ny - 1), dtype=data_type))
-        self.add_input('nodes', val=np.zeros((self.ny, 3), dtype=data_type))
+        self.add_input('A', val=np.random.random_sample((self.ny - 1)))#, dtype=data_type))
+        self.add_input('nodes', val=np.random.random_sample((self.ny, 3)))#, dtype=data_type))
         self.add_output('structural_weight', val=0.)
-        self.add_output('cg_location', val=np.zeros((3), dtype=data_type))
+        self.add_output('cg_location', val=np.random.random_sample((3)))#, dtype=data_type))
 
     def initialize_partials(self):
         self.approx_partials('cg_location', 'A')

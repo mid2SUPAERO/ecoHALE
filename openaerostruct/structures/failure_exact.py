@@ -40,7 +40,7 @@ class FailureExact(ExplicitComponent):
         self.add_output('failure', val=np.zeros((self.ny-1, 2), dtype=data_type))
 
     def compute(self, inputs, outputs):
-        unknowns['failure'] = inputs['vonmises'] / self.sigma - 1
+        outputs['failure'] = inputs['vonmises'] / self.sigma - 1
 
-    def initialize_partials(self):
-        self.declare_partials('failure', 'vonmises', np.eye(((self.ny-1)*2)) / self.sigma)
+    def compute_partial_derivs(self, inputs, outputs, partials):
+        partials['failure', 'vonmises'] = np.eye(((self.ny-1)*2)) / self.sigma

@@ -48,13 +48,13 @@ class AssembleK(ExplicitComponent):
 
         self.size = size = 6 * self.ny + 6
 
-        self.add_input('A', val=np.zeros((self.ny - 1), dtype=data_type))
-        self.add_input('Iy', val=np.zeros((self.ny - 1), dtype=data_type))
-        self.add_input('Iz', val=np.zeros((self.ny - 1), dtype=data_type))
-        self.add_input('J', val=np.zeros((self.ny - 1), dtype=data_type))
-        self.add_input('nodes', val=np.zeros((self.ny, 3), dtype=data_type))
+        self.add_input('A', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
+        self.add_input('Iy', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
+        self.add_input('Iz', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
+        self.add_input('J', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
+        self.add_input('nodes', val=np.random.random_sample((self.ny, 3)))#, dtype=data_type))
 
-        self.add_output('K', val=np.zeros((size, size), dtype=data_type))
+        self.add_output('K', val=np.ones((size, size), dtype=data_type))
 
         # Get material properties from the surface dictionary
         self.E = surface['E']
@@ -129,39 +129,40 @@ class AssembleK(ExplicitComponent):
         outputs['K'] = self.K
 
     # TODO: fix and test this
-    def ccompute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
+    if fortran_flag:
+        def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
 
-        # Find constrained nodes based on closeness to specified cg point
-        nodes = inputs['nodes']
-        dist = nodes - np.array([5., 0, 0])
-        idx = (np.linalg.norm(dist, axis=1)).argmin()
-        self.cons = idx
+            # Find constrained nodes based on closeness to specified cg point
+            nodes = inputs['nodes']
+            dist = nodes - np.array([5., 0, 0])
+            idx = (np.linalg.norm(dist, axis=1)).argmin()
+            self.cons = idx
 
-        A = inputs['A']
-        J = inputs['J']
-        Iy = inputs['Iy']
-        Iz = inputs['Iz']
+            A = inputs['A']
+            J = inputs['J']
+            Iy = inputs['Iy']
+            Iz = inputs['Iz']
 
-        if mode == 'fwd':
-            K, Kd = OAS_API.oas_api.assemblestructmtx_d(nodes, d_inputs['nodes'], A, d_inputs['A'],
-                                         J, d_inputs['J'], Iy, d_inputs['Iy'],
-                                         Iz, d_inputs['Iz'],
-                                         self.K_a, self.K_t, self.K_y, self.K_z,
-                                         self.cons, self.E, self.G, self.x_gl, self.T,
-                                         self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                         self.const2, self.const_y, self.const_z)
+            if mode == 'fwd':
+                K, Kd = OAS_API.oas_api.assemblestructmtx_d(nodes, d_inputs['nodes'], A, d_inputs['A'],
+                                             J, d_inputs['J'], Iy, d_inputs['Iy'],
+                                             Iz, d_inputs['Iz'],
+                                             self.K_a, self.K_t, self.K_y, self.K_z,
+                                             self.cons, self.E, self.G, self.x_gl, self.T,
+                                             self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                             self.const2, self.const_y, self.const_z)
 
-            d_outputs['K'] += Kd
+                d_outputs['K'] += Kd
 
-        if mode == 'rev':
-            nodesb, Ab, Jb, Iyb, Izb = OAS_API.oas_api.assemblestructmtx_b(nodes, A, J, Iy, Iz,
-                                self.K_a, self.K_t, self.K_y, self.K_z,
-                                self.cons, self.E, self.G, self.x_gl, self.T,
-                                self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                self.const2, self.const_y, self.const_z, self.K, d_outputs['K'])
+            if mode == 'rev':
+                nodesb, Ab, Jb, Iyb, Izb = OAS_API.oas_api.assemblestructmtx_b(nodes, A, J, Iy, Iz,
+                                    self.K_a, self.K_t, self.K_y, self.K_z,
+                                    self.cons, self.E, self.G, self.x_gl, self.T,
+                                    self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                    self.const2, self.const_y, self.const_z, self.K, d_outputs['K'])
 
-            d_inputs['nodes'] += nodesb
-            d_inputs['A'] += Ab
-            d_inputs['J'] += Jb
-            d_inputs['Iy'] += Iyb
-            d_inputs['Iz'] += Izb
+                d_inputs['nodes'] += nodesb
+                d_inputs['A'] += Ab
+                d_inputs['J'] += Jb
+                d_inputs['Iy'] += Iyb
+                d_inputs['Iz'] += Izb
