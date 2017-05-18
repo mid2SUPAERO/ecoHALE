@@ -942,17 +942,17 @@ class OASProblem(object):
 
             # Add components to include in the surface's group
             tmp_group.add_subsystem('indep_vars',
-                     IndepVarComp(indep_vars),
-                     promotes=['*'])
+                IndepVarComp(indep_vars),
+                promotes=['*'])
             tmp_group.add_subsystem('tube',
-                     MaterialsTube(surface=surface),
-                     promotes=['*'])
+                MaterialsTube(surface=surface),
+                promotes=['*'])
             tmp_group.add_subsystem('mesh',
-                     GeometryMesh(surface=surface, desvars=self.desvars),
-                     promotes=['*'])
+                GeometryMesh(surface=surface, desvars=self.desvars),
+                promotes=['*'])
             tmp_group.add_subsystem('struct_setup',
-                     SpatialBeamSetup(surface=surface),
-                     promotes=['*'])
+                SpatialBeamSetup(surface=surface),
+                promotes=['*'])
 
             # Add bspline components for active bspline geometric variables.
             # We only add the component if the corresponding variable is a desvar,
@@ -964,9 +964,10 @@ class OASProblem(object):
                     if var in ['thickness_cp', 'radius_cp']:
                         n_pts -= 1
                     trunc_var = var.split('_')[0]
-                    tmp_group.add_subsystem(trunc_var + '_bsp',
-                             Bsplines(in_name=var, out_name=trunc_var, num_cp=surface['num_'+var], num_pt=int(n_pts)),
-                             promotes=['*'])
+                    tmp_group.add_subsystem(trunc_var + '_bsp', Bsplines(
+                        in_name=var, out_name=trunc_var,
+                        num_cp=int(surface['num_'+var]), num_pt=int(n_pts)),
+                        promotes=['*'])
 
             # Add monotonic constraints for selected variables
             if surface['monotonic_con'] is not None:
@@ -986,14 +987,14 @@ class OASProblem(object):
             # needed to converge the aerostructural system.
             tmp_group = Group()
             tmp_group.add_subsystem('def_mesh',
-                     TransferDisplacements(surface=surface),
-                     promotes=['*'])
+                TransferDisplacements(surface=surface),
+                promotes=['*'])
             tmp_group.add_subsystem('aero_geom',
-                     VLMGeometry(surface=surface),
-                     promotes=['*'])
+                VLMGeometry(surface=surface),
+                promotes=['*'])
             tmp_group.add_subsystem('struct_states',
-                     SpatialBeamStates(surface=surface),
-                     promotes=['*'])
+                SpatialBeamStates(surface=surface),
+                promotes=['*'])
             # TODO: why doesn't this work?
             # tmp_group.struct_states.ln_solver = LinearBlockGS()
             # tmp_group.struct_states.ln_solver.options['atol'] = 1e-20
@@ -1009,11 +1010,11 @@ class OASProblem(object):
             tmp_group = Group()
 
             tmp_group.add_subsystem('struct_funcs',
-                     SpatialBeamFunctionals(surface=surface),
-                     promotes=['*'])
+                SpatialBeamFunctionals(surface=surface),
+                promotes=['*'])
             tmp_group.add_subsystem('aero_funcs',
-                     VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
-                     promotes=['*'])
+                VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
+                promotes=['*'])
 
             model.add_subsystem(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
@@ -1024,8 +1025,8 @@ class OASProblem(object):
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
         coupled.add_subsystem('aero_states',
-                 VLMStates(surfaces=self.surfaces),
-                 promotes=['v', 'alpha', 'rho'])
+            VLMStates(surfaces=self.surfaces),
+            promotes=['v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.
@@ -1130,3 +1131,6 @@ class OASProblem(object):
 
         # Actually set up the system
         self.setup_prob()
+
+        from openmdao.api import view_model
+        view_model(self.prob)
