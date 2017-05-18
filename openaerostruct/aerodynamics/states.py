@@ -6,8 +6,11 @@ from openaerostruct.aerodynamics.forces import Forces
 class VLMStates(Group):
     """ Group that contains the aerodynamic states. """
 
-    def __init__(self, surfaces):
-        super(VLMStates, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surfaces', type_=list, required=True)
+
+    def initialize_subsystems(self):
+        surfaces = self.metadata['surfaces']
 
         tot_panels = 0
         for surface in surfaces:

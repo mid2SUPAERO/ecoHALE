@@ -11,8 +11,13 @@ class TotalAeroPerformance(Group):
     Group to contain the total aerodynamic performance components.
     """
 
-    def __init__(self, surfaces, prob_dict):
-        super(TotalAeroPerformance, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surfaces', type_=list, required=True)
+        self.metadata.declare('prob_dict', type_=dict, required=True)
+
+    def initialize_subsystems(self):
+        with_viscous = self.metadata['prob_dict']['with_viscous']
+        surfaces = self.metadata['surfaces']
 
         self.add_subsystem('moment',
                  MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),

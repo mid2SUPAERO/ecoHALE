@@ -639,8 +639,8 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        self.prob.check_partial_derivs(compact_print=True)
-        # self.prob.check_partial_derivs(compact_print=False)
+        # self.prob.check_partial_derivs(compact_print=True)
+        self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
         """
@@ -856,7 +856,7 @@ class OASProblem(object):
         for surface in self.surfaces:
             name = surface['name']
             name_orig = name.strip('_')
-            model.add_subsystem(name_orig+'_perf', VLMFunctionals(surface, self.prob_dict),
+            model.add_subsystem(name_orig+'_perf', VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
                     promotes=["v", "alpha", "M", "re", "rho"])
 
             # Perform the connections with the modified names within the
