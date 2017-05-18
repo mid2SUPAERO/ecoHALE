@@ -3,14 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
-
 class ViscousDrag(ExplicitComponent):
     """
     Compute the skin friction drag if the with_viscous option is True.
@@ -62,10 +54,14 @@ class ViscousDrag(ExplicitComponent):
         self.add_input('re', val=5.e6)
         self.add_input('M', val=.84)
         self.add_input('S_ref', val=1.)
-        self.add_input('cos_sweep', val=np.zeros((ny-1)))
-        self.add_input('widths', val=np.zeros((ny-1)))
-        self.add_input('lengths', val=np.zeros((ny)))
+        self.add_input('cos_sweep', val=np.random.rand((ny-1)))
+        self.add_input('widths', val=np.random.rand((ny-1)))
+        self.add_input('lengths', val=np.random.rand((ny)))
         self.add_output('CDv', val=0.)
+
+    def initialize_partials(self):
+        self.approx_partials('CDv', 'M')
+        self.approx_partials('CDv', 're')
 
     def compute(self, inputs, outputs):
         if self.with_viscous:
@@ -124,8 +120,8 @@ class ViscousDrag(ExplicitComponent):
 
         if self.with_viscous:
             p180 = np.pi / 180.
-            M = inputs['M']
-            S_ref = inputs['S_ref']
+            M = inputs['M'][0]
+            S_ref = inputs['S_ref'][0]
 
             widths = inputs['widths']
             lengths = inputs['lengths']

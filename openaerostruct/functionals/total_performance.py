@@ -15,6 +15,14 @@ class TotalPerformance(Group):
     Group to contain the total aerostructural performance components.
     """
 
+    def initialize(self):
+        self.metadata.declare('surfaces', type_=list, required=True)
+        self.metadata.declare('prob_dict', type_=dict, required=True)
+
+    def initialize_subsystems(self):
+        with_viscous = self.metadata['prob_dict']['with_viscous']
+        surfaces = self.metadata['surfaces']
+
     def __init__(self, surfaces, prob_dict):
         super(TotalPerformance, self).__init__()
 
