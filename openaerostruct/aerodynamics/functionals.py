@@ -11,23 +11,26 @@ class VLMFunctionals(Group):
     performance.
     """
 
-    def __init__(self, surface, prob_dict):
-        super(VLMFunctionals, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('prob_dict', type_=dict, required=True)
 
-        with_viscous = prob_dict['with_viscous']
+    def initialize_subsystems(self):
+        with_viscous = self.metadata['prob_dict']['with_viscous']
+        surface = self.metadata['surface']
 
         self.add_subsystem('liftdrag',
-                 LiftDrag(surface=surface),
-                 promotes=['*'])
+            LiftDrag(surface=surface),
+            promotes=['*'])
         self.add_subsystem('coeffs',
-                 Coeffs(surface=surface),
-                 promotes=['*'])
+            Coeffs(surface=surface),
+            promotes=['*'])
         self.add_subsystem('CL',
-                 TotalLift(surface=surface),
-                 promotes=['*'])
+            TotalLift(surface=surface),
+            promotes=['*'])
         self.add_subsystem('viscousdrag',
-                 ViscousDrag(surface=surface, with_viscous=with_viscous),
-                 promotes=['*'])
+            ViscousDrag(surface=surface, with_viscous=with_viscous),
+            promotes=['*'])
         self.add_subsystem('CD',
-                 TotalDrag(surface=surface),
-                 promotes=['*'])
+            TotalDrag(surface=surface),
+            promotes=['*'])
