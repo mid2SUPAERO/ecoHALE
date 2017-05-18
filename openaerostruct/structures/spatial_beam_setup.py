@@ -7,8 +7,11 @@ class SpatialBeamSetup(Group):
     """ Group that sets up the spatial beam components and assembles the
         stiffness matrix."""
 
-    def __init__(self, surface):
-        super(SpatialBeamSetup, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict, required=True)
+
+    def initialize_subsystems(self):
+        surface = self.metadata['surface']
 
         self.add_subsystem('nodes',
                  ComputeNodes(surface=surface),

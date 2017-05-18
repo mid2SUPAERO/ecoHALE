@@ -11,8 +11,11 @@ class SpatialBeamFunctionals(Group):
     """ Group that contains the spatial beam functionals used to evaluate
     performance. """
 
-    def __init__(self, surface):
-        super(SpatialBeamFunctionals, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict, required=True)
+
+    def initialize_subsystems(self):
+        surface = self.metadata['surface']
 
         # Commented out energy for now since we haven't ever used its output
         # self.add_subsystem('energy',

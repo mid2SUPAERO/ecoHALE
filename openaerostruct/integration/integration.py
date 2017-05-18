@@ -718,13 +718,13 @@ class OASProblem(object):
                      MaterialsTube(surface=surface),
                      promotes=['*'])
             tmp_group.add_subsystem('struct_setup',
-                     SpatialBeamSetup(surface),
+                     SpatialBeamSetup(surface=surface),
                      promotes=['*'])
             tmp_group.add_subsystem('struct_states',
-                     SpatialBeamStates(surface),
+                     SpatialBeamStates(surface=surface),
                      promotes=['*'])
             tmp_group.add_subsystem('struct_funcs',
-                     SpatialBeamFunctionals(surface),
+                     SpatialBeamFunctionals(surface=surface),
                      promotes=['*'])
 
             # Add tmp_group to the problem with the name of the surface.

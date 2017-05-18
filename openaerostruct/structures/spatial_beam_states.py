@@ -6,8 +6,11 @@ from openaerostruct.structures.disp import Disp
 class SpatialBeamStates(Group):
     """ Group that contains the spatial beam states. """
 
-    def __init__(self, surface):
-        super(SpatialBeamStates, self).__init__()
+    def initialize(self):
+        self.metadata.declare('surface', type_=dict, required=True)
+
+    def initialize_subsystems(self):
+        surface = self.metadata['surface']
 
         size = int(6 * surface['num_y'] + 6)
 

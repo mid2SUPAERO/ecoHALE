@@ -37,8 +37,8 @@ class Energy(ExplicitComponent):
 
         ny = surface['num_y']
 
-        self.add_input('disp', val=np.ones((ny, 6), dtype=data_type))
-        self.add_input('loads', val=np.ones((ny, 6), dtype=data_type))
+        self.add_input('disp', val=np.random.random_sample((ny, 6)))
+        self.add_input('loads', val=np.random.random_sample((ny, 6)))
         self.add_output('energy', val=0.)
 
     def compute(self, inputs, outputs):
