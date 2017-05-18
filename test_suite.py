@@ -285,8 +285,7 @@ class TestStruct(unittest.TestCase):
         OAS_prob = OASProblem({'type' : 'struct',
                                'optimize' : False,
                                'record_db' : False})
-        surf_dict = {'symmetry' : False,
-                    't_over_c' : 0.15}
+        surf_dict = {'symmetry' : False}
         OAS_prob.add_surface(surf_dict)
         OAS_prob.setup()
         OAS_prob.run()
@@ -297,8 +296,7 @@ class TestStruct(unittest.TestCase):
         OAS_prob = OASProblem({'type' : 'struct',
                                'optimize' : False,
                                'record_db' : False})
-        surf_dict = {'symmetry' : True,
-                    't_over_c' : 0.15}
+        surf_dict = {'symmetry' : True}
         OAS_prob.add_surface(surf_dict)
         OAS_prob.setup()
         OAS_prob.run()
@@ -310,8 +308,7 @@ class TestStruct(unittest.TestCase):
             OAS_prob = OASProblem({'type' : 'struct',
                                    'optimize' : True,
                                    'record_db' : False})
-            OAS_prob.add_surface({'symmetry' : False,
-                                't_over_c': 0.15})
+            OAS_prob.add_surface({'symmetry' : False})
 
             OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
             OAS_prob.add_constraint('wing.failure', upper=0.)
@@ -329,7 +326,7 @@ class TestStruct(unittest.TestCase):
         OAS_prob = OASProblem({'type' : 'struct',
                                'optimize' : True,
                                'record_db' : False})
-        OAS_prob.add_surface({'t_over_c': 0.15})
+        OAS_prob.add_surface()
 
         OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         OAS_prob.add_constraint('wing.failure', upper=0.)
@@ -347,8 +344,7 @@ class TestStruct(unittest.TestCase):
             OAS_prob = OASProblem({'type' : 'struct',
                                    'optimize' : True,
                                    'record_db' : False})
-            OAS_prob.add_surface({'exact_failure_constraint' : True,
-                                't_over_c': 0.15})
+            OAS_prob.add_surface({'exact_failure_constraint' : True})
 
             OAS_prob.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
             OAS_prob.add_constraint('wing.failure', upper=0.)

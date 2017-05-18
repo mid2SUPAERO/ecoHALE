@@ -268,8 +268,8 @@ class OASProblem(object):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0012)
-                    'c_max_t' : .303,       # chordwise location of maximum (NACA0012)
+                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
 
                     # Structural values are based on aluminum 7075
