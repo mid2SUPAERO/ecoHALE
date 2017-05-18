@@ -42,8 +42,8 @@ class NonIntersectingThickness(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('thickness', val=np.zeros((self.ny-1)))
-        self.add_input('radius', val=np.zeros((self.ny-1)))
+        self.add_input('thickness', val=np.random.rand((self.ny-1)))
+        self.add_input('radius', val=np.random.rand((self.ny-1)))
         self.add_output('thickness_intersects', val=np.zeros((self.ny-1)))
 
     def compute(self, inputs, outputs):

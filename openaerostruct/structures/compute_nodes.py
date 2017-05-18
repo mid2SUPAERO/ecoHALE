@@ -41,8 +41,8 @@ class ComputeNodes(ExplicitComponent):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3), dtype=data_type))
-        self.add_output('nodes', val=np.zeros((self.ny, 3), dtype=data_type))
+        self.add_input('mesh', val=np.random.random_sample((self.nx, self.ny, 3)))#, dtype=data_type))
+        self.add_output('nodes', val=np.random.random_sample((self.ny, 3)))#, dtype=data_type))
 
     def compute(self, inputs, outputs):
         w = self.fem_origin

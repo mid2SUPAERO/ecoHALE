@@ -44,7 +44,7 @@ class VonMisesTube(ExplicitComponent):
         self.add_input('radius', val=np.random.rand((self.ny - 1)))#,  dtype=data_type))
         self.add_input('disp', val=np.random.random_sample((self.ny, 6)))#,  dtype=data_type))
 
-        self.add_output('vonmises', val=np.random.random_sample((self.ny-1, 2)))#,dtype=data_type))
+        self.add_output('vonmises', val=np.zeros((self.ny-1, 2)))#,dtype=data_type))
 
         self.E = surface['E']
         self.G = surface['G']

@@ -42,8 +42,8 @@ class Disp(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('disp_aug', val=np.zeros(((self.ny+1)*6), dtype=data_type))
-        self.add_output('disp', val=np.zeros((self.ny, 6), dtype=data_type))
+        self.add_input('disp_aug', val=np.random.random_sample(((self.ny+1)*6)))
+        self.add_output('disp', val=np.random.random_sample((self.ny, 6)))
 
     def compute(self, inputs, outputs):
         # Obtain the relevant portions of disp_aug and store the reshaped

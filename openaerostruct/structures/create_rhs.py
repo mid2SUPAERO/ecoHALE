@@ -38,8 +38,8 @@ class CreateRHS(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('loads', val=np.zeros((self.ny, 6), dtype=data_type))
-        self.add_output('forces', val=np.zeros(((self.ny+1)*6), dtype=data_type))
+        self.add_input('loads', val=np.random.random_sample((self.ny, 6)))# dtype=data_type))
+        self.add_output('forces', val=np.random.random_sample(((self.ny+1)*6)))# dtype=data_type))
 
     def compute(self, inputs, outputs):
         # Populate the right-hand side of the linear system using the

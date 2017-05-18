@@ -12,7 +12,7 @@ class Test(unittest.TestCase):
         comp = FailureExact(surface=surface)
 
         run_test(self, comp)
-        
+
 
 if __name__ == '__main__':
     unittest.main()
