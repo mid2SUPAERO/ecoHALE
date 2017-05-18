@@ -830,7 +830,7 @@ class OASProblem(object):
                     surface['monotonic_con'] = [surface['monotonic_con']]
                 for var in surface['monotonic_con']:
                     tmp_group.add_subsystem('monotonic_' + var,
-                        MonotonicConstraint(var, surface), promotes=['*'])
+                        MonotonicConstraint(var_name=var, surface=surface), promotes=['*'])
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each
@@ -870,10 +870,10 @@ class OASProblem(object):
 
             # TODO: figure out why these aren't working correctly
             # Connect S_ref for performance calcs
-            # model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
-            # model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
-            # model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
-            # model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
+            model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
+            model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
+            model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
+            model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
 
             # Connect S_ref for performance calcs
             model.connect(name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')

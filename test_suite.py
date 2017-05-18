@@ -121,28 +121,29 @@ class TestAero(unittest.TestCase):
             prob = OAS_prob.prob
             self.assertAlmostEqual(prob['wing_perf.CD'], 0.0049392534859265614, places=5)
 
-    if fortran_flag:
-        def test_aero_optimization_fd(self):
-            # Need to use SLSQP here because SNOPT finds a different optimum
-            OAS_prob = OASProblem({'type' : 'aero',
-                                   'optimize' : True,
-                                   'record_db' : False,
-                                   'optimizer' : 'SLSQP',
-                                   'force_fd' : True})
-            OAS_prob.add_surface()
-
-            OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-            OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
-            OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
-            OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
-            OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
-            OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
-
-            OAS_prob.setup()
-
-            OAS_prob.run()
-            prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.0038513637269919619, places=5)
+    # TODO: implement this when it's in Blue
+    # if fortran_flag:
+    #     def test_aero_optimization_fd(self):
+    #         # Need to use SLSQP here because SNOPT finds a different optimum
+    #         OAS_prob = OASProblem({'type' : 'aero',
+    #                                'optimize' : True,
+    #                                'record_db' : False,
+    #                                'optimizer' : 'SLSQP',
+    #                                'force_fd' : True})
+    #         OAS_prob.add_surface()
+    #
+    #         OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+    #         OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
+    #         OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
+    #         OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
+    #         OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
+    #         OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+    #
+    #         OAS_prob.setup()
+    #
+    #         OAS_prob.run()
+    #         prob = OAS_prob.prob
+    #         self.assertAlmostEqual(prob['wing_perf.CD'], 0.0038513637269919619, places=5)
 
     if fortran_flag:
         def test_aero_optimization_chord_monotonic(self):

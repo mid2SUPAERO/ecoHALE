@@ -60,13 +60,13 @@ class Forces(ExplicitComponent):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-            self.add_input(name+'def_mesh', val=np.zeros((nx, ny, 3), dtype=data_type))
-            self.add_input(name+'b_pts', val=np.zeros((nx-1, ny, 3), dtype=data_type))
+            self.add_input(name+'def_mesh', val=np.random.random_sample((nx, ny, 3)))#, dtype=data_type))
+            self.add_input(name+'b_pts', val=np.random.random_sample((nx-1, ny, 3)))#, dtype=data_type))
             self.add_output(name+'sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
 
         self.tot_panels = tot_panels
 
-        self.add_input('circulations', val=np.zeros((tot_panels)))
+        self.add_input('circulations', val=np.random.rand((tot_panels)))
         self.add_input('alpha', val=3.)
         self.add_input('v', val=10.)
         self.add_input('rho', val=3.)
@@ -213,7 +213,7 @@ class Forces(ExplicitComponent):
 
                     v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts, sec_forcesb)
 
-                    if 'ciculations' in d_inputs:
+                    if 'circulations' in d_inputs:
                         d_inputs['circulations'][i:i+num_panels] += circb
                     vb[i:i+num_panels] = v_b
                     if 'rho' in d_inputs:

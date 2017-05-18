@@ -95,7 +95,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     """
 
     # TODO: check if the float is needed; remove hopefully
-    alpha = float(params['alpha'])
+    alpha = params['alpha'][0]
     mtx[:, :, :] = 0.0
     cosa = np.cos(alpha * np.pi / 180.)
     sina = np.sin(alpha * np.pi / 180.)
@@ -292,8 +292,8 @@ def _assemble_AIC_mtx_d(mtxd, params, d_inputs, d_outputs, surfaces, skip=False)
     Differentiated code to get the forward mode seeds for the AIC matrix assembly.
     """
     if fortran_flag:
-        alpha = params['alpha']
-        alphad = d_inputs['alpha']
+        alpha = params['alpha'][0]
+        alphad = d_inputs['alpha'][0]
 
         i_panels_ = 0
 
@@ -362,7 +362,7 @@ def _assemble_AIC_mtx_b(mtxb, params, d_inputs, d_outputs, surfaces, skip=False)
 
     if fortran_flag:
 
-        alpha = params['alpha']
+        alpha = params['alpha'][0]
 
         mtxb /= 4 * np.pi
 
