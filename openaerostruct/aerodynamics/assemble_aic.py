@@ -3,15 +3,17 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.aerodynamics.utils import _assemble_AIC_mtx, _assemble_AIC_mtx_b, _assemble_AIC_mtx_d
+from openaerostruct.aerodynamics.utils import _assemble_AIC_mtx, _assemble_AIC_mtx_b, \
+    _assemble_AIC_mtx_d
 
 try:
     import OAS_API
     fortran_flag = True
-    data_type = float
 except:
     fortran_flag = False
-    data_type = complex
+
+data_type = float
+
 
 class AssembleAIC(ExplicitComponent):
     """
@@ -63,22 +65,19 @@ class AssembleAIC(ExplicitComponent):
             nx = surface['num_x']
             name = surface['name']
 
-            self.add_input(name+'def_mesh', val=np.zeros((nx, ny, 3),
-                           dtype=data_type))
-            self.add_input(name+'b_pts', val=np.zeros((nx-1, ny, 3),
-                           dtype=data_type))
-            self.add_input(name+'c_pts', val=np.zeros((nx-1, ny-1, 3),
-                           dtype=data_type))
-            self.add_input(name+'normals', val=np.zeros((nx-1, ny-1, 3)))
+            self.add_input(name+'def_mesh', val=np.random.rand(nx, ny, 3))
+            self.add_input(name+'b_pts', val=np.random.rand(nx-1, ny, 3))
+            self.add_input(name+'c_pts', val=np.random.rand(nx-1, ny-1, 3))
+            self.add_input(name+'normals', val=np.random.rand(nx-1, ny-1, 3))
             tot_panels += (nx - 1) * (ny - 1)
 
         self.tot_panels = tot_panels
 
         self.add_input('v', val=1.)
-        self.add_input('alpha', val=0.)
+        self.add_input('alpha', val=1.)
 
-        self.add_output('AIC', val=np.zeros((tot_panels, tot_panels), dtype=data_type))
-        self.add_output('rhs', val=np.zeros((tot_panels), dtype=data_type))
+        self.add_output('AIC', val=np.ones((tot_panels, tot_panels), dtype=data_type))
+        self.add_output('rhs', val=np.ones((tot_panels), dtype=data_type))
 
         self.AIC_mtx = np.zeros((tot_panels, tot_panels, 3),
                                    dtype=data_type)
@@ -148,8 +147,10 @@ class AssembleAIC(ExplicitComponent):
                 for surface in self.surfaces:
                     name = surface['name']
                     num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
-                    flattened_normals[i:i+num_panels, :] = inputs[name+'normals'].reshape(-1, 3, order='F')
-                    flattened_normalsd[i:i+num_panels, :] = d_inputs[name+'normals'].reshape(-1, 3, order='F')
+                    flattened_normals[i:i+num_panels, :] = \
+                        inputs[name+'normals'].reshape(-1, 3, order='F')
+                    flattened_normalsd[i:i+num_panels, :] = \
+                        d_inputs[name+'normals'].reshape(-1, 3, order='F')
                     i += num_panels
 
                 # Construct a matrix that is the AIC_mtx dotted by the normals at each
@@ -194,14 +195,16 @@ class AssembleAIC(ExplicitComponent):
                 for surface in self.surfaces:
                     name = surface['name']
                     num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
-                    flattened_normals[i:i+num_panels, :] = inputs[name+'normals'].reshape(-1, 3, order='F')
+                    flattened_normals[i:i+num_panels, :] = \
+                        inputs[name+'normals'].reshape(-1, 3, order='F')
                     i += num_panels
 
                 AIC_mtxb = np.zeros((self.tot_panels, self.tot_panels, 3))
                 flattened_normalsb = np.zeros(flattened_normals.shape)
                 for ind in range(3):
                     AIC_mtxb[:, :, ind] = (d_outputs['AIC'].T * flattened_normals[:, ind]).T
-                    flattened_normalsb[:, ind] += np.sum(self.AIC_mtx[:, :, ind].real * d_outputs['AIC'], axis=1).T
+                    flattened_normalsb[:, ind] += \
+                        np.sum(self.AIC_mtx[:, :, ind].real * d_outputs['AIC'], axis=1).T
 
                 # Actually assemble the AIC matrix
                 _assemble_AIC_mtx_b(AIC_mtxb, inputs, d_inputs, d_outputs, self.surfaces)
@@ -240,6 +243,8 @@ class AssembleAIC(ExplicitComponent):
                     ny = surface['num_y']
                     num_panels = (nx - 1) * (ny - 1)
                     if name+'normals' in d_inputs:
-                        d_inputs[name+'normals'] += flattened_normalsb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
-                        d_inputs[name+'normals'] += fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
+                        d_inputs[name+'normals'] += \
+                            flattened_normalsb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
+                        d_inputs[name+'normals'] += \
+                            fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
                     i += num_panels
