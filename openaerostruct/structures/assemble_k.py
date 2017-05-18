@@ -161,8 +161,13 @@ class AssembleK(ExplicitComponent):
                                     self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
                                     self.const2, self.const_y, self.const_z, self.K, d_outputs['K'])
 
-                d_inputs['nodes'] += nodesb
-                d_inputs['A'] += Ab
-                d_inputs['J'] += Jb
-                d_inputs['Iy'] += Iyb
-                d_inputs['Iz'] += Izb
+                if 'nodes' in d_inputs:
+                    d_inputs['nodes'] += nodesb
+                if 'A' in d_inputs:
+                    d_inputs['A'] += Ab
+                if 'J' in d_inputs:
+                    d_inputs['J'] += Jb
+                if 'Iy' in d_inputs:
+                    d_inputs['Iy'] += Iyb
+                if 'Iz' in d_inputs:
+                    d_inputs['Iz'] += Izb
