@@ -1,15 +1,6 @@
 from __future__ import print_function, division
-import numpy as np
 
 from openmdao.api import ExplicitComponent
-
-try:
-    import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 class TotalLift(ExplicitComponent):
     """ Calculate total lift in force units.
