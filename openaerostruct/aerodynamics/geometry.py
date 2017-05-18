@@ -6,10 +6,11 @@ from openmdao.api import ExplicitComponent
 try:
     import OAS_API
     fortran_flag = True
-    data_type = float
 except:
     fortran_flag = False
-    data_type = complex
+
+data_type = float
+
 
 class VLMGeometry(ExplicitComponent):
     """ Compute various geometric properties for VLM analysis.
@@ -40,7 +41,7 @@ class VLMGeometry(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.metadata.declare('surface', type_=dict, required=True)
 
     def initialize_variables(self):
         self.surface = surface = self.metadata['surface']
@@ -48,16 +49,14 @@ class VLMGeometry(ExplicitComponent):
         self.ny = surface['num_y']
         self.nx = surface['num_x']
 
-        self.add_input('def_mesh', val=np.zeros((self.nx, self.ny, 3),
-                       dtype=data_type))
-        self.add_output('b_pts', val=np.zeros((self.nx-1, self.ny, 3),
-                        dtype=data_type))
-        self.add_output('c_pts', val=np.zeros((self.nx-1, self.ny-1, 3)))
-        self.add_output('widths', val=np.zeros((self.ny-1)))
-        self.add_output('cos_sweep', val=np.zeros((self.ny-1)))
-        self.add_output('lengths', val=np.zeros((self.ny)))
-        self.add_output('chords', val=np.zeros((self.ny)))
-        self.add_output('normals', val=np.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_input('def_mesh', val=np.random.random((self.nx, self.ny, 3)))
+        self.add_output('b_pts', val=np.random.random((self.nx-1, self.ny, 3)))
+        self.add_output('c_pts', val=np.random.random((self.nx-1, self.ny-1, 3)))
+        self.add_output('widths', val=np.random.random((self.ny-1)))
+        self.add_output('cos_sweep', val=np.random.random((self.ny-1)))
+        self.add_output('lengths', val=np.random.random((self.ny)))
+        self.add_output('chords', val=np.random.random((self.ny)))
+        self.add_output('normals', val=np.random.random((self.nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=1.)
 
     def initialize_partials(self):
@@ -228,9 +227,13 @@ class VLMGeometry(ExplicitComponent):
             dz = mesh[0, i, 2] - mesh[-1, i, 2]
 
             l = np.sqrt(dx**2 + dy**2 + dz**2)
-            partials['chords', 'def_mesh'][i, i*3] += dx / l
-            partials['chords', 'def_mesh'][i, (ny+i)*3] -= dx / l
-            partials['chords', 'def_mesh'][i, i*3 + 1] += dy / l
-            partials['chords', 'def_mesh'][i, (ny+i)*3 + 1] -= dy / l
-            partials['chords', 'def_mesh'][i, i*3 + 2] += dz / l
-            partials['chords', 'def_mesh'][i, (ny+i)*3 + 2] -= dz / l
+
+            le_ind = 0
+            te_ind = (nx - 1) * 3 * ny
+
+            partials['chords', 'def_mesh'][i, le_ind + i*3 + 0] += dx / l
+            partials['chords', 'def_mesh'][i, te_ind + i*3 + 0] -= dx / l
+            partials['chords', 'def_mesh'][i, le_ind + i*3 + 1] += dy / l
+            partials['chords', 'def_mesh'][i, te_ind + i*3 + 1] -= dy / l
+            partials['chords', 'def_mesh'][i, le_ind + i*3 + 2] += dz / l
+            partials['chords', 'def_mesh'][i, te_ind + i*3 + 2] -= dz / l
