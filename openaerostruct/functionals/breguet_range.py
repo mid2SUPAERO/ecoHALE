@@ -45,8 +45,8 @@ class BreguetRange(ExplicitComponent):
             name = surface['name']
             self.add_input(name + 'structural_weight', val=1.)
 
-        self.add_input('CL', val=1.)
-        self.add_input('CD', val=1.)
+        self.add_input('CL', val=10.)
+        self.add_input('CD', val=10.)
 
         self.add_output('fuelburn', val=1.)
         self.add_output('weighted_obj', val=1.)
@@ -102,7 +102,7 @@ class BreguetRange(ExplicitComponent):
         dfb_dCL = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M * CD / CL ** 2
         dfb_dCD = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
-            * R * CT / a / M * CL
+            * R * CT / a / M / CL
         dfb_dWs = np.exp(R * CT / a / M * CD / CL) - 1
 
         partials['fuelburn', 'CL'] = dfb_dCL / g
