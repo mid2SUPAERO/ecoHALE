@@ -410,7 +410,7 @@ class OASProblem(object):
         # Store updated values
         surf_dict['num_x'] = int(num_x)
         surf_dict['num_y'] = int(num_y)
-        # surf_dict['mesh'] = mesh * (1+np.random.random_sample(mesh.shape))
+        surf_dict['mesh'] = mesh# * (1+np.random.random_sample(mesh.shape))
 
         # Compute and set initial radii
         radius = radii(mesh, surf_dict['t_over_c'])
