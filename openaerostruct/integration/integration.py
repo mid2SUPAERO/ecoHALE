@@ -886,7 +886,6 @@ class OASProblem(object):
             model.connect(name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
             model.connect(name + 'perf' + '.CL', 'total_perf.' + name + 'CL')
             model.connect(name + 'perf' + '.CD', 'total_perf.' + name + 'CD')
-            model.connect(name[:-1] + '.structural_weight', 'total_perf.' + name + 'structural_weight')
             model.connect('aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
         model.add_subsystem('total_perf',
