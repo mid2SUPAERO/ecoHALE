@@ -164,7 +164,10 @@ class AssembleAIC(ExplicitComponent):
                 # Obtain the freestream velocity direction and magnitude by taking
                 # alpha into account
                 alpha = inputs['alpha'][0] * np.pi / 180.
-                alphad = d_inputs['alpha'][0] * np.pi / 180.
+                if 'alpha' in d_inputs:
+                    alphad = d_inputs['alpha'][0] * np.pi / 180.
+                else:
+                    alphad = 0.
                 cosa = np.cos(alpha)
                 sina = np.sin(alpha)
                 cosad = -sina * alphad
@@ -172,7 +175,10 @@ class AssembleAIC(ExplicitComponent):
 
                 freestream_direction = np.array([cosa, 0., sina])
                 v_inf = inputs['v'][0] * freestream_direction
-                v_infd = d_inputs['v'][0] * freestream_direction
+                if 'v' in d_inputs:
+                    v_infd = d_inputs['v'][0] * freestream_direction
+                else:
+                    v_infd = np.zeros((3))
                 v_infd += inputs['v'][0] * np.array([cosad, 0., sinad])
 
                 # Populate the right-hand side of the linear system with the

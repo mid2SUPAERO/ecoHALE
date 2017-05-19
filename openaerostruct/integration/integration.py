@@ -846,8 +846,10 @@ class OASProblem(object):
         # While other components only depends on a single surface,
         # this component requires information from all surfaces because
         # each surface interacts with the others.
+        aero_states = VLMStates(surfaces=self.surfaces)
+        aero_states.ln_solver = LinearBlockGS()
         model.add_subsystem('aero_states',
-                 VLMStates(surfaces=self.surfaces),
+                 aero_states,
                  promotes=['circulations', 'v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
@@ -884,6 +886,7 @@ class OASProblem(object):
             model.connect(name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
             model.connect(name + 'perf' + '.CL', 'total_perf.' + name + 'CL')
             model.connect(name + 'perf' + '.CD', 'total_perf.' + name + 'CD')
+            model.connect(name[:-1] + '.structural_weight', 'total_perf.' + name + 'structural_weight')
             model.connect('aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
         model.add_subsystem('total_perf',
@@ -1016,10 +1019,8 @@ class OASProblem(object):
                 VLMGeometry(surface=surface),
                 promotes=['*'])
 
-            # TODO: why doesn't this work?
-            g1 = model.get_subsystem('struct_states')
-            g1.ln_solver = LinearBlockGS()
-            g1.ln_solver.options['atol'] = 1e-20
+            tmp_group.ln_solver = LinearBlockGS()
+            tmp_group.ln_solver.options['atol'] = 1e-20
 
             name = name_orig
             coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
@@ -1078,7 +1079,6 @@ class OASProblem(object):
             model.connect(name + 'perf.CD', 'total_perf.' + name + 'CD')
             model.connect('coupled.aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
 
-            # TODO: figure out why these connections are not working properly
             # Connect parameters from the 'coupled' group to the performance
             # groups for the individual surfaces.
             model.connect(name[:-1] + '.nodes', name + 'perf.nodes')
@@ -1098,9 +1098,9 @@ class OASProblem(object):
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyIterativeSolver()
         coupled.ln_solver.preconditioner = LinearBlockGS()
-        # TODO: figure out why these don't work
-        # coupled.aero_states.ln_solver = LinearBlockGS()
-        # coupled.nl_solver = NonlinearBlockGS()
+
+        coupled.nl_solver = NonlinearBlockGS()
+        coupled.nl_solver.options['maxiter'] = 100
 
         # This is only available in the most recent version of OpenMDAO.
         # It may help converge tightly coupled systems when using NLGS.

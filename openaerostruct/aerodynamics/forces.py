@@ -138,7 +138,10 @@ class Forces(ExplicitComponent):
 
                 circ = inputs['circulations']
                 alpha = inputs['alpha'] * np.pi / 180.
-                alphad = d_inputs['alpha'] * np.pi / 180.
+                if 'alpha' in d_inputs:
+                    alphad = d_inputs['alpha'] * np.pi / 180.
+                else:
+                    alphad = 0.
                 cosa = np.cos(alpha)
                 sina = np.sin(alpha)
                 cosad = -sina * alphad
@@ -161,10 +164,19 @@ class Forces(ExplicitComponent):
 
                 # Add the freestream velocity to the induced velocity so that
                 # self.v is the total velocity seen at the point
-                vd[:, 0] += cosa * d_inputs['v']
-                vd[:, 2] += sina * d_inputs['v']
+                if 'v' in d_inputs:
+                    v_d = d_inputs['v']
+                else:
+                    v_d = 0.
+                vd[:, 0] += cosa * v_d
+                vd[:, 2] += sina * v_d
                 vd[:, 0] += cosad * v
                 vd[:, 2] += sinad * v
+
+                if 'rho' in d_inputs:
+                    rho_d = d_inputs['rho']
+                else:
+                    rho_d = 0.
 
                 i = 0
                 rho = inputs['rho'].real
@@ -181,7 +193,7 @@ class Forces(ExplicitComponent):
 
                     sec_forces, sec_forcesd = OAS_API.oas_api.forcecalc_d(self.v[i:i+num_panels, :], vd[i:i+num_panels],
                                                 circ[i:i+num_panels], d_inputs['circulations'][i:i+num_panels],
-                                                rho, d_inputs['rho'],
+                                                rho, rho_d,
                                                 b_pts, d_inputs[name+'b_pts'])
 
                     d_outputs[name+'sec_forces'] += sec_forcesd.reshape((nx-1, ny-1, 3), order='F')

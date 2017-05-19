@@ -108,8 +108,13 @@ class DisplacementTransfer(ExplicitComponent):
 
             w = self.surface['fem_origin']
 
+            if 'mesh' in d_inputs:
+                mesh_d = d_inputs['mesh']
+            else:
+                mesh_d = np.zeros(mesh.shape)
+
             if mode == 'fwd':
-                a, b = OAS_API.oas_api.transferdisplacements_d(mesh, d_inputs['mesh'], disp, d_inputs['disp'], w)
+                a, b = OAS_API.oas_api.transferdisplacements_d(mesh, mesh_d, disp, d_inputs['disp'], w)
                 d_outputs['def_mesh'] += b.real
 
             if mode == 'rev':

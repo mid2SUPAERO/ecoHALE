@@ -94,3 +94,4 @@ class Equilibrium(ExplicitComponent):
             name = surface['name']
             partials['total_weight', name + 'structural_weight'] = 1.0
             partials['L_equals_W', name + 'L'] = -1.0 / tot_weight
+            partials['L_equals_W', name + 'structural_weight'] = L / tot_weight**2

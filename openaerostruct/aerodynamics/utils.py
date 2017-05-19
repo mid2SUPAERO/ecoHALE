@@ -293,7 +293,10 @@ def _assemble_AIC_mtx_d(mtxd, params, d_inputs, d_outputs, surfaces, skip=False)
     """
     if fortran_flag:
         alpha = params['alpha'][0]
-        alphad = d_inputs['alpha'][0]
+        if 'alpha' in d_inputs:
+            alphad = d_inputs['alpha'][0]
+        else:
+            alphad = 0.
 
         i_panels_ = 0
 
