@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import Component, Group, IndepVarComp, Problem, ScipyOptimizer
 from scipy.linalg import lu_factor, lu_solve
-import OAS_API
+from openaerostruct.fortran import OAS_API
 
 nx = 2
 ny = 3

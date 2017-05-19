@@ -80,7 +80,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
     data_type = float
 except:

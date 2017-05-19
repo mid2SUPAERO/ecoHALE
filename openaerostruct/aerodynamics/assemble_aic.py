@@ -7,7 +7,7 @@ from openaerostruct.aerodynamics.utils import _assemble_AIC_mtx, _assemble_AIC_m
     _assemble_AIC_mtx_d
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
 except:
     fortran_flag = False

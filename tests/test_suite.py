@@ -12,7 +12,7 @@ sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from openaerostruct.integration.integration import OASProblem
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
 except:
     fortran_flag = False

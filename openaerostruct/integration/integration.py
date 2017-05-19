@@ -53,7 +53,7 @@ from openaerostruct.functionals.total_aero_performance import TotalAeroPerforman
 # from gs_newton import HybridGSNewton
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
     data_type = float
 except:
@@ -639,7 +639,7 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        self.prob.check_partial_derivs(compact_print=True)
+        # self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
@@ -1133,7 +1133,7 @@ class OASProblem(object):
                 VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
                 promotes=['*'])
 
-            model.add_subsystem(name_orig + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
+            model.add_subsystem(name + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all

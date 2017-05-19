@@ -15,7 +15,7 @@ from openmdao.api import Component, Group
 from scipy.linalg import lu_factor, lu_solve
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
     data_type = float
 except:

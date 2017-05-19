@@ -16,6 +16,7 @@ setup(name='openaerostruct',
         'openaerostruct/aerodynamics',
         'openaerostruct/functionals',
         'openaerostruct/integration',
+        'openaerostruct/fortran',
     ],
     # TODO: fix this with the correct requires
     install_requires=[],

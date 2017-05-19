@@ -6,7 +6,7 @@ from openaerostruct.structures.utils import \
     _assemble_system
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
     data_type = float
 except:

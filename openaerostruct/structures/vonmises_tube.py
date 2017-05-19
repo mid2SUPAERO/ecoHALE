@@ -6,7 +6,7 @@ from openmdao.api import ExplicitComponent
 from openaerostruct.structures.utils import norm, unit
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
     data_type = float
 except:

@@ -4,7 +4,7 @@ import numpy as np
 from openmdao.api import ExplicitComponent
 
 try:
-    import OAS_API
+    from openaerostruct.fortran import OAS_API
     fortran_flag = True
 except:
     fortran_flag = False
