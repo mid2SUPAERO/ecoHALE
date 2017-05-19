@@ -20,9 +20,9 @@ class TotalAeroPerformance(Group):
         with_viscous = prob_dict['with_viscous']
         surfaces = self.metadata['surfaces']
 
-        self.add_subsystem('moment',
-                 MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
         self.add_subsystem('CL_CD',
                  TotalLiftDrag(surfaces=surfaces, prob_dict=prob_dict),
+                 promotes=['*'])
+        self.add_subsystem('moment',
+                 MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
                  promotes=['*'])

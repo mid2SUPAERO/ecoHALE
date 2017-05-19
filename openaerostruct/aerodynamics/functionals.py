@@ -19,18 +19,18 @@ class VLMFunctionals(Group):
         with_viscous = self.metadata['prob_dict']['with_viscous']
         surface = self.metadata['surface']
 
+        self.add_subsystem('viscousdrag',
+            ViscousDrag(surface=surface, with_viscous=with_viscous),
+            promotes=['*'])
         self.add_subsystem('liftdrag',
             LiftDrag(surface=surface),
             promotes=['*'])
         self.add_subsystem('coeffs',
             Coeffs(surface=surface),
             promotes=['*'])
-        self.add_subsystem('CL',
-            TotalLift(surface=surface),
-            promotes=['*'])
-        self.add_subsystem('viscousdrag',
-            ViscousDrag(surface=surface, with_viscous=with_viscous),
-            promotes=['*'])
         self.add_subsystem('CD',
             TotalDrag(surface=surface),
+            promotes=['*'])
+        self.add_subsystem('CL',
+            TotalLift(surface=surface),
             promotes=['*'])

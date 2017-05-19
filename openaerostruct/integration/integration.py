@@ -761,7 +761,7 @@ class OASProblem(object):
             'calculation. If only inviscid drag is desired, set with_viscous ' +
             'flag to False.')
 
-        indep_var_comp = IndepVarComp('indep_vars')
+        indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=self.prob_dict['v'])
         indep_var_comp.add_output('alpha', val=self.prob_dict['alpha'])
         indep_var_comp.add_output('M', val=self.prob_dict['M'])
@@ -793,7 +793,7 @@ class OASProblem(object):
                     desvar_names.append(''.join(desvar.split('.')[1:]))
 
             # Add independent variables that do not belong to a specific component
-            indep_var_comp = IndepVarComp('indep_vars')
+            indep_var_comp = IndepVarComp()
             indep_var_comp.add_output('disp', val=surface['disp'])
             for var in surface['geo_vars']:
                 if var in desvar_names or var in surface['initial_geo']:
@@ -917,7 +917,7 @@ class OASProblem(object):
         self.prob.model = model
 
         # Add problem information as an independent variables component
-        indep_var_comp = IndepVarComp('indep_vars')
+        indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=self.prob_dict['v'])
         indep_var_comp.add_output('alpha', val=self.prob_dict['alpha'])
         indep_var_comp.add_output('M', val=self.prob_dict['M'])
