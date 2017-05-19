@@ -2,7 +2,7 @@ from __future__ import print_function, division
 import numpy as np
 from numpy import cos, sin, tan
 
-from CRM_definitions import get_crm_points
+from openaerostruct.geometry.CRM_definitions import get_crm_points
 
 
 def rotate(mesh, theta_y, symmetry, rotate_x=True):
