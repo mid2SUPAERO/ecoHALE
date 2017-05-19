@@ -100,13 +100,6 @@ class DisplacementTransfer(ExplicitComponent):
 
         outputs['def_mesh'] = def_mesh
 
-        print('disp input mesh')
-        print(inputs['mesh'])
-        print()
-        print('output mesh')
-        print(def_mesh)
-        print()
-
     if fortran_flag:
 
         def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):

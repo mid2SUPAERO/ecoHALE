@@ -132,20 +132,12 @@ class GeometryMesh(ExplicitComponent):
         # Dirty hack for now; TODO: fix this
         for key in self.geo_params:
             try:
-                self.geo_params[key] = float(inputs[key])
+                if inputs[key].shape[0] > 1:
+                    self.geo_params[key] = inputs[key]
+                else:
+                    self.geo_params[key] = inputs[key][0]
             except:
                 pass
-
-        # print()
-        # print(dir(inputs))
-        # print()
-        # print(inputs.get_data())
-        # print(inputs._data)
-        # # for item in inputs:
-        # #     print(inputs[item])
-        # print()
-        # print(self.geo_params)
-        # print()
 
         # This line used to work in Clippy
         # self.geo_params.update(inputs)
@@ -174,12 +166,6 @@ class GeometryMesh(ExplicitComponent):
             self.compute_radius = False
 
         outputs['mesh'] = mesh
-        print('input mesh:')
-        print(self.mesh)
-        print()
-        print('output mesh:')
-        print(mesh)
-        print()
 
     if fortran_flag:
         def compute_jacvec_product(
@@ -196,7 +182,10 @@ class GeometryMesh(ExplicitComponent):
             # Dirty hack for now; TODO: fix this
             for key in self.geo_params:
                 try:
-                    self.geo_params[key] = float(inputs[key])
+                    if inputs[key].shape[0] > 1:
+                        self.geo_params[key] = inputs[key]
+                    else:
+                        self.geo_params[key] = inputs[key][0]
                 except:
                     pass
 

@@ -80,9 +80,6 @@ class Circulations(ImplicitComponent):
         # lu factorization for use with solve_linear
         self._lup = linalg.lu_factor(inputs['AIC'])
         outputs['circulations'] = linalg.lu_solve(self._lup, inputs['rhs'])
-        print()
-        print('circ')
-        print(outputs['circulations'])
 
     def linearize(self, inputs, outputs, J):
         """

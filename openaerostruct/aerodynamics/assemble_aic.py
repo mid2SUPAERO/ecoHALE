@@ -128,11 +128,6 @@ class AssembleAIC(ExplicitComponent):
 
         outputs['AIC'] = self.mtx
 
-        print('assemble AIC')
-        print(outputs['AIC'])
-        print(outputs['rhs'])
-
-
     if fortran_flag:
         def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
             if mode == 'fwd':

@@ -798,7 +798,6 @@ class OASProblem(object):
             for var in surface['geo_vars']:
                 if var in desvar_names or var in surface['initial_geo']:
                     indep_var_comp.add_output(var, val=surface[var])
-                    print(var, surface[var])
 
             # Add aero components to the surface-specific group
             tmp_group.add_subsystem('indep_vars',
