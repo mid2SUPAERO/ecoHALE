@@ -174,6 +174,12 @@ class GeometryMesh(ExplicitComponent):
             self.compute_radius = False
 
         outputs['mesh'] = mesh
+        print('input mesh:')
+        print(self.mesh)
+        print()
+        print('output mesh:')
+        print(mesh)
+        print()
 
     if fortran_flag:
         def compute_jacvec_product(

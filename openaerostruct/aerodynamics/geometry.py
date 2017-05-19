@@ -143,6 +143,18 @@ class VLMGeometry(ExplicitComponent):
         outputs['S_ref'] = S_ref
         outputs['chords'] = chords
 
+        print('vlm geometry')
+        print(mesh)
+        print(outputs['b_pts'])
+        print(outputs['c_pts'])
+        print(outputs['widths'])
+        print(outputs['cos_sweep'])
+        print(outputs['lengths'])
+        print(outputs['normals'])
+        print(outputs['S_ref'])
+        print(outputs['chords'])
+        print()
+
     def compute_partial_derivs(self, inputs, outputs, partials):
         """ Jacobian for VLM geometry."""
 

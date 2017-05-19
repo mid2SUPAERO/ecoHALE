@@ -130,3 +130,4 @@ class Bsplines(ExplicitComponent):
     def compute(self, inputs, outputs):
         meta = self.metadata
         outputs[meta['out_name']] = meta['jac'] * inputs[meta['in_name']]
+        print('twist bsp', outputs[meta['out_name']])
