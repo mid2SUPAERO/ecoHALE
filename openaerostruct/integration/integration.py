@@ -410,7 +410,7 @@ class OASProblem(object):
         # Store updated values
         surf_dict['num_x'] = int(num_x)
         surf_dict['num_y'] = int(num_y)
-        surf_dict['mesh'] = mesh
+        # surf_dict['mesh'] = mesh * (1+np.random.random_sample(mesh.shape))
 
         # Compute and set initial radii
         radius = radii(mesh, surf_dict['t_over_c'])
@@ -639,7 +639,7 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivs(compact_print=True)
+        self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
