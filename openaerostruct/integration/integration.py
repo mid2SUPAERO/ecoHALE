@@ -1126,12 +1126,13 @@ class OASProblem(object):
             # the coupled system
             tmp_group = Group()
 
-            tmp_group.add_subsystem('struct_funcs',
-                SpatialBeamFunctionals(surface=surface),
-                promotes=['*'])
             tmp_group.add_subsystem('aero_funcs',
                 VLMFunctionals(surface=surface, prob_dict=self.prob_dict),
                 promotes=['*'])
+            tmp_group.add_subsystem('struct_funcs',
+                SpatialBeamFunctionals(surface=surface),
+                promotes=['*'])
+
 
             model.add_subsystem(name + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 

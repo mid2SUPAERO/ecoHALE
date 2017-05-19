@@ -21,15 +21,16 @@ class SpatialBeamFunctionals(Group):
         # self.add_subsystem('energy',
         #          Energy(surface=surface),
         #          promotes=['*'])
+        self.add_subsystem('thicknessconstraint',
+                 NonIntersectingThickness(surface=surface),
+                 promotes=['*'])
         self.add_subsystem('structural_weight',
                  Weight(surface=surface),
                  promotes=['*'])
         self.add_subsystem('vonmises',
                  VonMisesTube(surface=surface),
                  promotes=['*'])
-        self.add_subsystem('thicknessconstraint',
-                 NonIntersectingThickness(surface=surface),
-                 promotes=['*'])
+
         # The following component has not been fully tested so we leave it
         # commented out for now. Use at own risk.
         # self.add_subsystem('sparconstraint',
