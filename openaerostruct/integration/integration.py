@@ -639,7 +639,7 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivs(compact_print=True)
+        self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
@@ -871,7 +871,6 @@ class OASProblem(object):
             # Connect the results from 'aero_states' to the performance groups
             model.connect('aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
 
-            # TODO: figure out why these aren't working correctly
             # Connect S_ref for performance calcs
             model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
             model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
@@ -1016,9 +1015,11 @@ class OASProblem(object):
             tmp_group.add_subsystem('aero_geom',
                 VLMGeometry(surface=surface),
                 promotes=['*'])
+
             # TODO: why doesn't this work?
-            # tmp_group.struct_states.ln_solver = LinearBlockGS()
-            # tmp_group.struct_states.ln_solver.options['atol'] = 1e-20
+            g1 = model.get_subsystem('struct_states')
+            g1.ln_solver = LinearBlockGS()
+            g1.ln_solver.options['atol'] = 1e-20
 
             name = name_orig
             coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
@@ -1065,7 +1066,6 @@ class OASProblem(object):
             # Connect aerodyamic mesh to coupled group mesh
             model.connect(name[:-1] + '.mesh', 'coupled.' + name[:-1] + '.mesh')
 
-            # TODO: find out why these connections are not working properly
             # Connect performance calculation variables
             model.connect(name[:-1] + '.radius', name + 'perf.radius')
             model.connect(name[:-1] + '.A', name + 'perf.A')
