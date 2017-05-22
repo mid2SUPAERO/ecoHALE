@@ -148,8 +148,11 @@ class AssembleAIC(ExplicitComponent):
                     num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
                     flattened_normals[i:i+num_panels, :] = \
                         inputs[name+'normals'].reshape(-1, 3, order='F')
-                    flattened_normalsd[i:i+num_panels, :] = \
-                        d_inputs[name+'normals'].reshape(-1, 3, order='F')
+                    if name+'normals' in d_inputs:
+                        flattened_normalsd[i:i+num_panels, :] = \
+                            d_inputs[name+'normals'].reshape(-1, 3, order='F')
+                    else:
+                        flattened_normalsd[i:i+num_panels, :] = 0.
                     i += num_panels
 
                 # Construct a matrix that is the AIC_mtx dotted by the normals at each

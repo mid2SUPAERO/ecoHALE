@@ -142,6 +142,11 @@ class Forces(ExplicitComponent):
                     alphad = d_inputs['alpha'] * np.pi / 180.
                 else:
                     alphad = 0.
+
+                if 'circulations' in d_inputs:
+                    circ_d = d_inputs['circulations']
+                else:
+                    circ_d = np.zeros(circ.shape)
                 cosa = np.cos(alpha)
                 sina = np.sin(alpha)
                 cosad = -sina * alphad
@@ -160,7 +165,7 @@ class Forces(ExplicitComponent):
                 # bound vortex filaments
                 for ind in range(3):
                     vd[:, ind] += mtxd[:, :, ind].dot(circ)
-                    vd[:, ind] += self.mtx[:, :, ind].real.dot(d_inputs['circulations'])
+                    vd[:, ind] += self.mtx[:, :, ind].real.dot(circ_d)
 
                 # Add the freestream velocity to the induced velocity so that
                 # self.v is the total velocity seen at the point
@@ -188,13 +193,17 @@ class Forces(ExplicitComponent):
                     num_panels = (nx - 1) * (ny - 1)
 
                     b_pts = inputs[name+'b_pts']
+                    if name+'b_pts' in d_inputs:
+                        b_pts_d = d_inputs[name+'b_pts']
+                    else:
+                        b_pts_d = np.zeros(b_pts.shape)
 
                     sec_forces = outputs[name+'sec_forces'].real
 
                     sec_forces, sec_forcesd = OAS_API.oas_api.forcecalc_d(self.v[i:i+num_panels, :], vd[i:i+num_panels],
-                                                circ[i:i+num_panels], d_inputs['circulations'][i:i+num_panels],
+                                                circ[i:i+num_panels], circ_d[i:i+num_panels],
                                                 rho, rho_d,
-                                                b_pts, d_inputs[name+'b_pts'])
+                                                b_pts, b_pts_d)
 
                     d_outputs[name+'sec_forces'] += sec_forcesd.reshape((nx-1, ny-1, 3), order='F')
                     i += num_panels

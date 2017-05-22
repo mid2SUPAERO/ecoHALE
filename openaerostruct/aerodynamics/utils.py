@@ -316,8 +316,14 @@ def _assemble_AIC_mtx_d(mtxd, params, d_inputs, d_outputs, surfaces, skip=False)
             mesh = params[name_+'def_mesh']
             bpts = params[name_+'b_pts']
 
-            meshd = d_inputs[name_+'def_mesh']
-            bptsd = d_inputs[name_+'b_pts']
+            if name_+'def_mesh' in d_inputs:
+                meshd = d_inputs[name_+'def_mesh']
+            else:
+                meshd = np.zeros(mesh.shape)
+            if name_+'b_pts' in d_inputs:
+                bptsd = d_inputs[name_+'b_pts']
+            else:
+                bptsd = np.zeros(bpts.shape)
 
             # Set a counter to know where to index the sub-matrix within the full mtx
             i_panels = 0
@@ -338,11 +344,17 @@ def _assemble_AIC_mtx_d(mtxd, params, d_inputs, d_outputs, surfaces, skip=False)
                     # Find the midpoints of the bound points, used in drag computations
                     pts = (params[name+'b_pts'][:, 1:, :] + \
                         params[name+'b_pts'][:, :-1, :]) / 2
-                    ptsd = (d_inputs[name+'b_pts'][:, 1:, :] + \
-                        d_inputs[name+'b_pts'][:, :-1, :]) / 2
+                    if name+'b_pts' in d_inputs:
+                        ptsd = (d_inputs[name+'b_pts'][:, 1:, :] + \
+                            d_inputs[name+'b_pts'][:, :-1, :]) / 2
+                    else:
+                        ptsd = np.zeros((nx-1, ny-1, 3))
                 else:
                     pts = params[name+'c_pts']
-                    ptsd = d_inputs[name+'c_pts']
+                    if name+'c_pts' in d_inputs:
+                        ptsd = d_inputs[name+'c_pts']
+                    else:
+                        ptsd = np.zeros(pts.shape)
 
                 _, small_mat = OAS_API.oas_api.assembleaeromtx_d(alpha, alphad, pts, ptsd,
                                                               bpts, bptsd, mesh, meshd,

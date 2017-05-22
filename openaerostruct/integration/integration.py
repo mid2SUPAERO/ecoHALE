@@ -639,7 +639,7 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        self.prob.check_partial_derivs(compact_print=True)
+        # self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
@@ -1095,15 +1095,15 @@ class OASProblem(object):
             model.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
 
         # Set solver properties for the coupled group
-        coupled.ln_solver = ScipyIterativeSolver()
-        coupled.ln_solver.preconditioner = LinearBlockGS()
+        coupled.ln_solver = LinearBlockGS()
+        # coupled.ln_solver.preconditioner = LinearBlockGS()
 
         coupled.nl_solver = NonlinearBlockGS()
         coupled.nl_solver.options['maxiter'] = 100
 
-        coupled.jacobian = DenseJacobian()
-        coupled.ln_solver = DirectSolver()
-        coupled.nl_solver = NewtonSolver(solve_subsystems=True)
+        # coupled.jacobian = DenseJacobian()
+        # coupled.ln_solver = DirectSolver()
+        # coupled.nl_solver = NewtonSolver(solve_subsystems=True)
 
         # This is only available in the most recent version of OpenMDAO.
         # It may help converge tightly coupled systems when using NLGS.
@@ -1118,6 +1118,9 @@ class OASProblem(object):
             coupled.ln_solver.options['iprint'] = 1
         if self.prob_dict['print_level']:
             coupled.nl_solver.options['iprint'] = 1
+
+        coupled.ln_solver.options['iprint'] = 2
+        coupled.nl_solver.options['iprint'] = 2
 
         # Add the coupled group to the model problem
         model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
