@@ -22,7 +22,7 @@ import numpy as np
 # =============================================================================
 # OpenMDAO modules
 # =============================================================================
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver # TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian # TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
 
@@ -1097,6 +1097,9 @@ class OASProblem(object):
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyIterativeSolver()
         coupled.ln_solver.preconditioner = LinearBlockGS()
+
+        coupled.jacobian = DenseJacobian()
+        coupled.ln_solver = DirectSolver()
 
         coupled.nl_solver = NonlinearBlockGS()
         coupled.nl_solver.options['maxiter'] = 100
