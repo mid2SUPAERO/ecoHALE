@@ -1098,11 +1098,12 @@ class OASProblem(object):
         coupled.ln_solver = ScipyIterativeSolver()
         coupled.ln_solver.preconditioner = LinearBlockGS()
 
-        coupled.jacobian = DenseJacobian()
-        coupled.ln_solver = DirectSolver()
-
         coupled.nl_solver = NonlinearBlockGS()
         coupled.nl_solver.options['maxiter'] = 100
+
+        coupled.jacobian = DenseJacobian()
+        coupled.ln_solver = DirectSolver()
+        coupled.nl_solver = NewtonSolver(solve_subsystems=True)
 
         # This is only available in the most recent version of OpenMDAO.
         # It may help converge tightly coupled systems when using NLGS.
