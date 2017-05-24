@@ -100,7 +100,7 @@ class VonMisesTube(ExplicitComponent):
                 vonmises[ielem, 0] = np.sqrt(sxx0**2 + sxt**2)
                 vonmises[ielem, 1] = np.sqrt(sxx1**2 + sxt**2)
 
-    if fortran_flag:
+    if 0:
         def compute_jacvec_product(
                 self, inputs, outputs, d_inputs, d_outputs, mode):
 
@@ -124,3 +124,37 @@ class VonMisesTube(ExplicitComponent):
                     d_inputs['radius'] += radiusb
                 if 'disp' in d_inputs:
                     d_inputs['disp'] += dispb
+
+    else:
+        def compute_partial_derivs(self, inputs, outputs, partials):
+
+            for param in inputs:
+
+                d_inputs = {}
+                d_inputs[param] = inputs[param].copy()
+                d_outputs = {}
+
+                for j, val in enumerate(np.array(d_inputs[param]).flatten()):
+                    d_in_b = np.array(d_inputs[param]).flatten()
+                    d_in_b[:] = 0.
+                    d_in_b[j] = 1.
+                    d_inputs[param] = d_in_b.reshape(d_inputs[param].shape)
+
+                    radius = inputs['radius'].real
+                    disp = inputs['disp'].real
+                    nodes = inputs['nodes'].real
+                    vonmises = outputs['vonmises'].real
+                    E = self.E
+                    G = self.G
+                    x_gl = self.x_gl
+
+                    if 'nodes' not in d_inputs:
+                        d_inputs['nodes'] = inputs['nodes'] * 0
+                    if 'radius' not in d_inputs:
+                        d_inputs['radius'] = inputs['radius'] * 0
+                    if 'disp' not in d_inputs:
+                        d_inputs['disp'] = inputs['disp'] * 0
+
+                    _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(nodes, d_inputs['nodes'], radius, d_inputs['radius'], disp, d_inputs['disp'], E, G, x_gl)
+
+                    partials['vonmises', param][:, j] = vonmisesd.flatten()

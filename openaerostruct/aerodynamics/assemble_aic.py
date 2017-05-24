@@ -257,7 +257,7 @@ class AssembleAIC(ExplicitComponent):
                             fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
                     i += num_panels
 
-    if fortran_flag:
+    else:
         def compute_partial_derivs(self, inputs, outputs, partials):
 
             for param in inputs:

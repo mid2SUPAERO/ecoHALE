@@ -489,8 +489,8 @@ class OASProblem(object):
             self.prob.driver = pyOptSparseDriver()
             if self.prob_dict['optimizer'] == 'SNOPT':
                 self.prob.driver.options['optimizer'] = "SNOPT"
-                self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                                 'Major feasibility tolerance': 1.0e-8,
+                self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
+                                                 'Major feasibility tolerance': 1.0e-6,
                                                  'Major iterations limit':400,
                                                  'Minor iterations limit':2000,
                                                  'Iterations limit':1000
@@ -639,7 +639,7 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivs(compact_print=True)
+        self.prob.check_partial_derivs(compact_print=True)
         # self.prob.check_partial_derivs(compact_print=False)
 
     def setup_struct(self):
@@ -1095,14 +1095,16 @@ class OASProblem(object):
 
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyIterativeSolver()
+
         coupled.ln_solver.precon = LinearBlockGS()
 
         coupled.nl_solver = NonlinearBlockGS()
-        coupled.nl_solver.options['maxiter'] = 10
+        coupled.nl_solver.options['maxiter'] = 100
 
-        # coupled.jacobian = DenseJacobian()
+        coupled.jacobian = DenseJacobian()
         coupled.ln_solver = DirectSolver()
         coupled.nl_solver = NewtonSolver(solve_subsystems=True)
+        # coupled.nl_solver.options['maxiter'] = 3
 
         # This is only available in the most recent version of OpenMDAO.
         # It may help converge tightly coupled systems when using NLGS.

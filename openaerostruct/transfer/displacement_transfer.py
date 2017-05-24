@@ -100,7 +100,7 @@ class DisplacementTransfer(ExplicitComponent):
 
         outputs['def_mesh'] = def_mesh
 
-    if fortran_flag:
+    if 0:
 
         def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
             mesh = inputs['mesh']
@@ -129,3 +129,28 @@ class DisplacementTransfer(ExplicitComponent):
                     d_inputs['mesh'] += a.real
                 if 'disp' in d_inputs:
                     d_inputs['disp'] += b.real
+
+    else:
+        def compute_partial_derivs(self, inputs, outputs, partials):
+
+            for param in outputs:
+
+                d_outputs = {}
+                d_outputs[param] = outputs[param].copy()
+                d_inputs = {}
+
+                for j, val in enumerate(np.array(d_outputs[param]).flatten()):
+                    d_out_b = np.array(d_outputs[param]).flatten()
+                    d_out_b[:] = 0.
+                    d_out_b[j] = 1.
+                    d_outputs[param] = d_out_b.reshape(d_outputs[param].shape)
+
+                    mesh = inputs['mesh']
+                    disp = inputs['disp']
+
+                    w = self.surface['fem_origin']
+
+                    d_inputs['mesh'], d_inputs['disp'] = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, outputs['def_mesh'], d_outputs['def_mesh'])
+
+                    partials[param, 'mesh'][j, :] = d_inputs['mesh'].flatten()
+                    partials[param, 'disp'][j, :] = d_inputs['disp'].flatten()

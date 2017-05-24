@@ -264,12 +264,15 @@ class Forces(ExplicitComponent):
 
                 _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, self.surfaces, skip=True)
 
-    if fortran_flag:
+    else:
         def compute_partial_derivs(self, inputs, outputs, partials):
 
             for surface in self.surfaces:
 
                 name = surface['name']
+                nx = surface['num_x']
+                ny = surface['num_y']
+                num_panels = (nx - 1) * (ny - 1)
                 d_inputs = {}
                 sec_forcesb = np.zeros(outputs[name+'sec_forces'].shape)
 
@@ -282,6 +285,7 @@ class Forces(ExplicitComponent):
                     sec_forcesb = sec_forcesb.flatten()
                     sec_forcesb[k] = 1
                     sec_forcesb = sec_forcesb.reshape(outputs[name+'sec_forces'].shape)
+                    sec_forcesb = sec_forcesb.reshape((num_panels, 3), order='F')
 
                     circ = inputs['circulations']
                     alpha = inputs['alpha'] * np.pi / 180.

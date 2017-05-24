@@ -258,7 +258,7 @@ class GeometryMesh(ExplicitComponent):
                 if 'span' in d_inputs:
                     d_inputs['span'] += spanb
 
-    if fortran_flag:
+    else:
         def compute_partial_derivs(self, inputs, outputs, partials):
 
             # We actually use the values in self.geo_params to modify the mesh,
