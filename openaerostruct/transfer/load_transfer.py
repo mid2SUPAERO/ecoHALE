@@ -50,40 +50,65 @@ class LoadTransfer(ExplicitComponent):
         self.add_output('loads', val=np.random.rand(self.ny, 6))
 
     def initialize_partials(self):
-        self.approx_partials('*', '*')
+        if not fortran_flag:
+            self.approx_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        mesh = inputs['def_mesh']
+        mesh = inputs['def_mesh'].copy()
+        sec_forces = inputs['sec_forces'].copy()
 
-        sec_forces = inputs['sec_forces']
+        if fortran_flag:
+            loads = OAS_API.oas_api.transferloads(mesh, sec_forces, self.fem_origin)
+        else:
+            # Compute the aerodynamic centers at the quarter-chord point of each panel
+            w = 0.25
+            a_pts = 0.5 * (1-w) * mesh[:-1, :-1, :] + \
+                    0.5 *   w   * mesh[1:, :-1, :] + \
+                    0.5 * (1-w) * mesh[:-1,  1:, :] + \
+                    0.5 *   w   * mesh[1:,  1:, :]
 
-        # Compute the aerodynamic centers at the quarter-chord point of each panel
-        w = 0.25
-        a_pts = 0.5 * (1-w) * mesh[:-1, :-1, :] + \
-                0.5 *   w   * mesh[1:, :-1, :] + \
-                0.5 * (1-w) * mesh[:-1,  1:, :] + \
-                0.5 *   w   * mesh[1:,  1:, :]
+            # Compute the structural midpoints based on the fem_origin location
+            w = self.fem_origin
+            s_pts = 0.5 * (1-w) * mesh[0, :-1, :] + \
+                    0.5 *   w   * mesh[-1, :-1, :] + \
+                    0.5 * (1-w) * mesh[0,  1:, :] + \
+                    0.5 *   w   * mesh[-1,  1:, :]
 
-        # Compute the structural midpoints based on the fem_origin location
-        w = self.fem_origin
-        s_pts = 0.5 * (1-w) * mesh[0, :-1, :] + \
-                0.5 *   w   * mesh[-1, :-1, :] + \
-                0.5 * (1-w) * mesh[0,  1:, :] + \
-                0.5 *   w   * mesh[-1,  1:, :]
+            # Find the moment arm between the aerodynamic centers of each panel
+            # and the FEM elements
+            diff = a_pts - s_pts
+            moment = np.zeros((self.ny - 1, 3))
+            for ind in range(self.nx-1):
+                moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
-        # Find the moment arm between the aerodynamic centers of each panel
-        # and the FEM elmeents
-        diff = a_pts - s_pts
-        moment = np.zeros((self.ny - 1, 3))
-        for ind in range(self.nx-1):
-            moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
-
-        # Compute the loads based on the xyz forces and the computed moments
-        loads = np.zeros((self.ny, 6))
-        sec_forces_sum = np.sum(sec_forces, axis=0)
-        loads[:-1, :3] += 0.5 * sec_forces_sum[:, :]
-        loads[ 1:, :3] += 0.5 * sec_forces_sum[:, :]
-        loads[:-1, 3:] += 0.5 * moment
-        loads[ 1:, 3:] += 0.5 * moment
+            # Compute the loads based on the xyz forces and the computed moments
+            loads = np.zeros((self.ny, 6))
+            sec_forces_sum = np.sum(sec_forces, axis=0)
+            loads[:-1, :3] += 0.5 * sec_forces_sum[:, :]
+            loads[ 1:, :3] += 0.5 * sec_forces_sum[:, :]
+            loads[:-1, 3:] += 0.5 * moment
+            loads[ 1:, 3:] += 0.5 * moment
 
         outputs['loads'] = loads
+
+    def compute_partial_derivs(self, inputs, outputs, partials):
+
+        for param in outputs:
+
+            d_outputs = {}
+            d_outputs[param] = outputs[param].copy()
+            d_inputs = {}
+
+            for j, val in enumerate(np.array(d_outputs[param]).flatten()):
+                d_out_b = np.array(d_outputs[param]).flatten()
+                d_out_b[:] = 0.
+                d_out_b[j] = 1.
+                d_outputs[param] = d_out_b.reshape(d_outputs[param].shape)
+
+                def_mesh = inputs['def_mesh']
+                sec_forces = inputs['sec_forces']
+
+                d_inputs['def_mesh'], d_inputs['sec_forces'], _ = OAS_API.oas_api.transferloads_b(def_mesh, sec_forces, self.fem_origin, d_outputs['loads'])
+
+                partials[param, 'def_mesh'][j, :] = d_inputs['def_mesh'].flatten()
+                partials[param, 'sec_forces'][j, :] = d_inputs['sec_forces'].flatten()

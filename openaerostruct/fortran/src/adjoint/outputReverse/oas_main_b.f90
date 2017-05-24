@@ -1052,6 +1052,121 @@ contains
     end do
     def_mesh = def_mesh + mesh
   end subroutine transferdisplacements_main
+!  differentiation of transferloads_main in reverse (adjoint) mode (with options i4 dr8 r8):
+!   gradient     of useful results: loads sec_forces def_mesh
+!   with respect to varying inputs: loads sec_forces def_mesh
+!   rw status of diff variables: loads:in-zero sec_forces:incr
+!                def_mesh:incr
+  subroutine transferloads_main_b(nx, ny, def_mesh, def_meshb, &
+&   sec_forces, sec_forcesb, fem_origin, loads, loadsb)
+    implicit none
+! input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny&
+&   -1, 3), fem_origin
+    real(kind=8) :: def_meshb(nx, ny, 3), sec_forcesb(nx-1, ny-1, 3)
+! output
+    real(kind=8) :: loads(ny, 6)
+    real(kind=8) :: loadsb(ny, 6)
+! working
+    integer :: ind, indy
+    real(kind=8) :: w, moment(ny-1, 3), a_pts(nx-1, ny-1, 3), s_pts(ny-1&
+&   , 3)
+    real(kind=8) :: momentb(ny-1, 3), a_ptsb(nx-1, ny-1, 3), s_ptsb(ny-1&
+&   , 3)
+    real(kind=8) :: diff(3), tmp(3), sec_forces_sum(ny-1, 3)
+    real(kind=8) :: diffb(3), tmpb(3), sec_forces_sumb(ny-1, 3)
+! compute the aerodynamic centers at the quarter-chord point of each panel
+    w = 0.25
+    a_pts = 0.5*(1-w)*def_mesh(:nx-1, :ny-1, :) + 0.5*w*def_mesh(2:, :ny&
+&     -1, :) + 0.5*(1-w)*def_mesh(:nx-1, 2:, :) + 0.5*w*def_mesh(2:, 2:&
+&     , :)
+! compute the structural midpoints based on the fem_origin location
+    w = fem_origin
+    s_pts = 0.5*(1-w)*def_mesh(1, :ny-1, :) + 0.5*w*def_mesh(nx, :ny-1, &
+&     :) + 0.5*(1-w)*def_mesh(1, 2:, :) + 0.5*w*def_mesh(nx, 2:, :)
+! find the moment arm between the aerodynamic centers of each panel
+! and the fem elements
+    momentb = 0.0_8
+    momentb = 0.5*loadsb(:ny-1, 4:) + 0.5*loadsb(2:, 4:)
+    sec_forces_sumb = 0.0_8
+    sec_forces_sumb = 0.5*loadsb(:ny-1, :3) + 0.5*loadsb(2:, :3)
+    do ind=nx-1,1,-1
+      sec_forcesb(ind, :, :) = sec_forcesb(ind, :, :) + sec_forces_sumb
+    end do
+    s_ptsb = 0.0_8
+    a_ptsb = 0.0_8
+    do ind=nx-1,1,-1
+      do indy=ny-1,1,-1
+        tmpb = 0.0_8
+        tmpb = momentb(indy, :)
+        diff = a_pts(ind, indy, :) - s_pts(indy, :)
+        diffb = 0.0_8
+        call cross_b(diff, diffb, sec_forces(ind, indy, :), sec_forcesb(&
+&              ind, indy, :), tmp, tmpb)
+        a_ptsb(ind, indy, :) = a_ptsb(ind, indy, :) + diffb
+        s_ptsb(indy, :) = s_ptsb(indy, :) - diffb
+      end do
+    end do
+    def_meshb(1, 1:ny-1, :) = def_meshb(1, 1:ny-1, :) + (1-w)*0.5*s_ptsb
+    def_meshb(nx, 1:ny-1, :) = def_meshb(nx, 1:ny-1, :) + w*0.5*s_ptsb
+    def_meshb(1, 2:ny, :) = def_meshb(1, 2:ny, :) + (1-w)*0.5*s_ptsb
+    def_meshb(nx, 2:ny, :) = def_meshb(nx, 2:ny, :) + w*0.5*s_ptsb
+    w = 0.25
+    def_meshb(1:nx-1, 1:ny-1, :) = def_meshb(1:nx-1, 1:ny-1, :) + (1-w)*&
+&     0.5*a_ptsb
+    def_meshb(2:nx, 1:ny-1, :) = def_meshb(2:nx, 1:ny-1, :) + w*0.5*&
+&     a_ptsb
+    def_meshb(1:nx-1, 2:ny, :) = def_meshb(1:nx-1, 2:ny, :) + (1-w)*0.5*&
+&     a_ptsb
+    def_meshb(2:nx, 2:ny, :) = def_meshb(2:nx, 2:ny, :) + w*0.5*a_ptsb
+    loadsb = 0.0_8
+  end subroutine transferloads_main_b
+  subroutine transferloads_main(nx, ny, def_mesh, sec_forces, fem_origin&
+&   , loads)
+    implicit none
+! input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny&
+&   -1, 3), fem_origin
+! output
+    real(kind=8), intent(out) :: loads(ny, 6)
+! working
+    integer :: ind, indy
+    real(kind=8) :: w, moment(ny-1, 3), a_pts(nx-1, ny-1, 3), s_pts(ny-1&
+&   , 3)
+    real(kind=8) :: diff(3), tmp(3), sec_forces_sum(ny-1, 3)
+! compute the aerodynamic centers at the quarter-chord point of each panel
+    w = 0.25
+    a_pts = 0.5*(1-w)*def_mesh(:nx-1, :ny-1, :) + 0.5*w*def_mesh(2:, :ny&
+&     -1, :) + 0.5*(1-w)*def_mesh(:nx-1, 2:, :) + 0.5*w*def_mesh(2:, 2:&
+&     , :)
+! compute the structural midpoints based on the fem_origin location
+    w = fem_origin
+    s_pts = 0.5*(1-w)*def_mesh(1, :ny-1, :) + 0.5*w*def_mesh(nx, :ny-1, &
+&     :) + 0.5*(1-w)*def_mesh(1, 2:, :) + 0.5*w*def_mesh(nx, 2:, :)
+! find the moment arm between the aerodynamic centers of each panel
+! and the fem elements
+    moment = 0.
+    do ind=1,nx-1
+      do indy=1,ny-1
+        diff = a_pts(ind, indy, :) - s_pts(indy, :)
+        tmp = 0.
+        call cross(diff, sec_forces(ind, indy, :), tmp)
+        moment(indy, :) = moment(indy, :) + tmp
+      end do
+    end do
+! compute the loads based on the xyz forces and the computed moments
+    sec_forces_sum = 0.
+    do ind=1,nx-1
+      sec_forces_sum = sec_forces_sum + sec_forces(ind, :, :)
+    end do
+    loads = 0.
+    loads(:ny-1, :3) = loads(:ny-1, :3) + 0.5*sec_forces_sum
+    loads(2:, :3) = loads(2:, :3) + 0.5*sec_forces_sum
+    loads(:ny-1, 4:) = loads(:ny-1, 4:) + 0.5*moment
+    loads(2:, 4:) = loads(2:, 4:) + 0.5*moment
+  end subroutine transferloads_main
 !  differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: k
 !   with respect to varying inputs: j k nodes iy iz a

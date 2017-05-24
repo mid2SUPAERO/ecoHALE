@@ -474,4 +474,53 @@ contains
 
   end subroutine transferdisplacements_b
 
+  subroutine transferloads(nx, ny, def_mesh, sec_forces, fem_origin, loads)
+
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny-1, 3), fem_origin
+
+    ! Output
+    real(kind=8), intent(out) :: loads(ny, 6)
+
+    call transferloads_main(nx, ny, def_mesh, sec_forces, fem_origin, loads)
+
+  end subroutine
+
+  subroutine transferloads_b(nx, ny, def_mesh, def_meshb, sec_forces, sec_forcesb, fem_origin, loads, loadsb)
+
+    use oas_main_b, only: transferloads_main_b
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny-1, 3), fem_origin
+    real(kind=8), intent(in) :: loadsb(ny, 6)
+
+    ! Output
+    real(kind=8), intent(out) :: loads(ny, 6), def_meshb(nx, ny, 3), sec_forcesb(nx-1, ny-1, 3)
+
+    call transferloads_main_b(nx, ny, def_mesh, def_meshb, sec_forces, sec_forcesb, fem_origin, loads, loadsb)
+
+  end subroutine
+
+  subroutine transferloads_d(nx, ny, def_mesh, def_meshd, sec_forces, sec_forcesd, fem_origin, loads, loadsd)
+
+    use oas_main_d, only: transferloads_main_d
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny-1, 3), fem_origin
+    real(kind=8), intent(in) :: def_meshd(nx, ny, 3), sec_forcesd(nx-1, ny-1, 3)
+
+    ! Output
+    real(kind=8), intent(out) :: loads(ny, 6), loadsd(ny, 6)
+
+    call transferloads_main_d(nx, ny, def_mesh, def_meshd, sec_forces, sec_forcesd, fem_origin, loads, loadsd)
+
+  end subroutine
+
 end module

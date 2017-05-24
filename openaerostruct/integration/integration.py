@@ -268,7 +268,7 @@ class OASProblem(object):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
 
@@ -1018,6 +1018,8 @@ class OASProblem(object):
                 VLMGeometry(surface=surface),
                 promotes=['*'])
 
+            # tmp_group.set_order(['def_mesh', 'aero_geom', 'struct_states'])
+
             tmp_group.ln_solver = LNRunOnce()
 
             name = name_orig
@@ -1093,13 +1095,14 @@ class OASProblem(object):
             model.connect('coupled.' + name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
             model.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
 
+        # coupled.set_order(['wing', 'wing_loads', 'aero_states'])
+
         # Set solver properties for the coupled group
         coupled.ln_solver = ScipyIterativeSolver()
-
         coupled.ln_solver.precon = LinearBlockGS()
 
         coupled.nl_solver = NonlinearBlockGS()
-        coupled.nl_solver.options['maxiter'] = 100
+        coupled.nl_solver.options['maxiter'] = 20
 
         coupled.jacobian = DenseJacobian()
         coupled.ln_solver = DirectSolver()
