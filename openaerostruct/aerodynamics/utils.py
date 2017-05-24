@@ -287,7 +287,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
 
     mtx /= 4 * np.pi
 
-def _assemble_AIC_mtx_d(mtxd, params, d_inputs, d_outputs, surfaces, skip=False):
+def _assemble_AIC_mtx_d(mtxd, params, d_inputs, surfaces, skip=False):
     """
     Differentiated code to get the forward mode seeds for the AIC matrix assembly.
     """
@@ -370,7 +370,7 @@ def _assemble_AIC_mtx_d(mtxd, params, d_inputs, d_outputs, surfaces, skip=False)
 
         mtxd /= 4 * np.pi
 
-def _assemble_AIC_mtx_b(mtxb, params, d_inputs, d_outputs, surfaces, skip=False):
+def _assemble_AIC_mtx_b(mtxb, params, d_inputs, surfaces, skip=False):
     """
     Differentiated code to get the reverse mode seeds for the AIC matrix assembly.
     """

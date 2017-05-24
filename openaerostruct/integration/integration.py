@@ -22,7 +22,7 @@ import numpy as np
 # =============================================================================
 # OpenMDAO modules
 # =============================================================================
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian # TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LNRunOnce# TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
 
@@ -847,7 +847,7 @@ class OASProblem(object):
         # this component requires information from all surfaces because
         # each surface interacts with the others.
         aero_states = VLMStates(surfaces=self.surfaces)
-        aero_states.ln_solver = LinearBlockGS()
+        aero_states.ln_solver = LNRunOnce()
         model.add_subsystem('aero_states',
                  aero_states,
                  promotes=['circulations', 'v', 'alpha', 'rho'])
@@ -1018,8 +1018,7 @@ class OASProblem(object):
                 VLMGeometry(surface=surface),
                 promotes=['*'])
 
-            tmp_group.ln_solver = LinearBlockGS()
-            tmp_group.ln_solver.options['atol'] = 1e-20
+            tmp_group.ln_solver = LNRunOnce()
 
             name = name_orig
             coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
@@ -1095,15 +1094,15 @@ class OASProblem(object):
             model.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
 
         # Set solver properties for the coupled group
-        coupled.ln_solver = LinearBlockGS()
-        # coupled.ln_solver.preconditioner = LinearBlockGS()
+        coupled.ln_solver = ScipyIterativeSolver()
+        coupled.ln_solver.precon = LinearBlockGS()
 
         coupled.nl_solver = NonlinearBlockGS()
-        coupled.nl_solver.options['maxiter'] = 100
+        coupled.nl_solver.options['maxiter'] = 10
 
         # coupled.jacobian = DenseJacobian()
-        # coupled.ln_solver = DirectSolver()
-        # coupled.nl_solver = NewtonSolver(solve_subsystems=True)
+        coupled.ln_solver = DirectSolver()
+        coupled.nl_solver = NewtonSolver(solve_subsystems=True)
 
         # This is only available in the most recent version of OpenMDAO.
         # It may help converge tightly coupled systems when using NLGS.

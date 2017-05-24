@@ -128,14 +128,14 @@ class AssembleAIC(ExplicitComponent):
 
         outputs['AIC'] = self.mtx
 
-    if fortran_flag:
+    if 0:
         def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
             if mode == 'fwd':
 
                 AIC_mtxd = np.zeros(self.AIC_mtx.shape)
 
                 # Actually assemble the AIC matrix
-                _assemble_AIC_mtx_d(AIC_mtxd, inputs, d_inputs, d_outputs, self.surfaces)
+                _assemble_AIC_mtx_d(AIC_mtxd, inputs, d_inputs, self.surfaces)
 
                 # Construct an flattened array with the normals of each surface in order
                 # so we can do the normals with velocities to set up the right-hand-side
@@ -215,7 +215,7 @@ class AssembleAIC(ExplicitComponent):
                         np.sum(self.AIC_mtx[:, :, ind].real * d_outputs['AIC'], axis=1).T
 
                 # Actually assemble the AIC matrix
-                _assemble_AIC_mtx_b(AIC_mtxb, inputs, d_inputs, d_outputs, self.surfaces)
+                _assemble_AIC_mtx_b(AIC_mtxb, inputs, d_inputs, self.surfaces)
 
                 # Obtain the freestream velocity direction and magnitude by taking
                 # alpha into account
@@ -256,3 +256,90 @@ class AssembleAIC(ExplicitComponent):
                         d_inputs[name+'normals'] += \
                             fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
                     i += num_panels
+
+    if fortran_flag:
+        def compute_partial_derivs(self, inputs, outputs, partials):
+
+            for param in inputs:
+
+                d_inputs = {}
+                d_inputs[param] = inputs[param].copy()
+                d_outputs = {}
+
+                if isinstance(d_inputs[param], np.ndarray):
+                    for j, val in enumerate(np.array(d_inputs[param]).flatten()):
+                        d_in_b = np.array(d_inputs[param]).flatten()
+                        d_in_b[:] = 0.
+                        d_in_b[j] = 1.
+                        d_inputs[param] = d_in_b.reshape(d_inputs[param].shape)
+
+                        AIC_mtxd = np.zeros(self.AIC_mtx.shape)
+
+                        # Actually assemble the AIC matrix
+                        _assemble_AIC_mtx_d(AIC_mtxd, inputs, d_inputs, self.surfaces)
+
+                        # Construct an flattened array with the normals of each surface in order
+                        # so we can do the normals with velocities to set up the right-hand-side
+                        # of the system.
+                        flattened_normals = np.zeros((self.tot_panels, 3))
+                        flattened_normalsd = np.zeros((self.tot_panels, 3))
+                        i = 0
+                        for surface in self.surfaces:
+                            name = surface['name']
+                            num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
+                            flattened_normals[i:i+num_panels, :] = \
+                                inputs[name+'normals'].reshape(-1, 3, order='F')
+                            if name+'normals' in d_inputs:
+                                flattened_normalsd[i:i+num_panels, :] = \
+                                    d_inputs[name+'normals'].reshape(-1, 3, order='F')
+                            else:
+                                flattened_normalsd[i:i+num_panels, :] = 0.
+                            i += num_panels
+
+                        # Construct a matrix that is the AIC_mtx dotted by the normals at each
+                        # collocation point. This is used to compute the circulations
+                        self.mtx[:, :] = 0.
+                        for ind in range(3):
+                            self.mtx[:, :] += (AIC_mtxd[:, :, ind].T *
+                                flattened_normals[:, ind]).T
+                            self.mtx[:, :] += (self.AIC_mtx[:, :, ind].T *
+                                flattened_normalsd[:, ind]).T
+
+                        # Obtain the freestream velocity direction and magnitude by taking
+                        # alpha into account
+                        alpha = inputs['alpha'][0] * np.pi / 180.
+                        if 'alpha' in d_inputs:
+                            alphad = d_inputs['alpha'][0] * np.pi / 180.
+                        else:
+                            alphad = 0.
+                        cosa = np.cos(alpha)
+                        sina = np.sin(alpha)
+                        cosad = -sina * alphad
+                        sinad = cosa * alphad
+
+                        freestream_direction = np.array([cosa, 0., sina])
+                        v_inf = inputs['v'][0] * freestream_direction
+                        if 'v' in d_inputs:
+                            v_infd = d_inputs['v'][0] * freestream_direction
+                        else:
+                            v_infd = np.zeros((3))
+                        v_infd += inputs['v'][0] * np.array([cosad, 0., sinad])
+
+                        # Populate the right-hand side of the linear system with the
+                        # expected velocities at each collocation point
+                        d_outputs['rhs'] = -flattened_normalsd.\
+                            reshape(-1, 3, order='F').dot(v_inf)
+                        d_outputs['rhs'] += -flattened_normals.\
+                            reshape(-1, 3, order='F').dot(v_infd)
+
+                        d_outputs['AIC'] = self.mtx
+
+                        partials['AIC', param][:, j] = d_outputs['AIC'].flatten()
+                        if 'mesh' not in param:
+                            partials['rhs', param][:, j] = d_outputs['rhs'].flatten()
+
+                else:
+                    d_inputs[param] = 1.
+
+                    partials['AIC', param] = d_outputs['AIC'].flatten()
+                    partials['rhs', param] = d_outputs['rhs'].flatten()

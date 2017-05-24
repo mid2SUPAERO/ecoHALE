@@ -167,7 +167,7 @@ class GeometryMesh(ExplicitComponent):
 
         outputs['mesh'] = mesh
 
-    if fortran_flag:
+    if 0:
         def compute_jacvec_product(
                 self, inputs, outputs, d_inputs, d_outputs, mode):
 
@@ -257,3 +257,124 @@ class GeometryMesh(ExplicitComponent):
                     d_inputs['zshear'] += zshearb
                 if 'span' in d_inputs:
                     d_inputs['span'] += spanb
+
+    if fortran_flag:
+        def compute_partial_derivs(self, inputs, outputs, partials):
+
+            # We actually use the values in self.geo_params to modify the mesh,
+            # but we update self.geo_params using the OpenMDAO params here.
+            # This makes the geometry manipulation process work for any combination
+            # of design variables without having special logic.
+            # self.geo_params.update(inputs)
+
+            # Dirty hack for now; TODO: fix this
+            for key in self.geo_params:
+                try:
+                    if inputs[key].shape[0] > 1:
+                        self.geo_params[key] = inputs[key]
+                    else:
+                        self.geo_params[key] = inputs[key][0]
+                except:
+                    pass
+
+            for param in inputs:
+
+                d_inputs = {}
+                d_inputs[param] = self.geo_params[param].copy()
+
+                if isinstance(d_inputs[param], np.ndarray):
+                    for j, val in enumerate(d_inputs[param].flatten()):
+                        d_inputs[param][:] = 0.
+                        d_inputs[param][j] = 1.
+
+                        # We don't know which parameters will be used for a given case
+                        # so we must check
+                        if 'sweep' in d_inputs:
+                            sweepd = d_inputs['sweep']
+                        else:
+                            sweepd = 0.
+                        if 'twist' in d_inputs:
+                            twistd = d_inputs['twist']
+                        else:
+                            twistd = np.zeros(self.geo_params['twist'].shape)
+                        if 'chord' in d_inputs:
+                            chordd = d_inputs['chord']
+                        else:
+                            chordd = np.zeros(self.geo_params['chord'].shape)
+                        if 'dihedral' in d_inputs:
+                            dihedrald = d_inputs['dihedral']
+                        else:
+                            dihedrald = 0.
+                        if 'taper' in d_inputs:
+                            taperd = d_inputs['taper']
+                        else:
+                            taperd = 0.
+                        if 'xshear' in d_inputs:
+                            xsheard = d_inputs['xshear']
+                        else:
+                            xsheard = np.zeros(self.geo_params['xshear'].shape)
+                        if 'zshear' in d_inputs:
+                            zsheard = d_inputs['zshear']
+                        else:
+                            zsheard = np.zeros(self.geo_params['zshear'].shape)
+                        if 'span' in d_inputs:
+                            spand = d_inputs['span']
+                        else:
+                            spand = 0.
+
+                        _, mesh_d = OAS_API.oas_api.manipulate_mesh_d(self.mesh.copy(),
+                        self.geo_params['taper'], taperd, self.geo_params['chord'], chordd,
+                        self.geo_params['sweep'], sweepd, self.geo_params['xshear'], xsheard,
+                        self.geo_params['dihedral'], dihedrald, self.geo_params['zshear'],
+                        zsheard, self.geo_params['twist'], twistd, self.geo_params['span'],
+                        spand, self.symmetry, self.rotate_x)
+
+                        partials['mesh', param][:, j] = mesh_d.flatten()
+
+                else:
+
+                    d_inputs[param] = 1.
+
+                    # We don't know which parameters will be used for a given case
+                    # so we must check
+                    if 'sweep' in d_inputs:
+                        sweepd = d_inputs['sweep']
+                    else:
+                        sweepd = 0.
+                    if 'twist' in d_inputs:
+                        twistd = d_inputs['twist']
+                    else:
+                        twistd = np.zeros(self.geo_params['twist'].shape)
+                    if 'chord' in d_inputs:
+                        chordd = d_inputs['chord']
+                    else:
+                        chordd = np.zeros(self.geo_params['chord'].shape)
+                    if 'dihedral' in d_inputs:
+                        dihedrald = d_inputs['dihedral']
+                    else:
+                        dihedrald = 0.
+                    if 'taper' in d_inputs:
+                        taperd = d_inputs['taper']
+                    else:
+                        taperd = 0.
+                    if 'xshear' in d_inputs:
+                        xsheard = d_inputs['xshear']
+                    else:
+                        xsheard = np.zeros(self.geo_params['xshear'].shape)
+                    if 'zshear' in d_inputs:
+                        zsheard = d_inputs['zshear']
+                    else:
+                        zsheard = np.zeros(self.geo_params['zshear'].shape)
+                    if 'span' in d_inputs:
+                        spand = d_inputs['span']
+                    else:
+                        spand = 0.
+
+                    _, mesh_d = OAS_API.oas_api.manipulate_mesh_d(self.mesh.copy(),
+                    self.geo_params['taper'], taperd, self.geo_params['chord'], chordd,
+                    self.geo_params['sweep'], sweepd, self.geo_params['xshear'], xsheard,
+                    self.geo_params['dihedral'], dihedrald, self.geo_params['zshear'],
+                    zsheard, self.geo_params['twist'], twistd, self.geo_params['span'],
+                    spand, self.symmetry, self.rotate_x)
+
+                    partials['mesh', param] = mesh_d.flatten()
