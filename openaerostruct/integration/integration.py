@@ -22,7 +22,7 @@ import numpy as np
 # =============================================================================
 # OpenMDAO modules
 # =============================================================================
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LNRunOnce# TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LNRunOnce, PetscKSP# TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
 
@@ -489,8 +489,8 @@ class OASProblem(object):
             self.prob.driver = pyOptSparseDriver()
             if self.prob_dict['optimizer'] == 'SNOPT':
                 self.prob.driver.options['optimizer'] = "SNOPT"
-                self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
-                                                 'Major feasibility tolerance': 1.0e-6,
+                self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                                 'Major feasibility tolerance': 1.0e-8,
                                                  'Major iterations limit':400,
                                                  'Minor iterations limit':2000,
                                                  'Iterations limit':1000
@@ -1098,8 +1098,11 @@ class OASProblem(object):
         # coupled.set_order(['wing', 'wing_loads', 'aero_states'])
 
         # Set solver properties for the coupled group
-        coupled.ln_solver = ScipyIterativeSolver()
+        coupled.ln_solver = LinearBlockGS()
+        # coupled.ln_solver.precon = LNRunOnce()
         coupled.ln_solver.precon = LinearBlockGS()
+
+        # coupled.ln_solver.options['maxiter'] = 3
 
         coupled.nl_solver = NonlinearBlockGS()
         coupled.nl_solver.options['maxiter'] = 20
@@ -1107,6 +1110,11 @@ class OASProblem(object):
         coupled.jacobian = DenseJacobian()
         coupled.ln_solver = DirectSolver()
         coupled.nl_solver = NewtonSolver(solve_subsystems=True)
+        #
+        # coupled.ln_solver = PetscKSP()
+        # coupled.ln_solver.precon = DirectSolver()
+
+        # coupled.nl_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nl_solver.options['maxiter'] = 3
 
         # This is only available in the most recent version of OpenMDAO.
@@ -1123,8 +1131,8 @@ class OASProblem(object):
         if self.prob_dict['print_level']:
             coupled.nl_solver.options['iprint'] = 1
 
-        coupled.ln_solver.options['iprint'] = 2
-        coupled.nl_solver.options['iprint'] = 2
+        # coupled.ln_solver.options['iprint'] = 2
+        # coupled.nl_solver.options['iprint'] = 2
 
         # Add the coupled group to the model problem
         model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])

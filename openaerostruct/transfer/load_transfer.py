@@ -91,24 +91,25 @@ class LoadTransfer(ExplicitComponent):
 
         outputs['loads'] = loads
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    if fortran_flag:
+        def compute_partial_derivs(self, inputs, outputs, partials):
 
-        for param in outputs:
+            for param in outputs:
 
-            d_outputs = {}
-            d_outputs[param] = outputs[param].copy()
-            d_inputs = {}
+                d_outputs = {}
+                d_outputs[param] = outputs[param].copy()
+                d_inputs = {}
 
-            for j, val in enumerate(np.array(d_outputs[param]).flatten()):
-                d_out_b = np.array(d_outputs[param]).flatten()
-                d_out_b[:] = 0.
-                d_out_b[j] = 1.
-                d_outputs[param] = d_out_b.reshape(d_outputs[param].shape)
+                for j, val in enumerate(np.array(d_outputs[param]).flatten()):
+                    d_out_b = np.array(d_outputs[param]).flatten()
+                    d_out_b[:] = 0.
+                    d_out_b[j] = 1.
+                    d_outputs[param] = d_out_b.reshape(d_outputs[param].shape)
 
-                def_mesh = inputs['def_mesh']
-                sec_forces = inputs['sec_forces']
+                    def_mesh = inputs['def_mesh']
+                    sec_forces = inputs['sec_forces']
 
-                d_inputs['def_mesh'], d_inputs['sec_forces'], _ = OAS_API.oas_api.transferloads_b(def_mesh, sec_forces, self.fem_origin, d_outputs['loads'])
+                    d_inputs['def_mesh'], d_inputs['sec_forces'], _ = OAS_API.oas_api.transferloads_b(def_mesh, sec_forces, self.fem_origin, d_outputs['loads'])
 
-                partials[param, 'def_mesh'][j, :] = d_inputs['def_mesh'].flatten()
-                partials[param, 'sec_forces'][j, :] = d_inputs['sec_forces'].flatten()
+                    partials[param, 'def_mesh'][j, :] = d_inputs['def_mesh'].flatten()
+                    partials[param, 'sec_forces'][j, :] = d_inputs['sec_forces'].flatten()

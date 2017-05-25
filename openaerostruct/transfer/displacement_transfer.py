@@ -100,57 +100,57 @@ class DisplacementTransfer(ExplicitComponent):
 
         outputs['def_mesh'] = def_mesh
 
-    if 0:
+    if fortran_flag:
+        if 0:
+            def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
+                mesh = inputs['mesh']
+                disp = inputs['disp']
 
-        def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
-            mesh = inputs['mesh']
-            disp = inputs['disp']
+                w = self.surface['fem_origin']
 
-            w = self.surface['fem_origin']
+                if mode == 'fwd':
 
-            if mode == 'fwd':
+                    if 'mesh' in d_inputs:
+                        mesh_d = d_inputs['mesh']
+                    else:
+                        mesh_d = np.zeros(mesh.shape)
 
-                if 'mesh' in d_inputs:
-                    mesh_d = d_inputs['mesh']
-                else:
-                    mesh_d = np.zeros(mesh.shape)
+                    if 'disp' in d_inputs:
+                        disp_d = d_inputs['disp']
+                    else:
+                        disp_d = np.zeros(disp.shape)
 
-                if 'disp' in d_inputs:
-                    disp_d = d_inputs['disp']
-                else:
-                    disp_d = np.zeros(disp.shape)
+                    a, b = OAS_API.oas_api.transferdisplacements_d(mesh, mesh_d, disp, disp_d, w)
+                    d_outputs['def_mesh'] += b.real
 
-                a, b = OAS_API.oas_api.transferdisplacements_d(mesh, mesh_d, disp, disp_d, w)
-                d_outputs['def_mesh'] += b.real
+                if mode == 'rev':
+                    a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, outputs['def_mesh'], d_outputs['def_mesh'])
+                    if 'mesh' in d_inputs:
+                        d_inputs['mesh'] += a.real
+                    if 'disp' in d_inputs:
+                        d_inputs['disp'] += b.real
 
-            if mode == 'rev':
-                a, b = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, outputs['def_mesh'], d_outputs['def_mesh'])
-                if 'mesh' in d_inputs:
-                    d_inputs['mesh'] += a.real
-                if 'disp' in d_inputs:
-                    d_inputs['disp'] += b.real
+        else:
+            def compute_partial_derivs(self, inputs, outputs, partials):
 
-    else:
-        def compute_partial_derivs(self, inputs, outputs, partials):
+                for param in outputs:
 
-            for param in outputs:
+                    d_outputs = {}
+                    d_outputs[param] = outputs[param].copy()
+                    d_inputs = {}
 
-                d_outputs = {}
-                d_outputs[param] = outputs[param].copy()
-                d_inputs = {}
+                    for j, val in enumerate(np.array(d_outputs[param]).flatten()):
+                        d_out_b = np.array(d_outputs[param]).flatten()
+                        d_out_b[:] = 0.
+                        d_out_b[j] = 1.
+                        d_outputs[param] = d_out_b.reshape(d_outputs[param].shape)
 
-                for j, val in enumerate(np.array(d_outputs[param]).flatten()):
-                    d_out_b = np.array(d_outputs[param]).flatten()
-                    d_out_b[:] = 0.
-                    d_out_b[j] = 1.
-                    d_outputs[param] = d_out_b.reshape(d_outputs[param].shape)
+                        mesh = inputs['mesh']
+                        disp = inputs['disp']
 
-                    mesh = inputs['mesh']
-                    disp = inputs['disp']
+                        w = self.surface['fem_origin']
 
-                    w = self.surface['fem_origin']
+                        d_inputs['mesh'], d_inputs['disp'] = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, outputs['def_mesh'], d_outputs['def_mesh'])
 
-                    d_inputs['mesh'], d_inputs['disp'] = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, outputs['def_mesh'], d_outputs['def_mesh'])
-
-                    partials[param, 'mesh'][j, :] = d_inputs['mesh'].flatten()
-                    partials[param, 'disp'][j, :] = d_inputs['disp'].flatten()
+                        partials[param, 'mesh'][j, :] = d_inputs['mesh'].flatten()
+                        partials[param, 'disp'][j, :] = d_inputs['disp'].flatten()

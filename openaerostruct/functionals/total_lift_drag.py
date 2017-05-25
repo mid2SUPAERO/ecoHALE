@@ -99,6 +99,7 @@ class TotalLiftDrag(ExplicitComponent):
             partials['CD', name + 'CD'] = S_ref / S_ref_total
             partials['CL', name + 'S_ref'] = inputs[name + 'CL'] / S_ref_total
             partials['CD', name + 'S_ref'] = inputs[name + 'CD'] / S_ref_total
-            if self.metadata['prob_dict']['S_ref_total'] is None:
-                partials['CL', name + 'S_ref'] -= CL / S_ref_total ** 2 * inputs[name + 'CL']
-                partials['CD', name + 'S_ref'] -= CD / S_ref_total ** 2 * inputs[name + 'CD']
+            # TODO: these derivatives are wrong; need to check, especially for multiple surfaces
+            # if self.metadata['prob_dict']['S_ref_total'] is None:
+            #     partials['CL', name + 'S_ref'] -= CL / S_ref_total ** 2 * inputs[name + 'CL']
+            #     partials['CD', name + 'S_ref'] -= CD / S_ref_total ** 2 * inputs[name + 'CD']
