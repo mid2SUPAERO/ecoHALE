@@ -31,7 +31,7 @@ class MaterialsTube(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -59,7 +59,7 @@ class MaterialsTube(ExplicitComponent):
         outputs['Iz'] = pi * (r2**4 - r1**4) / 4.
         outputs['J'] = pi * (r2**4 - r1**4) / 2.
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         pi = np.pi
         radius = inputs['radius'].real
         t = inputs['thickness'].real

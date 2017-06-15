@@ -30,7 +30,7 @@ class FailureExact(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -42,5 +42,5 @@ class FailureExact(ExplicitComponent):
     def compute(self, inputs, outputs):
         outputs['failure'] = inputs['vonmises'] / self.sigma - 1
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         partials['failure', 'vonmises'] = np.eye(((self.ny-1)*2)) / self.sigma

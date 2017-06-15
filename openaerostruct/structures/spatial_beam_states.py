@@ -9,7 +9,7 @@ class SpatialBeamStates(Group):
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
 
-    def initialize_subsystems(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         size = int(6 * surface['num_y'] + 6)

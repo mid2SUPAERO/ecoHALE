@@ -41,7 +41,7 @@ class AssembleK(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -103,7 +103,7 @@ class AssembleK(ExplicitComponent):
         self.S_z = np.zeros((4, 12), dtype=data_type)
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -173,7 +173,7 @@ class AssembleK(ExplicitComponent):
                         d_inputs['Iz'] += Izb
 
         else:
-            def compute_partial_derivs(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, outputs, partials):
 
                 for param in inputs:
 

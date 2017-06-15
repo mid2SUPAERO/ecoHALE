@@ -34,7 +34,7 @@ class ComputeNodes(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -49,7 +49,7 @@ class ComputeNodes(ExplicitComponent):
         mesh = inputs['mesh']
         outputs['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
-    def initialize_partials(self):
+    def setup_partials(self):
         w = self.fem_origin
         n = self.ny * 3
 

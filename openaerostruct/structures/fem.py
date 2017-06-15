@@ -28,7 +28,7 @@ class FEM(ImplicitComponent):
         """
         self.metadata.declare('size', default=1, type_=int, desc='the size of the linear system')
 
-    def initialize_variables(self):
+    def setup(self):
         """
         Matrix and RHS are inputs, solution vector is the output.
         """
@@ -40,7 +40,7 @@ class FEM(ImplicitComponent):
         self.add_input('forces', val=np.ones(size))
         self.add_output('disp_aug', shape=size, val=.1)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         """
         Set up the derivatives according to the user specified mode.
         """

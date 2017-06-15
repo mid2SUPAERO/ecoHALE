@@ -38,7 +38,7 @@ class TotalLiftDrag(ExplicitComponent):
         self.metadata.declare('surfaces', type_=list, required=True)
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.add_input(name + 'CL', val=1.)
@@ -72,7 +72,7 @@ class TotalLiftDrag(ExplicitComponent):
         outputs['CL'] = CL / S_ref_total
         outputs['CD'] = CD / S_ref_total
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         prob_dict = self.metadata['prob_dict']
 
         # Compute the weighted CL and CD contributions from each surface,
@@ -97,9 +97,19 @@ class TotalLiftDrag(ExplicitComponent):
             S_ref = inputs[name + 'S_ref']
             partials['CL', name + 'CL'] = S_ref / S_ref_total
             partials['CD', name + 'CD'] = S_ref / S_ref_total
-            partials['CL', name + 'S_ref'] = inputs[name + 'CL'] / S_ref_total
-            partials['CD', name + 'S_ref'] = inputs[name + 'CD'] / S_ref_total
-            # TODO: these derivatives are wrong; need to check, especially for multiple surfaces
-            # if self.metadata['prob_dict']['S_ref_total'] is None:
-            #     partials['CL', name + 'S_ref'] -= CL / S_ref_total ** 2 * inputs[name + 'CL']
-            #     partials['CD', name + 'S_ref'] -= CD / S_ref_total ** 2 * inputs[name + 'CD']
+
+            dCL_dS_ref = 0.
+            surf_CL = inputs[name + 'CL']
+            dCD_dS_ref = 0.
+            surf_CD = inputs[name + 'CD']
+            for surface_ in self.metadata['surfaces']:
+                name_ = surface_['name']
+                if not name == name_:
+                    S_ref_ = inputs[name_ + 'S_ref']
+                    dCL_dS_ref += surf_CL * S_ref_
+                    dCL_dS_ref -= inputs[name_ + 'CL'] * S_ref_
+                    dCD_dS_ref += surf_CD * S_ref_
+                    dCD_dS_ref -= inputs[name_ + 'CD'] * S_ref_
+
+            partials['CL', name + 'S_ref'] = dCL_dS_ref / S_ref_total**2
+            partials['CD', name + 'S_ref'] = dCD_dS_ref / S_ref_total**2

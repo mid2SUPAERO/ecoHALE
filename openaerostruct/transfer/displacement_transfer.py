@@ -38,7 +38,7 @@ class DisplacementTransfer(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -49,7 +49,7 @@ class DisplacementTransfer(ExplicitComponent):
         self.add_input('disp', val=np.random.rand(self.ny, 6))
         self.add_output('def_mesh', val=np.random.rand(self.nx, self.ny, 3))
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -131,7 +131,7 @@ class DisplacementTransfer(ExplicitComponent):
                         d_inputs['disp'] += b.real
 
         else:
-            def compute_partial_derivs(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, outputs, partials):
 
                 for param in outputs:
 

@@ -55,7 +55,7 @@ class AssembleAIC(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surfaces', type_=list)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surfaces = surfaces = self.metadata['surfaces']
 
         tot_panels = 0
@@ -84,7 +84,7 @@ class AssembleAIC(ExplicitComponent):
         self.mtx = np.zeros((tot_panels, tot_panels),
                                    dtype=data_type)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*', form='forward')
 
@@ -259,7 +259,7 @@ class AssembleAIC(ExplicitComponent):
                         i += num_panels
 
         else:
-            def compute_partial_derivs(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, outputs, partials):
 
                 for param in inputs:
 

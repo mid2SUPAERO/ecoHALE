@@ -15,7 +15,7 @@ class TotalAeroPerformance(Group):
         self.metadata.declare('surfaces', type_=list, required=True)
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
-    def initialize_subsystems(self):
+    def setup(self):
         prob_dict = self.metadata['prob_dict']
         with_viscous = prob_dict['with_viscous']
         surfaces = self.metadata['surfaces']

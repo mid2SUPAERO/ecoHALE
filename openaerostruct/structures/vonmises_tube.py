@@ -35,7 +35,7 @@ class VonMisesTube(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -52,7 +52,7 @@ class VonMisesTube(ExplicitComponent):
         self.T = np.zeros((3, 3), dtype=data_type)
         self.x_gl = np.array([1, 0, 0], dtype=data_type)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -130,7 +130,7 @@ class VonMisesTube(ExplicitComponent):
                         d_inputs['disp'] += dispb
 
         else:
-            def compute_partial_derivs(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, outputs, partials):
 
                 for param in inputs:
 

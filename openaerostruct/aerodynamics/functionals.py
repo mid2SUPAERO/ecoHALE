@@ -15,7 +15,7 @@ class VLMFunctionals(Group):
         self.metadata.declare('surface', type_=dict, required=True)
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
-    def initialize_subsystems(self):
+    def setup(self):
         with_viscous = self.metadata['prob_dict']['with_viscous']
         surface = self.metadata['surface']
 

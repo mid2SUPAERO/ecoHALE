@@ -45,7 +45,7 @@ class FailureKS(ExplicitComponent):
         self.metadata.declare('surface', type_=dict)
         self.metadata.declare('rho', type_=float, default=100.)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
         rho = self.metadata['rho']
 
@@ -68,7 +68,7 @@ class FailureKS(ExplicitComponent):
         ks = 1 / rho * nlog(nsum(nexp(rho * (vonmises/sigma - 1 - fmax))))
         outputs['failure'] = fmax + ks
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         vonmises = inputs['vonmises']
         sigma = self.sigma
         rho = self.rho

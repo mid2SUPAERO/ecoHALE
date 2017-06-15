@@ -14,7 +14,7 @@ class SpatialBeamFunctionals(Group):
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
 
-    def initialize_subsystems(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         # Commented out energy for now since we haven't ever used its output

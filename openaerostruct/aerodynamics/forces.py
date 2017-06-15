@@ -50,7 +50,7 @@ class Forces(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surfaces', type_=list)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surfaces = surfaces = self.metadata['surfaces']
 
         tot_panels = 0
@@ -74,7 +74,7 @@ class Forces(ExplicitComponent):
         self.mtx = np.zeros((tot_panels, tot_panels, 3), dtype=data_type)
         self.v = np.zeros((tot_panels, 3), dtype=data_type)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -267,7 +267,7 @@ class Forces(ExplicitComponent):
                     _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, self.surfaces, skip=True)
 
         else:
-            def compute_partial_derivs(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, outputs, partials):
 
                 for surface in self.surfaces:
 

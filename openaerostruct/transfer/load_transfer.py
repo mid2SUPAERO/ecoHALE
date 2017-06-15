@@ -38,7 +38,7 @@ class LoadTransfer(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -49,7 +49,7 @@ class LoadTransfer(ExplicitComponent):
         self.add_input('sec_forces', val=np.random.rand(self.nx-1, self.ny-1, 3))
         self.add_output('loads', val=np.random.rand(self.ny, 6))
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -92,7 +92,7 @@ class LoadTransfer(ExplicitComponent):
         outputs['loads'] = loads
 
     if fortran_flag:
-        def compute_partial_derivs(self, inputs, outputs, partials):
+        def compute_partials(self, inputs, outputs, partials):
 
             for param in outputs:
 

@@ -55,7 +55,7 @@ class GeometryMesh(ExplicitComponent):
         self.metadata.declare('surface', type_=dict, required=True)
         self.metadata.declare('desvars', default={}, type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
         name = surface['name']
 
@@ -122,7 +122,7 @@ class GeometryMesh(ExplicitComponent):
         # additional rotation matrix to modify the twist direction
         self.rotate_x = True
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -260,7 +260,7 @@ class GeometryMesh(ExplicitComponent):
                         d_inputs['span'] += spanb
 
         else:
-            def compute_partial_derivs(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, outputs, partials):
 
                 # We actually use the values in self.geo_params to modify the mesh,
                 # but we update self.geo_params using the OpenMDAO params here.

@@ -33,7 +33,7 @@ class Weight(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -43,7 +43,7 @@ class Weight(ExplicitComponent):
         self.add_output('structural_weight', val=0.)
         self.add_output('cg_location', val=np.random.random_sample((3)))#, dtype=data_type))
 
-    def initialize_partials(self):
+    def setup_partials(self):
         self.approx_partials('cg_location', 'A')
         self.approx_partials('cg_location', 'nodes')
 
@@ -69,7 +69,7 @@ class Weight(ExplicitComponent):
         outputs['structural_weight'] = weight
         outputs['cg_location'] = cg_loc
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
 
         A = inputs['A']
         nodes = inputs['nodes']

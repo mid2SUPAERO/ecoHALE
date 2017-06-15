@@ -9,7 +9,7 @@ class VLMStates(Group):
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
 
-    def initialize_subsystems(self):
+    def setup(self):
         surfaces = self.metadata['surfaces']
 
         tot_panels = 0

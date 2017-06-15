@@ -10,7 +10,7 @@ class SpatialBeamSetup(Group):
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
 
-    def initialize_subsystems(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         self.add_subsystem('nodes',

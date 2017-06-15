@@ -43,7 +43,7 @@ class VLMGeometry(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -59,7 +59,7 @@ class VLMGeometry(ExplicitComponent):
         self.add_output('normals', val=np.random.random((self.nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=1.)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('normals', 'def_mesh')
             self.approx_partials('S_ref', 'def_mesh')
@@ -143,7 +143,7 @@ class VLMGeometry(ExplicitComponent):
         outputs['S_ref'] = S_ref
         outputs['chords'] = chords
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         """ Jacobian for VLM geometry."""
 
         mesh = inputs['def_mesh']

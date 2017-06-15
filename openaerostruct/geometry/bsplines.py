@@ -111,7 +111,7 @@ class Bsplines(ExplicitComponent):
         self.metadata.declare('in_name', type_=str)
         self.metadata.declare('out_name', type_=str)
 
-    def initialize_variables(self):
+    def setup(self):
         meta = self.metadata
 
         meta['jac'] = get_bspline_mtx(meta['num_cp'], meta['num_pt'], order=min(meta['num_cp'], 4))
@@ -119,7 +119,7 @@ class Bsplines(ExplicitComponent):
         self.add_input(meta['in_name'], val=np.random.random(meta['num_cp']))
         self.add_output(meta['out_name'], val=np.random.random(meta['num_pt']))
 
-    def initialize_partials(self):
+    def setup_partials(self):
         meta = self.metadata
 
         jac = meta['jac'].tocoo()

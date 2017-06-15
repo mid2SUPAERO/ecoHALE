@@ -33,7 +33,7 @@ class CreateRHS(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -50,7 +50,7 @@ class CreateRHS(ExplicitComponent):
         # can more easily be solved
         outputs['forces'][np.abs(outputs['forces']) < 1e-6] = 0.
 
-    def initialize_partials(self):
+    def setup_partials(self):
         n = self.ny * 6
         forces_loads = np.zeros((n + 6, n))
         forces_loads[:n, :n] = np.eye((n))

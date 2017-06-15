@@ -40,7 +40,7 @@ class BreguetRange(ExplicitComponent):
         self.metadata.declare('surfaces', type_=list, required=True)
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.add_input(name + 'structural_weight', val=1.)
@@ -80,7 +80,7 @@ class BreguetRange(ExplicitComponent):
         # This lines makes the 'weight' the total aircraft weight
         outputs['weighted_obj'] = (beta * fuelburn + (1 - beta) * (W0 + Ws + fuelburn)) / g
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']

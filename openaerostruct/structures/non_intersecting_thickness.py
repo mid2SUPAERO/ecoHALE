@@ -37,7 +37,7 @@ class NonIntersectingThickness(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -49,7 +49,7 @@ class NonIntersectingThickness(ExplicitComponent):
     def compute(self, inputs, outputs):
         outputs['thickness_intersects'] = inputs['thickness'] - inputs['radius']
 
-    def initialize_partials(self):
+    def setup_partials(self):
         mat = np.eye(self.ny-1)
 
         self.declare_partials('thickness_intersects', 'thickness', val=mat)

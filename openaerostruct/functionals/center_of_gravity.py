@@ -44,7 +44,7 @@ class CenterOfGravity(ExplicitComponent):
         self.metadata.declare('surfaces', type_=list, required=True)
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.add_input(name + 'structural_weight', val=1.)
@@ -75,14 +75,14 @@ class CenterOfGravity(ExplicitComponent):
         # the structures cg. Here we assume the fuel weight is at the cg.
         outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] - inputs['fuelburn'] * g)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         arange = np.arange(3)
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.declare_partials('cg', name + 'cg_location', rows=arange, cols=arange)
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']

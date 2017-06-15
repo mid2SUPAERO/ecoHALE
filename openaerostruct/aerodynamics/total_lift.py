@@ -20,7 +20,7 @@ class TotalLift(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         self.add_input('CL1', val=1.)
@@ -30,5 +30,5 @@ class TotalLift(ExplicitComponent):
     def compute(self, inputs, outputs):
         outputs['CL'] = inputs['CL1'] + self.CL0
 
-    def initialize_partials(self):
+    def setup_partials(self):
         self.declare_partials('CL', 'CL1', val=1.)

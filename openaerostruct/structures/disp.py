@@ -37,7 +37,7 @@ class Disp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -50,7 +50,7 @@ class Disp(ExplicitComponent):
         # displacements in disp
         outputs['disp'] = inputs['disp_aug'][:-6].reshape((-1, 6))
 
-    def initialize_partials(self):
+    def setup_partials(self):
         n = self.ny * 6
         disp_disp_aug = np.zeros((n, n+6))
         disp_disp_aug[:n, :n] = np.eye((n))

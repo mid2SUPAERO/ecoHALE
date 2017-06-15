@@ -40,7 +40,7 @@ class SparWithinWing(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.ny = surface['num_y']
@@ -50,7 +50,7 @@ class SparWithinWing(ExplicitComponent):
         self.add_input('radius', val=np.random.random_sample((self.ny-1)))
         self.add_output('spar_within_wing', val=np.zeros((self.ny-1)))
 
-    def initialize_partials(self):
+    def setup_partials(self):
         self.approx_partials('*', '*')
 
     def compute(self, inputs, outputs):
@@ -58,5 +58,5 @@ class SparWithinWing(ExplicitComponent):
         max_radius = radii(mesh, self.surface['t_over_c'])
         outputs['spar_within_wing'] = inputs['radius'] - max_radius
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         partials['spar_within_wing', 'radius'] = np.eye(self.ny-1)

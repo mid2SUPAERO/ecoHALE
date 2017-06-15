@@ -38,7 +38,7 @@ class Equilibrium(ExplicitComponent):
         self.metadata.declare('surfaces', type_=list, required=True)
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.add_input(name + 'L', val=1.)
@@ -67,13 +67,13 @@ class Equilibrium(ExplicitComponent):
         outputs['total_weight'] = tot_weight
         outputs['L_equals_W'] = 1 - L / tot_weight
 
-    def initialize_partials(self):
+    def setup_partials(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.declare_partials('total_weight', name + 'L', dependent=False)
             self.declare_partials('L_equals_W', name + 'structural_weight', dependent=False)
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']

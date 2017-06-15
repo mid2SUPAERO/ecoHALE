@@ -22,7 +22,7 @@ import numpy as np
 # =============================================================================
 # OpenMDAO modules
 # =============================================================================
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LNRunOnce, PetscKSP# TODO: add ScipyOptimizer, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
 
@@ -268,7 +268,7 @@ class OASProblem(object):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
+                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
 
@@ -483,7 +483,7 @@ class OASProblem(object):
         """
 
         # TODO: change this back to SLSQP; delete this line
-        self.prob_dict['optimizer'] = 'SNOPT'
+        # self.prob_dict['optimizer'] = 'SNOPT'
         try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
@@ -519,12 +519,11 @@ class OASProblem(object):
                                                 }
 
         except:  # Use Scipy SLSQP optimizer if pyOptSparse not installed
-            # self.prob.driver = ScipyOptimizer()
-            # self.prob.driver.options['optimizer'] = 'SLSQP'
-            # self.prob.driver.options['disp'] = True
-            # self.prob.driver.options['tol'] = 1.0e-10
-            # self.prob_dict['optimizer'] == 'SLSQP'
-            pass
+            self.prob.driver = ScipyOptimizer()
+            self.prob.driver.options['optimizer'] = 'SLSQP'
+            self.prob.driver.options['disp'] = True
+            self.prob.driver.options['tol'] = 1.0e-10
+            self.prob_dict['optimizer'] == 'SLSQP'
 
         # Actually call the OpenMDAO functions to add the design variables,
         # constraints, and objective.
@@ -605,6 +604,7 @@ class OASProblem(object):
         if not self.prob_dict['optimize']:
             # Run a single analysis loop. This shouldn't actually be
             # necessary, but sometimes the .db file is not complete unless we do this.
+            coupled = self.prob.model.get_subsystem('coupled')
             self.prob.run_model()
         else:
             # Perform optimization
@@ -639,8 +639,8 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partial_derivs(compact_print=True)
-        # self.prob.check_partial_derivs(compact_print=False)
+        # self.prob.check_partials(compact_print=True)
+        # self.prob.check_partials(compact_print=False)
 
     def setup_struct(self):
         """
@@ -653,11 +653,10 @@ class OASProblem(object):
             self.prob_dict['prob_name'] = 'struct'
 
         # Create the base model-level group
-        model = Group()
 
         # Create the problem and assign the model group
         self.prob = Problem()
-        self.prob.model = model
+        model = self.prob.model
 
         # Loop over each surface in the surfaces list
         for surface in self.surfaces:
@@ -847,7 +846,7 @@ class OASProblem(object):
         # this component requires information from all surfaces because
         # each surface interacts with the others.
         aero_states = VLMStates(surfaces=self.surfaces)
-        aero_states.ln_solver = LNRunOnce()
+        aero_states.linear_solver = LinearRunOnce()
         model.add_subsystem('aero_states',
                  aero_states,
                  promotes=['circulations', 'v', 'alpha', 'rho'])
@@ -1018,7 +1017,7 @@ class OASProblem(object):
                 VLMGeometry(surface=surface),
                 promotes=['*'])
 
-            tmp_group.ln_solver = LNRunOnce()
+            tmp_group.linear_solver = LinearRunOnce()
 
             name = name_orig
             coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
@@ -1094,29 +1093,29 @@ class OASProblem(object):
             model.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
 
         # Set solver properties for the coupled group
-        coupled.ln_solver = ScipyIterativeSolver()
-        coupled.ln_solver.precon = LNRunOnce()
+        coupled.linear_solver = ScipyIterativeSolver()
+        coupled.linear_solver.precon = LinearRunOnce()
 
-        coupled.nl_solver = NonlinearBlockGS()
-        coupled.nl_solver.options['maxiter'] = 20
+        coupled.nonlinear_solver = NonlinearBlockGS()
+        coupled.nonlinear_solver.options['maxiter'] = 50
 
         # coupled.jacobian = DenseJacobian()
-        # coupled.ln_solver = DirectSolver()
-        # coupled.nl_solver = NewtonSolver(solve_subsystems=True)
+        # coupled.linear_solver = DirectSolver()
+        # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
 
         # This is only available in the most recent version of OpenMDAO.
         # It may help converge tightly coupled systems when using NLGS.
         try:
-            coupled.nl_solver.options['use_aitken'] = True
-            coupled.nl_solver.options['aitken_alpha_min'] = 0.01
-            # coupled.nl_solver.options['aitken_alpha_max'] = 0.5
+            coupled.nonlinear_solver.options['use_aitken'] = True
+            coupled.nonlinear_solver.options['aitken_alpha_min'] = 0.01
+            # coupled.nonlinear_solver.options['aitken_alpha_max'] = 0.5
         except:
             pass
 
         if self.prob_dict['print_level'] == 2:
-            coupled.ln_solver.options['iprint'] = 1
+            coupled.linear_solver.options['iprint'] = 1
         if self.prob_dict['print_level']:
-            coupled.nl_solver.options['iprint'] = 1
+            coupled.nonlinear_solver.options['iprint'] = 1
 
         # Add the coupled group to the model problem
         model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])

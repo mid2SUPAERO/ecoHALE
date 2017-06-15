@@ -28,7 +28,7 @@ class Circulations(ImplicitComponent):
         """
         self.metadata.declare('size', default=1, type_=int, desc='the size of the linear system')
 
-    def initialize_variables(self):
+    def setup(self):
         """
         Matrix and RHS are inputs, solution vector is the output.
         """
@@ -40,7 +40,7 @@ class Circulations(ImplicitComponent):
         self.add_input('rhs', val=np.random.rand(size))
         self.add_output('circulations', shape=size, val=.1)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         """
         Set up the derivatives according to the user specified mode.
         """

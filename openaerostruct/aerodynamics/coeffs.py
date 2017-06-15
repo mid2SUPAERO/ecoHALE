@@ -38,7 +38,7 @@ class Coeffs(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
 
         self.add_input('S_ref', val=1.)
@@ -59,7 +59,7 @@ class Coeffs(ExplicitComponent):
         outputs['CL1'] = L / (0.5 * rho * v**2 * S_ref)
         outputs['CDi'] = D / (0.5 * rho * v**2 * S_ref)
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         S_ref = inputs['S_ref']
         rho = inputs['rho']
         v = inputs['v']

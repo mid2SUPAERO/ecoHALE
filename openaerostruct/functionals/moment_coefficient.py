@@ -48,7 +48,7 @@ class MomentCoefficient(ExplicitComponent):
         self.metadata.declare('surfaces', type_=list, required=True)
         self.metadata.declare('prob_dict', type_=dict, required=True)
 
-    def initialize_variables(self):
+    def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             ny = surface['num_y']
@@ -66,7 +66,7 @@ class MomentCoefficient(ExplicitComponent):
 
         self.add_output('CM', val=np.ones((3)))
 
-    def initialize_partials(self):
+    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -145,7 +145,7 @@ class MomentCoefficient(ExplicitComponent):
         outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * MAC_wing)
 
     if fortran_flag:
-        def compute_partial_derivs(self, inputs, outputs, partials):
+        def compute_partials(self, inputs, outputs, partials):
             cg = inputs['cg']
             rho = inputs['rho']
             v = inputs['v']

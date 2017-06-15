@@ -25,7 +25,7 @@ class MonotonicConstraint(ExplicitComponent):
         self.metadata.declare('var_name', type_=str)
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
 
         self.surface = surface = self.metadata['surface']
         self.var_name = self.metadata['var_name']
@@ -47,7 +47,7 @@ class MonotonicConstraint(ExplicitComponent):
             outputs[self.con_name][:ny2] = diff[:ny2]
             outputs[self.con_name][ny2:] = -diff[ny2:]
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         np.fill_diagonal(partials[self.con_name, self.var_name][:, :], 1)
         np.fill_diagonal(partials[self.con_name, self.var_name][:, 1:], -1)
 

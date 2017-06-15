@@ -38,7 +38,7 @@ class ViscousDrag(ExplicitComponent):
         self.metadata.declare('surface', type_=dict)
         self.metadata.declare('with_viscous', type_=bool)
 
-    def initialize_variables(self):
+    def setup(self):
         self.surface = surface = self.metadata['surface']
         self.with_viscous = self.metadata['with_viscous']
 
@@ -59,7 +59,7 @@ class ViscousDrag(ExplicitComponent):
         self.add_input('lengths', val=np.random.rand((ny)))
         self.add_output('CDv', val=0.)
 
-    def initialize_partials(self):
+    def setup_partials(self):
         self.approx_partials('CDv', 'M')
         self.approx_partials('CDv', 're')
 
@@ -112,7 +112,7 @@ class ViscousDrag(ExplicitComponent):
         else:
             outputs['CDv'] = 0.0
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         """ Jacobian for viscous drag."""
 
         partials['CDv', 'lengths'] = np.zeros_like(partials['CDv', 'lengths'])

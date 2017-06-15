@@ -32,7 +32,7 @@ class Energy(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('surface', type_=dict)
 
-    def initialize_variables(self):
+    def setup(self):
         surface = self.metadata['surface']
 
         ny = surface['num_y']
@@ -44,6 +44,6 @@ class Energy(ExplicitComponent):
     def compute(self, inputs, outputs):
         outputs['energy'] = np.sum(inputs['disp'] * inputs['loads'])
 
-    def compute_partial_derivs(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, outputs, partials):
         partials['energy', 'disp'][0, :] = inputs['loads'].real.flatten()
         partials['energy', 'loads'][0, :] = inputs['disp'].real.flatten()
