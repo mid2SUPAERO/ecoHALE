@@ -5,8 +5,8 @@ import numpy as np
 from numpy import cos, sin, tan
 
 from openmdao.api import Component
-from b_spline import get_bspline_mtx
-from spatialbeam import radii
+from .b_spline import get_bspline_mtx
+from .spatialbeam import radii
 
 try:
     import OAS_API
@@ -127,6 +127,23 @@ def shear_x(mesh, xshear):
     """
     mesh[:, :, 0] += xshear
 
+def shear_y(mesh, yshear):
+    """ Shear the wing in the y direction (distributed span).
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    yshear[ny] : numpy array
+        Distance to translate wing in y direction.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh with the new span widths.
+    """
+    mesh[:, :, 1] += yshear
+
 def shear_z(mesh, zshear):
     """ Shear the wing in the z direction (distributed dihedral).
 
@@ -140,7 +157,7 @@ def shear_z(mesh, zshear):
     Returns
     -------
     mesh[nx, ny, 3] : numpy array
-        Nodal mesh with the new chord lengths.
+        Nodal mesh with the new dihedral heights.
     """
     mesh[:, :, 2] += zshear
 
@@ -358,7 +375,8 @@ class GeometryMesh(Component):
         ones_list = ['taper', 'chord_cp']
 
         # Variables that should be initialized to zero
-        zeros_list = ['sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'zshear_cp']
+        zeros_list = ['sweep', 'dihedral', 'twist_cp', \
+                      'xshear_cp', 'yshear_cp', 'zshear_cp']
 
         # Variables that should be initialized to given value
         set_list = ['span']
@@ -415,17 +433,20 @@ class GeometryMesh(Component):
         self.geo_params.update(params)
 
         if fortran_flag:
-            mesh = OAS_API.oas_api.manipulate_mesh(mesh, self.geo_params['taper'],
-                self.geo_params['chord'], self.geo_params['sweep'], self.geo_params['xshear'],
-                self.geo_params['dihedral'], self.geo_params['zshear'],
-                self.geo_params['twist'], self.geo_params['span'], self.symmetry, self.rotate_x)
+            mesh = OAS_API.oas_api.manipulate_mesh(mesh,
+            self.geo_params['taper'], self.geo_params['chord'],
+            self.geo_params['sweep'], self.geo_params['xshear'],
+            self.geo_params['span'], self.geo_params['yshear'],
+            self.geo_params['dihedral'], self.geo_params['zshear'],
+            self.geo_params['twist'], self.symmetry, self.rotate_x)
 
         else:
             taper(mesh, self.geo_params['taper'], self.symmetry)
             scale_x(mesh, self.geo_params['chord'])
-            stretch(mesh, self.geo_params['span'], self.symmetry)
             sweep(mesh, self.geo_params['sweep'], self.symmetry)
             shear_x(mesh, self.geo_params['xshear'])
+            stretch(mesh, self.geo_params['span'], self.symmetry)
+            shear_y(mesh, self.geo_params['yshear'])
             dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
             shear_z(mesh, self.geo_params['zshear'])
             rotate(mesh, self.geo_params['twist'], self.symmetry, self.rotate_x)
@@ -476,6 +497,10 @@ class GeometryMesh(Component):
                 xsheard = dparams['xshear']
             else:
                 xsheard = np.zeros(self.geo_params['xshear'].shape)
+            if 'yshear' in dparams:
+                ysheard = dparams['yshear']
+            else:
+                ysheard = np.zeros(self.geo_params['yshear'].shape)
             if 'zshear' in dparams:
                 zsheard = dparams['zshear']
             else:
@@ -488,17 +513,18 @@ class GeometryMesh(Component):
             mesh, dresids['mesh'] = OAS_API.oas_api.manipulate_mesh_d(mesh,
             self.geo_params['taper'], taperd, self.geo_params['chord'], chordd,
             self.geo_params['sweep'], sweepd, self.geo_params['xshear'], xsheard,
-            self.geo_params['dihedral'], dihedrald, self.geo_params['zshear'],
-            zsheard, self.geo_params['twist'], twistd, self.geo_params['span'],
-            spand, self.symmetry, self.rotate_x)
+            self.geo_params['span'], spand, self.geo_params['yshear'], ysheard,
+            self.geo_params['dihedral'], dihedrald, self.geo_params['zshear'], zsheard,
+            self.geo_params['twist'], twistd, self.symmetry, self.rotate_x)
 
         if mode == 'rev':
-            taperb, chordb, sweepb, xshearb, dihedralb, zshearb, twistb, spanb, mesh = \
-            OAS_API.oas_api.manipulate_mesh_b(mesh, self.geo_params['taper'],
-            self.geo_params['chord'], self.geo_params['sweep'],
-            self.geo_params['xshear'], self.geo_params['dihedral'],
-            self.geo_params['zshear'], self.geo_params['twist'],
-            self.geo_params['span'], self.symmetry, self.rotate_x, dresids['mesh'])
+            taperb, chordb, sweepb, xshearb, spanb, yshearb, dihedralb, zshearb, twistb, mesh = \
+            OAS_API.oas_api.manipulate_mesh_b(mesh,
+            self.geo_params['taper'], self.geo_params['chord'],
+            self.geo_params['sweep'], self.geo_params['xshear'],
+            self.geo_params['span'], self.geo_params['yshear'],
+            self.geo_params['dihedral'], self.geo_params['zshear'],
+            self.geo_params['twist'], self.symmetry, self.rotate_x, dresids['mesh'])
 
             if 'sweep' in dparams:
                 dparams['sweep'] = sweepb
@@ -512,6 +538,8 @@ class GeometryMesh(Component):
                 dparams['taper'] = taperb
             if 'xshear' in dparams:
                 dparams['xshear'] = xshearb
+            if 'yshear' in dparams:
+                dparams['yshear'] = yshearb
             if 'zshear' in dparams:
                 dparams['zshear'] = zshearb
             if 'span' in dparams:
@@ -824,14 +852,27 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
 
     mesh = np.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) // 2
-    beta = np.linspace(0, np.pi/2, ny2)
 
-    # mixed spacing with span_cos_spacing as a weighting factor
-    # this is for the spanwise spacing
-    cosine = .5 * np.cos(beta)  # cosine spacing
-    uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
-    half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
-    full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
+    # Hotfix a special case for spacing bunched at the root and tips
+    if span_cos_spacing == 2.:
+        beta = np.linspace(0, np.pi, ny2)
+
+        # mixed spacing with span_cos_spacing as a weighting factor
+        # this is for the spanwise spacing
+        cosine = .25 * (1 - np.cos(beta)) # cosine spacing
+        uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
+        half_wing = cosine[::-1] * span_cos_spacing + (1 - span_cos_spacing) * uniform
+        full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
+
+    else:
+        beta = np.linspace(0, np.pi/2, ny2)
+
+        # mixed spacing with span_cos_spacing as a weighting factor
+        # this is for the spanwise spacing
+        cosine = .5 * np.cos(beta)  # cosine spacing
+        uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
+        half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
+        full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
     nx2 = (num_x + 1) / 2
     beta = np.linspace(0, np.pi/2, nx2)
