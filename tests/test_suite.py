@@ -34,8 +34,8 @@ class TestAero(unittest.TestCase):
         OAS_prob.run()
         prob = OAS_prob.prob
 
-        self.assertAlmostEqual(prob['wing_perf.CL'], .46173591841167, places=5)
-        self.assertAlmostEqual(prob['wing_perf.CD'], .005524603647, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CL'][0], .46173591841167, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CD'][0], .005524603647, places=5)
 
     def test_aero_analysis_flat_multiple(self):
         OAS_prob = OASProblem({'type' : 'aero',
@@ -48,8 +48,8 @@ class TestAero(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_perf.CL'], .46173591841167, places=5)
-        self.assertAlmostEqual(prob['tail_perf.CL'], .46173591841167, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CL'][0], .46173591841167, places=5)
+        self.assertAlmostEqual(prob['tail_perf.CL'][0], .46173591841167, places=5)
 
     def test_aero_analysis_flat_side_by_side(self):
         OAS_prob = OASProblem({'type' : 'aero',
@@ -70,10 +70,10 @@ class TestAero(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_perf.CL'], 0.46173591841167183, places=5)
-        self.assertAlmostEqual(prob['tail_perf.CL'], 0.46173591841167183, places=5)
-        self.assertAlmostEqual(prob['wing_perf.CD'], .005524603647, places=5)
-        self.assertAlmostEqual(prob['tail_perf.CD'], .005524603647, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CL'][0], 0.46173591841167183, places=5)
+        self.assertAlmostEqual(prob['tail_perf.CL'][0], 0.46173591841167183, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CD'][0], .005524603647, places=5)
+        self.assertAlmostEqual(prob['tail_perf.CD'][0], .005524603647, places=5)
 
     def test_aero_analysis_flat_full(self):
         OAS_prob = OASProblem({'type' : 'aero',
@@ -84,8 +84,8 @@ class TestAero(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_perf.CL'], .45655138, places=5)
-        self.assertAlmostEqual(prob['wing_perf.CD'], 0.0055402121081108589, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CL'][0], .45655138, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.0055402121081108589, places=5)
 
     def test_aero_analysis_flat_viscous_full(self):
         OAS_prob = OASProblem({'type' : 'aero',
@@ -97,8 +97,8 @@ class TestAero(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing_perf.CL'], .45655138, places=5)
-        self.assertAlmostEqual(prob['wing_perf.CD'], 0.01989351, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CL'][0], .45655138, places=5)
+        self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.01989351, places=5)
 
     if fortran_flag:
         def test_aero_optimization(self):
@@ -119,7 +119,7 @@ class TestAero(unittest.TestCase):
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.0049392534859265614, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.0049392534859265614, places=5)
 
     # TODO: implement this when it's in Blue
     # if fortran_flag:
@@ -143,7 +143,7 @@ class TestAero(unittest.TestCase):
     #
     #         OAS_prob.run()
     #         prob = OAS_prob.prob
-    #         self.assertAlmostEqual(prob['wing_perf.CD'], 0.0038513637269919619, places=5)
+    #         self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.0038513637269919619, places=5)
 
     if fortran_flag:
         def test_aero_optimization_chord_monotonic(self):
@@ -169,7 +169,7 @@ class TestAero(unittest.TestCase):
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.00057432581266351113, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.00057432581266351113, places=5)
             self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=4)
 
     if fortran_flag:
@@ -197,7 +197,7 @@ class TestAero(unittest.TestCase):
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.00057432581266351113, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.00057432581266351113, places=5)
             self.assertAlmostEqual(prob['wing.monotonic_chord'][0], -1.710374671671999, places=2)
 
     if fortran_flag:
@@ -218,7 +218,7 @@ class TestAero(unittest.TestCase):
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.0202008, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.0202008, places=5)
 
     if fortran_flag:
         def test_aero_viscous_chord_optimization(self):
@@ -240,7 +240,7 @@ class TestAero(unittest.TestCase):
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CD'], 0.02439342, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'][0], 0.02439342, places=5)
 
     if fortran_flag:
         def test_aero_multiple_opt(self):
@@ -267,10 +267,10 @@ class TestAero(unittest.TestCase):
 
             OAS_prob.run()
             prob = OAS_prob.prob
-            self.assertAlmostEqual(prob['wing_perf.CL'], 0.41532382375677429, places=4)
-            self.assertAlmostEqual(prob['tail_perf.CL'], .5, places=5)
-            self.assertAlmostEqual(prob['wing_perf.CD'], .0075400306289957033, places=5)
-            self.assertAlmostEqual(prob['tail_perf.CD'], 0.008087914662238814, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CL'][0], 0.41532382375677429, places=4)
+            self.assertAlmostEqual(prob['tail_perf.CL'][0], .5, places=5)
+            self.assertAlmostEqual(prob['wing_perf.CD'][0], .0075400306289957033, places=5)
+            self.assertAlmostEqual(prob['tail_perf.CD'][0], 0.008087914662238814, places=5)
 
 
 class TestStruct(unittest.TestCase):
@@ -290,7 +290,7 @@ class TestStruct(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing.structural_weight'], 988.13495481064024, places=3)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 988.13495481064024, places=3)
 
     def test_struct_analysis_symmetry(self):
         OAS_prob = OASProblem({'type' : 'struct',
@@ -301,7 +301,7 @@ class TestStruct(unittest.TestCase):
         OAS_prob.setup()
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing.structural_weight'], 988.13495481063956, places=3)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 988.13495481063956, places=3)
 
     if fortran_flag:
         def test_struct_optimization(self):
@@ -320,7 +320,7 @@ class TestStruct(unittest.TestCase):
             OAS_prob.run()
             prob = OAS_prob.prob
 
-            self.assertAlmostEqual(prob['wing.structural_weight'], 1154.4491377169238, places=2)
+            self.assertAlmostEqual(prob['wing.structural_weight'][0], 1154.4491377169238, places=2)
 
     def test_struct_optimization_symmetry(self):
         OAS_prob = OASProblem({'type' : 'struct',
@@ -337,7 +337,7 @@ class TestStruct(unittest.TestCase):
 
         OAS_prob.run()
         prob = OAS_prob.prob
-        self.assertAlmostEqual(prob['wing.structural_weight'], 1144.8503583047038, places=2)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 1144.8503583047038, places=2)
 
     # ## TODO: figure out why this isn't working
     # if fortran_flag:
@@ -356,7 +356,7 @@ class TestStruct(unittest.TestCase):
     #
     #         OAS_prob.run()
     #         prob = OAS_prob.prob
-    #         self.assertAlmostEqual(prob['wing.structural_weight'], 1132.0650209475402, places=2)
+    #         self.assertAlmostEqual(prob['wing.structural_weight'][0], 1132.0650209475402, places=2)
 
 
 class TestAeroStruct(unittest.TestCase):
@@ -381,9 +381,9 @@ class TestAeroStruct(unittest.TestCase):
         OAS_prob.run()
         prob = OAS_prob.prob
 
-        self.assertAlmostEqual(prob['wing_perf.CL'], 0.57198417, places=5)
-        self.assertAlmostEqual(prob['wing_perf.failure'], -0.5431833, places=5)
-        self.assertAlmostEqual(prob['fuelburn'], 64705.74304495, places=2)
+        self.assertAlmostEqual(prob['wing_perf.CL'][0], 0.57198417, places=5)
+        self.assertAlmostEqual(prob['wing_perf.failure'][0], -0.5431833, places=5)
+        self.assertAlmostEqual(prob['fuelburn'][0], 64705.74304495, places=2)
         self.assertAlmostEqual(prob['CM'][1], -0.14059402501934362, places=2)
 
     def test_aerostruct_analysis_symmetry(self):
@@ -400,9 +400,9 @@ class TestAeroStruct(unittest.TestCase):
         OAS_prob.run()
         prob = OAS_prob.prob
 
-        self.assertAlmostEqual(prob['wing_perf.CL'], 0.60630038, places=5)
-        self.assertAlmostEqual(prob['wing_perf.failure'], -0.57587391, places=5)
-        self.assertAlmostEqual(prob['fuelburn'], 68028.68895158, places=1)
+        self.assertAlmostEqual(prob['wing_perf.CL'][0], 0.60630038, places=5)
+        self.assertAlmostEqual(prob['wing_perf.failure'][0], -0.57587391, places=5)
+        self.assertAlmostEqual(prob['fuelburn'][0], 68028.68895158, places=1)
         self.assertAlmostEqual(prob['CM'][1], -0.14572267574012124, places=2)
 
     def test_aerostruct_analysis_symmetry_deriv(self):
@@ -474,8 +474,8 @@ class TestAeroStruct(unittest.TestCase):
             OAS_prob.run()
             prob = OAS_prob.prob
 
-            self.assertAlmostEqual(prob['fuelburn'], 95940.56682452, places=0)
-            self.assertAlmostEqual(prob['wing_perf.failure'], 0., places=4)
+            self.assertAlmostEqual(prob['fuelburn'][0], 95940.56682452, places=0)
+            self.assertAlmostEqual(prob['wing_perf.failure'][0], 0., places=4)
             self.assertAlmostEqual(prob['CM'][1], -0.14194155955058388, places=2)
 
     if fortran_flag:
@@ -506,8 +506,8 @@ class TestAeroStruct(unittest.TestCase):
             OAS_prob.run()
             prob = OAS_prob.prob
 
-            self.assertAlmostEqual(prob['fuelburn'], 96264.09776801, places=0)
-            self.assertAlmostEqual(prob['wing_perf.failure'], 0, places=5)
+            self.assertAlmostEqual(prob['fuelburn'][0], 96264.09776801, places=0)
+            self.assertAlmostEqual(prob['wing_perf.failure'][0], 0, places=5)
 
     if fortran_flag:
         def test_aerostruct_optimization_symmetry_multiple(self):
@@ -548,8 +548,8 @@ class TestAeroStruct(unittest.TestCase):
             OAS_prob.run()
             prob = OAS_prob.prob
 
-            self.assertAlmostEqual(prob['fuelburn'], 156050.56515008, places=1)
-            self.assertAlmostEqual(prob['wing_perf.failure'], -0.08722559, places=5)
+            self.assertAlmostEqual(prob['fuelburn'][0], 156050.56515008, places=1)
+            self.assertAlmostEqual(prob['wing_perf.failure'][0], -0.08722559, places=5)
 
 
 if __name__ == "__main__":

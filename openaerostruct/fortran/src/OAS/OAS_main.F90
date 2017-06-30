@@ -350,6 +350,61 @@ contains
 
   end subroutine
 
+  subroutine transferloads_main(nx, ny, def_mesh, sec_forces, fem_origin, loads)
+
+    implicit none
+
+    ! Input
+    integer, intent(in) :: nx, ny
+    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny-1, 3), fem_origin
+
+    ! Output
+    real(kind=8), intent(out) :: loads(ny, 6)
+
+    ! Working
+    integer :: ind, indy
+    real(kind=8) :: w, moment(ny-1, 3), a_pts(nx-1, ny-1, 3), s_pts(ny-1, 3)
+    real(kind=8) :: diff(3), tmp(3), sec_forces_sum(ny-1, 3)
+
+    ! Compute the aerodynamic centers at the quarter-chord point of each panel
+    w = 0.25
+    a_pts = 0.5 * (1-w) * def_mesh(:nx-1, :ny-1, :) + &
+            0.5 *   w   * def_mesh(2:, :ny-1, :) + &
+            0.5 * (1-w) * def_mesh(:nx-1,  2:, :) + &
+            0.5 *   w   * def_mesh(2:,  2:, :)
+
+    ! Compute the structural midpoints based on the fem_origin location
+    w = fem_origin
+    s_pts = 0.5 * (1-w) * def_mesh(1, :ny-1, :) + &
+            0.5 *   w   * def_mesh(nx, :ny-1, :) + &
+            0.5 * (1-w) * def_mesh(1,  2:, :) + &
+            0.5 *   w   * def_mesh(nx,  2:, :)
+
+    ! Find the moment arm between the aerodynamic centers of each panel
+    ! and the FEM elements
+    moment = 0.
+    do ind=1,nx-1
+      do indy=1,ny-1
+        diff = a_pts(ind, indy, :) - s_pts(indy, :)
+        tmp = 0.
+        call cross(diff, sec_forces(ind, indy, :), tmp)
+        moment(indy, :) = moment(indy, :) + tmp
+      end do
+    end do
+
+    ! Compute the loads based on the xyz forces and the computed moments
+    sec_forces_sum = 0.
+    do ind=1,nx-1
+      sec_forces_sum = sec_forces_sum + sec_forces(ind, :, :)
+    end do
+    loads = 0.
+    loads(:ny-1, :3) = loads(:ny-1, :3) + 0.5 * sec_forces_sum
+    loads( 2:, :3) = loads( 2:, :3) + 0.5 * sec_forces_sum
+    loads(:ny-1, 4:) = loads(:ny-1, 4:) + 0.5 * moment
+    loads( 2:, 4:) = loads( 2:, 4:) + 0.5 * moment
+
+  end subroutine
+
 
   subroutine assemblestructmtx_main(n, tot_n_fem, nodes, A, J, Iy, Iz, &
     K_a, K_t, K_y, K_z, &
