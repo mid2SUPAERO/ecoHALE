@@ -245,6 +245,7 @@ class OASProblem(object):
                     'twist_cp' : None,
                     'chord_cp' : None,
                     'xshear_cp' : None,
+                    'yshear_cp' : None,
                     'zshear_cp' : None,
                     'thickness_cp' : None,
                     'radius_cp' : None,
@@ -253,7 +254,7 @@ class OASProblem(object):
                     # to change these geometry variables. This is simply
                     # a list of possible geometry variables that is later
                     # filtered down based on which are active.
-                    'geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp',
+                    'geo_vars' : ['sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'yshear_cp',
                         'zshear_cp', 'span', 'chord_cp', 'taper', 'thickness_cp', 'radius_cp'],
 
                     # Aerodynamic performance of the lifting surface at
@@ -365,7 +366,7 @@ class OASProblem(object):
         # We need to initialize some variables to ones and some others to zeros.
         # Here we define the lists for each case.
         ones_list = ['chord_cp', 'thickness_cp', 'radius_cp']
-        zeros_list = ['twist_cp', 'xshear_cp', 'zshear_cp']
+        zeros_list = ['twist_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp']
         surf_dict['bsp_vars'] = ones_list + zeros_list
 
         # Loop through bspline variables and set the number of control points if
@@ -875,6 +876,7 @@ class OASProblem(object):
             # Connect S_ref for performance calcs
             model.connect(name[:-1] + '.S_ref', name + 'perf' + '.S_ref')
             model.connect(name[:-1] + '.widths', name + 'perf' + '.widths')
+            model.connect(name[:-1] + '.chords', name + 'perf' + '.chords')
             model.connect(name[:-1] + '.lengths', name + 'perf' + '.lengths')
             model.connect(name[:-1] + '.cos_sweep', name + 'perf' + '.cos_sweep')
 
@@ -1082,6 +1084,7 @@ class OASProblem(object):
             model.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
             model.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
             model.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
+            model.connect('coupled.' + name[:-1] + '.chords', name + 'perf.chords')
             model.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
             model.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
 

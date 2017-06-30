@@ -4,6 +4,8 @@ from openaerostruct.aerodynamics.coeffs import Coeffs
 from openaerostruct.aerodynamics.total_lift import TotalLift
 from openaerostruct.aerodynamics.total_drag import TotalDrag
 from openaerostruct.aerodynamics.viscous_drag import ViscousDrag
+from openaerostruct.aerodynamics.lift_coeff_2D import LiftCoeff2D
+
 
 class VLMFunctionals(Group):
     """
@@ -22,6 +24,9 @@ class VLMFunctionals(Group):
         self.add_subsystem('viscousdrag',
             ViscousDrag(surface=surface, with_viscous=with_viscous),
             promotes=['*'])
+        self.add_subsystem('liftcoeff',
+             LiftCoeff2D(surface=surface),
+             promotes=['*'])
         self.add_subsystem('liftdrag',
             LiftDrag(surface=surface),
             promotes=['*'])

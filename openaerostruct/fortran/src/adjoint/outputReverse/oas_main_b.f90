@@ -6,26 +6,25 @@ module oas_main_b
 
 contains
 !  differentiation of manipulate_mesh_main in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: span taper sweep chord mesh
-!                twist dihedral xshear zshear
-!   with respect to varying inputs: span taper sweep chord mesh
-!                twist dihedral xshear zshear
-!   rw status of diff variables: span:incr taper:incr sweep:incr
-!                chord:incr mesh:in-zero twist:incr dihedral:incr
-!                xshear:incr zshear:incr
+!   gradient     of useful results: span yshear taper sweep chord
+!                mesh twist dihedral xshear zshear
+!   with respect to varying inputs: span yshear taper sweep chord
+!                mesh twist dihedral xshear zshear
+!   rw status of diff variables: span:incr yshear:incr taper:incr
+!                sweep:incr chord:incr mesh:in-zero twist:incr
+!                dihedral:incr xshear:incr zshear:incr
   subroutine manipulate_mesh_main_b(nx, ny, input_mesh, taper, taperb, &
-&   chord, chordb, sweep, sweepb, xshear, xshearb, dihedral, dihedralb, &
-&   zshear, zshearb, twist, twistb, span, spanb, symmetry, rotate_x, &
-&   mesh, meshb)
+&   chord, chordb, sweep, sweepb, xshear, xshearb, span, spanb, yshear, &
+&   yshearb, dihedral, dihedralb, zshear, zshearb, twist, twistb, &
+&   symmetry, rotate_x, mesh, meshb)
     implicit none
     integer, intent(in) :: nx, ny
-    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), taper, chord(ny)&
-&   , sweep
-    real(kind=8) :: taperb, chordb(ny), sweepb
-    real(kind=8), intent(in) :: xshear(ny), dihedral, zshear(ny), twist(&
-&   ny), span
-    real(kind=8) :: xshearb(ny), dihedralb, zshearb(ny), twistb(ny), &
-&   spanb
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), taper, chord(ny)
+    real(kind=8) :: taperb, chordb(ny)
+    real(kind=8), intent(in) :: sweep, xshear(ny), span, yshear(ny)
+    real(kind=8) :: sweepb, xshearb(ny), spanb, yshearb(ny)
+    real(kind=8), intent(in) :: dihedral, zshear(ny), twist(ny)
+    real(kind=8) :: dihedralb, zshearb(ny), twistb(ny)
     logical, intent(in) :: symmetry, rotate_x
     real(kind=8) :: mesh(nx, ny, 3)
     real(kind=8) :: meshb(nx, ny, 3)
@@ -124,22 +123,6 @@ contains
       mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord(iy) +&
 &       quarter_chord(iy, 1)
     end do
-! span
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    call pushreal8array(quarter_chord, ny*3)
-    quarter_chord = 0.25*te + 0.75*le
-    new_span = span
-    if (symmetry) then
-      new_span = span/2.
-      call pushcontrol1b(0)
-    else
-      call pushcontrol1b(1)
-    end if
-    s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
-    do ix=1,nx
-      mesh(ix, :, 2) = s*new_span
-    end do
 ! sweep
     le = mesh(1, :, :)
     tan_theta = tan(p180*sweep)
@@ -164,8 +147,28 @@ contains
     do ix=1,nx
       mesh(ix, :, 1) = mesh(ix, :, 1) + xshear
     end do
-! dihedral
+! span
     call pushreal8array(le, ny*3)
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    call pushreal8array(quarter_chord, ny*3)
+    quarter_chord = 0.25*te + 0.75*le
+    new_span = span
+    if (symmetry) then
+      new_span = span/2.
+      call pushcontrol1b(0)
+    else
+      call pushcontrol1b(1)
+    end if
+    s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
+    do ix=1,nx
+      mesh(ix, :, 2) = s*new_span
+    end do
+! y shear
+    do ix=1,nx
+      mesh(ix, :, 2) = mesh(ix, :, 2) + yshear
+    end do
+! dihedral
     le = mesh(1, :, :)
     call pushreal8(tan_theta)
     tan_theta = tan(p180*dihedral)
@@ -364,6 +367,36 @@ contains
     end if
     call popreal8(tan_theta)
     dihedralb = dihedralb + (1.0+tan(p180*dihedral)**2)*p180*tan_thetab
+    meshb(1, :, :) = meshb(1, :, :) + leb
+    do ix=nx,1,-1
+      yshearb = yshearb + meshb(ix, :, 2)
+    end do
+    sb = 0.0_8
+    new_spanb = 0.0_8
+    do ix=nx,1,-1
+      sb = sb + new_span*meshb(ix, :, 2)
+      new_spanb = new_spanb + sum(s*meshb(ix, :, 2))
+      meshb(ix, :, 2) = 0.0_8
+    end do
+    quarter_chordb = 0.0_8
+    tempb = sb/(quarter_chord(ny, 2)-quarter_chord(1, 2))
+    tempb0 = sum(-(quarter_chord(:, 2)*tempb/(quarter_chord(ny, 2)-&
+&     quarter_chord(1, 2))))
+    quarter_chordb(:, 2) = quarter_chordb(:, 2) + tempb
+    quarter_chordb(ny, 2) = quarter_chordb(ny, 2) + tempb0
+    quarter_chordb(1, 2) = quarter_chordb(1, 2) - tempb0
+    call popcontrol1b(branch)
+    if (branch .eq. 0) then
+      spanb = spanb + new_spanb/2.
+      new_spanb = 0.0_8
+    end if
+    spanb = spanb + new_spanb
+    leb = 0.0_8
+    teb = 0.0_8
+    call popreal8array(quarter_chord, ny*3)
+    teb = 0.25*quarter_chordb
+    leb = 0.75*quarter_chordb
+    meshb(nx, :, :) = meshb(nx, :, :) + teb
     call popreal8array(le, ny*3)
     meshb(1, :, :) = meshb(1, :, :) + leb
     do ix=nx,1,-1
@@ -397,33 +430,6 @@ contains
       dxb = 0.0_8
     end if
     sweepb = sweepb + (1.0+tan(p180*sweep)**2)*p180*tan_thetab
-    meshb(1, :, :) = meshb(1, :, :) + leb
-    sb = 0.0_8
-    new_spanb = 0.0_8
-    do ix=nx,1,-1
-      sb = sb + new_span*meshb(ix, :, 2)
-      new_spanb = new_spanb + sum(s*meshb(ix, :, 2))
-      meshb(ix, :, 2) = 0.0_8
-    end do
-    quarter_chordb = 0.0_8
-    tempb = sb/(quarter_chord(ny, 2)-quarter_chord(1, 2))
-    tempb0 = sum(-(quarter_chord(:, 2)*tempb/(quarter_chord(ny, 2)-&
-&     quarter_chord(1, 2))))
-    quarter_chordb(:, 2) = quarter_chordb(:, 2) + tempb
-    quarter_chordb(ny, 2) = quarter_chordb(ny, 2) + tempb0
-    quarter_chordb(1, 2) = quarter_chordb(1, 2) - tempb0
-    call popcontrol1b(branch)
-    if (branch .eq. 0) then
-      spanb = spanb + new_spanb/2.
-      new_spanb = 0.0_8
-    end if
-    spanb = spanb + new_spanb
-    leb = 0.0_8
-    teb = 0.0_8
-    call popreal8array(quarter_chord, ny*3)
-    teb = 0.25*quarter_chordb
-    leb = 0.75*quarter_chordb
-    meshb(nx, :, :) = meshb(nx, :, :) + teb
     meshb(1, :, :) = meshb(1, :, :) + leb
     quarter_chordb = 0.0_8
     do iy=ny,1,-1
@@ -491,14 +497,13 @@ contains
     meshb = 0.0_8
   end subroutine manipulate_mesh_main_b
   subroutine manipulate_mesh_main(nx, ny, input_mesh, taper, chord, &
-&   sweep, xshear, dihedral, zshear, twist, span, symmetry, rotate_x, &
-&   mesh)
+&   sweep, xshear, span, yshear, dihedral, zshear, twist, symmetry, &
+&   rotate_x, mesh)
     implicit none
     integer, intent(in) :: nx, ny
-    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), taper, chord(ny)&
-&   , sweep
-    real(kind=8), intent(in) :: xshear(ny), dihedral, zshear(ny), twist(&
-&   ny), span
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), taper, chord(ny)
+    real(kind=8), intent(in) :: sweep, xshear(ny), span, yshear(ny)
+    real(kind=8), intent(in) :: dihedral, zshear(ny), twist(ny)
     logical, intent(in) :: symmetry, rotate_x
     real(kind=8), intent(out) :: mesh(nx, ny, 3)
     real(kind=8) :: le(ny, 3), te(ny, 3), quarter_chord(ny, 3), p180, &
@@ -569,16 +574,6 @@ contains
       mesh(:, iy, 1) = (mesh(:, iy, 1)-quarter_chord(iy, 1))*chord(iy) +&
 &       quarter_chord(iy, 1)
     end do
-! span
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25*te + 0.75*le
-    new_span = span
-    if (symmetry) new_span = span/2.
-    s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
-    do ix=1,nx
-      mesh(ix, :, 2) = s*new_span
-    end do
 ! sweep
     le = mesh(1, :, :)
     tan_theta = tan(p180*sweep)
@@ -597,6 +592,20 @@ contains
 ! x shear
     do ix=1,nx
       mesh(ix, :, 1) = mesh(ix, :, 1) + xshear
+    end do
+! span
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25*te + 0.75*le
+    new_span = span
+    if (symmetry) new_span = span/2.
+    s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
+    do ix=1,nx
+      mesh(ix, :, 2) = s*new_span
+    end do
+! y shear
+    do ix=1,nx
+      mesh(ix, :, 2) = mesh(ix, :, 2) + yshear
     end do
 ! dihedral
     le = mesh(1, :, :)
@@ -1052,121 +1061,6 @@ contains
     end do
     def_mesh = def_mesh + mesh
   end subroutine transferdisplacements_main
-!  differentiation of transferloads_main in reverse (adjoint) mode (with options i4 dr8 r8):
-!   gradient     of useful results: loads sec_forces def_mesh
-!   with respect to varying inputs: loads sec_forces def_mesh
-!   rw status of diff variables: loads:in-zero sec_forces:incr
-!                def_mesh:incr
-  subroutine transferloads_main_b(nx, ny, def_mesh, def_meshb, &
-&   sec_forces, sec_forcesb, fem_origin, loads, loadsb)
-    implicit none
-! input
-    integer, intent(in) :: nx, ny
-    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny&
-&   -1, 3), fem_origin
-    real(kind=8) :: def_meshb(nx, ny, 3), sec_forcesb(nx-1, ny-1, 3)
-! output
-    real(kind=8) :: loads(ny, 6)
-    real(kind=8) :: loadsb(ny, 6)
-! working
-    integer :: ind, indy
-    real(kind=8) :: w, moment(ny-1, 3), a_pts(nx-1, ny-1, 3), s_pts(ny-1&
-&   , 3)
-    real(kind=8) :: momentb(ny-1, 3), a_ptsb(nx-1, ny-1, 3), s_ptsb(ny-1&
-&   , 3)
-    real(kind=8) :: diff(3), tmp(3), sec_forces_sum(ny-1, 3)
-    real(kind=8) :: diffb(3), tmpb(3), sec_forces_sumb(ny-1, 3)
-! compute the aerodynamic centers at the quarter-chord point of each panel
-    w = 0.25
-    a_pts = 0.5*(1-w)*def_mesh(:nx-1, :ny-1, :) + 0.5*w*def_mesh(2:, :ny&
-&     -1, :) + 0.5*(1-w)*def_mesh(:nx-1, 2:, :) + 0.5*w*def_mesh(2:, 2:&
-&     , :)
-! compute the structural midpoints based on the fem_origin location
-    w = fem_origin
-    s_pts = 0.5*(1-w)*def_mesh(1, :ny-1, :) + 0.5*w*def_mesh(nx, :ny-1, &
-&     :) + 0.5*(1-w)*def_mesh(1, 2:, :) + 0.5*w*def_mesh(nx, 2:, :)
-! find the moment arm between the aerodynamic centers of each panel
-! and the fem elements
-    momentb = 0.0_8
-    momentb = 0.5*loadsb(:ny-1, 4:) + 0.5*loadsb(2:, 4:)
-    sec_forces_sumb = 0.0_8
-    sec_forces_sumb = 0.5*loadsb(:ny-1, :3) + 0.5*loadsb(2:, :3)
-    do ind=nx-1,1,-1
-      sec_forcesb(ind, :, :) = sec_forcesb(ind, :, :) + sec_forces_sumb
-    end do
-    s_ptsb = 0.0_8
-    a_ptsb = 0.0_8
-    do ind=nx-1,1,-1
-      do indy=ny-1,1,-1
-        tmpb = 0.0_8
-        tmpb = momentb(indy, :)
-        diff = a_pts(ind, indy, :) - s_pts(indy, :)
-        diffb = 0.0_8
-        call cross_b(diff, diffb, sec_forces(ind, indy, :), sec_forcesb(&
-&              ind, indy, :), tmp, tmpb)
-        a_ptsb(ind, indy, :) = a_ptsb(ind, indy, :) + diffb
-        s_ptsb(indy, :) = s_ptsb(indy, :) - diffb
-      end do
-    end do
-    def_meshb(1, 1:ny-1, :) = def_meshb(1, 1:ny-1, :) + (1-w)*0.5*s_ptsb
-    def_meshb(nx, 1:ny-1, :) = def_meshb(nx, 1:ny-1, :) + w*0.5*s_ptsb
-    def_meshb(1, 2:ny, :) = def_meshb(1, 2:ny, :) + (1-w)*0.5*s_ptsb
-    def_meshb(nx, 2:ny, :) = def_meshb(nx, 2:ny, :) + w*0.5*s_ptsb
-    w = 0.25
-    def_meshb(1:nx-1, 1:ny-1, :) = def_meshb(1:nx-1, 1:ny-1, :) + (1-w)*&
-&     0.5*a_ptsb
-    def_meshb(2:nx, 1:ny-1, :) = def_meshb(2:nx, 1:ny-1, :) + w*0.5*&
-&     a_ptsb
-    def_meshb(1:nx-1, 2:ny, :) = def_meshb(1:nx-1, 2:ny, :) + (1-w)*0.5*&
-&     a_ptsb
-    def_meshb(2:nx, 2:ny, :) = def_meshb(2:nx, 2:ny, :) + w*0.5*a_ptsb
-    loadsb = 0.0_8
-  end subroutine transferloads_main_b
-  subroutine transferloads_main(nx, ny, def_mesh, sec_forces, fem_origin&
-&   , loads)
-    implicit none
-! input
-    integer, intent(in) :: nx, ny
-    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny&
-&   -1, 3), fem_origin
-! output
-    real(kind=8), intent(out) :: loads(ny, 6)
-! working
-    integer :: ind, indy
-    real(kind=8) :: w, moment(ny-1, 3), a_pts(nx-1, ny-1, 3), s_pts(ny-1&
-&   , 3)
-    real(kind=8) :: diff(3), tmp(3), sec_forces_sum(ny-1, 3)
-! compute the aerodynamic centers at the quarter-chord point of each panel
-    w = 0.25
-    a_pts = 0.5*(1-w)*def_mesh(:nx-1, :ny-1, :) + 0.5*w*def_mesh(2:, :ny&
-&     -1, :) + 0.5*(1-w)*def_mesh(:nx-1, 2:, :) + 0.5*w*def_mesh(2:, 2:&
-&     , :)
-! compute the structural midpoints based on the fem_origin location
-    w = fem_origin
-    s_pts = 0.5*(1-w)*def_mesh(1, :ny-1, :) + 0.5*w*def_mesh(nx, :ny-1, &
-&     :) + 0.5*(1-w)*def_mesh(1, 2:, :) + 0.5*w*def_mesh(nx, 2:, :)
-! find the moment arm between the aerodynamic centers of each panel
-! and the fem elements
-    moment = 0.
-    do ind=1,nx-1
-      do indy=1,ny-1
-        diff = a_pts(ind, indy, :) - s_pts(indy, :)
-        tmp = 0.
-        call cross(diff, sec_forces(ind, indy, :), tmp)
-        moment(indy, :) = moment(indy, :) + tmp
-      end do
-    end do
-! compute the loads based on the xyz forces and the computed moments
-    sec_forces_sum = 0.
-    do ind=1,nx-1
-      sec_forces_sum = sec_forces_sum + sec_forces(ind, :, :)
-    end do
-    loads = 0.
-    loads(:ny-1, :3) = loads(:ny-1, :3) + 0.5*sec_forces_sum
-    loads(2:, :3) = loads(2:, :3) + 0.5*sec_forces_sum
-    loads(:ny-1, 4:) = loads(:ny-1, 4:) + 0.5*moment
-    loads(2:, 4:) = loads(2:, 4:) + 0.5*moment
-  end subroutine transferloads_main
 !  differentiation of assemblestructmtx_main in reverse (adjoint) mode (with options i4 dr8 r8):
 !   gradient     of useful results: k
 !   with respect to varying inputs: j k nodes iy iz a
@@ -1705,6 +1599,8 @@ contains
     real(kind=8) :: tempb(3)
     pi = 4.d0*atan(1.d0)
 ! trailing vortices in avl follow the x-axis; no cos or sin
+! u(1) = 1.
+! u(3) = 0.
     u(1) = cos(alpha*pi/180.)
     u(2) = 0.
     u(3) = sin(alpha*pi/180.)
@@ -2003,6 +1899,8 @@ contains
     intrinsic sin
     pi = 4.d0*atan(1.d0)
 ! trailing vortices in avl follow the x-axis; no cos or sin
+! u(1) = 1.
+! u(3) = 0.
     u(1) = cos(alpha*pi/180.)
     u(2) = 0.
     u(3) = sin(alpha*pi/180.)

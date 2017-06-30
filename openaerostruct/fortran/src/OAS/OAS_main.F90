@@ -5,13 +5,14 @@ module oas_main
 contains
 
   subroutine manipulate_mesh_main(nx, ny, input_mesh, taper, chord, sweep, xshear, &
-    dihedral, zshear, twist, span, symmetry, rotate_x, mesh)
+    span, yshear, dihedral, zshear, twist, symmetry, rotate_x, mesh)
 
     implicit none
 
     integer, intent(in) :: nx, ny
-    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), taper, chord(ny), sweep
-    real(kind=8), intent(in) :: xshear(ny), dihedral, zshear(ny), twist(ny), span
+    real(kind=8), intent(in) :: input_mesh(nx, ny, 3), taper, chord(ny)
+    real(kind=8), intent(in) :: sweep, xshear(ny), span, yshear(ny)
+    real(kind=8), intent(in) :: dihedral, zshear(ny), twist(ny)
     logical, intent(in) :: symmetry, rotate_x
 
     real(kind=8), intent(out) :: mesh(nx, ny, 3)
@@ -86,21 +87,6 @@ contains
         quarter_chord(iy, 1)
     end do
 
-    ! Span
-    le = mesh(1, :, :)
-    te = mesh(nx, :, :)
-    quarter_chord = 0.25 * te + 0.75 * le
-    new_span = span
-
-    if (symmetry) then
-      new_span = span / 2.
-    end if
-
-    s = quarter_chord(:, 2) / (quarter_chord(ny, 2) - quarter_chord(1, 2))
-    do ix=1,nx
-      mesh(ix, :, 2) = s * new_span
-    end do
-
     ! Sweep
     le = mesh(1, :, :)
     tan_theta = tan(p180 * sweep)
@@ -123,6 +109,26 @@ contains
     ! x shear
     do ix=1,nx
       mesh(ix, :, 1) = mesh(ix, :, 1) + xshear
+    end do
+
+    ! Span
+    le = mesh(1, :, :)
+    te = mesh(nx, :, :)
+    quarter_chord = 0.25 * te + 0.75 * le
+    new_span = span
+
+    if (symmetry) then
+      new_span = span / 2.
+    end if
+
+    s = quarter_chord(:, 2) / (quarter_chord(ny, 2) - quarter_chord(1, 2))
+    do ix=1,nx
+      mesh(ix, :, 2) = s * new_span
+    end do
+
+    ! y shear
+    do ix=1,nx
+      mesh(ix, :, 2) = mesh(ix, :, 2) + yshear
     end do
 
     ! Dihedral
@@ -344,60 +350,6 @@ contains
 
   end subroutine
 
-  subroutine transferloads_main(nx, ny, def_mesh, sec_forces, fem_origin, loads)
-
-    implicit none
-
-    ! Input
-    integer, intent(in) :: nx, ny
-    real(kind=8), intent(in) :: def_mesh(nx, ny, 3), sec_forces(nx-1, ny-1, 3), fem_origin
-
-    ! Output
-    real(kind=8), intent(out) :: loads(ny, 6)
-
-    ! Working
-    integer :: ind, indy
-    real(kind=8) :: w, moment(ny-1, 3), a_pts(nx-1, ny-1, 3), s_pts(ny-1, 3)
-    real(kind=8) :: diff(3), tmp(3), sec_forces_sum(ny-1, 3)
-
-    ! Compute the aerodynamic centers at the quarter-chord point of each panel
-    w = 0.25
-    a_pts = 0.5 * (1-w) * def_mesh(:nx-1, :ny-1, :) + &
-            0.5 *   w   * def_mesh(2:, :ny-1, :) + &
-            0.5 * (1-w) * def_mesh(:nx-1,  2:, :) + &
-            0.5 *   w   * def_mesh(2:,  2:, :)
-
-    ! Compute the structural midpoints based on the fem_origin location
-    w = fem_origin
-    s_pts = 0.5 * (1-w) * def_mesh(1, :ny-1, :) + &
-            0.5 *   w   * def_mesh(nx, :ny-1, :) + &
-            0.5 * (1-w) * def_mesh(1,  2:, :) + &
-            0.5 *   w   * def_mesh(nx,  2:, :)
-
-    ! Find the moment arm between the aerodynamic centers of each panel
-    ! and the FEM elements
-    moment = 0.
-    do ind=1,nx-1
-      do indy=1,ny-1
-        diff = a_pts(ind, indy, :) - s_pts(indy, :)
-        tmp = 0.
-        call cross(diff, sec_forces(ind, indy, :), tmp)
-        moment(indy, :) = moment(indy, :) + tmp
-      end do
-    end do
-
-    ! Compute the loads based on the xyz forces and the computed moments
-    sec_forces_sum = 0.
-    do ind=1,nx-1
-      sec_forces_sum = sec_forces_sum + sec_forces(ind, :, :)
-    end do
-    loads = 0.
-    loads(:ny-1, :3) = loads(:ny-1, :3) + 0.5 * sec_forces_sum
-    loads( 2:, :3) = loads( 2:, :3) + 0.5 * sec_forces_sum
-    loads(:ny-1, 4:) = loads(:ny-1, 4:) + 0.5 * moment
-    loads( 2:, 4:) = loads( 2:, 4:) + 0.5 * moment
-
-  end subroutine
 
   subroutine assemblestructmtx_main(n, tot_n_fem, nodes, A, J, Iy, Iz, &
     K_a, K_t, K_y, K_z, &
@@ -585,6 +537,8 @@ contains
     pi = 4.d0*atan(1.d0)
 
     ! Trailing vortices in AVL follow the x-axis; no cos or sin
+    ! u(1) = 1.
+    ! u(3) = 0.
     u(1) = cos(alpha * pi / 180.)
     u(2) = 0.
     u(3) = sin(alpha * pi / 180.)

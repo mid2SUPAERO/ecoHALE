@@ -118,6 +118,23 @@ def shear_x(mesh, xshear):
     """
     mesh[:, :, 0] += xshear
 
+def shear_y(mesh, yshear):
+    """ Shear the wing in the y direction (distributed span).
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    yshear[ny] : numpy array
+        Distance to translate wing in y direction.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh with the new span widths.
+    """
+    mesh[:, :, 1] += yshear
+
 def shear_z(mesh, zshear):
     """
     Shear the wing in the z direction (distributed dihedral).
@@ -349,28 +366,41 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
 
     mesh = np.zeros((num_x, num_y, 3))
     ny2 = (num_y + 1) // 2
-    beta = np.linspace(0, np.pi/2, ny2)
 
-    # mixed spacing with span_cos_spacing as a weighting factor
-    # this is for the spanwise spacing
-    cosine = .5 * np.cos(beta)  # cosine spacing
-    uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
-    half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
-    full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
-
-    if chord_cos_spacing == 0.:
-        full_wing_x = np.linspace(0, chord, num_x)
-
-    else:
-        nx2 = (num_x + 1) / 2
-        beta = np.linspace(0, np.pi/2, nx2)
+    # Hotfix a special case for spacing bunched at the root and tips
+    if span_cos_spacing == 2.:
+        beta = np.linspace(0, np.pi, ny2)
 
         # mixed spacing with span_cos_spacing as a weighting factor
-        # this is for the chordwise spacing
+        # this is for the spanwise spacing
+        cosine = .25 * (1 - np.cos(beta)) # cosine spacing
+        uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
+        half_wing = cosine[::-1] * span_cos_spacing + (1 - span_cos_spacing) * uniform
+        full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
+
+    else:
+        beta = np.linspace(0, np.pi/2, ny2)
+
+        # mixed spacing with span_cos_spacing as a weighting factor
+        # this is for the spanwise spacing
         cosine = .5 * np.cos(beta)  # cosine spacing
-        uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
-        half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
-        full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) * chord
+        uniform = np.linspace(0, .5, ny2)[::-1]  # uniform spacing
+        half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
+        full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
+
+    nx2 = (num_x + 1) / 2
+    beta = np.linspace(0, np.pi/2, nx2)
+
+    # mixed spacing with span_cos_spacing as a weighting factor
+    # this is for the chordwise spacing
+    cosine = .5 * np.cos(beta)  # cosine spacing
+    uniform = np.linspace(0, .5, nx2)[::-1]  # uniform spacing
+    half_wing = cosine * chord_cos_spacing + (1 - chord_cos_spacing) * uniform
+    full_wing_x = np.hstack((-half_wing[:-1], half_wing[::-1])) * chord
+
+    # Special case if there are only 2 chordwise nodes
+    if num_x <= 2:
+        full_wing_x = np.array([0., chord])
 
     for ind_x in range(num_x):
         for ind_y in range(num_y):
