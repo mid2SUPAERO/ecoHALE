@@ -584,3 +584,121 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
         new_mesh[i, :, :] = (1 - w) * le + w * te
 
     return new_mesh
+
+def get_default_geo_dict():
+    """
+    Obtain the default settings for the surface descriptions. Note that
+    these defaults are overwritten based on user input for each surface.
+    Each dictionary describes one surface.
+
+    Returns
+    -------
+    defaults : dict
+        A python dict containing the default surface-level settings.
+    """
+
+    defaults = {
+                # Wing definition
+                'num_x' : 3,            # number of chordwise points
+                'num_y' : 5,            # number of spanwise points
+                'span_cos_spacing' : 1, # 0 for uniform spanwise panels
+                                        # 1 for cosine-spaced panels
+                                        # any value between 0 and 1 for
+                                        # a mixed spacing
+                'chord_cos_spacing' : 0.,   # 0 for uniform chordwise panels
+                                        # 1 for cosine-spaced panels
+                                        # any value between 0 and 1 for
+                                        # a mixed spacing
+                'wing_type' : 'rect',   # initial shape of the wing
+                                        # either 'CRM' or 'rect'
+                                        # 'CRM' can have different options
+                                        # after it, such as 'CRM:alpha_2.75'
+                                        # for the CRM shape at alpha=2.75
+                'symmetry' : True,     # if true, model one half of wing
+                                        # reflected across the plane y = 0
+                'offset' : np.zeros((3)), # coordinates to offset
+                                # the surface from its default location
+
+                # Simple Geometric Variables
+                'span' : 10.,           # full wingspan, even for symmetric cases
+                'root_chord' : 1.,      # root chord
+                'dihedral' : 0.,        # wing dihedral angle in degrees
+                                        # positive is upward
+                'sweep' : 0.,           # wing sweep angle in degrees
+                                        # positive sweeps back
+                'taper' : 1.,           # taper ratio; 1. is uniform chord
+                }
+
+    return defaults
+
+def generate_mesh(input_dict):
+
+    # Get defaults and update surface with the user-provided input
+    surf_dict = get_default_geo_dict()
+    surf_dict.update(input_dict)
+
+    num_x = surf_dict['num_x']
+    num_y = surf_dict['num_y']
+    span = surf_dict['span']
+    chord = surf_dict['root_chord']
+    span_cos_spacing = surf_dict['span_cos_spacing']
+    chord_cos_spacing = surf_dict['chord_cos_spacing']
+
+    # Check to make sure that an odd number of spanwise points (num_y) was provided
+    if not num_y % 2:
+        Error('num_y must be an odd number.')
+
+    # Generate rectangular mesh
+    if surf_dict['wing_type'] == 'rect':
+        mesh = gen_rect_mesh(num_x, num_y, span, chord,
+            span_cos_spacing, chord_cos_spacing)
+
+    # Generate CRM mesh. Note that this outputs twist information
+    # based on the data from the CRM definition paper, so we save
+    # this twist information to the surf_dict.
+    elif 'CRM' in surf_dict['wing_type']:
+        mesh, eta, twist = gen_crm_mesh(num_x, num_y, span, chord,
+            span_cos_spacing, chord_cos_spacing, surf_dict['wing_type'])
+        num_x, num_y = mesh.shape[:2]
+        surf_dict['crm_twist'] = twist
+
+    else:
+        Error('wing_type option not understood. Must be either a type of ' +
+              '"CRM" or "rect".')
+
+    # Chop the mesh in half if using symmetry during analysis.
+    # Note that this means that the provided mesh should be the full mesh
+    if surf_dict['symmetry']:
+        num_y = int((num_y+1)/2)
+        mesh = mesh[:, :num_y, :]
+
+    twist = None
+
+    # Interpolate the twist values from the CRM wing definition to the twist
+    # control points
+    if 'CRM' in surf_dict['wing_type']:
+        num_twist = surf_dict['num_twist_cp']
+
+        # If the surface is symmetric, simply interpolate the initial
+        # twist_cp values based on the mesh data
+        if surf_dict['symmetry']:
+            twist = np.interp(np.linspace(0, 1, num_twist), eta, surf_dict['crm_twist'])
+        else:
+
+            # If num_twist is odd, create the twist vector and mirror it
+            # then stack the two together, but remove the duplicated twist
+            # value.
+            if num_twist % 2:
+                twist = np.interp(np.linspace(0, 1, (num_twist+1)/2), eta, surf_dict['crm_twist'])
+                twist = np.hstack((twist[:-1], twist[::-1]))
+
+            # If num_twist is even, mirror the twist vector and stack
+            # them together
+            else:
+                twist = np.interp(np.linspace(0, 1, num_twist/2), eta, surf_dict['crm_twist'])
+                twist = np.hstack((twist, twist[::-1]))
+
+    # Apply the user-provided coordinate offset to position the mesh
+    mesh = mesh + surf_dict['offset']
+
+    return mesh, twist

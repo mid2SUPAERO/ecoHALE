@@ -14,11 +14,6 @@ import sys
 from time import time
 import numpy as np
 
-# Append the parent directory to the system path so we can call those Python
-# files. If you have OpenAeroStruct in your PYTHONPATH, this is not necessary.
-from os import sys, path
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
 from openaerostruct.integration.integration import OASProblem
 
 # Suppress warnings

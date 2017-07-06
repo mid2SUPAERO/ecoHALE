@@ -586,63 +586,6 @@ class OASProblem(object):
         """
         self.objective[str(*args)] = dict(**kwargs)
 
-    def run(self):
-        """
-        Method to actually run analysis or optimization. Also saves history in
-        a .db file and creates an N2 diagram to view the problem hierarchy.
-        """
-
-        # Have more verbose output about optimization convergence
-        if self.prob_dict['print_level']:
-            self.prob.print_all_convergence()
-
-        # Save an N2 diagram for the problem
-        if self.prob_dict['record_db']:
-            view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
-
-        # If `optimize` == True in prob_dict, perform optimization. Otherwise,
-        # simply pass the problem since analysis has already been run.
-        if not self.prob_dict['optimize']:
-            # Run a single analysis loop. This shouldn't actually be
-            # necessary, but sometimes the .db file is not complete unless we do this.
-            coupled = self.prob.model.get_subsystem('coupled')
-            self.prob.run_model()
-        else:
-            # Perform optimization
-            self.prob.run_driver()
-
-        # If the problem type is aero or aerostruct, we can compute the static margin.
-        # This is a naive tempoerary implementation that currently finite differences
-        # over the entire model to obtain the static margin.
-        if self.prob_dict['compute_static_margin'] and 'aero' in self.prob_dict['type']:
-
-            # Turn off problem recording (so nothing for these computations
-            # appears in the .db file) and get the current CL and CM.
-            self.prob.driver.recorders._recorders = []
-            CL = self.prob['wing_perf.CL']
-            CM = self.prob['CM'][1]
-            step = 1e-5
-
-            # Perturb alpha and run an analysis loop to obtain the new CL and CM.
-            self.prob['alpha'] += step
-            self.prob.run_once()
-            CL_new = self.prob['wing_perf.CL']
-            CM_new = self.prob['CM'][1]
-
-            # Un-perturb alpha and run a single analysis loop to get the problem
-            # back to where it was before we finite differenced.
-            self.prob['alpha'] -= step
-            self.prob.run_once()
-
-            # Compute, print, and save the static margin in metadata.
-            static_margin = -(CM_new - CM) / (CL_new - CL)
-            print("Static margin is:", static_margin)
-            self.prob.model.add_metadata('static_margin', static_margin)
-
-        # Uncomment this to check the partial derivatives of each component
-        # self.prob.check_partials(compact_print=True)
-        # self.prob.check_partials(compact_print=False)
-
     def setup_struct(self):
         """
         Specific method to add the necessary components to the problem for a
@@ -689,7 +632,6 @@ class OASProblem(object):
             indep_var_comp.add_output('loads', val=surface['loads'])
             for var in surface['geo_vars']:
                 if var in desvar_names or 'thickness' in var or var in surface['initial_geo']:
-                    # indep_vars.append((var, surface[var]))
                     indep_var_comp.add_output(var, val=surface[var])
 
             # Add structural components to the surface-specific group
@@ -957,7 +899,6 @@ class OASProblem(object):
             indep_var_comp = IndepVarComp()
             for var in surface['geo_vars']:
                 if var in desvar_names or 'thickness' in var or var in surface['initial_geo']:
-                    # indep_vars.append((var, surface[var]))
                     indep_var_comp.add_output(var, val=surface[var])
 
             # Add components to include in the surface's group
@@ -1102,9 +1043,9 @@ class OASProblem(object):
         coupled.nonlinear_solver = NonlinearBlockGS()
         coupled.nonlinear_solver.options['maxiter'] = 50
 
-        # coupled.jacobian = DenseJacobian()
-        # coupled.linear_solver = DirectSolver()
-        # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+        coupled.jacobian = DenseJacobian()
+        coupled.linear_solver = DirectSolver()
+        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
 
         # This is only available in the most recent version of OpenMDAO.
         # It may help converge tightly coupled systems when using NLGS.
@@ -1137,7 +1078,6 @@ class OASProblem(object):
                 SpatialBeamFunctionals(surface=surface),
                 promotes=['*'])
 
-
             model.add_subsystem(name + 'perf', tmp_group, promotes=["rho", "v", "alpha", "re", "M"])
 
         # Add functionals to evaluate performance of the system.
@@ -1149,3 +1089,60 @@ class OASProblem(object):
 
         # Actually set up the system
         self.setup_prob()
+
+    def run(self):
+        """
+        Method to actually run analysis or optimization. Also saves history in
+        a .db file and creates an N2 diagram to view the problem hierarchy.
+        """
+
+        # Have more verbose output about optimization convergence
+        if self.prob_dict['print_level']:
+            self.prob.print_all_convergence()
+
+        # Save an N2 diagram for the problem
+        if self.prob_dict['record_db']:
+            view_model(self.prob, outfile=self.prob_dict['prob_name']+".html", show_browser=False)
+
+        # If `optimize` == True in prob_dict, perform optimization. Otherwise,
+        # simply pass the problem since analysis has already been run.
+        if not self.prob_dict['optimize']:
+            # Run a single analysis loop. This shouldn't actually be
+            # necessary, but sometimes the .db file is not complete unless we do this.
+            coupled = self.prob.model.get_subsystem('coupled')
+            self.prob.run_model()
+        else:
+            # Perform optimization
+            self.prob.run_driver()
+
+        # If the problem type is aero or aerostruct, we can compute the static margin.
+        # This is a naive tempoerary implementation that currently finite differences
+        # over the entire model to obtain the static margin.
+        if self.prob_dict['compute_static_margin'] and 'aero' in self.prob_dict['type']:
+
+            # Turn off problem recording (so nothing for these computations
+            # appears in the .db file) and get the current CL and CM.
+            self.prob.driver.recorders._recorders = []
+            CL = self.prob['wing_perf.CL']
+            CM = self.prob['CM'][1]
+            step = 1e-5
+
+            # Perturb alpha and run an analysis loop to obtain the new CL and CM.
+            self.prob['alpha'] += step
+            self.prob.run_once()
+            CL_new = self.prob['wing_perf.CL']
+            CM_new = self.prob['CM'][1]
+
+            # Un-perturb alpha and run a single analysis loop to get the problem
+            # back to where it was before we finite differenced.
+            self.prob['alpha'] -= step
+            self.prob.run_once()
+
+            # Compute, print, and save the static margin in metadata.
+            static_margin = -(CM_new - CM) / (CL_new - CL)
+            print("Static margin is:", static_margin)
+            self.prob.model.add_metadata('static_margin', static_margin)
+
+        # Uncomment this to check the partial derivatives of each component
+        self.prob.check_partials(compact_print=True)
+        # self.prob.check_partials(compact_print=False)
