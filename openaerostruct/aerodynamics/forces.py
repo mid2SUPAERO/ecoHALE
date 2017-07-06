@@ -272,9 +272,6 @@ class Forces(ExplicitComponent):
                 for surface in self.surfaces:
 
                     name = surface['name']
-                    nx = surface['num_x']
-                    ny = surface['num_y']
-                    num_panels = (nx - 1) * (ny - 1)
                     d_inputs = {}
                     sec_forcesb = np.zeros(outputs[name+'sec_forces'].shape)
 
@@ -285,16 +282,16 @@ class Forces(ExplicitComponent):
 
                         sec_forcesb[:] = 0.
                         sec_forcesb = sec_forcesb.flatten()
-                        sec_forcesb[k] = 1
+                        sec_forcesb[k] = 1.
                         sec_forcesb = sec_forcesb.reshape(outputs[name+'sec_forces'].shape)
-                        sec_forcesb = sec_forcesb.reshape((num_panels, 3), order='F')
+                        sec_forcesb = sec_forcesb.reshape((-1, 3), order='F')
 
                         circ = inputs['circulations']
                         alpha = inputs['alpha'] * np.pi / 180.
                         cosa = np.cos(alpha)
                         sina = np.sin(alpha)
 
-                        i = 0
+                        ind = 0
                         rho = inputs['rho'].real
                         v = inputs['v']
                         vb = np.zeros(self.v.shape)
@@ -305,19 +302,20 @@ class Forces(ExplicitComponent):
                             ny_ = surface['num_y']
                             num_panels_ = (nx_ - 1) * (ny_ - 1)
 
-                            b_pts = inputs[name_+'b_pts']
+                            if name == name_:
+                                b_pts = inputs[name_+'b_pts']
 
-                            v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[i:i+num_panels_, :], circ[i:i+num_panels_], rho, b_pts, sec_forcesb)
+                                v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[ind:ind+num_panels_, :], circ[ind:ind+num_panels_], rho, b_pts, sec_forcesb)
 
-                            if 'circulations' in d_inputs:
-                                d_inputs['circulations'][i:i+num_panels_] += circb
-                            vb[i:i+num_panels_] = v_b
-                            if 'rho' in d_inputs:
-                                d_inputs['rho'] += rhob
-                            if name+'b_pts' in d_inputs:
-                                d_inputs[name_+'b_pts'] += bptsb
+                                if 'circulations' in d_inputs:
+                                    d_inputs['circulations'][ind:ind+num_panels_] += circb
+                                vb[ind:ind+num_panels_] = v_b
+                                if 'rho' in d_inputs:
+                                    d_inputs['rho'] += rhob
+                                if name+'b_pts' in d_inputs:
+                                    d_inputs[name_+'b_pts'] += bptsb
 
-                            i += num_panels_
+                            ind += num_panels_
 
                         sinab = inputs['v'] * np.sum(vb[:, 2])
                         if 'v' in d_inputs:
