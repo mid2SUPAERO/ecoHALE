@@ -58,6 +58,22 @@ def connect_aerostruct(model, point_name, name):
 
     model.connect(name[:-1] + '.K', point_name + '.coupled.' + name[:-1] + '.K')
 
+    # Perform the connections with the modified names within the
+    # 'aero_states' group.
+    model.connect(point_name + '.coupled.' + name[:-1] + '.def_mesh', point_name + '.coupled.aero_states.' + name + 'def_mesh')
+    model.connect(point_name + '.coupled.' + name[:-1] + '.b_pts', point_name + '.coupled.aero_states.' + name + 'b_pts')
+    model.connect(point_name + '.coupled.' + name[:-1] + '.c_pts', point_name + '.coupled.aero_states.' + name + 'c_pts')
+    model.connect(point_name + '.coupled.' + name[:-1] + '.normals', point_name + '.coupled.aero_states.' + name + 'normals')
+
+    # Connect the results from 'aero_states' to the performance groups
+    model.connect(point_name + '.coupled.aero_states.' + name + 'sec_forces', com_name + 'perf' + '.sec_forces')
+
+    # Connect the results from 'coupled' to the performance groups
+    model.connect(point_name + '.coupled.' + name[:-1] + '.def_mesh', point_name + '.coupled.' + name + 'loads.def_mesh')
+    model.connect(point_name + '.coupled.aero_states.' + name + 'sec_forces', point_name + '.coupled.' + name + 'loads.sec_forces')
+
+
+
     # Connect aerodyamic mesh to coupled group mesh
     model.connect(name[:-1] + '.mesh', point_name + '.coupled.' + name[:-1] + '.mesh')
 
