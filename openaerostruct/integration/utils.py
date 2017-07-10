@@ -22,6 +22,8 @@ def connect_aerostruct_old(model, name):
 
     # Connect aerodyamic mesh to coupled group mesh
     model.connect(name[:-1] + '.mesh', 'coupled.' + name[:-1] + '.mesh')
+    print(name[:-1] + '.mesh', 'coupled.' + name[:-1] + '.mesh')
+
 
     # Connect performance calculation variables
     model.connect(name[:-1] + '.radius', name + 'perf.radius')
@@ -58,19 +60,24 @@ def connect_aerostruct(model, point_name, name):
 
     model.connect(name[:-1] + '.K', point_name + '.coupled.' + name[:-1] + '.K')
 
-    # Perform the connections with the modified names within the
-    # 'aero_states' group.
-    model.connect(point_name + '.coupled.' + name[:-1] + '.def_mesh', point_name + '.coupled.aero_states.' + name + 'def_mesh')
-    model.connect(point_name + '.coupled.' + name[:-1] + '.b_pts', point_name + '.coupled.aero_states.' + name + 'b_pts')
-    model.connect(point_name + '.coupled.' + name[:-1] + '.c_pts', point_name + '.coupled.aero_states.' + name + 'c_pts')
-    model.connect(point_name + '.coupled.' + name[:-1] + '.normals', point_name + '.coupled.aero_states.' + name + 'normals')
-
     # Connect the results from 'aero_states' to the performance groups
     model.connect(point_name + '.coupled.aero_states.' + name + 'sec_forces', com_name + 'perf' + '.sec_forces')
 
+    # Perform the connections with the modified names within the
+    # 'aero_states' group.
+    AS_point = model.get_subsystem(point_name)
+
+    AS_point.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.aero_states.' + name + 'def_mesh')
+    AS_point.connect('coupled.' + name[:-1] + '.b_pts', 'coupled.aero_states.' + name + 'b_pts')
+    AS_point.connect('coupled.' + name[:-1] + '.c_pts', 'coupled.aero_states.' + name + 'c_pts')
+    AS_point.connect('coupled.' + name[:-1] + '.normals', 'coupled.aero_states.' + name + 'normals')
+
+
     # Connect the results from 'coupled' to the performance groups
-    model.connect(point_name + '.coupled.' + name[:-1] + '.def_mesh', point_name + '.coupled.' + name + 'loads.def_mesh')
-    model.connect(point_name + '.coupled.aero_states.' + name + 'sec_forces', point_name + '.coupled.' + name + 'loads.sec_forces')
+    AS_point.connect('coupled.' + name[:-1] + '.def_mesh', 'coupled.' + name + 'loads.def_mesh')
+    AS_point.connect('coupled.aero_states.' + name + 'sec_forces', 'coupled.' + name + 'loads.sec_forces')
+
+    AS_point.connect('coupled.' + name + 'loads.loads', 'coupled.' + name[:-1] + '.loads')
 
 
 

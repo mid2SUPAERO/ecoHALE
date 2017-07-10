@@ -56,10 +56,6 @@ class LoadTransfer(ExplicitComponent):
         mesh = inputs['def_mesh'].copy()
         sec_forces = inputs['sec_forces'].copy()
 
-        print(mesh)
-        print(sec_forces)
-        print()
-
         if fortran_flag:
             loads = OAS_API.oas_api.transferloads(mesh, sec_forces, self.fem_origin)
         else:

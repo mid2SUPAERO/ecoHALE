@@ -144,10 +144,11 @@ for surface in surfaces:
 for i in range(1):
 
     if 1:
+        point_name = 'AS_point_{}'.format(i)
+        # Connect the parameters within the model for each aero point
 
         # Create the aero point group and add it to the model
         AS_point = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
-        point_name = 'AS_point_{}'.format(i)
         prob.model.add_subsystem(point_name, AS_point)
 
         # Connect flow properties to the analysis point
@@ -157,7 +158,6 @@ for i in range(1):
         prob.model.connect('re', point_name + '.re')
         prob.model.connect('rho', point_name + '.rho')
 
-        # Connect the parameters within the model for each aero point
         for surface in surfaces:
             connect_aerostruct(prob.model, point_name, surface['name'])
 
@@ -219,6 +219,7 @@ for i in range(1):
             perf_group = CoupledPerformance(surface=surface, prob_dict=prob_dict)
 
             prob.model.add_subsystem(name + 'perf', perf_group, promotes=["rho", "v", "alpha", "re", "M"])
+
             connect_aerostruct_old(prob.model, name)
 
         # Add functionals to evaluate performance of the system.
@@ -249,6 +250,11 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
 # Set up the problem
 prob.setup()
 
+# import pprint
+# pprint.pprint(prob.model._conn_abs_in2out)
+# print('lbammo')
+# pprint.pprint(prob.model._conn_global_abs_in2out)
+# exit()
 # prob.print_all_convergence()
 
 # Save an N2 diagram for the problem

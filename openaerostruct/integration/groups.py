@@ -116,16 +116,16 @@ class AerostructPoint(Group):
             # group that necessitates the subgroup solver.
             coupled.connect(name + 'loads.loads', name[:-1] + '.loads')
 
-            # Perform the connections with the modified names within the
-            # 'aero_states' group.
-            coupled.connect(name[:-1] + '.def_mesh', 'aero_states.' + name + 'def_mesh')
-            coupled.connect(name[:-1] + '.b_pts', 'aero_states.' + name + 'b_pts')
-            coupled.connect(name[:-1] + '.c_pts', 'aero_states.' + name + 'c_pts')
-            coupled.connect(name[:-1] + '.normals', 'aero_states.' + name + 'normals')
-
-            # Connect the results from 'coupled' to the performance groups
-            coupled.connect(name[:-1] + '.def_mesh', name + 'loads.def_mesh')
-            coupled.connect('aero_states.' + name + 'sec_forces', name + 'loads.sec_forces')
+            # # Perform the connections with the modified names within the
+            # # 'aero_states' group.
+            # coupled.connect(name[:-1] + '.def_mesh', 'aero_states.' + name + 'def_mesh')
+            # coupled.connect(name[:-1] + '.b_pts', 'aero_states.' + name + 'b_pts')
+            # coupled.connect(name[:-1] + '.c_pts', 'aero_states.' + name + 'c_pts')
+            # coupled.connect(name[:-1] + '.normals', 'aero_states.' + name + 'normals')
+            #
+            # # Connect the results from 'coupled' to the performance groups
+            # coupled.connect(name[:-1] + '.def_mesh', name + 'loads.def_mesh')
+            # coupled.connect('aero_states.' + name + 'sec_forces', name + 'loads.sec_forces')
 
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
