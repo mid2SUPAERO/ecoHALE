@@ -82,6 +82,7 @@ class GeometryMesh(ExplicitComponent):
         self.add_input('twist', val=geo_params['twist'])
 
         self.add_output('mesh', val=self.mesh)
+        self.add_output('radius', val=np.zeros((ny - 1)))
 
         self.symmetry = surface['symmetry']
 
@@ -129,6 +130,8 @@ class GeometryMesh(ExplicitComponent):
             rotate(mesh, self.geo_params['twist'], self.symmetry, self.rotate_x)
 
         outputs['mesh'] = mesh
+
+        outputs['radius'] = radii(mesh, self.metadata['surface']['t_over_c'])
 
     if fortran_flag:
         if 0:

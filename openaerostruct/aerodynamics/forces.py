@@ -74,7 +74,6 @@ class Forces(ExplicitComponent):
         self.mtx = np.zeros((tot_panels, tot_panels, 3), dtype=data_type)
         self.v = np.zeros((tot_panels, 3), dtype=data_type)
 
-
         if not fortran_flag:
             self.approx_partials('*', '*')
 

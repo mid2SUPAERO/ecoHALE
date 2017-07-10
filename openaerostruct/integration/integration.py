@@ -1061,6 +1061,10 @@ class OASProblem(object):
         if self.prob_dict['print_level']:
             coupled.nonlinear_solver.options['iprint'] = 1
 
+
+        coupled.linear_solver.options['iprint'] = 2
+        coupled.nonlinear_solver.options['iprint'] = 2
+
         # Add the coupled group to the model problem
         model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
 
@@ -1144,5 +1148,5 @@ class OASProblem(object):
             self.prob.model.add_metadata('static_margin', static_margin)
 
         # Uncomment this to check the partial derivatives of each component
-        self.prob.check_partials(compact_print=True)
+        # self.prob.check_partials(compact_print=True)
         # self.prob.check_partials(compact_print=False)

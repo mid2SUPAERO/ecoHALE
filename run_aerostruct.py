@@ -2,22 +2,16 @@ from __future__ import division, print_function
 import sys
 import numpy as np
 
-from openaerostruct.integration.groups import Aerostruct, CoupledAS, CoupledPerformance
+from openaerostruct.integration.groups import Aerostruct, AerostructPoint
 from openaerostruct.integration.utils import connect_aerostruct
 
 from openaerostruct.geometry.utils import generate_mesh
 
-from openaerostruct.transfer.load_transfer import LoadTransfer
-
-from openaerostruct.aerodynamics.states import VLMStates
-
-from openaerostruct.functionals.total_performance import TotalPerformance
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 
 
-# Set problem type
 prob_dict = {
             # Problem and solver options
             'with_viscous' : True,  # if true, compute viscous drag
@@ -93,7 +87,6 @@ surf_dict = {
             'mrho' : 3.e3,          # [kg/m^3] material density
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
             'loads' : None,         # [N] allow the user to input loads
-            'disp' : None,          # [m] nodal displacements of the FEM model
             'thickness_cp' : np.array([.1, .2, .3]),
 
             # Constraints
@@ -108,8 +101,6 @@ surf_dict.update({'twist_cp' : twist_cp,
 surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
 surfaces = [surf_dict]
-
-coupled = Group()
 
 # Create the problem and assign the model group
 prob = Problem()
@@ -137,75 +128,34 @@ for surface in surfaces:
     # Add independent variables that do not belong to a specific component
     indep_var_comp = IndepVarComp()
 
-    indep_var_comp.add_output('disp', val=np.zeros((ny, 6),))
     indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
     indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'])
-    indep_var_comp.add_output('radius', val=np.ones((ny)) * 0.5)
+    # indep_var_comp.add_output('radius', val=np.ones((ny)) * .5)
 
     aerostruct_group = Aerostruct(surface=surface, indep_var_comp=indep_var_comp)
 
     # Add tmp_group to the problem with the name of the surface.
     prob.model.add_subsystem(name[:-1], aerostruct_group, promotes=[])
 
-    # Add components to the 'coupled' group for each surface.
-    # The 'coupled' group must contain all components and parameters
-    # needed to converge the aerostructural system.
-    coupled_AS_group = CoupledAS(surface=surface)
+# Loop through and add a certain number of aero points
+for i in range(1):
 
-    coupled.add_subsystem(name[:-1], coupled_AS_group, promotes=[])
+    # Create the aero point group and add it to the model
+    AS_group = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
+    point_name = 'AS_point_{}'.format(i)
+    prob.model.add_subsystem(point_name, AS_group, promotes=[])
 
-    # TODO: add this info to the metadata
-    # prob.model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
-    # prob.model.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
+    # Connect flow properties to the analysis point
+    prob.model.connect('v', point_name + '.v')
+    prob.model.connect('alpha', point_name + '.alpha')
+    prob.model.connect('M', point_name + '.M')
+    prob.model.connect('re', point_name + '.re')
+    prob.model.connect('rho', point_name + '.rho')
 
-# Add a single 'aero_states' component for the whole system within the
-# coupled group.
-coupled.add_subsystem('aero_states',
-    VLMStates(surfaces=surfaces),
-    promotes=['v', 'alpha', 'rho'])
+    # Connect the parameters within the model for each aero point
+    for surface in surfaces:
+        connect_aerostruct(prob.model, point_name, surface['name'])
 
-# Explicitly connect parameters from each surface's group and the common
-# 'aero_states' group.
-for surface in surfaces:
-    name = surface['name']
-
-    # Add a loads component to the coupled group
-    coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface), promotes=[])
-
-    connect_aerostruct(prob.model, name)
-
-# Set solver properties for the coupled group
-# coupled.linear_solver = ScipyIterativeSolver()
-# coupled.linear_solver.precon = LinearRunOnce()
-#
-# coupled.nonlinear_solver = NonlinearBlockGS()
-# coupled.nonlinear_solver.options['maxiter'] = 50
-
-coupled.jacobian = DenseJacobian()
-coupled.linear_solver = DirectSolver()
-coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
-
-# coupled.linear_solver.options['iprint'] = 1
-# coupled.nonlinear_solver.options['iprint'] = 1
-
-# Add the coupled group to the model problem
-prob.model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
-
-for surface in surfaces:
-    name = surface['name']
-
-    # Add a performance group which evaluates the data after solving
-    # the coupled system
-    perf_group = CoupledPerformance(surface=surface, prob_dict=prob_dict)
-
-    prob.model.add_subsystem(name + 'perf', perf_group, promotes=["rho", "v", "alpha", "re", "M"])
-
-# Add functionals to evaluate performance of the system.
-# Note that only the interesting results are promoted here; not all
-# of the parameters.
-prob.model.add_subsystem('total_perf',
-         TotalPerformance(surfaces=surfaces, prob_dict=prob_dict),
-         promotes=['L_equals_W', 'fuelburn', 'CM', 'CL', 'CD', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
@@ -213,16 +163,16 @@ prob.driver.options['optimizer'] = "SNOPT"
 prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                  'Major feasibility tolerance': 1.0e-8}
 
-# Setup problem and add design variables, constraint, and objective
-prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-prob.model.add_constraint('wing_perf.failure', upper=0.)
-prob.model.add_constraint('wing_perf.thickness_intersects', upper=0.)
-
-# Add design variables, constraisnt, and objective on the problem
-prob.model.add_design_var('alpha', lower=-10., upper=10.)
-prob.model.add_constraint('L_equals_W', equals=0.)
-prob.model.add_objective('fuelburn', scaler=1e-5)
+# # Setup problem and add design variables, constraint, and objective
+# prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+# prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+# prob.model.add_constraint('wing_perf.failure', upper=0.)
+# prob.model.add_constraint('wing_perf.thickness_intersects', upper=0.)
+#
+# # Add design variables, constraisnt, and objective on the problem
+# prob.model.add_design_var('alpha', lower=-10., upper=10.)
+# prob.model.add_constraint('L_equals_W', equals=0.)
+# prob.model.add_objective('fuelburn', scaler=1e-5)
 
 # Set up the problem
 prob.setup()
@@ -230,12 +180,16 @@ prob.setup()
 # prob.print_all_convergence()
 
 # Save an N2 diagram for the problem
-# view_model(prob, outfile='aerostruct.html', show_browser=False)
+view_model(prob, outfile='aerostruct.html', show_browser=False)
 
-# prob.run_model()
-prob.run_driver()
+prob.run_model()
+# prob.run_driver()
 
 # prob.check_partials(compact_print=True)
 
-print("\nWing CL:", prob['wing_perf.CL'])
-print("Wing CD:", prob['wing_perf.CD'])
+# for name in prob.model._outputs:
+#     print(name)
+#     print(prob.model._outputs[name])
+#     print()
+
+print("\nFuelburn", prob['AS_point_0.fuelburn'])

@@ -27,6 +27,7 @@ def connect_aero(model, point_name, name):
 
     com_name = point_name + '.' + name
 
+    # Connect the mesh from the geometry component to the analysis point
     model.connect(name[:-1] + '.def_mesh', com_name[:-1] + '.def_mesh')
 
     # Perform the connections with the modified names within the

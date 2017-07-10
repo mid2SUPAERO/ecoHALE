@@ -16,7 +16,6 @@ class AeroPoint(Group):
         surfaces = self.metadata['surfaces']
         prob_dict = self.metadata['prob_dict']
 
-
         for surface in surfaces:
             self.add_subsystem(surface['name'][:-1], VLMGeometry(surface=surface), promotes=[])
 

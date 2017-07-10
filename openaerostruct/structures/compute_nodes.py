@@ -44,12 +44,6 @@ class ComputeNodes(ExplicitComponent):
         self.add_input('mesh', val=np.random.random_sample((self.nx, self.ny, 3)))#, dtype=data_type))
         self.add_output('nodes', val=np.random.random_sample((self.ny, 3)))#, dtype=data_type))
 
-    def compute(self, inputs, outputs):
-        w = self.fem_origin
-        mesh = inputs['mesh']
-        outputs['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
-
-    
         w = self.fem_origin
         n = self.ny * 3
 
@@ -59,3 +53,8 @@ class ComputeNodes(ExplicitComponent):
         nodes_mesh[:n, -n:] = np.eye(n) * w
 
         self.declare_partials('nodes', 'mesh', val=nodes_mesh)
+
+    def compute(self, inputs, outputs):
+        w = self.fem_origin
+        mesh = inputs['mesh']
+        outputs['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]

@@ -41,6 +41,12 @@ class CreateRHS(ExplicitComponent):
         self.add_input('loads', val=np.random.random_sample((self.ny, 6)))# dtype=data_type))
         self.add_output('forces', val=np.random.random_sample(((self.ny+1)*6)))# dtype=data_type))
 
+        n = self.ny * 6
+        forces_loads = np.zeros((n + 6, n))
+        forces_loads[:n, :n] = np.eye((n))
+
+        self.declare_partials('forces', 'loads', val=forces_loads)
+
     def compute(self, inputs, outputs):
         # Populate the right-hand side of the linear system using the
         # prescribed or computed loads
@@ -49,10 +55,3 @@ class CreateRHS(ExplicitComponent):
         # Remove extremely small values from the RHS so the linear system
         # can more easily be solved
         outputs['forces'][np.abs(outputs['forces']) < 1e-6] = 0.
-
-    
-        n = self.ny * 6
-        forces_loads = np.zeros((n + 6, n))
-        forces_loads[:n, :n] = np.eye((n))
-
-        self.declare_partials('forces', 'loads', val=forces_loads)

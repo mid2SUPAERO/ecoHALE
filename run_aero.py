@@ -30,13 +30,13 @@ prob_dict = {
             'g' : 9.80665,           # [m/s^2] acceleration due to gravity
 
             'S_ref_total' : None,    # [m^2] total reference area for the aircraft
+            'cg' : np.zeros((3))
             }
 
 prob_dict['v'] = prob_dict['M'] * prob_dict['a']
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'name' : 'wing',
-             'num_y' : 7,
+mesh_dict = {'num_y' : 7,
              'num_x' : 2,
              'wing_type' : 'CRM',
              'symmetry' : True,
@@ -92,6 +92,7 @@ indep_var_comp.add_output('alpha', val=prob_dict['alpha'])
 indep_var_comp.add_output('M', val=prob_dict['M'])
 indep_var_comp.add_output('re', val=prob_dict['Re']/prob_dict['reynolds_length'])
 indep_var_comp.add_output('rho', val=prob_dict['rho'])
+indep_var_comp.add_output('cg', val=prob_dict['cg'])
 
 prob.model.add_subsystem('prob_vars',
     indep_var_comp,
@@ -117,7 +118,6 @@ for surface in surfaces:
              promotes=['*'])
 
     # Add bspline components for active bspline geometric variables.
-    # We only add the component if the corresponding variable is a desvar.
     tmp_group.add_subsystem('twist_bsp', Bsplines(
         in_name='twist_cp', out_name='twist',
         num_cp=int(surface['num_twist_cp']), num_pt=int(ny)),
@@ -136,22 +136,24 @@ for surface in surfaces:
     # individual surface.
     prob.model.add_subsystem(surface['name'][:-1], tmp_group, promotes=[])
 
+# Loop through and add a certain number of aero points
+for i in range(1):
 
-aero_group = AeroPoint(surfaces=surfaces, prob_dict=prob_dict)
+    # Create the aero point group and add it to the model
+    aero_group = AeroPoint(surfaces=surfaces, prob_dict=prob_dict)
+    point_name = 'aero_point_{}'.format(i)
+    prob.model.add_subsystem(point_name, aero_group, promotes=[])
 
-point_name = 'aero_point'
-prob.model.add_subsystem(point_name, aero_group, promotes=[])
+    # Connect flow properties to the analysis point
+    prob.model.connect('v', point_name + '.v')
+    prob.model.connect('alpha', point_name + '.alpha')
+    prob.model.connect('M', point_name + '.M')
+    prob.model.connect('re', point_name + '.re')
+    prob.model.connect('rho', point_name + '.rho')
 
-
-prob.model.connect('v', point_name + '.v')
-prob.model.connect('alpha', point_name + '.alpha')
-prob.model.connect('M', point_name + '.M')
-prob.model.connect('re', point_name + '.re')
-prob.model.connect('rho', point_name + '.rho')
-
-
-for surface in surfaces:
-    connect_aero(prob.model, point_name, surface['name'])
+    # Connect the parameters within the model for each aero point
+    for surface in surfaces:
+        connect_aero(prob.model, point_name, surface['name'])
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
@@ -174,5 +176,5 @@ prob.run_driver()
 
 prob.check_partials(compact_print=True)
 
-print("\nWing CL:", prob['aero_point.wing_perf.CL'])
-print("Wing CD:", prob['aero_point.wing_perf.CD'])
+print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
+print("Wing CD:", prob['aero_point_0.wing_perf.CD'])

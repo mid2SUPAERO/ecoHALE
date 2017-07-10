@@ -92,6 +92,7 @@ class AssembleAIC(ExplicitComponent):
             self.declare_partials('rhs', name+'def_mesh', dependent=False)
 
     def compute(self, inputs, outputs):
+
         # Actually assemble the AIC matrix
         _assemble_AIC_mtx(self.AIC_mtx, inputs, self.surfaces)
 
