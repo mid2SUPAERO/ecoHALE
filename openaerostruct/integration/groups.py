@@ -116,16 +116,43 @@ class AerostructPoint(Group):
             # group that necessitates the subgroup solver.
             coupled.connect(name + 'loads.loads', name[:-1] + '.loads')
 
-            # # Perform the connections with the modified names within the
-            # # 'aero_states' group.
-            # coupled.connect(name[:-1] + '.def_mesh', 'aero_states.' + name + 'def_mesh')
-            # coupled.connect(name[:-1] + '.b_pts', 'aero_states.' + name + 'b_pts')
-            # coupled.connect(name[:-1] + '.c_pts', 'aero_states.' + name + 'c_pts')
-            # coupled.connect(name[:-1] + '.normals', 'aero_states.' + name + 'normals')
-            #
-            # # Connect the results from 'coupled' to the performance groups
-            # coupled.connect(name[:-1] + '.def_mesh', name + 'loads.def_mesh')
-            # coupled.connect('aero_states.' + name + 'sec_forces', name + 'loads.sec_forces')
+            # Perform the connections with the modified names within the
+            # 'aero_states' group.
+            coupled.connect(name[:-1] + '.def_mesh', 'aero_states.' + name + 'def_mesh')
+            coupled.connect(name[:-1] + '.b_pts', 'aero_states.' + name + 'b_pts')
+            coupled.connect(name[:-1] + '.c_pts', 'aero_states.' + name + 'c_pts')
+            coupled.connect(name[:-1] + '.normals', 'aero_states.' + name + 'normals')
+
+            # Connect the results from 'coupled' to the performance groups
+            coupled.connect(name[:-1] + '.def_mesh', name + 'loads.def_mesh')
+            coupled.connect('aero_states.' + name + 'sec_forces', name + 'loads.sec_forces')
+
+            # Connect the results from 'aero_states' to the performance groups
+            self.connect('coupled.aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
+
+            # Connection performance functional variables
+            self.connect(name + 'perf.structural_weight', 'total_perf.' + name + 'structural_weight')
+            self.connect(name + 'perf.L', 'total_perf.' + name + 'L')
+            self.connect(name + 'perf.CL', 'total_perf.' + name + 'CL')
+            self.connect(name + 'perf.CD', 'total_perf.' + name + 'CD')
+            self.connect('coupled.aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
+
+            # Connect parameters from the 'coupled' group to the performance
+            # groups for the individual surfaces.
+            self.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
+            self.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
+            self.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
+            self.connect('coupled.' + name[:-1] + '.chords', name + 'perf.chords')
+            self.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
+            self.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
+
+            # Connect parameters from the 'coupled' group to the total performance group.
+            self.connect('coupled.' + name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
+            self.connect('coupled.' + name[:-1] + '.widths', 'total_perf.' + name + 'widths')
+            self.connect('coupled.' + name[:-1] + '.chords', 'total_perf.' + name + 'chords')
+            self.connect('coupled.' + name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
+            self.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
+
 
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters

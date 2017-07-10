@@ -4,7 +4,6 @@ import numpy as np
 
 from openaerostruct.integration.groups import Aerostruct, AerostructPoint, CoupledAS, CoupledPerformance
 from openaerostruct.functionals.total_performance import TotalPerformance
-from openaerostruct.integration.utils import connect_aerostruct, connect_aerostruct_old
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
 
@@ -143,92 +142,33 @@ for surface in surfaces:
 # Loop through and add a certain number of aero points
 for i in range(1):
 
-    if 1:
-        point_name = 'AS_point_{}'.format(i)
-        # Connect the parameters within the model for each aero point
+    point_name = 'AS_point_{}'.format(i)
+    # Connect the parameters within the model for each aero point
 
-        # Create the aero point group and add it to the model
-        AS_point = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
-        prob.model.add_subsystem(point_name, AS_point)
+    # Create the aero point group and add it to the model
+    AS_point = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
+    prob.model.add_subsystem(point_name, AS_point)
 
-        # Connect flow properties to the analysis point
-        prob.model.connect('v', point_name + '.v')
-        prob.model.connect('alpha', point_name + '.alpha')
-        prob.model.connect('M', point_name + '.M')
-        prob.model.connect('re', point_name + '.re')
-        prob.model.connect('rho', point_name + '.rho')
+    # Connect flow properties to the analysis point
+    prob.model.connect('v', point_name + '.v')
+    prob.model.connect('alpha', point_name + '.alpha')
+    prob.model.connect('M', point_name + '.M')
+    prob.model.connect('re', point_name + '.re')
+    prob.model.connect('rho', point_name + '.rho')
 
-        for surface in surfaces:
-            connect_aerostruct(prob.model, point_name, surface['name'])
+    for surface in surfaces:
 
-    else:
+        com_name = point_name + '.' + name + 'perf'
+        prob.model.connect(name[:-1] + '.K', point_name + '.coupled.' + name[:-1] + '.K')
 
-        coupled = Group()
+        # Connect aerodyamic mesh to coupled group mesh
+        prob.model.connect(name[:-1] + '.mesh', point_name + '.coupled.' + name[:-1] + '.mesh')
 
-        for surface in surfaces:
-
-            name = surface['name']
-
-            # Add components to the 'coupled' group for each surface.
-            # The 'coupled' group must contain all components and parameters
-            # needed to converge the aerostructural system.
-            coupled_AS_group = CoupledAS(surface=surface)
-
-            coupled.add_subsystem(name[:-1], coupled_AS_group)
-
-            # TODO: add this info to the metadata
-            # prob.model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
-            # prob.model.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
-
-        # Add a single 'aero_states' component for the whole system within the
-        # coupled group.
-        coupled.add_subsystem('aero_states',
-            VLMStates(surfaces=surfaces),
-            promotes=['v', 'alpha', 'rho'])
-
-        # Explicitly connect parameters from each surface's group and the common
-        # 'aero_states' group.
-        for surface in surfaces:
-            name = surface['name']
-
-            # Add a loads component to the coupled group
-            coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface))
-
-        # Set solver properties for the coupled group
-        # coupled.linear_solver = ScipyIterativeSolver()
-        # coupled.linear_solver.precon = LinearRunOnce()
-        #
-        # coupled.nonlinear_solver = NonlinearBlockGS()
-        # coupled.nonlinear_solver.options['maxiter'] = 50
-
-        coupled.jacobian = DenseJacobian()
-        coupled.linear_solver = DirectSolver()
-        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
-
-        coupled.linear_solver.options['iprint'] = 2
-        coupled.nonlinear_solver.options['iprint'] = 2
-
-        # Add the coupled group to the model problem
-        prob.model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
-
-        for surface in surfaces:
-            name = surface['name']
-
-            # Add a performance group which evaluates the data after solving
-            # the coupled system
-            perf_group = CoupledPerformance(surface=surface, prob_dict=prob_dict)
-
-            prob.model.add_subsystem(name + 'perf', perf_group, promotes=["rho", "v", "alpha", "re", "M"])
-
-            connect_aerostruct_old(prob.model, name)
-
-        # Add functionals to evaluate performance of the system.
-        # Note that only the interesting results are promoted here; not all
-        # of the parameters.
-        prob.model.add_subsystem('total_perf',
-                 TotalPerformance(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['L_equals_W', 'fuelburn', 'CM', 'CL', 'CD', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
-
+        # Connect performance calculation variables
+        prob.model.connect(name[:-1] + '.radius', com_name + '.radius')
+        prob.model.connect(name[:-1] + '.A', com_name + '.A')
+        prob.model.connect(name[:-1] + '.thickness', com_name + '.thickness')
+        prob.model.connect(name[:-1] + '.nodes', com_name + '.nodes')
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
