@@ -49,7 +49,7 @@ class LoadTransfer(ExplicitComponent):
         self.add_input('sec_forces', val=np.random.rand(self.nx-1, self.ny-1, 3))
         self.add_output('loads', val=np.random.rand(self.ny, 6))
 
-    def setup_partials(self):
+    
         if not fortran_flag:
             self.approx_partials('*', '*')
 

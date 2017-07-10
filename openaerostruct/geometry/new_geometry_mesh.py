@@ -53,68 +53,35 @@ class GeometryMesh(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('desvars', default={}, type_=dict)
 
     def setup(self):
         surface = self.metadata['surface']
-        name = surface['name']
-
-        self.desvar_names = desvar_names = []
-        for desvar in self.metadata['desvars']:
-            # Check to make sure that the surface's name is in the design
-            # variable and only add the desvar to the list if it corresponds
-            # to this surface.
-            if name[:-1] in desvar:
-                desvar_names.append(''.join(desvar.split('.')[1:]))
 
         ny = surface['num_y']
         self.mesh = surface['mesh']
 
-        # Variables that should be initialized to one
-        ones_list = ['taper', 'chord_cp']
+        # Compute span. We need .real to make span to avoid OpenMDAO warnings.
+        quarter_chord = 0.25 * self.mesh[-1] + 0.75 * self.mesh[0]
+        span = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
+        if surface['symmetry']:
+            span *= 2.
 
-        # Variables that should be initialized to zero
-        zeros_list = ['sweep', 'dihedral', 'twist_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp']
-
-        # Variables that should be initialized to given value
-        set_list = ['span']
-
-        # Make a list of all geometry variables by adding all individual lists
-        all_geo_vars = ones_list + zeros_list + set_list
         self.geo_params = geo_params = {}
-        for var in all_geo_vars:
-            if len(var.split('_')) > 1:
-                param = var.split('_')[0]
-                if var in ones_list:
-                    val = np.ones(ny)
-                elif var in zeros_list:
-                    val = np.zeros(ny)
-                else:
-                    val = surface[var]
-            else:
-                param = var
-                if var in ones_list:
-                    val = 1.0
-                elif var in zeros_list:
-                    val = 0.0
-                else:
-                    val = surface[var]
-            geo_params[param] = val
 
-            # If the user supplied a variable or it's a desvar, we add it as a
-            # parameter.
-            if var in desvar_names or var in surface['initial_geo']:
-                self.add_input(param, val=val)
+        geo_params['taper'] = 1.
+        geo_params['sweep'] = 0.
+        geo_params['dihedral'] = 0.
+        geo_params['span'] = span
+        geo_params['chord'] = np.ones(ny)
+        geo_params['twist'] = np.zeros(ny)
+        geo_params['xshear'] = np.zeros(ny)
+        geo_params['yshear'] = np.zeros(ny)
+        geo_params['zshear'] = np.zeros(ny)
+
+        # TODO: generalize this
+        self.add_input('twist', val=geo_params['twist'])
 
         self.add_output('mesh', val=self.mesh)
-
-        # If the user doesn't provide the radius or it's not a desver, then we must
-        # compute it here
-        if 'radius_cp' not in desvar_names and 'radius_cp' not in surface['initial_geo']:
-            self.compute_radius = True
-            self.add_output('radius', val=np.zeros((ny - 1)))
-        else:
-            self.compute_radius = False
 
         self.symmetry = surface['symmetry']
 
@@ -122,7 +89,7 @@ class GeometryMesh(ExplicitComponent):
         # additional rotation matrix to modify the twist direction
         self.rotate_x = True
 
-    
+
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -160,13 +127,6 @@ class GeometryMesh(ExplicitComponent):
             dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
             shear_z(mesh, self.geo_params['zshear'])
             rotate(mesh, self.geo_params['twist'], self.symmetry, self.rotate_x)
-
-        # Only compute the radius on the first iteration
-        if self.compute_radius and 'radius_cp' not in self.desvar_names:
-            # Get spar radii and interpolate to radius control points.
-            # Need to refactor this at some point since the derivatives are wrong.
-            outputs['radius'] = radii(mesh, self.metadata['surface']['t_over_c'])
-            self.compute_radius = False
 
         outputs['mesh'] = mesh
 

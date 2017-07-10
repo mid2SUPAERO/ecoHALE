@@ -40,11 +40,6 @@ class FEM(ImplicitComponent):
         self.add_input('forces', val=np.ones(size))
         self.add_output('disp_aug', shape=size, val=.1)
 
-    def setup_partials(self):
-        """
-        Set up the derivatives according to the user specified mode.
-        """
-
         size = self.metadata['size']
         row_col = np.arange(size, dtype="int")
 

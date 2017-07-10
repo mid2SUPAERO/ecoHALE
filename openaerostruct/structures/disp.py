@@ -50,7 +50,7 @@ class Disp(ExplicitComponent):
         # displacements in disp
         outputs['disp'] = inputs['disp_aug'][:-6].reshape((-1, 6))
 
-    def setup_partials(self):
+    
         n = self.ny * 6
         disp_disp_aug = np.zeros((n, n+6))
         disp_disp_aug[:n, :n] = np.eye((n))

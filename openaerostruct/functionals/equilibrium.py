@@ -67,7 +67,7 @@ class Equilibrium(ExplicitComponent):
         outputs['total_weight'] = tot_weight
         outputs['L_equals_W'] = 1 - L / tot_weight
 
-    def setup_partials(self):
+    
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.declare_partials('total_weight', name + 'L', dependent=False)

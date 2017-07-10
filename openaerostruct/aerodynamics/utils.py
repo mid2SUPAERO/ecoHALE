@@ -23,6 +23,38 @@ except:
     data_type = complex
 
 
+def connect_aero(model, point_name, name):
+
+    com_name = point_name + '.' + name
+
+    model.connect(name[:-1] + '.def_mesh', com_name[:-1] + '.def_mesh')
+
+    # Perform the connections with the modified names within the
+    # 'aero_states' group.
+    model.connect(name[:-1] + '.def_mesh', point_name + '.aero_states.' + name + 'def_mesh')
+    model.connect(com_name[:-1] + '.b_pts', point_name + '.aero_states.' + name + 'b_pts')
+    model.connect(com_name[:-1] + '.c_pts', point_name + '.aero_states.' + name + 'c_pts')
+    model.connect(com_name[:-1] + '.normals', point_name + '.aero_states.' + name + 'normals')
+
+    # Connect the results from 'aero_states' to the performance groups
+    model.connect(point_name + '.aero_states.' + name + 'sec_forces', com_name + 'perf' + '.sec_forces')
+
+    # Connect S_ref for performance calcs
+    model.connect(com_name[:-1] + '.S_ref', com_name + 'perf' + '.S_ref')
+    model.connect(com_name[:-1] + '.widths', com_name + 'perf' + '.widths')
+    model.connect(com_name[:-1] + '.chords', com_name + 'perf' + '.chords')
+    model.connect(com_name[:-1] + '.lengths', com_name + 'perf' + '.lengths')
+    model.connect(com_name[:-1] + '.cos_sweep', com_name + 'perf' + '.cos_sweep')
+
+    # Connect S_ref for performance calcs
+    model.connect(com_name[:-1] + '.S_ref', point_name + '.total_perf.' + name + 'S_ref')
+    model.connect(com_name[:-1] + '.widths', point_name + '.total_perf.' + name + 'widths')
+    model.connect(com_name[:-1] + '.chords', point_name + '.total_perf.' + name + 'chords')
+    model.connect(com_name[:-1] + '.b_pts', point_name + '.total_perf.' + name + 'b_pts')
+    model.connect(com_name + 'perf' + '.CL', point_name + '.total_perf.' + name + 'CL')
+    model.connect(com_name + 'perf' + '.CD', point_name + '.total_perf.' + name + 'CD')
+    model.connect(point_name + '.aero_states.' + name + 'sec_forces', point_name + '.total_perf.' + name + 'sec_forces')
+
 def norm(vec):
     """ Finds the 2-norm of a vector. """
     return np.sqrt(np.sum(vec**2))

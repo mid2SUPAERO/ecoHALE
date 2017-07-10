@@ -59,7 +59,7 @@ class ViscousDrag(ExplicitComponent):
         self.add_input('lengths', val=np.random.rand((ny)))
         self.add_output('CDv', val=0.)
 
-    def setup_partials(self):
+    
         self.approx_partials('CDv', 'M')
         self.approx_partials('CDv', 're')
 

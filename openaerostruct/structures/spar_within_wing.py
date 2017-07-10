@@ -50,7 +50,7 @@ class SparWithinWing(ExplicitComponent):
         self.add_input('radius', val=np.random.random_sample((self.ny-1)))
         self.add_output('spar_within_wing', val=np.zeros((self.ny-1)))
 
-    def setup_partials(self):
+    
         self.approx_partials('*', '*')
 
     def compute(self, inputs, outputs):

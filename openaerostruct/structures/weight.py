@@ -43,7 +43,7 @@ class Weight(ExplicitComponent):
         self.add_output('structural_weight', val=0.)
         self.add_output('cg_location', val=np.random.random_sample((3)))#, dtype=data_type))
 
-    def setup_partials(self):
+    
         self.approx_partials('cg_location', 'A')
         self.approx_partials('cg_location', 'nodes')
 

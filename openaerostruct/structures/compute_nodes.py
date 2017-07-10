@@ -49,7 +49,7 @@ class ComputeNodes(ExplicitComponent):
         mesh = inputs['mesh']
         outputs['nodes'] = (1-w) * mesh[0, :, :] + w * mesh[-1, :, :]
 
-    def setup_partials(self):
+    
         w = self.fem_origin
         n = self.ny * 3
 

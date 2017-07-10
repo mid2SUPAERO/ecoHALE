@@ -50,7 +50,7 @@ class CreateRHS(ExplicitComponent):
         # can more easily be solved
         outputs['forces'][np.abs(outputs['forces']) < 1e-6] = 0.
 
-    def setup_partials(self):
+    
         n = self.ny * 6
         forces_loads = np.zeros((n + 6, n))
         forces_loads[:n, :n] = np.eye((n))

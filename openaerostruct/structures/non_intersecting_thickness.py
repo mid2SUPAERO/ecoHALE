@@ -49,7 +49,7 @@ class NonIntersectingThickness(ExplicitComponent):
     def compute(self, inputs, outputs):
         outputs['thickness_intersects'] = inputs['thickness'] - inputs['radius']
 
-    def setup_partials(self):
+    
         mat = np.eye(self.ny-1)
 
         self.declare_partials('thickness_intersects', 'thickness', val=mat)

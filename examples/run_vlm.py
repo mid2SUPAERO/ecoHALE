@@ -67,9 +67,9 @@ if __name__ == "__main__":
 
         # Setup problem and add design variables, constraint, and objective
         OAS_prob.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-        OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
-        OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
-        OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
+        # OAS_prob.add_design_var('wing.sweep', lower=10., upper=30.)
+        # OAS_prob.add_design_var('wing.dihedral', lower=-10., upper=20.)
+        # OAS_prob.add_design_var('wing.taper', lower=.5, upper=2.)
         OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
         OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
         OAS_prob.setup()

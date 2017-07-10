@@ -40,11 +40,6 @@ class Circulations(ImplicitComponent):
         self.add_input('rhs', val=np.random.rand(size))
         self.add_output('circulations', shape=size, val=.1)
 
-    def setup_partials(self):
-        """
-        Set up the derivatives according to the user specified mode.
-        """
-
         size = self.metadata['size']
         row_col = np.arange(size, dtype="int")
 

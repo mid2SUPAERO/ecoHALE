@@ -84,7 +84,6 @@ class AssembleAIC(ExplicitComponent):
         self.mtx = np.zeros((tot_panels, tot_panels),
                                    dtype=data_type)
 
-    def setup_partials(self):
         if not fortran_flag:
             self.approx_partials('*', '*', form='forward')
 

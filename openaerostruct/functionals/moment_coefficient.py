@@ -66,7 +66,7 @@ class MomentCoefficient(ExplicitComponent):
 
         self.add_output('CM', val=np.ones((3)))
 
-    def setup_partials(self):
+    
         if not fortran_flag:
             self.approx_partials('*', '*')
 

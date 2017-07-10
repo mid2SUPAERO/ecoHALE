@@ -119,7 +119,6 @@ class Bsplines(ExplicitComponent):
         self.add_input(meta['in_name'], val=np.random.random(meta['num_cp']))
         self.add_output(meta['out_name'], val=np.random.random(meta['num_pt']))
 
-    def setup_partials(self):
         meta = self.metadata
 
         jac = meta['jac'].tocoo()

@@ -75,7 +75,7 @@ class CenterOfGravity(ExplicitComponent):
         # the structures cg. Here we assume the fuel weight is at the cg.
         outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] - inputs['fuelburn'] * g)
 
-    def setup_partials(self):
+    
         arange = np.arange(3)
 
         for surface in self.metadata['surfaces']:
