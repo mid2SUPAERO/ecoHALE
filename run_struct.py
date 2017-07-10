@@ -56,7 +56,7 @@ for surface in surfaces:
 
     struct_group = SpatialBeamAlone(surface=surface, indep_var_comp=indep_var_comp)
 
-    prob.model.add_subsystem(surface['name'], struct_group, promotes=[])
+    prob.model.add_subsystem(surface['name'], struct_group)
 
     # TODO: add this to the metadata
     # prob.model.add_metadata(surface['name'] + '_yield_stress', surface['yield'])

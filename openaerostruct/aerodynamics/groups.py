@@ -17,7 +17,7 @@ class AeroPoint(Group):
         prob_dict = self.metadata['prob_dict']
 
         for surface in surfaces:
-            self.add_subsystem(surface['name'][:-1], VLMGeometry(surface=surface), promotes=[])
+            self.add_subsystem(surface['name'][:-1], VLMGeometry(surface=surface))
 
         # Add a single 'aero_states' component that solves for the circulations
         # and forces from all the surfaces.

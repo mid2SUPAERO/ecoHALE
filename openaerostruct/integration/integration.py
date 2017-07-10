@@ -671,7 +671,7 @@ class OASProblem(object):
 
             # Add tmp_group to the problem with the name of the surface.
             # The default is 'wing'.
-            model.add_subsystem(name[:-1], tmp_group, promotes=[])
+            model.add_subsystem(name[:-1], tmp_group)
 
             # TODO: add this to the metadata
             # model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
@@ -781,7 +781,7 @@ class OASProblem(object):
             # Note that is a group and performance group for each
             # individual surface.
             name_orig = name.strip('_')
-            model.add_subsystem(name_orig, tmp_group, promotes=[])
+            model.add_subsystem(name_orig, tmp_group)
 
         # Add a single 'aero_states' component that solves for the circulations
         # and forces from all the surfaces.
@@ -944,7 +944,7 @@ class OASProblem(object):
             # Add tmp_group to the problem with the name of the surface.
             name_orig = name
             name = name[:-1]
-            model.add_subsystem(name, tmp_group, promotes=[])
+            model.add_subsystem(name, tmp_group)
 
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
@@ -963,7 +963,7 @@ class OASProblem(object):
             tmp_group.linear_solver = LinearRunOnce()
 
             name = name_orig
-            coupled.add_subsystem(name[:-1], tmp_group, promotes=[])
+            coupled.add_subsystem(name[:-1], tmp_group)
 
             # TODO: add this info to the metadata
             # model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
@@ -981,7 +981,7 @@ class OASProblem(object):
             name = surface['name']
 
             # Add a loads component to the coupled group
-            coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface), promotes=[])
+            coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface))
 
             model.connect(name[:-1] + '.K', 'coupled.' + name[:-1] + '.K')
 

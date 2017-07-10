@@ -45,17 +45,20 @@ class LoadTransfer(ExplicitComponent):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_input('def_mesh', val=np.random.rand(self.nx, self.ny, 3))
-        self.add_input('sec_forces', val=np.random.rand(self.nx-1, self.ny-1, 3))
-        self.add_output('loads', val=np.random.rand(self.ny, 6))
+        self.add_input('def_mesh', val=np.ones((self.nx, self.ny, 3)))
+        self.add_input('sec_forces', val=np.ones((self.nx-1, self.ny-1, 3)))
+        self.add_output('loads', val=np.ones((self.ny, 6)))
 
-    
         if not fortran_flag:
             self.approx_partials('*', '*')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh'].copy()
         sec_forces = inputs['sec_forces'].copy()
+
+        print(mesh)
+        print(sec_forces)
+        print()
 
         if fortran_flag:
             loads = OAS_API.oas_api.transferloads(mesh, sec_forces, self.fem_origin)

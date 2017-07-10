@@ -77,7 +77,7 @@ surf_dict = {
 
 surf_dict.update({'twist_cp' : twist_cp,
                   'mesh' : mesh})
-# TODO: move offset back to in the loop
+# TODO: move offset back to in the loop?
 
 surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
@@ -134,7 +134,7 @@ for surface in surfaces:
     # Add tmp_group to the problem as the name of the surface.
     # Note that is a group and performance group for each
     # individual surface.
-    prob.model.add_subsystem(surface['name'][:-1], tmp_group, promotes=[])
+    prob.model.add_subsystem(surface['name'][:-1], tmp_group)
 
 # Loop through and add a certain number of aero points
 for i in range(1):
@@ -142,7 +142,7 @@ for i in range(1):
     # Create the aero point group and add it to the model
     aero_group = AeroPoint(surfaces=surfaces, prob_dict=prob_dict)
     point_name = 'aero_point_{}'.format(i)
-    prob.model.add_subsystem(point_name, aero_group, promotes=[])
+    prob.model.add_subsystem(point_name, aero_group)
 
     # Connect flow properties to the analysis point
     prob.model.connect('v', point_name + '.v')
@@ -159,7 +159,7 @@ from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = "SNOPT"
 prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                 'Major feasibility tolerance': 1.0e-8}
+                            'Major feasibility tolerance': 1.0e-8}
 
 # # Setup problem and add design variables, constraint, and objective
 prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)

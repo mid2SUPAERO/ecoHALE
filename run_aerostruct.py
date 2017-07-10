@@ -2,8 +2,11 @@ from __future__ import division, print_function
 import sys
 import numpy as np
 
-from openaerostruct.integration.groups import Aerostruct, AerostructPoint
-from openaerostruct.integration.utils import connect_aerostruct
+from openaerostruct.integration.groups import Aerostruct, AerostructPoint, CoupledAS, CoupledPerformance
+from openaerostruct.functionals.total_performance import TotalPerformance
+from openaerostruct.integration.utils import connect_aerostruct, connect_aerostruct_old
+from openaerostruct.transfer.load_transfer import LoadTransfer
+from openaerostruct.aerodynamics.states import VLMStates
 
 from openaerostruct.geometry.utils import generate_mesh
 
@@ -135,26 +138,95 @@ for surface in surfaces:
     aerostruct_group = Aerostruct(surface=surface, indep_var_comp=indep_var_comp)
 
     # Add tmp_group to the problem with the name of the surface.
-    prob.model.add_subsystem(name[:-1], aerostruct_group, promotes=[])
+    prob.model.add_subsystem(name[:-1], aerostruct_group)
 
 # Loop through and add a certain number of aero points
 for i in range(1):
 
-    # Create the aero point group and add it to the model
-    AS_group = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
-    point_name = 'AS_point_{}'.format(i)
-    prob.model.add_subsystem(point_name, AS_group, promotes=[])
+    if 1:
 
-    # Connect flow properties to the analysis point
-    prob.model.connect('v', point_name + '.v')
-    prob.model.connect('alpha', point_name + '.alpha')
-    prob.model.connect('M', point_name + '.M')
-    prob.model.connect('re', point_name + '.re')
-    prob.model.connect('rho', point_name + '.rho')
+        # Create the aero point group and add it to the model
+        AS_point = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
+        point_name = 'AS_point_{}'.format(i)
+        prob.model.add_subsystem(point_name, AS_point)
 
-    # Connect the parameters within the model for each aero point
-    for surface in surfaces:
-        connect_aerostruct(prob.model, point_name, surface['name'])
+        # Connect flow properties to the analysis point
+        prob.model.connect('v', point_name + '.v')
+        prob.model.connect('alpha', point_name + '.alpha')
+        prob.model.connect('M', point_name + '.M')
+        prob.model.connect('re', point_name + '.re')
+        prob.model.connect('rho', point_name + '.rho')
+
+        # Connect the parameters within the model for each aero point
+        for surface in surfaces:
+            connect_aerostruct(prob.model, point_name, surface['name'])
+
+    else:
+
+        coupled = Group()
+
+        for surface in surfaces:
+
+            name = surface['name']
+
+            # Add components to the 'coupled' group for each surface.
+            # The 'coupled' group must contain all components and parameters
+            # needed to converge the aerostructural system.
+            coupled_AS_group = CoupledAS(surface=surface)
+
+            coupled.add_subsystem(name[:-1], coupled_AS_group)
+
+            # TODO: add this info to the metadata
+            # prob.model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
+            # prob.model.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
+
+        # Add a single 'aero_states' component for the whole system within the
+        # coupled group.
+        coupled.add_subsystem('aero_states',
+            VLMStates(surfaces=surfaces),
+            promotes=['v', 'alpha', 'rho'])
+
+        # Explicitly connect parameters from each surface's group and the common
+        # 'aero_states' group.
+        for surface in surfaces:
+            name = surface['name']
+
+            # Add a loads component to the coupled group
+            coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface))
+
+        # Set solver properties for the coupled group
+        # coupled.linear_solver = ScipyIterativeSolver()
+        # coupled.linear_solver.precon = LinearRunOnce()
+        #
+        # coupled.nonlinear_solver = NonlinearBlockGS()
+        # coupled.nonlinear_solver.options['maxiter'] = 50
+
+        coupled.jacobian = DenseJacobian()
+        coupled.linear_solver = DirectSolver()
+        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+
+        coupled.linear_solver.options['iprint'] = 2
+        coupled.nonlinear_solver.options['iprint'] = 2
+
+        # Add the coupled group to the model problem
+        prob.model.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
+
+        for surface in surfaces:
+            name = surface['name']
+
+            # Add a performance group which evaluates the data after solving
+            # the coupled system
+            perf_group = CoupledPerformance(surface=surface, prob_dict=prob_dict)
+
+            prob.model.add_subsystem(name + 'perf', perf_group, promotes=["rho", "v", "alpha", "re", "M"])
+            connect_aerostruct_old(prob.model, name)
+
+        # Add functionals to evaluate performance of the system.
+        # Note that only the interesting results are promoted here; not all
+        # of the parameters.
+        prob.model.add_subsystem('total_perf',
+                 TotalPerformance(surfaces=surfaces, prob_dict=prob_dict),
+                 promotes=['L_equals_W', 'fuelburn', 'CM', 'CL', 'CD', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
 
 
 from openmdao.api import pyOptSparseDriver
@@ -166,13 +238,13 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
 # # Setup problem and add design variables, constraint, and objective
 # prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
 # prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-# prob.model.add_constraint('wing_perf.failure', upper=0.)
-# prob.model.add_constraint('wing_perf.thickness_intersects', upper=0.)
+# prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
+# prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
 #
 # # Add design variables, constraisnt, and objective on the problem
 # prob.model.add_design_var('alpha', lower=-10., upper=10.)
-# prob.model.add_constraint('L_equals_W', equals=0.)
-# prob.model.add_objective('fuelburn', scaler=1e-5)
+# prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
+# prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 
 # Set up the problem
 prob.setup()

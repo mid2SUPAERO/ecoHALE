@@ -111,6 +111,11 @@ class AerostructPoint(Group):
 
             name = surface['name']
 
+            # Connect the output of the loads component with the FEM
+            # displacement parameter. This links the coupling within the coupled
+            # group that necessitates the subgroup solver.
+            coupled.connect(name + 'loads.loads', name[:-1] + '.loads')
+
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
