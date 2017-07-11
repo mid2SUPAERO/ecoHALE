@@ -17,7 +17,6 @@ class TotalAeroPerformance(Group):
 
     def setup(self):
         prob_dict = self.metadata['prob_dict']
-        with_viscous = prob_dict['with_viscous']
         surfaces = self.metadata['surfaces']
 
         self.add_subsystem('CL_CD',

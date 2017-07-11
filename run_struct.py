@@ -1,9 +1,10 @@
 from __future__ import division, print_function
 import sys
 import numpy as np
-from openaerostruct.geometry.utils import generate_mesh
 
+from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.structures.groups import SpatialBeamAlone
+from openaerostruct.geometry.bsplines import Bsplines
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
@@ -30,8 +31,7 @@ surf_dict = {
             'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
             'mrho' : 3.e3,          # [kg/m^3] material density
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
-            'loads' : None,         # [N] allow the user to input loads
-            't_over_c' : 0.15,
+            't_over_c' : 0.15,      # maximum airfoil thickness
 
             'exact_failure_constraint' : False,
             }
@@ -54,7 +54,20 @@ for surface in surfaces:
     indep_var_comp.add_output('thickness_cp', val=np.ones(num_thickness_cp) * .1)
     indep_var_comp.add_output('loads', val=np.ones(ny) * 2e5)
 
-    struct_group = SpatialBeamAlone(surface=surface, indep_var_comp=indep_var_comp)
+    struct_group = SpatialBeamAlone(surface=surface)
+
+    # Add indep_vars to the structural group
+    struct_group.add_subsystem('indep_vars',
+         indep_var_comp,
+         promotes=['*'])
+
+    # Add the B-spline componetn that translates the thickness control points
+    # into thicknesses for each FEM element
+    struct_group.add_subsystem('thickness_bsp', Bsplines(
+        in_name='thickness_cp', out_name='thickness',
+        num_cp=num_thickness_cp, num_pt=int(ny-1)),
+        promotes_inputs=['thickness_cp'],
+        promotes_outputs=['thickness'])
 
     prob.model.add_subsystem(surface['name'], struct_group)
 

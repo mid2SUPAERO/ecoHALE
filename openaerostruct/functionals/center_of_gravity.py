@@ -52,6 +52,7 @@ class CenterOfGravity(ExplicitComponent):
 
         self.add_input('total_weight', val=1.)
         self.add_input('fuelburn', val=1.)
+        self.add_input('W0', val=1.)
 
         self.add_output('cg', val=np.random.rand(3))
 
@@ -59,7 +60,7 @@ class CenterOfGravity(ExplicitComponent):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']
-        W0 = prob_dict['W0']
+        W0 = inputs['W0']
         cg = prob_dict['cg']
         W0_cg = W0 * cg * g
 
@@ -75,7 +76,7 @@ class CenterOfGravity(ExplicitComponent):
         # the structures cg. Here we assume the fuel weight is at the cg.
         outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] - inputs['fuelburn'] * g)
 
-    
+
         arange = np.arange(3)
 
         for surface in self.metadata['surfaces']:

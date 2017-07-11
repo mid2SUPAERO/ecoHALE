@@ -17,21 +17,10 @@ from six import iteritems
 prob_dict = {
             # Problem and solver options
             'with_viscous' : True,  # if true, compute viscous drag
-
-            # Flow/environment properties
-            'Re' : 1e6,              # Reynolds number
-            'reynolds_length' : 1.0, # characteristic Reynolds length
-            'alpha' : 5.,            # [degrees] angle of attack
-            'M' : 0.84,              # Mach number at cruise
-            'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
-            'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
             'g' : 9.80665,           # [m/s^2] acceleration due to gravity
-
             'S_ref_total' : None,    # [m^2] total reference area for the aircraft
-            'cg' : np.zeros((3))
             }
 
-prob_dict['v'] = prob_dict['M'] * prob_dict['a']
 
 # Create a dictionary to store options about the surface
 mesh_dict = {'num_y' : 7,
@@ -75,7 +64,6 @@ surf_dict = {
 
 surf_dict.update({'twist_cp' : twist_cp,
                   'mesh' : mesh})
-# TODO: move offset back to in the loop?
 
 surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
@@ -85,12 +73,12 @@ surfaces = [surf_dict]
 prob = Problem()
 
 indep_var_comp = IndepVarComp()
-indep_var_comp.add_output('v', val=prob_dict['v'])
-indep_var_comp.add_output('alpha', val=prob_dict['alpha'])
-indep_var_comp.add_output('M', val=prob_dict['M'])
-indep_var_comp.add_output('re', val=prob_dict['Re']/prob_dict['reynolds_length'])
-indep_var_comp.add_output('rho', val=prob_dict['rho'])
-indep_var_comp.add_output('cg', val=prob_dict['cg'])
+indep_var_comp.add_output('v', val=248.136)
+indep_var_comp.add_output('alpha', val=5.)
+indep_var_comp.add_output('M', val=0.84)
+indep_var_comp.add_output('re', val=1.e6)
+indep_var_comp.add_output('rho', val=0.38)
+indep_var_comp.add_output('cg', val=np.zeros((3)))
 
 prob.model.add_subsystem('prob_vars',
     indep_var_comp,

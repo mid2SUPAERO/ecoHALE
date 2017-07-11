@@ -56,7 +56,7 @@ class Aerostruct(Group):
             SpatialBeamSetup(surface=surface),
             promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'], promotes_outputs=['nodes', 'K'])
 
-class CoupledAS(Group):
+class PreAS(Group):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
@@ -154,11 +154,10 @@ class AerostructPoint(Group):
             self.connect('coupled.' + name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
             self.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
 
-
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
-            coupled_AS_group = CoupledAS(surface=surface)
+            coupled_AS_group = PreAS(surface=surface)
 
             coupled.add_subsystem(name[:-1], coupled_AS_group)
 
@@ -211,4 +210,5 @@ class AerostructPoint(Group):
         # of the parameters.
         self.add_subsystem('total_perf',
                  TotalPerformance(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes_inputs=['CM', 'CL', 'CD', 'v', 'rho', 'cg', 'total_weight'], promotes_outputs=['L_equals_W', 'fuelburn', 'weighted_obj'])
+                 promotes_inputs=['CM', 'CL', 'CD', 'v', 'rho', 'cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0'],
+                 promotes_outputs=['L_equals_W', 'fuelburn', 'weighted_obj'])

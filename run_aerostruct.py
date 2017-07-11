@@ -1,14 +1,9 @@
 from __future__ import division, print_function
-import sys
 import numpy as np
 
-from openaerostruct.integration.groups import Aerostruct, AerostructPoint, CoupledAS, CoupledPerformance
-from openaerostruct.functionals.total_performance import TotalPerformance
-from openaerostruct.transfer.load_transfer import LoadTransfer
+from openaerostruct.integration.groups import Aerostruct, AerostructPoint
 from openaerostruct.aerodynamics.states import VLMStates
-
 from openaerostruct.geometry.utils import generate_mesh
-
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
@@ -18,31 +13,14 @@ prob_dict = {
             # Problem and solver options
             'with_viscous' : True,  # if true, compute viscous drag
 
-            # Flow/environment properties
-            'Re' : 1e6,              # Reynolds number
-            'reynolds_length' : 1.0, # characteristic Reynolds length
-            'alpha' : 5.,            # [degrees] angle of attack
-            'M' : 0.84,              # Mach number at cruise
-            'rho' : 0.38,            # [kg/m^3] air density at 35,000 ft
-            'a' : 295.4,             # [m/s] speed of sound at 35,000 ft
             'g' : 9.80665,           # [m/s^2] acceleration due to gravity
 
-            # Aircraft properties
-            'CT' : 9.80665 * 17.e-6, # [1/s] (9.80665 N/kg * 17e-6 kg/N/s)
-                                     # specific fuel consumption
-            'R' : 11.165e6,          # [m] maximum range (B777-300)
             'cg' : np.zeros((3)),    # Center of gravity for the
                                      # entire aircraft. Used in trim
                                      # and stability calculations.
-            'W0' : 0.4 * 3e5,        # [kg] weight of the airplane without
-                                     # the wing structure and fuel.
-                                     # The default is 40% of the MTOW of
-                                     # B777-300 is 3e5 kg.
             'beta' : 1.,             # weighting factor for mixed objective
             'S_ref_total' : None,    # [m^2] total reference area for the aircraft
             }
-
-prob_dict['v'] = prob_dict['M'] * prob_dict['a']
 
 # Create a dictionary to store options about the surface
 mesh_dict = {'num_y' : 7,
@@ -89,7 +67,6 @@ surf_dict = {
             'mrho' : 3.e3,          # [kg/m^3] material density
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
             'loads' : None,         # [N] allow the user to input loads
-            'thickness_cp' : np.array([.1, .2, .3]),
 
             # Constraints
             'exact_failure_constraint' : False, # if false, use KS function
@@ -109,11 +86,15 @@ prob = Problem()
 
 # Add problem information as an independent variables component
 indep_var_comp = IndepVarComp()
-indep_var_comp.add_output('v', val=prob_dict['v'])
-indep_var_comp.add_output('alpha', val=prob_dict['alpha'])
-indep_var_comp.add_output('M', val=prob_dict['M'])
-indep_var_comp.add_output('re', val=prob_dict['Re']/prob_dict['reynolds_length'])
-indep_var_comp.add_output('rho', val=prob_dict['rho'])
+indep_var_comp.add_output('v', val=248.136)
+indep_var_comp.add_output('alpha', val=5.)
+indep_var_comp.add_output('M', val=0.84)
+indep_var_comp.add_output('re', val=1.e6)
+indep_var_comp.add_output('rho', val=0.38)
+indep_var_comp.add_output('CT', val=9.80665 * 17.e-6)
+indep_var_comp.add_output('R', val=11.165e6)
+indep_var_comp.add_output('W0', val=0.4 * 3e5)
+indep_var_comp.add_output('a', val=295.4)
 
 prob.model.add_subsystem('prob_vars',
      indep_var_comp,
@@ -131,7 +112,7 @@ for surface in surfaces:
     indep_var_comp = IndepVarComp()
 
     indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
-    indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'])
+    indep_var_comp.add_output('thickness_cp', val=np.array([.1, .2, .3]))
 
     aerostruct_group = Aerostruct(surface=surface, indep_var_comp=indep_var_comp)
 
@@ -154,6 +135,10 @@ for i in range(1):
     prob.model.connect('M', point_name + '.M')
     prob.model.connect('re', point_name + '.re')
     prob.model.connect('rho', point_name + '.rho')
+    prob.model.connect('CT', point_name + '.CT')
+    prob.model.connect('R', point_name + '.R')
+    prob.model.connect('W0', point_name + '.W0')
+    prob.model.connect('a', point_name + '.a')
 
     for surface in surfaces:
 

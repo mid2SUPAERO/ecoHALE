@@ -45,8 +45,13 @@ class BreguetRange(ExplicitComponent):
             name = surface['name']
             self.add_input(name + 'structural_weight', val=1.)
 
-        self.add_input('CL', val=10.)
-        self.add_input('CD', val=10.)
+        self.add_input('CT', val=1.)
+        self.add_input('CL', val=1.)
+        self.add_input('CD', val=1.)
+        self.add_input('a', val=1.)
+        self.add_input('R', val=1.)
+        self.add_input('M', val=1.)
+        self.add_input('W0', val=1.)
 
         self.add_output('fuelburn', val=1.)
         self.add_output('weighted_obj', val=1.)
@@ -55,11 +60,11 @@ class BreguetRange(ExplicitComponent):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']
-        CT = prob_dict['CT']
-        a = prob_dict['a']
-        R = prob_dict['R']
-        M = prob_dict['M']
-        W0 = prob_dict['W0'] * g
+        CT = inputs['CT']
+        a = inputs['a']
+        R = inputs['R']
+        M = inputs['M']
+        W0 = inputs['W0'] * g
         beta = prob_dict['beta']
 
         # Loop through the surfaces and add up the structural weights
@@ -84,11 +89,11 @@ class BreguetRange(ExplicitComponent):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']
-        CT = prob_dict['CT']
-        a = prob_dict['a']
-        R = prob_dict['R']
-        M = prob_dict['M']
-        W0 = prob_dict['W0'] * g
+        CT = inputs['CT']
+        a = inputs['a']
+        R = inputs['R']
+        M = inputs['M']
+        W0 = inputs['W0'] * g
         beta = prob_dict['beta']
 
         Ws = 0.

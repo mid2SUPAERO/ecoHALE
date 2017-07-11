@@ -45,6 +45,7 @@ class Equilibrium(ExplicitComponent):
             self.add_input(name + 'structural_weight', val=1.)
 
         self.add_input('fuelburn', val=1.)
+        self.add_input('W0', val=1.)
 
         self.add_output('L_equals_W', val=1.)
         self.add_output('total_weight', val=1.)
@@ -53,7 +54,7 @@ class Equilibrium(ExplicitComponent):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']
-        W0 = prob_dict['W0'] * g
+        W0 = inputs['W0'] * g
 
         structural_weight = 0.
         L = 0.
@@ -67,7 +68,7 @@ class Equilibrium(ExplicitComponent):
         outputs['total_weight'] = tot_weight
         outputs['L_equals_W'] = 1 - L / tot_weight
 
-    
+
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.declare_partials('total_weight', name + 'L', dependent=False)
@@ -77,7 +78,7 @@ class Equilibrium(ExplicitComponent):
         prob_dict = self.metadata['prob_dict']
 
         g = prob_dict['g']
-        W0 = prob_dict['W0'] * g
+        W0 = inputs['W0'] * g
 
         structural_weight = 0.
         L = 0.
