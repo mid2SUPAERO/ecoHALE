@@ -23,19 +23,29 @@ class VLMFunctionals(Group):
 
         self.add_subsystem('viscousdrag',
             ViscousDrag(surface=surface, with_viscous=with_viscous),
-            promotes=['*'])
+            promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref'], promotes_outputs=['CDv'])
+
         self.add_subsystem('liftcoeff',
              LiftCoeff2D(surface=surface),
-             promotes=['*'])
+             promotes_inputs=['v', 'alpha', 'rho', 'widths', 'chords', 'sec_forces'],
+             promotes_outputs=['Cl'])
+
         self.add_subsystem('liftdrag',
             LiftDrag(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['alpha', 'sec_forces'],
+            promotes_outputs=['L', 'D'])
+
         self.add_subsystem('coeffs',
             Coeffs(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['v', 'rho', 'S_ref', 'L', 'D'],
+            promotes_outputs=['CL1', 'CDi'])
+
         self.add_subsystem('CD',
             TotalDrag(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['CDv', 'CDi'],
+            promotes_outputs=['CD'])
+
         self.add_subsystem('CL',
             TotalLift(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['CL1'],
+            promotes_outputs=['CL'])

@@ -21,21 +21,29 @@ class TotalPerformance(Group):
 
     def setup(self):
         prob_dict = self.metadata['prob_dict']
-        with_viscous = prob_dict['with_viscous']
         surfaces = self.metadata['surfaces']
 
         self.add_subsystem('CL_CD',
              TotalLiftDrag(surfaces=surfaces, prob_dict=prob_dict),
-             promotes=['*'])
+             promotes_inputs=['*CL', '*CD', '*S_ref'],
+             promotes_outputs=['CL', 'CD'])
+
         self.add_subsystem('fuelburn',
              BreguetRange(surfaces=surfaces, prob_dict=prob_dict),
-             promotes=['*'])
+             promotes_inputs=['*structural_weight', 'CL', 'CD'],
+             promotes_outputs=['fuelburn', 'weighted_obj'])
+
         self.add_subsystem('L_equals_W',
              Equilibrium(surfaces=surfaces, prob_dict=prob_dict),
-             promotes=['*'])
+             promotes_inputs=['*L', '*structural_weight', 'fuelburn'],
+             promotes_outputs=['L_equals_W', 'total_weight'])
+
         self.add_subsystem('CG',
              CenterOfGravity(surfaces=surfaces, prob_dict=prob_dict),
-             promotes=['*'])
+             promotes_inputs=['*structural_weight', '*cg_location', 'fuelburn', 'total_weight'],
+             promotes_outputs=['cg'])
+
         self.add_subsystem('moment',
              MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
-             promotes=['*'])
+             promotes_inputs=['v', 'alpha', 'cg', '*b_pts', '*widths', '*chords', '*sec_forces'],
+             promotes_outputs=['CM'])

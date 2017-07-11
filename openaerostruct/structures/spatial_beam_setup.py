@@ -15,7 +15,8 @@ class SpatialBeamSetup(Group):
 
         self.add_subsystem('nodes',
                  ComputeNodes(surface=surface),
-                 promotes=['*'])
+                 promotes_inputs=['mesh'], promotes_outputs=['nodes'])
+
         self.add_subsystem('assembly',
                  AssembleK(surface=surface),
-                 promotes=['*'])
+                 promotes_inputs=['A', 'Iy', 'Iz', 'J', 'nodes'], promotes_outputs=['K'])

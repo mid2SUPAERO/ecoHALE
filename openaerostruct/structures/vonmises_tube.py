@@ -52,7 +52,7 @@ class VonMisesTube(ExplicitComponent):
         self.T = np.zeros((3, 3), dtype=data_type)
         self.x_gl = np.array([1, 0, 0], dtype=data_type)
 
-    
+
         if not fortran_flag:
             self.approx_partials('*', '*')
 

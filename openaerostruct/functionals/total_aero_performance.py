@@ -22,7 +22,10 @@ class TotalAeroPerformance(Group):
 
         self.add_subsystem('CL_CD',
                  TotalLiftDrag(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
+                 promotes_inputs=['*CL', '*CD', '*S_ref'],
+                 promotes_outputs=['CL', 'CD'])
+
         self.add_subsystem('moment',
                  MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['*'])
+                 promotes_inputs=['v', 'alpha', 'cg', '*b_pts', '*widths', '*chords', '*sec_forces'],
+                 promotes_outputs=['CM'])

@@ -1,11 +1,9 @@
-from openmdao.api import Group, ExplicitComponent, LinearRunOnce
 from openaerostruct.geometry.new_geometry_mesh import GeometryMesh
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.structures.materials_tube import MaterialsTube
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
@@ -13,7 +11,7 @@ from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer#
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, ExplicitComponent
 
 
 class Aerostruct(Group):
@@ -26,7 +24,6 @@ class Aerostruct(Group):
         surface = self.metadata['surface']
         indep_var_comp = self.metadata['indep_var_comp']
         ny = surface['mesh'].shape[1]
-        num_thickness_cp = 3
 
         # Add components to include in the surface's group
         self.add_subsystem('indep_vars',
@@ -40,23 +37,24 @@ class Aerostruct(Group):
         self.add_subsystem('thickness_bsp', Bsplines(
             in_name='thickness_cp', out_name='thickness',
             num_cp=int(surface['num_thickness_cp']), num_pt=int(ny-1)),
-            promotes=['*'])
+            promotes_inputs=['thickness_cp'], promotes_outputs=['thickness'])
+
         self.add_subsystem('twist_bsp', Bsplines(
             in_name='twist_cp', out_name='twist',
             num_cp=int(surface['num_twist_cp']), num_pt=int(ny)),
-            promotes=['*'])
-
+            promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
 
         self.add_subsystem('mesh',
             GeometryMesh(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['twist'], promotes_outputs=['mesh', 'radius'])
+
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['thickness', 'radius'], promotes_outputs=['A', 'Iy', 'Iz', 'J'])
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'], promotes_outputs=['nodes', 'K'])
 
 class CoupledAS(Group):
 
@@ -68,13 +66,15 @@ class CoupledAS(Group):
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['K', 'forces', 'loads'], promotes_outputs=['disp'])
+
         self.add_subsystem('def_mesh',
             DisplacementTransfer(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['mesh', 'disp'], promotes_outputs=['def_mesh'])
+
         self.add_subsystem('aero_geom',
             VLMGeometry(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['def_mesh'], promotes_outputs=['b_pts', 'c_pts', 'widths', 'cos_sweep', 'lengths', 'chords', 'normals', 'S_ref'])
 
         self.linear_solver = LinearRunOnce()
 
@@ -90,10 +90,11 @@ class CoupledPerformance(Group):
 
         self.add_subsystem('aero_funcs',
             VLMFunctionals(surface=surface, prob_dict=prob_dict),
-            promotes=['*'])
+            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'chords', 'S_ref', 'sec_forces'], promotes_outputs=['CDv', 'Cl', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
+
         self.add_subsystem('struct_funcs',
             SpatialBeamFunctionals(surface=surface),
-            promotes=['*'])
+            promotes_inputs=['thickness', 'radius', 'A', 'nodes', 'disp'], promotes_outputs=['thickness_intersects', 'structural_weight', 'cg_location', 'vonmises', 'failure'])
 
 class AerostructPoint(Group):
 
@@ -169,7 +170,7 @@ class AerostructPoint(Group):
         # coupled group.
         coupled.add_subsystem('aero_states',
             VLMStates(surfaces=surfaces),
-            promotes=['v', 'alpha', 'rho'])
+            promotes_inputs=['v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.
@@ -194,7 +195,7 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['iprint'] = 2
 
         # Add the coupled group to the model problem
-        self.add_subsystem('coupled', coupled, promotes=['v', 'alpha', 'rho'])
+        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho'])
 
         for surface in surfaces:
             name = surface['name']
@@ -203,11 +204,11 @@ class AerostructPoint(Group):
             # the coupled system
             perf_group = CoupledPerformance(surface=surface, prob_dict=prob_dict)
 
-            self.add_subsystem(name + 'perf', perf_group, promotes=["rho", "v", "alpha", "re", "M"])
+            self.add_subsystem(name + 'perf', perf_group, promotes_inputs=["rho", "v", "alpha", "re", "M"])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all
         # of the parameters.
         self.add_subsystem('total_perf',
                  TotalPerformance(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes=['L_equals_W', 'fuelburn', 'CM', 'CL', 'CD', 'v', 'rho', 'cg', 'weighted_obj', 'total_weight'])
+                 promotes_inputs=['CM', 'CL', 'CD', 'v', 'rho', 'cg', 'total_weight'], promotes_outputs=['L_equals_W', 'fuelburn', 'weighted_obj'])

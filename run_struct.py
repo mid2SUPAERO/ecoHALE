@@ -31,6 +31,7 @@ surf_dict = {
             'mrho' : 3.e3,          # [kg/m^3] material density
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
             'loads' : None,         # [N] allow the user to input loads
+            't_over_c' : 0.15,
 
             'exact_failure_constraint' : False,
             }
@@ -52,7 +53,6 @@ for surface in surfaces:
     indep_var_comp = IndepVarComp()
     indep_var_comp.add_output('thickness_cp', val=np.ones(num_thickness_cp) * .1)
     indep_var_comp.add_output('loads', val=np.ones(ny) * 2e5)
-    indep_var_comp.add_output('radius', val=np.ones(ny-1) * .5)
 
     struct_group = SpatialBeamAlone(surface=surface, indep_var_comp=indep_var_comp)
 

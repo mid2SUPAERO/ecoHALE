@@ -1,12 +1,10 @@
 from __future__ import division, print_function
-import sys
 import numpy as np
-from openaerostruct.integration.integration import OASProblem
+
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.new_geometry_mesh import GeometryMesh
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
-from openaerostruct.aerodynamics.utils import connect_aero
 
 from openaerostruct.aerodynamics.groups import AeroPoint
 
@@ -121,15 +119,17 @@ for surface in surfaces:
     tmp_group.add_subsystem('twist_bsp', Bsplines(
         in_name='twist_cp', out_name='twist',
         num_cp=int(surface['num_twist_cp']), num_pt=int(ny)),
-        promotes=['*'])
+        promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
 
     tmp_group.add_subsystem('mesh',
         GeometryMesh(surface=surface),
-        promotes=['*'])
+        promotes_inputs=['twist'],
+        promotes_outputs=['mesh'])
 
     tmp_group.add_subsystem('def_mesh',
         DisplacementTransfer(surface=surface),
-        promotes=['*'])
+        promotes_inputs=['disp', 'mesh'],
+        promotes_outputs=['def_mesh'])
 
     # Add tmp_group to the problem as the name of the surface.
     # Note that is a group and performance group for each
@@ -150,10 +150,19 @@ for i in range(1):
     prob.model.connect('M', point_name + '.M')
     prob.model.connect('re', point_name + '.re')
     prob.model.connect('rho', point_name + '.rho')
+    prob.model.connect('cg', point_name + '.cg')
 
     # Connect the parameters within the model for each aero point
     for surface in surfaces:
-        connect_aero(prob.model, point_name, surface['name'])
+
+        name = surface['name']
+
+        # Connect the mesh from the geometry component to the analysis point
+        prob.model.connect(name[:-1] + '.def_mesh', point_name + '.' + name[:-1] + '.def_mesh')
+
+        # Perform the connections with the modified names within the
+        # 'aero_states' group.
+        prob.model.connect(name[:-1] + '.def_mesh', point_name + '.aero_states.' + name + 'def_mesh')
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()

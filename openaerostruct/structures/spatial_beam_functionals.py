@@ -21,18 +21,24 @@ class SpatialBeamFunctionals(Group):
         # self.add_subsystem('energy',
         #          Energy(surface=surface),
         #          promotes=['*'])
+
         self.add_subsystem('thicknessconstraint',
                  NonIntersectingThickness(surface=surface),
-                 promotes=['*'])
+                 promotes_inputs=['thickness', 'radius'],
+                 promotes_outputs=['thickness_intersects'])
+
         self.add_subsystem('structural_weight',
                  Weight(surface=surface),
-                 promotes=['*'])
+                 promotes_inputs=['A', 'nodes'],
+                 promotes_outputs=['structural_weight', 'cg_location'])
+
         self.add_subsystem('vonmises',
                  VonMisesTube(surface=surface),
-                 promotes=['*'])
+                 promotes_inputs=['radius', 'nodes', 'disp'],
+                 promotes_outputs=['vonmises'])
 
         # The following component has not been fully tested so we leave it
-        # commented out for now. Use at own risk.
+        # commented out for now. Use at your own risk.
         # self.add_subsystem('sparconstraint',
         #          SparWithinWing(surface=surface),
         #          promotes=['*'])
@@ -40,8 +46,10 @@ class SpatialBeamFunctionals(Group):
         if surface['exact_failure_constraint']:
             self.add_subsystem('failure',
                      FailureExact(surface=surface),
-                     promotes=['*'])
+                     promotes_inputs=['vonmises'],
+                     promotes_outputs=['failure'])
         else:
             self.add_subsystem('failure',
                     FailureKS(surface=surface),
-                    promotes=['*'])
+                    promotes_inputs=['vonmises'],
+                    promotes_outputs=['failure'])

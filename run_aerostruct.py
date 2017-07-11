@@ -132,7 +132,6 @@ for surface in surfaces:
 
     indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
     indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'])
-    # indep_var_comp.add_output('radius', val=np.ones((ny)) * .5)
 
     aerostruct_group = Aerostruct(surface=surface, indep_var_comp=indep_var_comp)
 
@@ -174,28 +173,21 @@ from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = "SNOPT"
 prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                 'Major feasibility tolerance': 1.0e-8}
+                            'Major feasibility tolerance': 1.0e-8}
 
-# # Setup problem and add design variables, constraint, and objective
-# prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-# prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-# prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
-# prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
-#
-# # Add design variables, constraisnt, and objective on the problem
-# prob.model.add_design_var('alpha', lower=-10., upper=10.)
-# prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
-# prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
+# Setup problem and add design variables, constraint, and objective
+prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
+prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
+
+# Add design variables, constraisnt, and objective on the problem
+prob.model.add_design_var('alpha', lower=-10., upper=10.)
+prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
+prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 
 # Set up the problem
 prob.setup()
-
-# import pprint
-# pprint.pprint(prob.model._conn_abs_in2out)
-# print('lbammo')
-# pprint.pprint(prob.model._conn_global_abs_in2out)
-# exit()
-# prob.print_all_convergence()
 
 # Save an N2 diagram for the problem
 view_model(prob, outfile='aerostruct.html', show_browser=False)
@@ -204,10 +196,5 @@ prob.run_model()
 # prob.run_driver()
 
 # prob.check_partials(compact_print=True)
-
-# for name in prob.model._outputs:
-#     print(name)
-#     print(prob.model._outputs[name])
-#     print()
 
 print("\nFuelburn", prob['AS_point_0.fuelburn'])

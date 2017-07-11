@@ -24,24 +24,28 @@ class SpatialBeamAlone(Group):
         self.add_subsystem('indep_vars',
                  indep_var_comp,
                  promotes=['*'])
+                 
         self.add_subsystem('mesh',
                  GeometryMesh(surface=surface),
-                 promotes=['*'])
+                 promotes_outputs=['mesh', 'radius'])
 
         self.add_subsystem('thickness_bsp', Bsplines(
             in_name='thickness_cp', out_name='thickness',
             num_cp=num_thickness_cp, num_pt=int(ny-1)),
-            promotes=['*'])
+            promotes_inputs=['thickness_cp'], promotes_outputs=['thickness'])
 
         self.add_subsystem('tube',
-                 MaterialsTube(surface=surface),
-                 promotes=['*'])
+            MaterialsTube(surface=surface),
+            promotes_inputs=['thickness', 'radius'], promotes_outputs=['A', 'Iy', 'Iz', 'J'])
+
         self.add_subsystem('struct_setup',
-                 SpatialBeamSetup(surface=surface),
-                 promotes=['*'])
+            SpatialBeamSetup(surface=surface),
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'], promotes_outputs=['nodes', 'K'])
+
         self.add_subsystem('struct_states',
-                 SpatialBeamStates(surface=surface),
-                 promotes=['*'])
+            SpatialBeamStates(surface=surface),
+            promotes_inputs=['K', 'forces', 'loads'], promotes_outputs=['disp'])
+
         self.add_subsystem('struct_funcs',
-                 SpatialBeamFunctionals(surface=surface),
-                 promotes=['*'])
+            SpatialBeamFunctionals(surface=surface),
+            promotes_inputs=['thickness', 'radius', 'A', 'nodes', 'disp'], promotes_outputs=['thickness_intersects', 'structural_weight', 'cg_location', 'vonmises', 'failure'])
