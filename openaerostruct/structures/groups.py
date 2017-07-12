@@ -23,10 +23,7 @@ class SpatialBeamAlone(Group):
 
         self.add_subsystem('geometry',
             Geometry(surface=surface),
-            # promotes=['*'])
-            # TODO: Check out this bug here; promotes=['*'] works but promotes_inputs=['*'] doesn't work
-            promotes_inputs=['*'],
-            promotes_outputs=['mesh', 'radius', 'thickness'])
+            promotes_inputs=['*'],  promotes_outputs=['thickness_cp', 'mesh', 'radius', 'thickness'])
 
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),
