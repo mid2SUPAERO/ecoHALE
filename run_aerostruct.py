@@ -4,23 +4,10 @@ import numpy as np
 from openaerostruct.integration.groups import Aerostruct, AerostructPoint
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.geometry.utils import generate_mesh
+from openaerostruct.geometry.geometry_group import Geometry
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
-
-
-prob_dict = {
-            # Problem and solver options
-            'with_viscous' : True,  # if true, compute viscous drag
-
-            'g' : 9.80665,           # [m/s^2] acceleration due to gravity
-
-            'cg' : np.zeros((3)),    # Center of gravity for the
-                                     # entire aircraft. Used in trim
-                                     # and stability calculations.
-            'beta' : 1.,             # weighting factor for mixed objective
-            'S_ref_total' : None,    # [m^2] total reference area for the aircraft
-            }
 
 # Create a dictionary to store options about the surface
 mesh_dict = {'num_y' : 7,
@@ -34,13 +21,13 @@ mesh, twist_cp = generate_mesh(mesh_dict)
 surf_dict = {
             # Wing definition
             'name' : 'wing_',        # name of the surface
+            'type' : 'aerostruct',
             'symmetry' : True,     # if true, model one half of wing
                                     # reflected across the plane y = 0
             'S_ref_type' : 'wetted', # how we compute the wing area,
                                      # can be 'wetted' or 'projected'
 
-            'num_twist_cp' : 5,
-            'num_thickness_cp' : 2,
+            'thickness_cp' : np.array([.1, .2, .3]),
             'num_y' : 7,
             'num_x' : 2,
 
@@ -59,6 +46,7 @@ surf_dict = {
             't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
             'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                     # thickness
+            'with_viscous' : True,
 
             # Structural values are based on aluminum 7075
             'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -95,6 +83,8 @@ indep_var_comp.add_output('CT', val=9.80665 * 17.e-6)
 indep_var_comp.add_output('R', val=11.165e6)
 indep_var_comp.add_output('W0', val=0.4 * 3e5)
 indep_var_comp.add_output('a', val=295.4)
+indep_var_comp.add_output('load_factor', val=1.)
+indep_var_comp.add_output('empty_cg', val=np.zeros((3)))
 
 prob.model.add_subsystem('prob_vars',
      indep_var_comp,
@@ -108,16 +98,17 @@ for surface in surfaces:
     name = surface['name']
     ny = surface['num_y']
 
-    # Add independent variables that do not belong to a specific component
-    indep_var_comp = IndepVarComp()
+    geom_group = Geometry(surface=surface)
+    prob.model.add_subsystem(name[:-1] + '_geom', geom_group)
 
-    indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
-    indep_var_comp.add_output('thickness_cp', val=np.array([.1, .2, .3]))
-
-    aerostruct_group = Aerostruct(surface=surface, indep_var_comp=indep_var_comp)
+    aerostruct_group = Aerostruct(surface=surface)
 
     # Add tmp_group to the problem with the name of the surface.
     prob.model.add_subsystem(name[:-1], aerostruct_group)
+
+    prob.model.connect(name[:-1] + '_geom.mesh', name[:-1] + '.mesh')
+    prob.model.connect(name[:-1] + '_geom.radius', name[:-1] + '.radius')
+    prob.model.connect(name[:-1] + '_geom.thickness', name[:-1] + '.thickness')
 
 # Loop through and add a certain number of aero points
 for i in range(1):
@@ -126,7 +117,7 @@ for i in range(1):
     # Connect the parameters within the model for each aero point
 
     # Create the aero point group and add it to the model
-    AS_point = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
+    AS_point = AerostructPoint(surfaces=surfaces)
 
     coupled = AS_point.get_subsystem('coupled')
     prob.model.add_subsystem(point_name, AS_point)
@@ -141,6 +132,8 @@ for i in range(1):
     prob.model.connect('R', point_name + '.R')
     prob.model.connect('W0', point_name + '.W0')
     prob.model.connect('a', point_name + '.a')
+    prob.model.connect('empty_cg', point_name + '.empty_cg')
+    prob.model.connect('load_factor', point_name + '.load_factor')
 
     for surface in surfaces:
 
@@ -148,12 +141,12 @@ for i in range(1):
         prob.model.connect(name[:-1] + '.K', point_name + '.coupled.' + name[:-1] + '.K')
 
         # Connect aerodyamic mesh to coupled group mesh
-        prob.model.connect(name[:-1] + '.mesh', point_name + '.coupled.' + name[:-1] + '.mesh')
+        prob.model.connect(name[:-1] + '_geom.mesh', point_name + '.coupled.' + name[:-1] + '.mesh')
 
         # Connect performance calculation variables
-        prob.model.connect(name[:-1] + '.radius', com_name + '.radius')
+        prob.model.connect(name[:-1] + '_geom.radius', com_name + '.radius')
         prob.model.connect(name[:-1] + '.A', com_name + '.A')
-        prob.model.connect(name[:-1] + '.thickness', com_name + '.thickness')
+        prob.model.connect(name[:-1] + '_geom.thickness', com_name + '.thickness')
         prob.model.connect(name[:-1] + '.nodes', com_name + '.nodes')
 
 from openmdao.api import pyOptSparseDriver
@@ -163,8 +156,8 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                             'Major feasibility tolerance': 1.0e-8}
 
 # Setup problem and add design variables, constraint, and objective
-prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+prob.model.add_design_var('wing_geom.twist_cp', lower=-10., upper=15.)
+prob.model.add_design_var('wing_geom.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
 prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
 prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
 
@@ -179,8 +172,8 @@ prob.setup()
 # Save an N2 diagram for the problem
 view_model(prob, outfile='aerostruct.html', show_browser=False)
 
-prob.run_model()
-# prob.run_driver()
+# prob.run_model()
+prob.run_driver()
 
 # prob.check_partials(compact_print=True)
 

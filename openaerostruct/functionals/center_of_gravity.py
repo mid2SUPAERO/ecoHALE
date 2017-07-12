@@ -53,6 +53,7 @@ class CenterOfGravity(ExplicitComponent):
         self.add_input('fuelburn', val=1.)
         self.add_input('W0', val=1.)
         self.add_input('load_factor', val=1.)
+        self.add_input('empty_cg', val=np.zeros((3)))
 
         self.add_output('cg', val=np.random.rand(3))
 

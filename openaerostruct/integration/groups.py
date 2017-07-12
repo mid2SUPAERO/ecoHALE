@@ -18,40 +18,9 @@ class Aerostruct(Group):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('indep_var_comp', type_=ExplicitComponent, required=True)
 
     def setup(self):
         surface = self.metadata['surface']
-        indep_var_comp = self.metadata['indep_var_comp']
-        ny = surface['mesh'].shape[1]
-
-        # Add components to include in the surface's group
-        self.add_subsystem('indep_vars',
-            indep_var_comp,
-            promotes=['*'])
-
-        # Add bspline components for active bspline geometric variables.
-        # We only add the component if the corresponding variable is a desvar,
-        # a special parameter (radius), or if the user or geometry provided
-        # an initial distribution.
-        self.add_subsystem('thickness_bsp', Bsplines(
-            in_name='thickness_cp', out_name='thickness',
-            num_cp=int(surface['num_thickness_cp']), num_pt=int(ny-1)),
-            promotes_inputs=['thickness_cp'], promotes_outputs=['thickness'])
-
-        self.add_subsystem('twist_bsp', Bsplines(
-            in_name='twist_cp', out_name='twist',
-            num_cp=int(surface['num_twist_cp']), num_pt=int(ny)),
-            promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
-
-        self.add_subsystem('xshear_bsp', Bsplines(
-            in_name='xshear_cp', out_name='xshear',
-            num_cp=int(5), num_pt=int(ny)),
-            promotes_inputs=['xshear_cp'], promotes_outputs=['xshear'])
-
-        self.add_subsystem('mesh',
-            GeometryMesh(surface=surface),
-            promotes_inputs=['twist', 'xshear'], promotes_outputs=['mesh', 'radius'])
 
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),
@@ -274,5 +243,5 @@ class AerostructPoint(Group):
         # of the parameters.
         self.add_subsystem('total_perf',
                  TotalPerformance(surfaces=surfaces),
-                 promotes_inputs=['CM', 'CL', 'CD', 'v', 'rho', 'cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0'],
-                 promotes_outputs=['L_equals_W', 'fuelburn'])
+                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor'],
+                 promotes_outputs=['L_equals_W', 'fuelburn', 'CM', 'cg'])
