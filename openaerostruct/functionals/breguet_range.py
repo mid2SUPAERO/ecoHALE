@@ -38,7 +38,6 @@ class BreguetRange(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
         for surface in self.metadata['surfaces']:
@@ -52,19 +51,18 @@ class BreguetRange(ExplicitComponent):
         self.add_input('R', val=1.)
         self.add_input('M', val=1.)
         self.add_input('W0', val=1.)
+        self.add_input('load_factor', val=1.)
 
         self.add_output('fuelburn', val=1.)
 
     def compute(self, inputs, outputs):
-        prob_dict = self.metadata['prob_dict']
 
-        g = prob_dict['g']
+        g = 9.80665 * inputs['load_factor']
         CT = inputs['CT']
         a = inputs['a']
         R = inputs['R']
         M = inputs['M']
         W0 = inputs['W0'] * g
-        beta = prob_dict['beta']
 
         # Loop through the surfaces and add up the structural weights
         # to get the total structural weight.
@@ -82,9 +80,8 @@ class BreguetRange(ExplicitComponent):
         outputs['fuelburn'] = fuelburn / g
 
     def compute_partials(self, inputs, outputs, partials):
-        prob_dict = self.metadata['prob_dict']
 
-        g = prob_dict['g']
+        g = 9.80665 * inputs['load_factor']
         CT = inputs['CT']
         a = inputs['a']
         R = inputs['R']

@@ -1,5 +1,6 @@
 from openmdao.api import Group, ExplicitComponent
 from openaerostruct.geometry.new_geometry_mesh import GeometryMesh
+from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
@@ -14,10 +15,6 @@ class SpatialBeamAlone(Group):
 
     def setup(self):
         surface = self.metadata['surface']
-
-        self.add_subsystem('mesh',
-                 GeometryMesh(surface=surface),
-                 promotes_outputs=['mesh', 'radius'])
 
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),

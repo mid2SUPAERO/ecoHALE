@@ -5,6 +5,7 @@ import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.structures.groups import SpatialBeamAlone
 from openaerostruct.geometry.bsplines import Bsplines
+from openaerostruct.geometry.geometry_group import Geometry
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
@@ -22,6 +23,7 @@ mesh, twist_cp = generate_mesh(mesh_dict)
 surf_dict = {
             # Wing definition
             'name' : 'wing',        # name of the surface
+            'type' : 'structural',
             'symmetry' : True,     # if true, model one half of wing
                                     # reflected across the plane y = 0
 
@@ -32,6 +34,7 @@ surf_dict = {
             'mrho' : 3.e3,          # [kg/m^3] material density
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
             't_over_c' : 0.15,      # maximum airfoil thickness
+            'thickness_cp' : np.ones((3)) * .1,
 
             'exact_failure_constraint' : False,
             }
@@ -39,7 +42,6 @@ surf_dict = {
 surf_dict.update({'mesh' : mesh})
 
 surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
-num_thickness_cp = 3
 
 surfaces = [surf_dict]
 
@@ -51,9 +53,8 @@ for surface in surfaces:
     ny = surface['num_y']
 
     indep_var_comp = IndepVarComp()
-    indep_var_comp.add_output('thickness_cp', val=np.ones(num_thickness_cp) * .1)
     indep_var_comp.add_output('loads', val=np.ones(ny) * 2e5)
-
+    geom_group = Geometry(surface=surface)    prob.model.add_subsystem(surface['name'] + '_geom', geom_group,        promotes_outputs=['mesh', 'radius', 'thickness'])
     struct_group = SpatialBeamAlone(surface=surface)
 
     # Add indep_vars to the structural group
@@ -61,15 +62,8 @@ for surface in surfaces:
          indep_var_comp,
          promotes=['*'])
 
-    # Add the B-spline componetn that translates the thickness control points
-    # into thicknesses for each FEM element
-    struct_group.add_subsystem('thickness_bsp', Bsplines(
-        in_name='thickness_cp', out_name='thickness',
-        num_cp=num_thickness_cp, num_pt=int(ny-1)),
-        promotes_inputs=['thickness_cp'],
-        promotes_outputs=['thickness'])
-
-    prob.model.add_subsystem(surface['name'], struct_group)
+    prob.model.add_subsystem(surface['name'], struct_group,
+        promotes_inputs=['mesh', 'radius', 'thickness'])
 
     # TODO: add this to the metadata
     # prob.model.add_metadata(surface['name'] + '_yield_stress', surface['yield'])
@@ -81,21 +75,21 @@ prob.driver.options['optimizer'] = "SNOPT"
 prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                             'Major feasibility tolerance': 1.0e-8}
 
-# Setup problem and add design variables, constraint, and objective
-prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-prob.model.add_constraint('wing.failure', upper=0.)
-prob.model.add_constraint('wing.thickness_intersects', upper=0.)
-
-# Add design variables, constraisnt, and objective on the problem
-prob.model.add_objective('wing.structural_weight', scaler=1e-4)
+# # Setup problem and add design variables, constraint, and objective
+# prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+# prob.model.add_constraint('wing.failure', upper=0.)
+# prob.model.add_constraint('wing.thickness_intersects', upper=0.)
+#
+# # Add design variables, constraisnt, and objective on the problem
+# prob.model.add_objective('wing.structural_weight', scaler=1e-4)
 
 # Set up the problem
 prob.setup()
 
 view_model(prob, outfile='struct.html', show_browser=False)
 
-# prob.run_model()
-prob.run_driver()
+prob.run_model()
+# prob.run_driver()
 
 # prob.check_partials(compact_print=True)
 

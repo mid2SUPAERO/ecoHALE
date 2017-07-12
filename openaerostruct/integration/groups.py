@@ -87,14 +87,12 @@ class CoupledPerformance(Group):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
         surface = self.metadata['surface']
-        prob_dict = self.metadata['prob_dict']
 
         self.add_subsystem('aero_funcs',
-            VLMFunctionals(surface=surface, prob_dict=prob_dict),
+            VLMFunctionals(surface=surface),
             promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'chords', 'S_ref', 'sec_forces'], promotes_outputs=['CDv', 'Cl', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
 
         self.add_subsystem('struct_funcs',
@@ -105,11 +103,9 @@ class AerostructPoint(Group):
 
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
         surfaces = self.metadata['surfaces']
-        prob_dict = self.metadata['prob_dict']
 
         coupled = Group()
 
@@ -269,7 +265,7 @@ class AerostructPoint(Group):
 
             # Add a performance group which evaluates the data after solving
             # the coupled system
-            perf_group = CoupledPerformance(surface=surface, prob_dict=prob_dict)
+            perf_group = CoupledPerformance(surface=surface)
 
             self.add_subsystem(name + 'perf', perf_group, promotes_inputs=["rho", "v", "alpha", "re", "M"])
 
@@ -277,6 +273,6 @@ class AerostructPoint(Group):
         # Note that only the interesting results are promoted here; not all
         # of the parameters.
         self.add_subsystem('total_perf',
-                 TotalPerformance(surfaces=surfaces, prob_dict=prob_dict),
+                 TotalPerformance(surfaces=surfaces),
                  promotes_inputs=['CM', 'CL', 'CD', 'v', 'rho', 'cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0'],
                  promotes_outputs=['L_equals_W', 'fuelburn'])

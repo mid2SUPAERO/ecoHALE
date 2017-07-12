@@ -17,33 +17,31 @@ class TotalPerformance(Group):
 
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
-        prob_dict = self.metadata['prob_dict']
         surfaces = self.metadata['surfaces']
 
         self.add_subsystem('CL_CD',
-             TotalLiftDrag(surfaces=surfaces, prob_dict=prob_dict),
+             TotalLiftDrag(surfaces=surfaces),
              promotes_inputs=['*CL', '*CD', '*S_ref'],
              promotes_outputs=['CL', 'CD'])
 
         self.add_subsystem('fuelburn',
-             BreguetRange(surfaces=surfaces, prob_dict=prob_dict),
+             BreguetRange(surfaces=surfaces),
              promotes_inputs=['*structural_weight', 'CL', 'CD', 'CT', 'a', 'R', 'M', 'W0'],
              promotes_outputs=['fuelburn'])
 
         self.add_subsystem('L_equals_W',
-             Equilibrium(surfaces=surfaces, prob_dict=prob_dict),
+             Equilibrium(surfaces=surfaces),
              promotes_inputs=['*L', '*structural_weight', 'fuelburn', 'W0'],
              promotes_outputs=['L_equals_W', 'total_weight'])
 
         self.add_subsystem('CG',
-             CenterOfGravity(surfaces=surfaces, prob_dict=prob_dict),
+             CenterOfGravity(surfaces=surfaces),
              promotes_inputs=['*structural_weight', '*cg_location', 'fuelburn', 'total_weight', 'W0'],
              promotes_outputs=['cg'])
 
         self.add_subsystem('moment',
-             MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
+             MomentCoefficient(surfaces=surfaces),
              promotes_inputs=['v', 'alpha', 'rho', 'cg', '*S_ref', '*b_pts', '*widths', '*chords', '*sec_forces'],
              promotes_outputs=['CM'])
