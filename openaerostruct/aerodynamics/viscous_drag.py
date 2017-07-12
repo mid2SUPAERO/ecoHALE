@@ -40,7 +40,7 @@ class ViscousDrag(ExplicitComponent):
 
     def setup(self):
         self.surface = surface = self.metadata['surface']
-        self.with_viscous = self.metadata['with_viscous']
+        self.with_viscous = surface['with_viscous']
 
         # Percentage of chord with laminar flow
         self.k_lam = surface['k_lam']
@@ -59,7 +59,6 @@ class ViscousDrag(ExplicitComponent):
         self.add_input('lengths', val=np.random.rand((ny)))
         self.add_output('CDv', val=0.)
 
-    
         self.approx_partials('CDv', 'M')
         self.approx_partials('CDv', 're')
 

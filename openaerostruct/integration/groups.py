@@ -44,9 +44,14 @@ class Aerostruct(Group):
             num_cp=int(surface['num_twist_cp']), num_pt=int(ny)),
             promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
 
+        self.add_subsystem('xshear_bsp', Bsplines(
+            in_name='xshear_cp', out_name='xshear',
+            num_cp=int(5), num_pt=int(ny)),
+            promotes_inputs=['xshear_cp'], promotes_outputs=['xshear'])
+
         self.add_subsystem('mesh',
             GeometryMesh(surface=surface),
-            promotes_inputs=['twist'], promotes_outputs=['mesh', 'radius'])
+            promotes_inputs=['twist', 'xshear'], promotes_outputs=['mesh', 'radius'])
 
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),
@@ -180,15 +185,78 @@ class AerostructPoint(Group):
             coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface))
 
         # Set solver properties for the coupled group
-        # coupled.linear_solver = ScipyIterativeSolver()
-        # coupled.linear_solver.precon = LinearRunOnce()
-        #
-        # coupled.nonlinear_solver = NonlinearBlockGS()
-        # coupled.nonlinear_solver.options['maxiter'] = 50
+        coupled.linear_solver = ScipyIterativeSolver()
+        coupled.linear_solver.precon = LinearRunOnce()
 
-        coupled.jacobian = DenseJacobian()
-        coupled.linear_solver = DirectSolver()
-        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+        coupled.nonlinear_solver = NonlinearBlockGS()
+        coupled.nonlinear_solver.options['maxiter'] = 50
+
+        # coupled.jacobian = DenseJacobian()
+        # coupled.linear_solver = DirectSolver()
+        # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+
+        # # 1. GS without aitken:
+        # print('1')
+        # coupled.ln_solver = ScipyIterativeSolver()
+        # coupled.ln_solver.options['maxiter'] = 200
+        # coupled.ln_solver.options['atol'] = 1e-16
+        # coupled.ln_solver.preconditioner = LinearBlockGS()
+        # coupled.ln_solver.preconditioner.options['maxiter'] = 1
+        #
+        # coupled.nl_solver = NonlinearBlockGS()
+        # coupled.nl_solver.options['maxiter'] = 20
+        #
+        # coupled.nl_solver.options['atol'] = 1e-12
+        # coupled.nl_solver.options['rtol'] = 1e-100
+        # # coupled.nl_solver.options['utol'] = 1e-100
+
+        # # 2. GS with aitken:
+        #
+        # print('2')
+        # coupled.ln_solver = ScipyIterativeSolver()
+        # coupled.ln_solver.options['maxiter'] = 200
+        # coupled.ln_solver.options['atol'] =1e-16
+        # coupled.ln_solver.preconditioner = LinearBlockGS()
+        # coupled.ln_solver.preconditioner.options['maxiter'] = 1
+        #
+        # coupled.nl_solver = NonlinearBlockGS()
+        # coupled.nl_solver.options['maxiter'] = 2000
+        # coupled.nl_solver.options['use_aitken'] = True
+        # coupled.nl_solver.options['aitken_alpha_min'] = 0.01
+        # coupled.nl_solver.options['aitken_alpha_max'] = 1.5
+        #
+        # coupled.nl_solver.options['atol'] = 1e-12
+        # coupled.nl_solver.options['rtol'] = 1e-100
+        # # coupled.nl_solver.options['utol'] = 1e-100
+
+        # # 3. Newton with GMRES:
+        #
+        # print('3')
+        # coupled.ln_solver = ScipyIterativeSolver()
+        # coupled.ln_solver.options['maxiter'] = 200
+        # coupled.ln_solver.preconditioner = LinearBlockGS()
+        # coupled.ln_solver.preconditioner.options['maxiter'] = 1
+        # coupled.ln_solver.options['atol'] =1e-16
+        #
+        # coupled.nl_solver = NewtonSolver()
+        # coupled.nl_solver.options['maxiter'] = 30
+        # coupled.nl_solver.options['solve_subsystems'] = False
+        #
+        # coupled.nl_solver.options['atol'] = 1e-12
+        # coupled.nl_solver.options['rtol'] = 1e-100
+        # # coupled.nl_solver.options['utol'] = 1e-100
+
+
+        # 4. Newton with DirectSolver:
+
+        # print('4')
+        # coupled.ln_solver = DirectSolver()
+        # coupled.nl_solver = NewtonSolver()
+        # coupled.nl_solver.options['maxiter'] = 10
+        #
+        # coupled.nl_solver.options['atol'] = 1e-12
+        # coupled.nl_solver.options['rtol'] = 1e-100
+        # # coupled.nl_solver.options['utol'] = 1e-100
 
         coupled.linear_solver.options['iprint'] = 2
         coupled.nonlinear_solver.options['iprint'] = 2

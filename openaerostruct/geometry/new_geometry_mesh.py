@@ -80,6 +80,7 @@ class GeometryMesh(ExplicitComponent):
 
         # TODO: generalize this
         self.add_input('twist', val=geo_params['twist'])
+        self.add_input('xshear', val=geo_params['xshear'])
 
         self.add_output('mesh', val=self.mesh)
         self.add_output('radius', val=np.zeros((ny - 1)))
@@ -132,6 +133,9 @@ class GeometryMesh(ExplicitComponent):
         outputs['mesh'] = mesh
 
         outputs['radius'] = radii(mesh, self.metadata['surface']['t_over_c'])
+        # outputs['radius'] = np.array([ 0.17806111,  0.20682864,  0.23559643,  0.26436396,  0.29313175,  0.32189928,
+        #   0.35066707,  0.37936881,  0.4081366,   0.44796837,  0.50773076,  0.57649212,
+        #   0.64529818,  0.71405547,  0.78276348])
 
     if fortran_flag:
         if 0:

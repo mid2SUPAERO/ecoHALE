@@ -13,18 +13,16 @@ class TotalAeroPerformance(Group):
 
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
-        prob_dict = self.metadata['prob_dict']
         surfaces = self.metadata['surfaces']
 
         self.add_subsystem('CL_CD',
-                 TotalLiftDrag(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes_inputs=['*CL', '*CD', '*S_ref'],
+                 TotalLiftDrag(surfaces=surfaces),
+                 promotes_inputs=['*CL', '*CD', '*S_ref', 'S_ref_total'],
                  promotes_outputs=['CL', 'CD'])
 
         self.add_subsystem('moment',
-                 MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
-                 promotes_inputs=['v', 'alpha', 'cg', '*b_pts', '*widths', '*chords', '*sec_forces'],
+                 MomentCoefficient(surfaces=surfaces),
+                 promotes_inputs=['v', 'alpha', 'cg', '*b_pts', '*widths', '*chords', '*sec_forces', 'S_ref_total'],
                  promotes_outputs=['CM'])

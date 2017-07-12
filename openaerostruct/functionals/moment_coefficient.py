@@ -46,7 +46,6 @@ class MomentCoefficient(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
         for surface in self.metadata['surfaces']:
@@ -63,10 +62,11 @@ class MomentCoefficient(ExplicitComponent):
         self.add_input('cg', val=np.random.rand(3))
         self.add_input('v', val=10.)
         self.add_input('rho', val=3.)
+        self.add_input('S_ref_total', val=0.)
 
         self.add_output('CM', val=np.ones((3)))
 
-    
+
         if not fortran_flag:
             self.approx_partials('*', '*')
 
@@ -136,10 +136,11 @@ class MomentCoefficient(ExplicitComponent):
 
         # Use the user-provided reference area; otherwise compute the total
         # area of all lifting surfaces.
-        if self.metadata['prob_dict']['S_ref_total'] is None:
+        # Use the user-provided area; otherwise, use the computed area
+        if inputs['S_ref_total'] == 0.:
             self.S_ref_tot = S_ref_tot
         else:
-            self.S_ref_tot = self.metadata['prob_dict']['S_ref_total']
+            self.S_ref_tot = inputs['S_ref_total']
 
         # Compute the normalized CM
         outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * MAC_wing)

@@ -127,6 +127,8 @@ for i in range(1):
 
     # Create the aero point group and add it to the model
     AS_point = AerostructPoint(surfaces=surfaces, prob_dict=prob_dict)
+
+    coupled = AS_point.get_subsystem('coupled')
     prob.model.add_subsystem(point_name, AS_point)
 
     # Connect flow properties to the analysis point

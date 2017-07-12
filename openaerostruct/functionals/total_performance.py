@@ -40,10 +40,10 @@ class TotalPerformance(Group):
 
         self.add_subsystem('CG',
              CenterOfGravity(surfaces=surfaces, prob_dict=prob_dict),
-             promotes_inputs=['*structural_weight', '*cg_location', 'fuelburn', 'total_weight'],
+             promotes_inputs=['*structural_weight', '*cg_location', 'fuelburn', 'total_weight', 'W0'],
              promotes_outputs=['cg'])
 
         self.add_subsystem('moment',
              MomentCoefficient(surfaces=surfaces, prob_dict=prob_dict),
-             promotes_inputs=['v', 'alpha', 'cg', '*b_pts', '*widths', '*chords', '*sec_forces'],
+             promotes_inputs=['v', 'alpha', 'rho', 'cg', '*S_ref', '*b_pts', '*widths', '*chords', '*sec_forces'],
              promotes_outputs=['CM'])

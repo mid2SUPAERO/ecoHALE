@@ -9,11 +9,9 @@ class AeroPoint(Group):
 
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
         surfaces = self.metadata['surfaces']
-        prob_dict = self.metadata['prob_dict']
 
         for surface in surfaces:
             name = surface['name']
@@ -60,9 +58,10 @@ class AeroPoint(Group):
         # from each surface, but this information is stored within each
         # surface's group.
         for surface in surfaces:
-            self.add_subsystem(surface['name'] +'perf', VLMFunctionals(surface=surface, prob_dict=prob_dict),
+            self.add_subsystem(surface['name'] +'perf', VLMFunctionals(surface=surface),
                     promotes_inputs=["v", "alpha", "M", "re", "rho"])
 
         self.add_subsystem('total_perf',
-            TotalAeroPerformance(surfaces=surfaces, prob_dict=prob_dict),
-            promotes_inputs=['v', 'rho', 'cg'], promotes_outputs=['CM', 'CL', 'CD'])
+            TotalAeroPerformance(surfaces=surfaces),
+            promotes_inputs=['v', 'rho', 'cg', 'S_ref_total'],
+            promotes_outputs=['CM', 'CL', 'CD'])

@@ -82,9 +82,6 @@ class BreguetRange(ExplicitComponent):
         # Convert fuelburn from N to kg
         outputs['fuelburn'] = fuelburn / g
 
-        # This lines makes the 'weight' the total aircraft weight
-        outputs['weighted_obj'] = (beta * fuelburn + (1 - beta) * (W0 + Ws + fuelburn)) / g
-
     def compute_partials(self, inputs, outputs, partials):
         prob_dict = self.metadata['prob_dict']
 
@@ -94,7 +91,6 @@ class BreguetRange(ExplicitComponent):
         R = inputs['R']
         M = inputs['M']
         W0 = inputs['W0'] * g
-        beta = prob_dict['beta']
 
         Ws = 0.
         for surface in self.metadata['surfaces']:

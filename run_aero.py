@@ -2,8 +2,7 @@ from __future__ import division, print_function
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.bsplines import Bsplines
-from openaerostruct.geometry.new_geometry_mesh import GeometryMesh
+from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
 from openaerostruct.aerodynamics.groups import AeroPoint
@@ -11,16 +10,6 @@ from openaerostruct.aerodynamics.groups import AeroPoint
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
-
-
-# Set problem type
-prob_dict = {
-            # Problem and solver options
-            'with_viscous' : True,  # if true, compute viscous drag
-            'g' : 9.80665,           # [m/s^2] acceleration due to gravity
-            'S_ref_total' : None,    # [m^2] total reference area for the aircraft
-            }
-
 
 # Create a dictionary to store options about the surface
 mesh_dict = {'num_y' : 7,
@@ -40,8 +29,6 @@ surf_dict = {
                                      # can be 'wetted' or 'projected'
 
             'num_twist_cp' : 5,
-            'num_y' : 7,
-            'num_x' : 2,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).
@@ -60,6 +47,7 @@ surf_dict = {
             't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
             'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                     # thickness
+            'with_viscous' : True,  # if true, compute viscous drag
             }
 
 surf_dict.update({'twist_cp' : twist_cp,
@@ -78,6 +66,8 @@ indep_var_comp.add_output('alpha', val=5.)
 indep_var_comp.add_output('M', val=0.84)
 indep_var_comp.add_output('re', val=1.e6)
 indep_var_comp.add_output('rho', val=0.38)
+# indep_var_comp.add_output('load_factor', val=1.)
+indep_var_comp.add_output('S_ref_total', val=0.)
 indep_var_comp.add_output('cg', val=np.zeros((3)))
 
 prob.model.add_subsystem('prob_vars',
@@ -87,48 +77,18 @@ prob.model.add_subsystem('prob_vars',
 # Loop over each surface in the surfaces list
 for surface in surfaces:
 
-    # Get the surface name and create a group to contain components
-    # only for this surface
-    ny = surface['mesh'].shape[1]
-
-    # Add independent variables that do not belong to a specific component
-    indep_var_comp = IndepVarComp()
-    indep_var_comp.add_output('disp', val=np.zeros((ny, 6)))
-    indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
-
-    tmp_group = Group()
-
-    # Add structural components to the surface-specific group
-    tmp_group.add_subsystem('indep_vars',
-             indep_var_comp,
-             promotes=['*'])
-
-    # Add bspline components for active bspline geometric variables.
-    tmp_group.add_subsystem('twist_bsp', Bsplines(
-        in_name='twist_cp', out_name='twist',
-        num_cp=int(surface['num_twist_cp']), num_pt=int(ny)),
-        promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
-
-    tmp_group.add_subsystem('mesh',
-        GeometryMesh(surface=surface),
-        promotes_inputs=['twist'],
-        promotes_outputs=['mesh'])
-
-    tmp_group.add_subsystem('def_mesh',
-        DisplacementTransfer(surface=surface),
-        promotes_inputs=['disp', 'mesh'],
-        promotes_outputs=['def_mesh'])
+    geom_group = Geometry(surface=surface)
 
     # Add tmp_group to the problem as the name of the surface.
     # Note that is a group and performance group for each
     # individual surface.
-    prob.model.add_subsystem(surface['name'][:-1], tmp_group)
+    prob.model.add_subsystem(surface['name'][:-1], geom_group)
 
 # Loop through and add a certain number of aero points
 for i in range(1):
 
     # Create the aero point group and add it to the model
-    aero_group = AeroPoint(surfaces=surfaces, prob_dict=prob_dict)
+    aero_group = AeroPoint(surfaces=surfaces)
     point_name = 'aero_point_{}'.format(i)
     prob.model.add_subsystem(point_name, aero_group)
 
@@ -138,6 +98,8 @@ for i in range(1):
     prob.model.connect('M', point_name + '.M')
     prob.model.connect('re', point_name + '.re')
     prob.model.connect('rho', point_name + '.rho')
+    # prob.model.connect('load_factor', point_name + '.load_factor')
+    prob.model.connect('S_ref_total', point_name + '.S_ref_total')
     prob.model.connect('cg', point_name + '.cg')
 
     # Connect the parameters within the model for each aero point

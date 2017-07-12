@@ -36,7 +36,6 @@ class TotalLiftDrag(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('surfaces', type_=list, required=True)
-        self.metadata.declare('prob_dict', type_=dict, required=True)
 
     def setup(self):
         for surface in self.metadata['surfaces']:
@@ -45,11 +44,12 @@ class TotalLiftDrag(ExplicitComponent):
             self.add_input(name + 'CD', val=1.)
             self.add_input(name + 'S_ref', val=1.)
 
+        self.add_input('S_ref_total', val=0.)
+
         self.add_output('CL', val=1.)
         self.add_output('CD', val=1.)
 
     def compute(self, inputs, outputs):
-        prob_dict = self.metadata['prob_dict']
 
         # Compute the weighted CL and CD contributions from each surface,
         # weighted by the individual surface areas
@@ -64,16 +64,15 @@ class TotalLiftDrag(ExplicitComponent):
             computed_total_S_ref += S_ref
 
         # Use the user-provided area; otherwise, use the computed area
-        if self.metadata['prob_dict']['S_ref_total'] is not None:
-            S_ref_total = self.metadata['prob_dict']['S_ref_total']
-        else:
+        if inputs['S_ref_total'] == 0.:
             S_ref_total = computed_total_S_ref
+        else:
+            S_ref_total = inputs['S_ref_total']
 
         outputs['CL'] = CL / S_ref_total
         outputs['CD'] = CD / S_ref_total
 
     def compute_partials(self, inputs, outputs, partials):
-        prob_dict = self.metadata['prob_dict']
 
         # Compute the weighted CL and CD contributions from each surface,
         # weighted by the individual surface areas
@@ -87,10 +86,11 @@ class TotalLiftDrag(ExplicitComponent):
             CD += inputs[name + 'CD'] * S_ref
             computed_total_S_ref += S_ref
 
-        if self.metadata['prob_dict']['S_ref_total'] is not None:
-            S_ref_total = self.metadata['prob_dict']['S_ref_total']
-        else:
+        # Use the user-provided area; otherwise, use the computed area
+        if inputs['S_ref_total'] == 0.:
             S_ref_total = computed_total_S_ref
+        else:
+            S_ref_total = inputs['S_ref_total']
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
