@@ -279,4 +279,4 @@ class AerostructPoint(Group):
         self.add_subsystem('total_perf',
                  TotalPerformance(surfaces=surfaces, prob_dict=prob_dict),
                  promotes_inputs=['CM', 'CL', 'CD', 'v', 'rho', 'cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0'],
-                 promotes_outputs=['L_equals_W', 'fuelburn', 'weighted_obj'])
+                 promotes_outputs=['L_equals_W', 'fuelburn'])

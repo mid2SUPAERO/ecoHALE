@@ -54,7 +54,6 @@ class BreguetRange(ExplicitComponent):
         self.add_input('W0', val=1.)
 
         self.add_output('fuelburn', val=1.)
-        self.add_output('weighted_obj', val=1.)
 
     def compute(self, inputs, outputs):
         prob_dict = self.metadata['prob_dict']
@@ -82,9 +81,6 @@ class BreguetRange(ExplicitComponent):
         # Convert fuelburn from N to kg
         outputs['fuelburn'] = fuelburn / g
 
-        # This lines makes the 'weight' the total aircraft weight
-        outputs['weighted_obj'] = (beta * fuelburn + (1 - beta) * (W0 + Ws + fuelburn)) / g
-
     def compute_partials(self, inputs, outputs, partials):
         prob_dict = self.metadata['prob_dict']
 
@@ -94,7 +90,6 @@ class BreguetRange(ExplicitComponent):
         R = inputs['R']
         M = inputs['M']
         W0 = inputs['W0'] * g
-        beta = prob_dict['beta']
 
         Ws = 0.
         for surface in self.metadata['surfaces']:
@@ -112,12 +107,8 @@ class BreguetRange(ExplicitComponent):
 
         partials['fuelburn', 'CL'] = dfb_dCL / g
         partials['fuelburn', 'CD'] = dfb_dCD / g
-        partials['weighted_obj', 'CL'] = beta * dfb_dCL / g + (1 - beta) * dfb_dCL / g
-        partials['weighted_obj', 'CD'] = beta * dfb_dCD / g + (1 - beta) * dfb_dCD / g
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
             inp_name = name + 'structural_weight'
             partials['fuelburn', inp_name] = dfb_dWs / g
-            partials['weighted_obj', inp_name] = beta * dfb_dWs / g + (1 - beta) * dfb_dWs / g \
-                + (1 - beta) / g

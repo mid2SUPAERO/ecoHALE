@@ -31,7 +31,7 @@ class TotalPerformance(Group):
         self.add_subsystem('fuelburn',
              BreguetRange(surfaces=surfaces, prob_dict=prob_dict),
              promotes_inputs=['*structural_weight', 'CL', 'CD', 'CT', 'a', 'R', 'M', 'W0'],
-             promotes_outputs=['fuelburn', 'weighted_obj'])
+             promotes_outputs=['fuelburn'])
 
         self.add_subsystem('L_equals_W',
              Equilibrium(surfaces=surfaces, prob_dict=prob_dict),
