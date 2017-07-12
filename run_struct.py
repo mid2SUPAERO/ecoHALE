@@ -54,16 +54,16 @@ for surface in surfaces:
 
     indep_var_comp = IndepVarComp()
     indep_var_comp.add_output('loads', val=np.ones(ny) * 2e5)
-    geom_group = Geometry(surface=surface)    prob.model.add_subsystem(surface['name'] + '_geom', geom_group,        promotes_outputs=['mesh', 'radius', 'thickness'])
-    struct_group = SpatialBeamAlone(surface=surface)
+    struct_group = SpatialBeamAlone(surface=surface)
 
     # Add indep_vars to the structural group
     struct_group.add_subsystem('indep_vars',
          indep_var_comp,
          promotes=['*'])
 
-    prob.model.add_subsystem(surface['name'], struct_group,
-        promotes_inputs=['mesh', 'radius', 'thickness'])
+    prob.model.add_subsystem(surface['name'], struct_group)
+
+
 
     # TODO: add this to the metadata
     # prob.model.add_metadata(surface['name'] + '_yield_stress', surface['yield'])
@@ -76,7 +76,7 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                             'Major feasibility tolerance': 1.0e-8}
 
 # Setup problem and add design variables, constraint, and objective
-prob.model.add_design_var('wing_geom.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
 prob.model.add_constraint('wing.failure', upper=0.)
 prob.model.add_constraint('wing.thickness_intersects', upper=0.)
 

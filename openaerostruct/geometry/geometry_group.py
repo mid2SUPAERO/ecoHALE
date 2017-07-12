@@ -30,7 +30,7 @@ class Geometry(Group):
 
         # Add independent variables that do not belong to a specific component
         indep_var_comp = IndepVarComp()
-        indep_var_comp.add_output('disp', val=np.zeros((ny, 6)))
+        # indep_var_comp.add_output('disp', val=np.zeros((ny, 6)))
 
         # Add structural components to the surface-specific group
         self.add_subsystem('indep_vars',

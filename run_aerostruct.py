@@ -54,12 +54,9 @@ surf_dict = {
             'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
             'mrho' : 3.e3,          # [kg/m^3] material density
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
-            'loads' : None,         # [N] allow the user to input loads
 
             # Constraints
             'exact_failure_constraint' : False, # if false, use KS function
-            'monotonic_con' : None, # add monotonic constraint to the given
-                                    # distributed variable. Ex. 'chord_cp'
             }
 
 surf_dict.update({'twist_cp' : twist_cp,
