@@ -30,7 +30,6 @@ class Geometry(Group):
 
         # Add independent variables that do not belong to a specific component
         indep_var_comp = IndepVarComp()
-        # indep_var_comp.add_output('disp', val=np.zeros((ny, 6)))
 
         # Add structural components to the surface-specific group
         self.add_subsystem('indep_vars',
@@ -62,6 +61,7 @@ class Geometry(Group):
             promotes_outputs=['mesh', 'radius'])
 
         if surface['type'] == 'aero':
+            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)))
             self.add_subsystem('def_mesh',
                 DisplacementTransfer(surface=surface),
                 promotes_inputs=['disp', 'mesh'],

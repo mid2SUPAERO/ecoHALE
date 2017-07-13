@@ -46,8 +46,8 @@ class CenterOfGravity(ExplicitComponent):
     def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.add_input(name + 'structural_weight', val=1.)
-            self.add_input(name + 'cg_location', val=np.random.rand(3))
+            self.add_input(name + '_structural_weight', val=1.)
+            self.add_input(name + '_cg_location', val=np.random.rand(3))
 
         self.add_input('total_weight', val=1.)
         self.add_input('fuelburn', val=1.)
@@ -70,7 +70,7 @@ class CenterOfGravity(ExplicitComponent):
         # of all structural spars
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            spar_cg += inputs[name + 'cg_location'] * inputs[name + 'structural_weight']
+            spar_cg += inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
 
         # Compute the total cg of the aircraft based on the empty weight cg and
         # the structures cg. Here we assume the fuel weight is at the cg.
@@ -80,7 +80,7 @@ class CenterOfGravity(ExplicitComponent):
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.declare_partials('cg', name + 'cg_location', rows=arange, cols=arange)
+            self.declare_partials('cg', name + '_cg_location', rows=arange, cols=arange)
 
     def compute_partials(self, inputs, outputs, partials):
 
@@ -95,7 +95,7 @@ class CenterOfGravity(ExplicitComponent):
         # of all structural spars
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            spar_cg += inputs[name + 'cg_location'] * inputs[name + 'structural_weight']
+            spar_cg += inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
 
         partials['cg', 'total_weight'] = \
             -(W0_cg + spar_cg) / (inputs['total_weight'] - inputs['fuelburn'] * g) ** 2
@@ -104,7 +104,7 @@ class CenterOfGravity(ExplicitComponent):
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            partials['cg', name + 'cg_location'] = inputs[name + 'structural_weight'] \
+            partials['cg', name + '_cg_location'] = inputs[name + '_structural_weight'] \
                 / (inputs['total_weight'] - inputs['fuelburn'] * g)
-            partials['cg', name + 'structural_weight'] = inputs[name + 'cg_location'] \
+            partials['cg', name + '_structural_weight'] = inputs[name + '_cg_location'] \
                 / (inputs['total_weight'] - inputs['fuelburn'] * g)

@@ -20,7 +20,7 @@ mesh, twist_cp = generate_mesh(mesh_dict)
 
 surf_dict = {
             # Wing definition
-            'name' : 'wing_',        # name of the surface
+            'name' : 'wing',        # name of the surface
             'type' : 'aerostruct',
             'symmetry' : True,     # if true, model one half of wing
                                     # reflected across the plane y = 0
@@ -96,16 +96,16 @@ for surface in surfaces:
     ny = surface['num_y']
 
     geom_group = Geometry(surface=surface)
-    prob.model.add_subsystem(name[:-1] + '_geom', geom_group)
+    prob.model.add_subsystem(name + '_geom', geom_group)
 
     aerostruct_group = Aerostruct(surface=surface)
 
     # Add tmp_group to the problem with the name of the surface.
-    prob.model.add_subsystem(name[:-1], aerostruct_group)
+    prob.model.add_subsystem(name, aerostruct_group)
 
-    prob.model.connect(name[:-1] + '_geom.mesh', name[:-1] + '.mesh')
-    prob.model.connect(name[:-1] + '_geom.radius', name[:-1] + '.radius')
-    prob.model.connect(name[:-1] + '_geom.thickness', name[:-1] + '.thickness')
+    prob.model.connect(name + '_geom.mesh', name + '.mesh')
+    prob.model.connect(name + '_geom.radius', name + '.radius')
+    prob.model.connect(name + '_geom.thickness', name + '.thickness')
 
 # Loop through and add a certain number of aero points
 for i in range(1):
@@ -134,17 +134,17 @@ for i in range(1):
 
     for surface in surfaces:
 
-        com_name = point_name + '.' + name + 'perf'
-        prob.model.connect(name[:-1] + '.K', point_name + '.coupled.' + name[:-1] + '.K')
+        com_name = point_name + '.' + name + '_perf'
+        prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
 
         # Connect aerodyamic mesh to coupled group mesh
-        prob.model.connect(name[:-1] + '_geom.mesh', point_name + '.coupled.' + name[:-1] + '.mesh')
+        prob.model.connect(name + '_geom.mesh', point_name + '.coupled.' + name + '.mesh')
 
         # Connect performance calculation variables
-        prob.model.connect(name[:-1] + '_geom.radius', com_name + '.radius')
-        prob.model.connect(name[:-1] + '.A', com_name + '.A')
-        prob.model.connect(name[:-1] + '_geom.thickness', com_name + '.thickness')
-        prob.model.connect(name[:-1] + '.nodes', com_name + '.nodes')
+        prob.model.connect(name + '_geom.radius', com_name + '.radius')
+        prob.model.connect(name + '.A', com_name + '.A')
+        prob.model.connect(name + '_geom.thickness', com_name + '.thickness')
+        prob.model.connect(name + '.nodes', com_name + '.nodes')
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()

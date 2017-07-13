@@ -65,10 +65,10 @@ class AssembleAIC(ExplicitComponent):
             nx = surface['num_x']
             name = surface['name']
 
-            self.add_input(name+'def_mesh', val=np.random.rand(nx, ny, 3))
-            self.add_input(name+'b_pts', val=np.random.rand(nx-1, ny, 3))
-            self.add_input(name+'c_pts', val=np.random.rand(nx-1, ny-1, 3))
-            self.add_input(name+'normals', val=np.random.rand(nx-1, ny-1, 3))
+            self.add_input(name + '_def_mesh', val=np.random.rand(nx, ny, 3))
+            self.add_input(name + '_b_pts', val=np.random.rand(nx-1, ny, 3))
+            self.add_input(name + '_c_pts', val=np.random.rand(nx-1, ny-1, 3))
+            self.add_input(name + '_normals', val=np.random.rand(nx-1, ny-1, 3))
             tot_panels += (nx - 1) * (ny - 1)
 
         self.tot_panels = tot_panels
@@ -89,7 +89,7 @@ class AssembleAIC(ExplicitComponent):
 
         for surface in self.surfaces:
             name = surface['name']
-            self.declare_partials('rhs', name+'def_mesh', dependent=False)
+            self.declare_partials('rhs', name + '_def_mesh', dependent=False)
 
     def compute(self, inputs, outputs):
 
@@ -104,7 +104,7 @@ class AssembleAIC(ExplicitComponent):
         for surface in self.surfaces:
             name = surface['name']
             num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
-            flattened_normals[i:i+num_panels, :] = inputs[name+'normals'].reshape(-1, 3, order='F')
+            flattened_normals[i:i+num_panels, :] = inputs[name + '_normals'].reshape(-1, 3, order='F')
             i += num_panels
 
         # Construct a matrix that is the AIC_mtx dotted by the normals at each
@@ -148,10 +148,10 @@ class AssembleAIC(ExplicitComponent):
                         name = surface['name']
                         num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
                         flattened_normals[i:i+num_panels, :] = \
-                            inputs[name+'normals'].reshape(-1, 3, order='F')
-                        if name+'normals' in d_inputs:
+                            inputs[name + '_normals'].reshape(-1, 3, order='F')
+                        if name+'_normals' in d_inputs:
                             flattened_normalsd[i:i+num_panels, :] = \
-                                d_inputs[name+'normals'].reshape(-1, 3, order='F')
+                                d_inputs[name + '_normals'].reshape(-1, 3, order='F')
                         else:
                             flattened_normalsd[i:i+num_panels, :] = 0.
                         i += num_panels
@@ -205,7 +205,7 @@ class AssembleAIC(ExplicitComponent):
                         name = surface['name']
                         num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
                         flattened_normals[i:i+num_panels, :] = \
-                            inputs[name+'normals'].reshape(-1, 3, order='F')
+                            inputs[name + '_normals'].reshape(-1, 3, order='F')
                         i += num_panels
 
                     AIC_mtxb = np.zeros((self.tot_panels, self.tot_panels, 3))
@@ -251,10 +251,10 @@ class AssembleAIC(ExplicitComponent):
                         nx = surface['num_x']
                         ny = surface['num_y']
                         num_panels = (nx - 1) * (ny - 1)
-                        if name+'normals' in d_inputs:
-                            d_inputs[name+'normals'] += \
+                        if name+'_normals' in d_inputs:
+                            d_inputs[name + '_normals'] += \
                                 flattened_normalsb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
-                            d_inputs[name+'normals'] += \
+                            d_inputs[name + '_normals'] += \
                                 fnb[i:i+num_panels, :].reshape(nx-1, ny-1, 3, order='F')
                         i += num_panels
 
@@ -289,10 +289,10 @@ class AssembleAIC(ExplicitComponent):
                                 name = surface['name']
                                 num_panels = (surface['num_x'] - 1) * (surface['num_y'] - 1)
                                 flattened_normals[i:i+num_panels, :] = \
-                                    inputs[name+'normals'].reshape(-1, 3, order='F')
-                                if name+'normals' in d_inputs:
+                                    inputs[name + '_normals'].reshape(-1, 3, order='F')
+                                if name+'_normals' in d_inputs:
                                     flattened_normalsd[i:i+num_panels, :] = \
-                                        d_inputs[name+'normals'].reshape(-1, 3, order='F')
+                                        d_inputs[name + '_normals'].reshape(-1, 3, order='F')
                                 else:
                                     flattened_normalsd[i:i+num_panels, :] = 0.
                                 i += num_panels

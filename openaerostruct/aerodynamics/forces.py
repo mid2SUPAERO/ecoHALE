@@ -60,9 +60,9 @@ class Forces(ExplicitComponent):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-            self.add_input(name+'def_mesh', val=np.random.random_sample((nx, ny, 3)))#, dtype=data_type))
-            self.add_input(name+'b_pts', val=np.random.random_sample((nx-1, ny, 3)))#, dtype=data_type))
-            self.add_output(name+'sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
+            self.add_input(name + '_def_mesh', val=np.random.random_sample((nx, ny, 3)))#, dtype=data_type))
+            self.add_input(name + '_b_pts', val=np.random.random_sample((nx-1, ny, 3)))#, dtype=data_type))
+            self.add_output(name + '_sec_forces', val=np.zeros((nx-1, ny-1, 3), dtype=data_type))
 
         self.tot_panels = tot_panels
 
@@ -106,7 +106,7 @@ class Forces(ExplicitComponent):
             ny = surface['num_y']
             num_panels = (nx - 1) * (ny - 1)
 
-            b_pts = inputs[name+'b_pts']
+            b_pts = inputs[name + '_b_pts']
 
             if fortran_flag:
                 sec_forces = OAS_API.oas_api.forcecalc(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
@@ -127,7 +127,7 @@ class Forces(ExplicitComponent):
                         (inputs['rho'] * circ[i:i+num_panels] * cross[:, ind])
 
             # Reshape the forces into the expected form
-            outputs[name+'sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
+            outputs[name + '_sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
 
             i += num_panels
 
@@ -192,22 +192,22 @@ class Forces(ExplicitComponent):
 
                         num_panels = (nx - 1) * (ny - 1)
 
-                        b_pts = inputs[name+'b_pts']
-                        if name+'b_pts' in d_inputs:
-                            b_pts_d = d_inputs[name+'b_pts']
+                        b_pts = inputs[name + '_b_pts']
+                        if name+'_b_pts' in d_inputs:
+                            b_pts_d = d_inputs[name + '_b_pts']
                         else:
                             b_pts_d = np.zeros(b_pts.shape)
 
                         self.compute(inputs, outputs)
 
-                        sec_forces = outputs[name+'sec_forces'].real
+                        sec_forces = outputs[name + '_sec_forces'].real
 
                         sec_forces, sec_forcesd = OAS_API.oas_api.forcecalc_d(self.v[i:i+num_panels, :], vd[i:i+num_panels],
                                                     circ[i:i+num_panels], circ_d[i:i+num_panels],
                                                     rho, rho_d,
                                                     b_pts, b_pts_d)
 
-                        d_outputs[name+'sec_forces'] += sec_forcesd.reshape((nx-1, ny-1, 3), order='F')
+                        d_outputs[name + '_sec_forces'] += sec_forcesd.reshape((nx-1, ny-1, 3), order='F')
                         i += num_panels
 
 
@@ -229,9 +229,9 @@ class Forces(ExplicitComponent):
                         ny = surface['num_y']
                         num_panels = (nx - 1) * (ny - 1)
 
-                        b_pts = inputs[name+'b_pts']
+                        b_pts = inputs[name + '_b_pts']
 
-                        sec_forcesb = d_outputs[name+'sec_forces'].reshape((num_panels, 3), order='F')
+                        sec_forcesb = d_outputs[name + '_sec_forces'].reshape((num_panels, 3), order='F')
 
                         v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts, sec_forcesb)
 
@@ -240,8 +240,8 @@ class Forces(ExplicitComponent):
                         vb[i:i+num_panels] = v_b
                         if 'rho' in d_inputs:
                             d_inputs['rho'] += rhob
-                        if name+'b_pts' in d_inputs:
-                            d_inputs[name+'b_pts'] += bptsb
+                        if name + '_b_pts' in d_inputs:
+                            d_inputs[name + '_b_pts'] += bptsb
 
                         i += num_panels
 
@@ -272,7 +272,7 @@ class Forces(ExplicitComponent):
 
                     name = surface['name']
                     d_inputs = {}
-                    sec_forcesb = np.zeros(outputs[name+'sec_forces'].shape)
+                    sec_forcesb = np.zeros(outputs[name + '_sec_forces'].shape)
 
                     for k, val in enumerate(sec_forcesb.flatten()):
                         for key in inputs:
@@ -282,7 +282,7 @@ class Forces(ExplicitComponent):
                         sec_forcesb[:] = 0.
                         sec_forcesb = sec_forcesb.flatten()
                         sec_forcesb[k] = 1.
-                        sec_forcesb = sec_forcesb.reshape(outputs[name+'sec_forces'].shape)
+                        sec_forcesb = sec_forcesb.reshape(outputs[name + '_sec_forces'].shape)
                         sec_forcesb = sec_forcesb.reshape((-1, 3), order='F')
 
                         circ = inputs['circulations']
@@ -302,7 +302,7 @@ class Forces(ExplicitComponent):
                             num_panels_ = (nx_ - 1) * (ny_ - 1)
 
                             if name == name_:
-                                b_pts = inputs[name_+'b_pts']
+                                b_pts = inputs[name_ + '_b_pts']
 
                                 v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[ind:ind+num_panels_, :], circ[ind:ind+num_panels_], rho, b_pts, sec_forcesb)
 
@@ -311,8 +311,8 @@ class Forces(ExplicitComponent):
                                 vb[ind:ind+num_panels_] = v_b
                                 if 'rho' in d_inputs:
                                     d_inputs['rho'] += rhob
-                                if name+'b_pts' in d_inputs:
-                                    d_inputs[name_+'b_pts'] += bptsb
+                                if name + '_b_pts' in d_inputs:
+                                    d_inputs[name_ + '_b_pts'] += bptsb
 
                             ind += num_panels_
 
@@ -337,4 +337,4 @@ class Forces(ExplicitComponent):
                         _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, self.surfaces, skip=True)
 
                         for key in d_inputs:
-                            partials[name+'sec_forces', key][k, :] = d_inputs[key].flatten()
+                            partials[name + '_sec_forces', key][k, :] = d_inputs[key].flatten()

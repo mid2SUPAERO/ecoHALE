@@ -40,8 +40,8 @@ class Equilibrium(ExplicitComponent):
     def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.add_input(name + 'L', val=1.)
-            self.add_input(name + 'structural_weight', val=1.)
+            self.add_input(name + '_L', val=1.)
+            self.add_input(name + '_structural_weight', val=1.)
 
         self.add_input('fuelburn', val=1.)
         self.add_input('W0', val=1.)
@@ -59,8 +59,8 @@ class Equilibrium(ExplicitComponent):
         L = 0.
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            structural_weight += inputs[name + 'structural_weight']
-            L += inputs[name + 'L']
+            structural_weight += inputs[name + '_structural_weight']
+            L += inputs[name + '_L']
 
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
@@ -70,8 +70,8 @@ class Equilibrium(ExplicitComponent):
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.declare_partials('total_weight', name + 'L', dependent=False)
-            self.declare_partials('L_equals_W', name + 'structural_weight', dependent=False)
+            self.declare_partials('total_weight', name + '_L', dependent=False)
+            self.declare_partials('L_equals_W', name + '_structural_weight', dependent=False)
 
     def compute_partials(self, inputs, outputs, partials):
 
@@ -82,8 +82,8 @@ class Equilibrium(ExplicitComponent):
         L = 0.
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            structural_weight += inputs[name + 'structural_weight']
-            L += inputs[name + 'L']
+            structural_weight += inputs[name + '_structural_weight']
+            L += inputs[name + '_L']
 
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
@@ -91,6 +91,6 @@ class Equilibrium(ExplicitComponent):
         partials['L_equals_W', 'fuelburn'] = L / tot_weight ** 2 * g
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            partials['total_weight', name + 'structural_weight'] = 1.0
-            partials['L_equals_W', name + 'L'] = -1.0 / tot_weight
-            partials['L_equals_W', name + 'structural_weight'] = L / tot_weight**2
+            partials['total_weight', name + '_structural_weight'] = 1.0
+            partials['L_equals_W', name + '_L'] = -1.0 / tot_weight
+            partials['L_equals_W', name + '_structural_weight'] = L / tot_weight**2

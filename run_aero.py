@@ -22,7 +22,7 @@ mesh, twist_cp = generate_mesh(mesh_dict)
 
 surf_dict = {
             # Wing definition
-            'name' : 'wing_',        # name of the surface
+            'name' : 'wing',        # name of the surface
             'type' : 'aero',
             'symmetry' : True,     # if true, model one half of wing
                                     # reflected across the plane y = 0
@@ -83,7 +83,7 @@ for surface in surfaces:
     # Add tmp_group to the problem as the name of the surface.
     # Note that is a group and performance group for each
     # individual surface.
-    prob.model.add_subsystem(surface['name'][:-1], geom_group)
+    prob.model.add_subsystem(surface['name'], geom_group)
 
 # Loop through and add a certain number of aero points
 for i in range(1):
@@ -109,11 +109,11 @@ for i in range(1):
         name = surface['name']
 
         # Connect the mesh from the geometry component to the analysis point
-        prob.model.connect(name[:-1] + '.def_mesh', point_name + '.' + name[:-1] + '.def_mesh')
+        prob.model.connect(name + '.def_mesh', point_name + '.' + name + '.def_mesh')
 
         # Perform the connections with the modified names within the
         # 'aero_states' group.
-        prob.model.connect(name[:-1] + '.def_mesh', point_name + '.aero_states.' + name + 'def_mesh')
+        prob.model.connect(name + '.def_mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
@@ -134,7 +134,7 @@ view_model(prob, outfile='aero.html', show_browser=False)
 # prob.run_model()
 prob.run_driver()
 
-prob.check_partials(compact_print=True)
+# prob.check_partials(compact_print=True)
 
 print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
 print("Wing CD:", prob['aero_point_0.wing_perf.CD'])

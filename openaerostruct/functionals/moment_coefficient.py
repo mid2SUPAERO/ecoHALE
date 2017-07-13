@@ -53,11 +53,11 @@ class MomentCoefficient(ExplicitComponent):
             ny = surface['num_y']
             nx = surface['num_x']
 
-            self.add_input(name + 'b_pts', val=np.random.rand(nx-1, ny, 3))
-            self.add_input(name + 'widths', val=np.random.rand(ny-1))
-            self.add_input(name + 'chords', val=np.random.rand(ny))
-            self.add_input(name + 'S_ref', val=1.)
-            self.add_input(name + 'sec_forces', val=np.random.rand(nx-1, ny-1, 3))
+            self.add_input(name + '_b_pts', val=np.random.rand(nx-1, ny, 3))
+            self.add_input(name + '_widths', val=np.random.rand(ny-1))
+            self.add_input(name + '_chords', val=np.random.rand(ny))
+            self.add_input(name + '_S_ref', val=1.)
+            self.add_input(name + '_sec_forces', val=np.random.rand(nx-1, ny-1, 3))
 
         self.add_input('cg', val=np.random.rand(3))
         self.add_input('v', val=10.)
@@ -83,11 +83,11 @@ class MomentCoefficient(ExplicitComponent):
             nx = surface['num_x']
             ny = surface['num_y']
 
-            b_pts = inputs[name + 'b_pts']
-            widths = inputs[name + 'widths']
-            chords = inputs[name + 'chords']
-            S_ref = inputs[name + 'S_ref']
-            sec_forces = inputs[name + 'sec_forces']
+            b_pts = inputs[name + '_b_pts']
+            widths = inputs[name + '_widths']
+            chords = inputs[name + '_chords']
+            S_ref = inputs[name + '_S_ref']
+            sec_forces = inputs[name + '_sec_forces']
 
             # Compute the average chord for each panel and then the
             # mean aerodynamic chord (MAC) based on these chords and the
@@ -107,8 +107,8 @@ class MomentCoefficient(ExplicitComponent):
             else:
 
                 # Get the moment arm acting on each panel, relative to the cg
-                pts = (inputs[name + 'b_pts'][:, 1:, :] + \
-                    inputs[name + 'b_pts'][:, :-1, :]) / 2
+                pts = (inputs[name + '_b_pts'][:, 1:, :] + \
+                    inputs[name + '_b_pts'][:, :-1, :]) / 2
                 diff = (pts - cg) / MAC
 
                 # Compute the moment based on the previously computed moment
@@ -164,11 +164,11 @@ class MomentCoefficient(ExplicitComponent):
                     name = surface['name']
                     ny = surface['num_y']
 
-                    b_pts = inputs[name + 'b_pts']
-                    widths = inputs[name + 'widths']
-                    chords = inputs[name + 'chords']
-                    S_ref = inputs[name + 'S_ref']
-                    sec_forces = inputs[name + 'sec_forces']
+                    b_pts = inputs[name + '_b_pts']
+                    widths = inputs[name + '_widths']
+                    chords = inputs[name + '_chords']
+                    S_ref = inputs[name + '_S_ref']
+                    sec_forces = inputs[name + '_sec_forces']
 
                     if i == 0:
                         panel_chords = (chords[1:] + chords[:-1]) / 2.
@@ -208,8 +208,8 @@ class MomentCoefficient(ExplicitComponent):
                             b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'], Mb)
 
                     partials['CM', 'cg'][j, :] += cgb
-                    partials['CM', name + 'b_pts'][j, :] = bptsb.flatten()
-                    partials['CM', name + 'chords'][j, :] = chordsb + cb
-                    partials['CM', name + 'widths'][j, :] = widthsb + wb
-                    partials['CM', name + 'sec_forces'][j, :] = sec_forcesb.flatten()
-                    partials['CM', name + 'S_ref'][j, :] = S_refb + sb + s_totb
+                    partials['CM', name + '_b_pts'][j, :] = bptsb.flatten()
+                    partials['CM', name + '_chords'][j, :] = chordsb + cb
+                    partials['CM', name + '_widths'][j, :] = widthsb + wb
+                    partials['CM', name + '_sec_forces'][j, :] = sec_forcesb.flatten()
+                    partials['CM', name + '_S_ref'][j, :] = S_refb + sb + s_totb

@@ -42,7 +42,7 @@ class BreguetRange(ExplicitComponent):
     def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.add_input(name + 'structural_weight', val=1.)
+            self.add_input(name + '_structural_weight', val=1.)
 
         self.add_input('CT', val=1.)
         self.add_input('CL', val=1.)
@@ -69,7 +69,7 @@ class BreguetRange(ExplicitComponent):
         Ws = 0.
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            Ws += inputs[name + 'structural_weight']
+            Ws += inputs[name + '_structural_weight']
 
         CL = inputs['CL']
         CD = inputs['CD']
@@ -91,7 +91,7 @@ class BreguetRange(ExplicitComponent):
         Ws = 0.
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            Ws += inputs[name + 'structural_weight']
+            Ws += inputs[name + '_structural_weight']
 
         CL = inputs['CL']
         CD = inputs['CD']
@@ -107,5 +107,5 @@ class BreguetRange(ExplicitComponent):
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            inp_name = name + 'structural_weight'
+            inp_name = name + '_structural_weight'
             partials['fuelburn', inp_name] = dfb_dWs / g

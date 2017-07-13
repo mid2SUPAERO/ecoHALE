@@ -85,51 +85,51 @@ class AerostructPoint(Group):
             # Connect the output of the loads component with the FEM
             # displacement parameter. This links the coupling within the coupled
             # group that necessitates the subgroup solver.
-            coupled.connect(name + 'loads.loads', name[:-1] + '.loads')
+            coupled.connect(name + '_loads.loads', name + '.loads')
 
             # Perform the connections with the modified names within the
             # 'aero_states' group.
-            coupled.connect(name[:-1] + '.def_mesh', 'aero_states.' + name + 'def_mesh')
-            coupled.connect(name[:-1] + '.b_pts', 'aero_states.' + name + 'b_pts')
-            coupled.connect(name[:-1] + '.c_pts', 'aero_states.' + name + 'c_pts')
-            coupled.connect(name[:-1] + '.normals', 'aero_states.' + name + 'normals')
+            coupled.connect(name + '.def_mesh', 'aero_states.' + name + '_def_mesh')
+            coupled.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
+            coupled.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
+            coupled.connect(name + '.normals', 'aero_states.' + name + '_normals')
 
             # Connect the results from 'coupled' to the performance groups
-            coupled.connect(name[:-1] + '.def_mesh', name + 'loads.def_mesh')
-            coupled.connect('aero_states.' + name + 'sec_forces', name + 'loads.sec_forces')
+            coupled.connect(name + '.def_mesh', name + '_loads.def_mesh')
+            coupled.connect('aero_states.' + name + '_sec_forces', name + '_loads.sec_forces')
 
             # Connect the results from 'aero_states' to the performance groups
-            self.connect('coupled.aero_states.' + name + 'sec_forces', name + 'perf' + '.sec_forces')
+            self.connect('coupled.aero_states.' + name + '_sec_forces', name + '_perf' + '.sec_forces')
 
             # Connection performance functional variables
-            self.connect(name + 'perf.structural_weight', 'total_perf.' + name + 'structural_weight')
-            self.connect(name + 'perf.L', 'total_perf.' + name + 'L')
-            self.connect(name + 'perf.CL', 'total_perf.' + name + 'CL')
-            self.connect(name + 'perf.CD', 'total_perf.' + name + 'CD')
-            self.connect('coupled.aero_states.' + name + 'sec_forces', 'total_perf.' + name + 'sec_forces')
+            self.connect(name + '_perf.structural_weight', 'total_perf.' + name + '_structural_weight')
+            self.connect(name + '_perf.L', 'total_perf.' + name + '_L')
+            self.connect(name + '_perf.CL', 'total_perf.' + name + '_CL')
+            self.connect(name + '_perf.CD', 'total_perf.' + name + '_CD')
+            self.connect('coupled.aero_states.' + name + '_sec_forces', 'total_perf.' + name + '_sec_forces')
 
             # Connect parameters from the 'coupled' group to the performance
             # groups for the individual surfaces.
-            self.connect('coupled.' + name[:-1] + '.disp', name + 'perf.disp')
-            self.connect('coupled.' + name[:-1] + '.S_ref', name + 'perf.S_ref')
-            self.connect('coupled.' + name[:-1] + '.widths', name + 'perf.widths')
-            self.connect('coupled.' + name[:-1] + '.chords', name + 'perf.chords')
-            self.connect('coupled.' + name[:-1] + '.lengths', name + 'perf.lengths')
-            self.connect('coupled.' + name[:-1] + '.cos_sweep', name + 'perf.cos_sweep')
+            self.connect('coupled.' + name + '.disp', name + '_perf.disp')
+            self.connect('coupled.' + name + '.S_ref', name + '_perf.S_ref')
+            self.connect('coupled.' + name + '.widths', name + '_perf.widths')
+            self.connect('coupled.' + name + '.chords', name + '_perf.chords')
+            self.connect('coupled.' + name + '.lengths', name + '_perf.lengths')
+            self.connect('coupled.' + name + '.cos_sweep', name + '_perf.cos_sweep')
 
             # Connect parameters from the 'coupled' group to the total performance group.
-            self.connect('coupled.' + name[:-1] + '.S_ref', 'total_perf.' + name + 'S_ref')
-            self.connect('coupled.' + name[:-1] + '.widths', 'total_perf.' + name + 'widths')
-            self.connect('coupled.' + name[:-1] + '.chords', 'total_perf.' + name + 'chords')
-            self.connect('coupled.' + name[:-1] + '.b_pts', 'total_perf.' + name + 'b_pts')
-            self.connect(name + 'perf.cg_location', 'total_perf.' + name + 'cg_location')
+            self.connect('coupled.' + name + '.S_ref', 'total_perf.' + name + '_S_ref')
+            self.connect('coupled.' + name + '.widths', 'total_perf.' + name + '_widths')
+            self.connect('coupled.' + name + '.chords', 'total_perf.' + name + '_chords')
+            self.connect('coupled.' + name + '.b_pts', 'total_perf.' + name + '_b_pts')
+            self.connect(name + '_perf.cg_location', 'total_perf.' + name + '_cg_location')
 
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
             coupled_AS_group = PreAS(surface=surface)
 
-            coupled.add_subsystem(name[:-1], coupled_AS_group)
+            coupled.add_subsystem(name, coupled_AS_group)
 
             # TODO: add this info to the metadata
             # prob.model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
@@ -147,7 +147,7 @@ class AerostructPoint(Group):
             name = surface['name']
 
             # Add a loads component to the coupled group
-            coupled.add_subsystem(name + 'loads', LoadTransfer(surface=surface))
+            coupled.add_subsystem(name + '_loads', LoadTransfer(surface=surface))
 
         # Set solver properties for the coupled group
         coupled.linear_solver = ScipyIterativeSolver()
@@ -236,7 +236,7 @@ class AerostructPoint(Group):
             # the coupled system
             perf_group = CoupledPerformance(surface=surface)
 
-            self.add_subsystem(name + 'perf', perf_group, promotes_inputs=["rho", "v", "alpha", "re", "M"])
+            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=["rho", "v", "alpha", "re", "M"])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all

@@ -40,9 +40,9 @@ class TotalLiftDrag(ExplicitComponent):
     def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.add_input(name + 'CL', val=1.)
-            self.add_input(name + 'CD', val=1.)
-            self.add_input(name + 'S_ref', val=1.)
+            self.add_input(name + '_CL', val=1.)
+            self.add_input(name + '_CD', val=1.)
+            self.add_input(name + '_S_ref', val=1.)
 
         self.add_input('S_ref_total', val=0.)
 
@@ -58,9 +58,9 @@ class TotalLiftDrag(ExplicitComponent):
         computed_total_S_ref = 0.
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            S_ref = inputs[name + 'S_ref']
-            CL += inputs[name + 'CL'] * S_ref
-            CD += inputs[name + 'CD'] * S_ref
+            S_ref = inputs[name + '_S_ref']
+            CL += inputs[name + '_CL'] * S_ref
+            CD += inputs[name + '_CD'] * S_ref
             computed_total_S_ref += S_ref
 
         # Use the user-provided area; otherwise, use the computed area
@@ -81,9 +81,9 @@ class TotalLiftDrag(ExplicitComponent):
         computed_total_S_ref = 0.
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            S_ref = inputs[name + 'S_ref']
-            CL += inputs[name + 'CL'] * S_ref
-            CD += inputs[name + 'CD'] * S_ref
+            S_ref = inputs[name + '_S_ref']
+            CL += inputs[name + '_CL'] * S_ref
+            CD += inputs[name + '_CD'] * S_ref
             computed_total_S_ref += S_ref
 
         # Use the user-provided area; otherwise, use the computed area
@@ -94,22 +94,22 @@ class TotalLiftDrag(ExplicitComponent):
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            S_ref = inputs[name + 'S_ref']
-            partials['CL', name + 'CL'] = S_ref / S_ref_total
-            partials['CD', name + 'CD'] = S_ref / S_ref_total
+            S_ref = inputs[name + '_S_ref']
+            partials['CL', name + '_CL'] = S_ref / S_ref_total
+            partials['CD', name + '_CD'] = S_ref / S_ref_total
 
             dCL_dS_ref = 0.
-            surf_CL = inputs[name + 'CL']
+            surf_CL = inputs[name + '_CL']
             dCD_dS_ref = 0.
-            surf_CD = inputs[name + 'CD']
+            surf_CD = inputs[name + '_CD']
             for surface_ in self.metadata['surfaces']:
                 name_ = surface_['name']
                 if not name == name_:
-                    S_ref_ = inputs[name_ + 'S_ref']
+                    S_ref_ = inputs[name_ + '_S_ref']
                     dCL_dS_ref += surf_CL * S_ref_
-                    dCL_dS_ref -= inputs[name_ + 'CL'] * S_ref_
+                    dCL_dS_ref -= inputs[name_ + '_CL'] * S_ref_
                     dCD_dS_ref += surf_CD * S_ref_
-                    dCD_dS_ref -= inputs[name_ + 'CD'] * S_ref_
+                    dCD_dS_ref -= inputs[name_ + '_CD'] * S_ref_
 
-            partials['CL', name + 'S_ref'] = dCL_dS_ref / S_ref_total**2
-            partials['CD', name + 'S_ref'] = dCD_dS_ref / S_ref_total**2
+            partials['CL', name + '_S_ref'] = dCL_dS_ref / S_ref_total**2
+            partials['CD', name + '_S_ref'] = dCD_dS_ref / S_ref_total**2
