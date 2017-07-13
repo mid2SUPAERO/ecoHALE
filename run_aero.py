@@ -5,7 +5,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
-from openaerostruct.aerodynamics.groups import AeroPoint
+from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model

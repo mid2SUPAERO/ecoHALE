@@ -3,7 +3,7 @@ import sys
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.structures.groups import SpatialBeamAlone
+from openaerostruct.structures.struct_groups import SpatialBeamAlone
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.geometry_group import Geometry
 

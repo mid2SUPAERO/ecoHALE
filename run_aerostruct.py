@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
 
-from openaerostruct.integration.groups import Aerostruct, AerostructPoint
+from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
@@ -93,7 +93,6 @@ for surface in surfaces:
     # Get the surface name and create a group to contain components
     # only for this surface
     name = surface['name']
-    ny = surface['num_y']
 
     aerostruct_group = Aerostruct(surface=surface)
 
