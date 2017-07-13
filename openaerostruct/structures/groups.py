@@ -24,7 +24,7 @@ class SpatialBeamAlone(Group):
         self.add_subsystem('geometry',
             Geometry(surface=surface),
             promotes_inputs=[],
-             promotes_outputs=['thickness_cp', 'mesh', 'radius', 'thickness'])
+            promotes_outputs=['mesh', 'radius', 'thickness'] + geom_promotes)
 
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),

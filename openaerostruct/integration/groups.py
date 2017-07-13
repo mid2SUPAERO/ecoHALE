@@ -1,6 +1,7 @@
 from openaerostruct.geometry.new_geometry_mesh import GeometryMesh
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.bsplines import Bsplines
+from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.structures.materials_tube import MaterialsTube
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
@@ -21,6 +22,18 @@ class Aerostruct(Group):
 
     def setup(self):
         surface = self.metadata['surface']
+
+        geom_promotes = []
+
+        if 'thickness_cp' in surface.keys():
+            geom_promotes.append('thickness_cp')
+        if 'twist_cp' in surface.keys():
+            geom_promotes.append('twist_cp')
+
+        self.add_subsystem('geometry',
+            Geometry(surface=surface),
+            promotes_inputs=[],
+            promotes_outputs=['mesh', 'radius', 'thickness'] + geom_promotes)
 
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),

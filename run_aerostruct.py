@@ -95,17 +95,10 @@ for surface in surfaces:
     name = surface['name']
     ny = surface['num_y']
 
-    geom_group = Geometry(surface=surface)
-    prob.model.add_subsystem(name + '_geom', geom_group)
-
     aerostruct_group = Aerostruct(surface=surface)
 
     # Add tmp_group to the problem with the name of the surface.
     prob.model.add_subsystem(name, aerostruct_group)
-
-    prob.model.connect(name + '_geom.mesh', name + '.mesh')
-    prob.model.connect(name + '_geom.radius', name + '.radius')
-    prob.model.connect(name + '_geom.thickness', name + '.thickness')
 
 # Loop through and add a certain number of aero points
 for i in range(1):
@@ -138,12 +131,12 @@ for i in range(1):
         prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
 
         # Connect aerodyamic mesh to coupled group mesh
-        prob.model.connect(name + '_geom.mesh', point_name + '.coupled.' + name + '.mesh')
+        prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
 
         # Connect performance calculation variables
-        prob.model.connect(name + '_geom.radius', com_name + '.radius')
+        prob.model.connect(name + '.radius', com_name + '.radius')
         prob.model.connect(name + '.A', com_name + '.A')
-        prob.model.connect(name + '_geom.thickness', com_name + '.thickness')
+        prob.model.connect(name + '.thickness', com_name + '.thickness')
         prob.model.connect(name + '.nodes', com_name + '.nodes')
 
 from openmdao.api import pyOptSparseDriver
@@ -153,8 +146,8 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                             'Major feasibility tolerance': 1.0e-8}
 
 # Setup problem and add design variables, constraint, and objective
-prob.model.add_design_var('wing_geom.twist_cp', lower=-10., upper=15.)
-prob.model.add_design_var('wing_geom.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
 prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
 prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
 
