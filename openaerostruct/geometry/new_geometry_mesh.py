@@ -61,7 +61,7 @@ class GeometryMesh(ExplicitComponent):
         self.mesh = surface['mesh']
 
         # Compute span. We need .real to make span to avoid OpenMDAO warnings.
-        quarter_chord = 0.25 * self.mesh[-1] + 0.75 * self.mesh[0]
+        quarter_chord = 0.25 * self.mesh[-1, :, :] + 0.75 * self.mesh[0, :, :]
         span = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
         if surface['symmetry']:
             span *= 2.
@@ -79,18 +79,26 @@ class GeometryMesh(ExplicitComponent):
         geo_params['zshear'] = np.zeros(ny)
 
         # TODO: generalize this
-        self.add_input('twist', val=geo_params['twist'])
-        self.add_input('xshear', val=geo_params['xshear'])
+        if 'twist_cp' in surface.keys():
+            self.add_input('twist', val=geo_params['twist'])
+        if 'chord_cp' in surface.keys():
+            self.add_input('chord', val=geo_params['chord'])
+        if 'xshear_cp' in surface.keys():
+            self.add_input('xshear', val=geo_params['xshear'])
+        if 'yshear_cp' in surface.keys():
+            self.add_input('yshear', val=geo_params['yshear'])
+        if 'zshear_cp' in surface.keys():
+            self.add_input('zshear', val=geo_params['zshear'])
 
         self.add_output('mesh', val=self.mesh)
-        self.add_output('radius', val=np.zeros((ny - 1)))
+        if 'struct' in surface['type']:
+            self.add_output('radius', val=np.zeros((ny - 1)))
 
         self.symmetry = surface['symmetry']
 
         # This flag determines whether or not changes in z (dihedral) add an
         # additional rotation matrix to modify the twist direction
         self.rotate_x = True
-
 
         if not fortran_flag:
             self.approx_partials('*', '*')
@@ -132,10 +140,11 @@ class GeometryMesh(ExplicitComponent):
 
         outputs['mesh'] = mesh
 
-        outputs['radius'] = radii(mesh, self.metadata['surface']['t_over_c'])
-        # outputs['radius'] = np.array([ 0.17806111,  0.20682864,  0.23559643,  0.26436396,  0.29313175,  0.32189928,
-        #   0.35066707,  0.37936881,  0.4081366,   0.44796837,  0.50773076,  0.57649212,
-        #   0.64529818,  0.71405547,  0.78276348])
+        if 'struct' in self.metadata['surface']['type']:
+            outputs['radius'] = radii(mesh, self.metadata['surface']['t_over_c'])
+            # outputs['radius'] = np.array([ 0.17806111,  0.20682864,  0.23559643,  0.26436396,  0.29313175,  0.32189928,
+            #   0.35066707,  0.37936881,  0.4081366,   0.44796837,  0.50773076,  0.57649212,
+            #   0.64529818,  0.71405547,  0.78276348])
 
     if fortran_flag:
         if 0:

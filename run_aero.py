@@ -67,7 +67,6 @@ indep_var_comp.add_output('alpha', val=5.)
 indep_var_comp.add_output('M', val=0.84)
 indep_var_comp.add_output('re', val=1.e6)
 indep_var_comp.add_output('rho', val=0.38)
-# indep_var_comp.add_output('load_factor', val=1.)
 indep_var_comp.add_output('S_ref_total', val=0.)
 indep_var_comp.add_output('cg', val=np.zeros((3)))
 
@@ -99,7 +98,6 @@ for i in range(1):
     prob.model.connect('M', point_name + '.M')
     prob.model.connect('re', point_name + '.re')
     prob.model.connect('rho', point_name + '.rho')
-    # prob.model.connect('load_factor', point_name + '.load_factor')
     prob.model.connect('S_ref_total', point_name + '.S_ref_total')
     prob.model.connect('cg', point_name + '.cg')
 

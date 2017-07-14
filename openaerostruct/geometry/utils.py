@@ -409,7 +409,7 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
     return mesh
 
 
-def gen_crm_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
+def gen_crm_mesh(num_x, num_y, span_cos_spacing=0., chord_cos_spacing=0., wing_type="CRM:jig"):
     """
     Generate Common Research Model wing mesh.
 
@@ -657,9 +657,8 @@ def generate_mesh(input_dict):
     # based on the data from the CRM definition paper, so we save
     # this twist information to the surf_dict.
     elif 'CRM' in surf_dict['wing_type']:
-        mesh, eta, twist = gen_crm_mesh(num_x, num_y, span, chord,
+        mesh, eta, twist = gen_crm_mesh(num_x, num_y,
             span_cos_spacing, chord_cos_spacing, surf_dict['wing_type'])
-        num_x, num_y = mesh.shape[:2]
         surf_dict['crm_twist'] = twist
 
     else:
@@ -672,10 +671,12 @@ def generate_mesh(input_dict):
         num_y = int((num_y+1)/2)
         mesh = mesh[:, :num_y, :]
 
-    twist = None
+    # Apply the user-provided coordinate offset to position the mesh
+    mesh = mesh + surf_dict['offset']
 
+    # If CRM wing, then compute the jig twist values.
     # Interpolate the twist values from the CRM wing definition to the twist
-    # control points
+    # control points.
     if 'CRM' in surf_dict['wing_type']:
         num_twist = surf_dict['num_twist_cp']
 
@@ -698,7 +699,8 @@ def generate_mesh(input_dict):
                 twist = np.interp(np.linspace(0, 1, num_twist/2), eta, surf_dict['crm_twist'])
                 twist = np.hstack((twist, twist[::-1]))
 
-    # Apply the user-provided coordinate offset to position the mesh
-    mesh = mesh + surf_dict['offset']
+        return mesh, twist
 
-    return mesh, twist
+    else:
+
+        return mesh

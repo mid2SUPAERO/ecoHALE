@@ -24,5 +24,5 @@ class TotalAeroPerformance(Group):
 
         self.add_subsystem('moment',
                  MomentCoefficient(surfaces=surfaces),
-                 promotes_inputs=['v', 'cg', 'rho', '*b_pts', '*widths', '*chords', '*sec_forces', 'S_ref_total'],
+                 promotes_inputs=['v', 'cg', 'rho', '*S_ref', '*b_pts', '*widths', '*chords', '*sec_forces', 'S_ref_total'],
                  promotes_outputs=['CM'])
