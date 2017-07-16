@@ -1,4 +1,4 @@
-from openaerostruct.geometry.new_geometry_mesh import GeometryMesh
+from openaerostruct.geometry.geometry_mesh import GeometryMesh
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.geometry_group import Geometry
@@ -167,7 +167,7 @@ class AerostructPoint(Group):
         coupled.linear_solver.precon = LinearRunOnce()
 
         coupled.nonlinear_solver = NonlinearBlockGS()
-        coupled.nonlinear_solver.options['maxiter'] = 50
+        coupled.nonlinear_solver.options['maxiter'] = 20
 
         # coupled.jacobian = DenseJacobian()
         # coupled.linear_solver = DirectSolver()
@@ -236,8 +236,8 @@ class AerostructPoint(Group):
         # coupled.nl_solver.options['rtol'] = 1e-100
         # # coupled.nl_solver.options['utol'] = 1e-100
 
-        coupled.linear_solver.options['iprint'] = 2
-        coupled.nonlinear_solver.options['iprint'] = 2
+        # coupled.linear_solver.options['iprint'] = 2
+        # coupled.nonlinear_solver.options['iprint'] = 2
 
         # Add the coupled group to the model problem
         self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho'])

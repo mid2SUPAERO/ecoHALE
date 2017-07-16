@@ -28,8 +28,6 @@ surf_dict = {
                                      # can be 'wetted' or 'projected'
 
             'thickness_cp' : np.array([.1, .2, .3]),
-            'num_y' : 7,
-            'num_x' : 2,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).

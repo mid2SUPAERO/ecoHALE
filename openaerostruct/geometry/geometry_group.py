@@ -1,6 +1,6 @@
 import numpy as np
 
-from openaerostruct.geometry.new_geometry_mesh import GeometryMesh
+from openaerostruct.geometry.geometry_mesh import GeometryMesh
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer

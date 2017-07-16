@@ -131,210 +131,76 @@ class Forces(ExplicitComponent):
 
             i += num_panels
 
-    if fortran_flag:
-        if 0:
-            def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
-                if mode == 'fwd':
 
-                    circ = inputs['circulations']
-                    alpha = inputs['alpha'] * np.pi / 180.
-                    if 'alpha' in d_inputs:
-                        alphad = d_inputs['alpha'] * np.pi / 180.
-                    else:
-                        alphad = 0.
+    def compute_partials(self, inputs, outputs, partials):
 
-                    if 'circulations' in d_inputs:
-                        circ_d = d_inputs['circulations']
-                    else:
-                        circ_d = np.zeros(circ.shape)
-                    cosa = np.cos(alpha)
-                    sina = np.sin(alpha)
-                    cosad = -sina * alphad
-                    sinad = cosa * alphad
-                    rho = inputs['rho']
-                    v = inputs['v']
+        for surface in self.surfaces:
 
-                    mtxd = np.zeros(self.mtx.shape)
+            name = surface['name']
+            d_inputs = {}
+            sec_forcesb = np.zeros(outputs[name + '_sec_forces'].shape)
 
-                    # Actually assemble the AIC matrix
-                    _assemble_AIC_mtx_d(mtxd, inputs, d_inputs, self.surfaces, skip=True)
+            for k, val in enumerate(sec_forcesb.flatten()):
+                for key in inputs:
+                    d_inputs[key] = inputs[key].copy()
+                    d_inputs[key][:] = 0.
 
-                    vd = np.zeros(self.v.shape)
+                sec_forcesb[:] = 0.
+                sec_forcesb = sec_forcesb.flatten()
+                sec_forcesb[k] = 1.
+                sec_forcesb = sec_forcesb.reshape(outputs[name + '_sec_forces'].shape)
+                sec_forcesb = sec_forcesb.reshape((-1, 3), order='F')
 
-                    # Compute the induced velocities at the midpoints of the
-                    # bound vortex filaments
-                    for ind in range(3):
-                        vd[:, ind] += mtxd[:, :, ind].dot(circ)
-                        vd[:, ind] += self.mtx[:, :, ind].real.dot(circ_d)
+                circ = inputs['circulations']
+                alpha = inputs['alpha'] * np.pi / 180.
+                cosa = np.cos(alpha)
+                sina = np.sin(alpha)
 
-                    # Add the freestream velocity to the induced velocity so that
-                    # self.v is the total velocity seen at the point
-                    if 'v' in d_inputs:
-                        v_d = d_inputs['v']
-                    else:
-                        v_d = 0.
-                    vd[:, 0] += cosa * v_d
-                    vd[:, 2] += sina * v_d
-                    vd[:, 0] += cosad * v
-                    vd[:, 2] += sinad * v
+                ind = 0
+                rho = inputs['rho'].real
+                v = inputs['v']
+                vb = np.zeros(self.v.shape)
 
-                    if 'rho' in d_inputs:
-                        rho_d = d_inputs['rho']
-                    else:
-                        rho_d = 0.
+                for surface in self.surfaces:
+                    name_ = surface['name']
+                    nx_ = surface['num_x']
+                    ny_ = surface['num_y']
+                    num_panels_ = (nx_ - 1) * (ny_ - 1)
 
-                    i = 0
-                    rho = inputs['rho'].real
-                    for surface in self.surfaces:
-                        name = surface['name']
-                        nx = surface['num_x']
-                        ny = surface['num_y']
+                    if name == name_:
+                        b_pts = inputs[name_ + '_b_pts']
 
-                        num_panels = (nx - 1) * (ny - 1)
-
-                        b_pts = inputs[name + '_b_pts']
-                        if name+'_b_pts' in d_inputs:
-                            b_pts_d = d_inputs[name + '_b_pts']
-                        else:
-                            b_pts_d = np.zeros(b_pts.shape)
-
-                        self.compute(inputs, outputs)
-
-                        sec_forces = outputs[name + '_sec_forces'].real
-
-                        sec_forces, sec_forcesd = OAS_API.oas_api.forcecalc_d(self.v[i:i+num_panels, :], vd[i:i+num_panels],
-                                                    circ[i:i+num_panels], circ_d[i:i+num_panels],
-                                                    rho, rho_d,
-                                                    b_pts, b_pts_d)
-
-                        d_outputs[name + '_sec_forces'] += sec_forcesd.reshape((nx-1, ny-1, 3), order='F')
-                        i += num_panels
-
-
-                if mode == 'rev':
-
-                    circ = inputs['circulations']
-                    alpha = inputs['alpha'] * np.pi / 180.
-                    cosa = np.cos(alpha)
-                    sina = np.sin(alpha)
-
-                    i = 0
-                    rho = inputs['rho'].real
-                    v = inputs['v']
-                    vb = np.zeros(self.v.shape)
-
-                    for surface in self.surfaces:
-                        name = surface['name']
-                        nx = surface['num_x']
-                        ny = surface['num_y']
-                        num_panels = (nx - 1) * (ny - 1)
-
-                        b_pts = inputs[name + '_b_pts']
-
-                        sec_forcesb = d_outputs[name + '_sec_forces'].reshape((num_panels, 3), order='F')
-
-                        v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts, sec_forcesb)
+                        v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[ind:ind+num_panels_, :], circ[ind:ind+num_panels_], rho, b_pts, sec_forcesb)
 
                         if 'circulations' in d_inputs:
-                            d_inputs['circulations'][i:i+num_panels] += circb
-                        vb[i:i+num_panels] = v_b
+                            d_inputs['circulations'][ind:ind+num_panels_] += circb
+                        vb[ind:ind+num_panels_] = v_b
                         if 'rho' in d_inputs:
                             d_inputs['rho'] += rhob
                         if name + '_b_pts' in d_inputs:
-                            d_inputs[name + '_b_pts'] += bptsb
+                            d_inputs[name_ + '_b_pts'] += bptsb
 
-                        i += num_panels
+                    ind += num_panels_
 
-                    sinab = inputs['v'] * np.sum(vb[:, 2])
-                    if 'v' in d_inputs:
-                        d_inputs['v'] += cosa * np.sum(vb[:, 0]) + sina * np.sum(vb[:, 2])
-                    cosab = inputs['v'] * np.sum(vb[:, 0])
-                    ab = np.cos(alpha) * sinab - np.sin(alpha) * cosab
-                    if 'alpha' in d_inputs:
-                        d_inputs['alpha'] += np.pi * ab / 180.
+                sinab = inputs['v'] * np.sum(vb[:, 2])
+                if 'v' in d_inputs:
+                    d_inputs['v'] += cosa * np.sum(vb[:, 0]) + sina * np.sum(vb[:, 2])
+                cosab = inputs['v'] * np.sum(vb[:, 0])
+                ab = np.cos(alpha) * sinab - np.sin(alpha) * cosab
+                if 'alpha' in d_inputs:
+                    d_inputs['alpha'] += np.pi * ab / 180.
 
-                    mtxb = np.zeros(self.mtx.shape)
-                    circb = np.zeros(circ.shape)
-                    for i in range(3):
-                        for j in range(self.tot_panels):
-                            mtxb[j, :, i] += circ * vb[j, i]
-                            circb += self.mtx[j, :, i].real * vb[j, i]
+                mtxb = np.zeros(self.mtx.shape)
+                circb = np.zeros(circ.shape)
+                for i in range(3):
+                    for j in range(self.tot_panels):
+                        mtxb[j, :, i] += circ * vb[j, i]
+                        circb += self.mtx[j, :, i].real * vb[j, i]
 
-                    if 'circulations' in d_inputs:
-                        d_inputs['circulations'] += circb
+                if 'circulations' in d_inputs:
+                    d_inputs['circulations'] += circb
 
-                    _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, self.surfaces, skip=True)
+                _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, self.surfaces, skip=True)
 
-        else:
-            def compute_partials(self, inputs, outputs, partials):
-
-                for surface in self.surfaces:
-
-                    name = surface['name']
-                    d_inputs = {}
-                    sec_forcesb = np.zeros(outputs[name + '_sec_forces'].shape)
-
-                    for k, val in enumerate(sec_forcesb.flatten()):
-                        for key in inputs:
-                            d_inputs[key] = inputs[key].copy()
-                            d_inputs[key][:] = 0.
-
-                        sec_forcesb[:] = 0.
-                        sec_forcesb = sec_forcesb.flatten()
-                        sec_forcesb[k] = 1.
-                        sec_forcesb = sec_forcesb.reshape(outputs[name + '_sec_forces'].shape)
-                        sec_forcesb = sec_forcesb.reshape((-1, 3), order='F')
-
-                        circ = inputs['circulations']
-                        alpha = inputs['alpha'] * np.pi / 180.
-                        cosa = np.cos(alpha)
-                        sina = np.sin(alpha)
-
-                        ind = 0
-                        rho = inputs['rho'].real
-                        v = inputs['v']
-                        vb = np.zeros(self.v.shape)
-
-                        for surface in self.surfaces:
-                            name_ = surface['name']
-                            nx_ = surface['num_x']
-                            ny_ = surface['num_y']
-                            num_panels_ = (nx_ - 1) * (ny_ - 1)
-
-                            if name == name_:
-                                b_pts = inputs[name_ + '_b_pts']
-
-                                v_b, circb, rhob, bptsb, _ = OAS_API.oas_api.forcecalc_b(self.v[ind:ind+num_panels_, :], circ[ind:ind+num_panels_], rho, b_pts, sec_forcesb)
-
-                                if 'circulations' in d_inputs:
-                                    d_inputs['circulations'][ind:ind+num_panels_] += circb
-                                vb[ind:ind+num_panels_] = v_b
-                                if 'rho' in d_inputs:
-                                    d_inputs['rho'] += rhob
-                                if name + '_b_pts' in d_inputs:
-                                    d_inputs[name_ + '_b_pts'] += bptsb
-
-                            ind += num_panels_
-
-                        sinab = inputs['v'] * np.sum(vb[:, 2])
-                        if 'v' in d_inputs:
-                            d_inputs['v'] += cosa * np.sum(vb[:, 0]) + sina * np.sum(vb[:, 2])
-                        cosab = inputs['v'] * np.sum(vb[:, 0])
-                        ab = np.cos(alpha) * sinab - np.sin(alpha) * cosab
-                        if 'alpha' in d_inputs:
-                            d_inputs['alpha'] += np.pi * ab / 180.
-
-                        mtxb = np.zeros(self.mtx.shape)
-                        circb = np.zeros(circ.shape)
-                        for i in range(3):
-                            for j in range(self.tot_panels):
-                                mtxb[j, :, i] += circ * vb[j, i]
-                                circb += self.mtx[j, :, i].real * vb[j, i]
-
-                        if 'circulations' in d_inputs:
-                            d_inputs['circulations'] += circb
-
-                        _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, self.surfaces, skip=True)
-
-                        for key in d_inputs:
-                            partials[name + '_sec_forces', key][k, :] = d_inputs[key].flatten()
+                for key in d_inputs:
+                    partials[name + '_sec_forces', key][k, :] = d_inputs[key].flatten()
