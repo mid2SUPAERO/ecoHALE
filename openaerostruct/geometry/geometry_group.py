@@ -53,6 +53,7 @@ class Geometry(Group):
                 in_name='chord_cp', out_name='chord',
                 num_cp=len(surface['chord_cp']), num_pt=int(ny)),
                 promotes_inputs=['chord_cp'], promotes_outputs=['chord'])
+            bsp_inputs.append('chord')
             indep_var_comp.add_output('chord_cp', val=surface['chord_cp'])
 
         if 'xshear_cp' in surface.keys():
@@ -61,6 +62,7 @@ class Geometry(Group):
                 in_name='xshear_cp', out_name='xshear',
                 num_cp=len(surface['xshear_cp']), num_pt=int(ny)),
                 promotes_inputs=['xshear_cp'], promotes_outputs=['xshear'])
+            bsp_inputs.append('xshear')
             indep_var_comp.add_output('xshear_cp', val=surface['xshear_cp'])
 
         if 'yshear_cp' in surface.keys():
@@ -69,6 +71,7 @@ class Geometry(Group):
                 in_name='yshear_cp', out_name='yshear',
                 num_cp=len(surface['yshear_cp']), num_pt=int(ny)),
                 promotes_inputs=['yshear_cp'], promotes_outputs=['yshear'])
+            bsp_inputs.append('yshear')
             indep_var_comp.add_output('yshear_cp', val=surface['yshear_cp'])
 
         if 'zshear_cp' in surface.keys():
@@ -77,6 +80,7 @@ class Geometry(Group):
                 in_name='zshear_cp', out_name='zshear',
                 num_cp=len(surface['zshear_cp']), num_pt=int(ny)),
                 promotes_inputs=['zshear_cp'], promotes_outputs=['zshear'])
+            bsp_inputs.append('zshear')
             indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'])
 
         if 'thickness_cp' in surface.keys():

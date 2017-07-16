@@ -59,19 +59,30 @@ class GeometryMesh(ExplicitComponent):
 
         ny = surface['num_y']
         self.mesh = surface['mesh']
-
-        # Compute span. We need .real to make span to avoid OpenMDAO warnings.
-        quarter_chord = 0.25 * self.mesh[-1, :, :] + 0.75 * self.mesh[0, :, :]
-        span = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
-        if surface['symmetry']:
-            span *= 2.
-
         self.geo_params = geo_params = {}
 
-        geo_params['taper'] = 1.
-        geo_params['sweep'] = 0.
-        geo_params['dihedral'] = 0.
-        geo_params['span'] = span
+        if 'taper' in surface.keys():
+            geo_params['taper'] = surface['taper']
+        else:
+            geo_params['taper'] = 1.
+        if 'sweep' in surface.keys():
+            geo_params['sweep'] = surface['sweep']
+        else:
+            geo_params['sweep'] = 0.
+        if 'dihedral' in surface.keys():
+            geo_params['dihedral'] = surface['dihedral']
+        else:
+            geo_params['dihedral'] = 0.
+        if 'span' in surface.keys():
+            geo_params['span'] = surface['span']
+        else:
+            # Compute span. We need .real to make span to avoid OpenMDAO warnings.
+            quarter_chord = 0.25 * self.mesh[-1, :, :] + 0.75 * self.mesh[0, :, :]
+            span = max(quarter_chord[:, 1]).real - min(quarter_chord[:, 1]).real
+            if surface['symmetry']:
+                span *= 2.
+            geo_params['span'] = span
+
         geo_params['chord'] = np.ones(ny)
         geo_params['twist'] = np.zeros(ny)
         geo_params['xshear'] = np.zeros(ny)
