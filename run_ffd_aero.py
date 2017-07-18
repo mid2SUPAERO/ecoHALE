@@ -8,6 +8,7 @@ from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
+from openmdao.devtools import iprofile
 from openmdao.api import view_model
 from six import iteritems
 
@@ -122,6 +123,9 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
 prob.model.add_design_var('wing.shape', lower=-.5, upper=.5)
 prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
 prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
+
+iprofile.setup()
+iprofile.start()
 
 # Set up the problem
 prob.setup()

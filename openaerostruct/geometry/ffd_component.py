@@ -65,17 +65,17 @@ class GeometryMesh(ExplicitComponent):
         def twist(val, geo):
            geo.rot_y['wing_axis'].coef[:] = val[:]
 
-        # Now add this as a global variable:
-        self.DVGeo.addGeoDVGlobal('twist', 0.0, twist, lower=-10, upper=10)
         # Now add local (shape) variables
         self.DVGeo.addGeoDVLocal('shape', lower=-0.5, upper=0.5, axis='z')
+
+        coords = self.DVGeo.getLocalIndex(0)
+        self.inds = coords[:, 0, :].flatten()
+        self.inds2 = coords[:, 1, :].flatten()
 
         self.add_input('twist', val=0.)
         self.add_input('shape', val=np.zeros((self.mx*self.my)))
 
         self.add_output('mesh', val=surface['mesh'])
-
-        self.approx_partials('*', '*')
 
     def compute(self, inputs, outputs):
         surface = self.surface
@@ -86,13 +86,8 @@ class GeometryMesh(ExplicitComponent):
 
         dvs['twist'] = inputs['twist']
 
-        coords = self.DVGeo.getLocalIndex(0)
-
-        inds = coords[:, 0, :].flatten()
-        inds2 = coords[:, 1, :].flatten()
-
-        for i, ind in enumerate(inds):
-            ind2 = inds2[i]
+        for i, ind in enumerate(self.inds):
+            ind2 = self.inds2[i]
             dvs['shape'][ind] = inputs['shape'][i]
             dvs['shape'][ind2] = inputs['shape'][i]
 
@@ -102,6 +97,28 @@ class GeometryMesh(ExplicitComponent):
         mesh = coords.copy()
         mesh = mesh.reshape((nx, ny, 3))
         outputs['mesh'] = mesh
+
+    def compute_partials(self, inputs, outputs, partials):
+        self.DVGeo.computeTotalJacobian('surface')
+        jac = self.DVGeo.JT['surface'].toarray().T
+        my_jac = partials['mesh', 'shape']
+        my_jac[:, :] = 0.
+
+        for i, ind in enumerate(self.inds):
+            ind2 = self.inds2[i]
+            my_jac[:, i] += jac[:, ind]
+            my_jac[:, i] += jac[:, ind2]
+
+        partials['mesh', 'shape'] = my_jac
+
+def view_mat(mat):
+    """ Helper function used to visually examine matrices. """
+    import matplotlib.pyplot as plt
+    if len(mat.shape) > 2:
+        mat = np.sum(mat, axis=2)
+    im = plt.imshow(mat.real, interpolation='none')
+    plt.colorbar(im, orientation='horizontal')
+    plt.show()
 
 def plot_3d_points(mesh):
     from mpl_toolkits.mplot3d import Axes3D
@@ -136,9 +153,11 @@ def write_FFD_file(surface, mx, my):
 
     # Delete some of the y direction
     half_ffd = half_ffd[:, [0, 1, -1], :]
+    # half_ffd = half_ffd[:, [0, -1], :]
 
     # Delete some of the x direction
     half_ffd = half_ffd[[0, 1, -1], :, :]
+    # half_ffd = half_ffd[[0, -1], :, :]
 
     xmin, xmax = np.min(mesh[:, :, 0]), np.max(mesh[:, :, 0])
     ymin, ymax = np.min(mesh[:, :, 1]), np.max(mesh[:, :, 1])
