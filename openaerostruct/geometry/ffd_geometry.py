@@ -27,15 +27,17 @@ class Geometry(Group):
                  indep_var_comp,
                  promotes=['*'])
 
+        mx, my = 3, 3
+
         indep_var_comp.add_output('twist', val=0.)
-        indep_var_comp.add_output('shape', val=np.zeros((nx*ny)))
+        indep_var_comp.add_output('shape', val=np.zeros((mx*my)))
 
         bsp_inputs = []
 
         mesh_promotes = ['mesh']
 
         self.add_subsystem('mesh',
-            GeometryMesh(surface=surface),
+            GeometryMesh(surface=surface, mx=mx, my=my),
             promotes_inputs=['twist', 'shape'],
             promotes_outputs=['mesh'])
 
