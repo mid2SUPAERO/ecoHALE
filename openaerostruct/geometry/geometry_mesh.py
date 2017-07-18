@@ -2,7 +2,6 @@
 
 from __future__ import division, print_function
 import numpy as np
-from numpy import cos, sin, tan
 
 from openaerostruct.geometry.utils import \
     rotate, scale_x, shear_x, shear_y, shear_z, \

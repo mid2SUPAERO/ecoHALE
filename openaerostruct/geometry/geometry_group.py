@@ -1,19 +1,10 @@
 import numpy as np
 
 from openaerostruct.geometry.geometry_mesh import GeometryMesh
-from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
-from openaerostruct.structures.materials_tube import MaterialsTube
-from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
-from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
-from openaerostruct.aerodynamics.functionals import VLMFunctionals
-from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
-from openaerostruct.functionals.total_performance import TotalPerformance
-from openaerostruct.transfer.load_transfer import LoadTransfer
-from openaerostruct.aerodynamics.states import VLMStates
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, ExplicitComponent
+from openmdao.api import IndepVarComp, Group
 
 class Geometry(Group):
     """ Group that contains everything needed for a structural-only problem. """
