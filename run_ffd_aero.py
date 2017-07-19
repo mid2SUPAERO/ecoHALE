@@ -13,7 +13,7 @@ from openmdao.api import view_model
 from six import iteritems
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 15,
+mesh_dict = {'num_y' : 51,
              'num_x' : 3,
              'wing_type' : 'rect',
              'symmetry' : True,
@@ -32,6 +32,8 @@ surf_dict = {
                                      # can be 'wetted' or 'projected'
 
             'mesh' : mesh,
+            'mx' : 3,
+            'my' : 20,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).
@@ -62,7 +64,7 @@ prob = Problem()
 
 indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=248.136)
-indep_var_comp.add_output('alpha', val=0.)
+indep_var_comp.add_output('alpha', val=6.64)
 indep_var_comp.add_output('M', val=0.84)
 indep_var_comp.add_output('re', val=1.e6)
 indep_var_comp.add_output('rho', val=0.38)
@@ -119,13 +121,13 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                             'Major feasibility tolerance': 1.0e-8}
 
 # # Setup problem and add design variables, constraint, and objective
-# prob.model.add_design_var('wing.twist', lower=-10., upper=15.)
-prob.model.add_design_var('wing.shape', lower=-.5, upper=.5)
+prob.model.add_design_var('alpha', lower=-15, upper=15)
+prob.model.add_design_var('wing.shape', lower=-1, upper=1)
 prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
 prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 
-iprofile.setup()
-iprofile.start()
+# iprofile.setup()
+# iprofile.start()
 
 # Set up the problem
 prob.setup()

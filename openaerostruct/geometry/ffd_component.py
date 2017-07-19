@@ -45,12 +45,10 @@ class GeometryMesh(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('mx', type_=int, required=True)
-        self.metadata.declare('my', type_=int, required=True)
 
     def setup(self):
         self.surface = surface = self.metadata['surface']
-        self.mx, self.my = self.metadata['mx'], self.metadata['my']
+        self.mx, self.my = self.surface['mx'], self.surface['my']
 
         filename = write_FFD_file(surface, self.mx, self.my)
 
@@ -120,26 +118,37 @@ def view_mat(mat):
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
-def plot_3d_points(mesh):
+def plot_3d_points(half_mesh):
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    xs = mesh[:, :, 0].flatten()
-    ys = mesh[:, :, 1].flatten()
-    zs = mesh[:, :, 2].flatten()
 
-    ax.scatter(xs, ys, zs, c='blue')
+    right_mesh = half_mesh.copy()
+    right_mesh[:, :, 1] *= -1
+    mesh = np.hstack((half_mesh, right_mesh[:, ::-1, :]))
+
+    xs = half_mesh[:, :, 0]
+    ys = half_mesh[:, :, 1]
+    zs = half_mesh[:, :, 2]
+    ax.plot_wireframe(xs, ys, zs, color='k')
+
+    xs = right_mesh[:, :, 0]
+    ys = right_mesh[:, :, 1]
+    zs = right_mesh[:, :, 2]
+    ax.plot_wireframe(xs, ys, zs, color='k')
+
+    ax.set_axis_off()
+
+    ax.set_xlim([10, 60])
+    ax.set_ylim([-25, 25])
+    ax.set_zlim([-25, 25])
 
     ax.set_xlim([-5, 5])
     ax.set_ylim([-5, 5])
     ax.set_zlim([-5, 5])
-
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
 
     plt.show()
 
@@ -147,28 +156,21 @@ def write_FFD_file(surface, mx, my):
 
     mesh = surface['mesh']
 
-    nx, ny = mesh.shape[:2]
-
-    half_ffd = mesh.copy()
-
-    # Delete some of the y direction
-    half_ffd = half_ffd[:, [0, 1, -1], :]
-    # half_ffd = half_ffd[:, [0, -1], :]
-
-    # Delete some of the x direction
-    half_ffd = half_ffd[[0, 1, -1], :, :]
-    # half_ffd = half_ffd[[0, -1], :, :]
-
     xmin, xmax = np.min(mesh[:, :, 0]), np.max(mesh[:, :, 0])
     ymin, ymax = np.min(mesh[:, :, 1]), np.max(mesh[:, :, 1])
     zmin, zmax = np.min(mesh[:, :, 2]), np.max(mesh[:, :, 2])
 
-    cushion = .1
+    cushion = 1.
 
-    half_ffd[0, :, 0] = xmin - cushion
-    half_ffd[-1, :, 0] = xmax + cushion
-    half_ffd[:, 0, 1] = ymin - cushion
-    half_ffd[:, -1, 1] = ymax + cushion
+    xlins = np.linspace(xmin - cushion, xmax + cushion, mx)
+    ylins = np.linspace(ymin - cushion, ymax + cushion, my)
+
+    xv, yv = np.meshgrid(xlins, ylins)
+
+    half_ffd = np.zeros((mx, my, 3))
+
+    half_ffd[:, :, 0] = xv.T
+    half_ffd[:, :, 1] = yv.T
 
     bottom_ffd = half_ffd.copy()
     bottom_ffd[:, :, 2] = zmin - cushion
