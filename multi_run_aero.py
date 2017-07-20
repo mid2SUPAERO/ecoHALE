@@ -6,8 +6,9 @@ from openaerostruct.geometry.ffd_geometry import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
+from openaerostruct.integration.multipoint_comps import MultiCD, GeomMatch
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.devtools import iprofile
 from openmdao.api import view_model
 from six import iteritems
@@ -59,12 +60,14 @@ surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
 surfaces = [surf_dict]
 
+n_points = 3
+
 # Create the problem and the model group
 prob = Problem()
 
 indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=248.136)
-indep_var_comp.add_output('alpha', val=6.64)
+indep_var_comp.add_output('alpha', val=np.ones(n_points) * 6.64)
 indep_var_comp.add_output('M', val=0.84)
 indep_var_comp.add_output('re', val=1.e6)
 indep_var_comp.add_output('rho', val=0.38)
@@ -75,18 +78,9 @@ prob.model.add_subsystem('prob_vars',
     indep_var_comp,
     promotes=['*'])
 
-# Loop over each surface in the surfaces list
-for surface in surfaces:
-
-    geom_group = Geometry(surface=surface)
-
-    # Add tmp_group to the problem as the name of the surface.
-    # Note that is a group and performance group for each
-    # individual surface.
-    prob.model.add_subsystem(surface['name'], geom_group)
 
 # Loop through and add a certain number of aero points
-for i in range(1):
+for i in range(n_points):
 
     # Create the aero point group and add it to the model
     aero_group = AeroPoint(surfaces=surfaces)
@@ -95,7 +89,7 @@ for i in range(1):
 
     # Connect flow properties to the analysis point
     prob.model.connect('v', point_name + '.v')
-    prob.model.connect('alpha', point_name + '.alpha')
+    prob.model.connect('alpha', point_name + '.alpha', src_indices=[i])
     prob.model.connect('M', point_name + '.M')
     prob.model.connect('re', point_name + '.re')
     prob.model.connect('rho', point_name + '.rho')
@@ -105,14 +99,26 @@ for i in range(1):
     # Connect the parameters within the model for each aero point
     for surface in surfaces:
 
+        geom_group = Geometry(surface=surface)
+
+        # Add tmp_group to the problem as the name of the surface.
+        # Note that is a group and performance group for each
+        # individual surface.
+        aero_group.add_subsystem(surface['name'] + '_geom', geom_group)
+
         name = surface['name']
+        prob.model.connect(point_name + '.CD', 'multi_CD.' + str(i) + '_CD')
+        prob.model.connect(point_name + '.wing_geom.shape', 'geom_match.' + str(i) + '_shape')
 
         # Connect the mesh from the geometry component to the analysis point
-        prob.model.connect(name + '.def_mesh', point_name + '.' + name + '.def_mesh')
+        prob.model.connect(point_name + '.' + name + '_geom.def_mesh', point_name + '.' + name + '.def_mesh')
 
         # Perform the connections with the modified names within the
         # 'aero_states' group.
-        prob.model.connect(name + '.def_mesh', point_name + '.aero_states.' + name + '_def_mesh')
+        prob.model.connect(point_name + '.' + name + '_geom.def_mesh', point_name + '.aero_states.' + name + '_def_mesh')
+
+prob.model.add_subsystem('multi_CD', MultiCD(n_points=n_points), promotes_outputs=['CD'])
+prob.model.add_subsystem('geom_match', GeomMatch(n_points=n_points, mx=surf_dict['mx'], my=surf_dict['my']), promotes_outputs=['shape_diff'])
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
@@ -122,14 +128,24 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
 
 # # Setup problem and add design variables, constraint, and objective
 prob.model.add_design_var('alpha', lower=-15, upper=15)
-prob.model.add_design_var('wing.shape', lower=-3, upper=2)
 
-# prob.model.add_constraint('wing.shape', equals=0., indices=range(surf_dict['my'] * 2), linear=True)
-prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
-prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
+prob.model.add_design_var('aero_point_0.wing_geom.shape', lower=-3, upper=2)
+prob.model.add_constraint('aero_point_0.wing_perf.CL', equals=0.45)
 
-# iprofile.setup()
-# iprofile.start()
+prob.model.add_design_var('aero_point_1.wing_geom.shape', lower=-3, upper=2)
+prob.model.add_constraint('aero_point_1.wing_perf.CL', equals=0.5)
+
+prob.model.add_design_var('aero_point_2.wing_geom.shape', lower=-3, upper=2)
+prob.model.add_constraint('aero_point_2.wing_perf.CL', equals=0.55)
+
+prob.model.add_constraint('shape_diff', equals=0., indices=range(surf_dict['my'] * (n_points - 1) * 1), linear=True)
+# prob.model.add_constraint('shape_diff', equals=0., linear=True)
+
+
+prob.model.add_objective('CD', scaler=1e4)
+
+iprofile.setup()
+iprofile.start()
 
 # Set up the problem
 prob.setup()
@@ -143,13 +159,15 @@ prob.run_driver()
 
 print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
 print("Wing CD:", prob['aero_point_0.wing_perf.CD'])
-
+print("Wing CD:", prob['aero_point_1.wing_perf.CD'])
+print("Wing CD:", prob['aero_point_2.wing_perf.CD'])
 
 from helper import plot_3d_points
 
-mesh = prob['aero_point_0.wing.def_mesh']
-plot_3d_points(mesh)
+# plot_3d_points(mesh)
 
-filename = mesh_dict['wing_type'] + '_' + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
-filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
-np.save(filename, mesh)
+for i in range(n_points):
+    mesh = prob['aero_point_{}.wing.def_mesh'.format(i)]
+    filename = mesh_dict['wing_type'] + '_' + 'aero_point_{}_'.format(i) + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
+    filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
+    np.save(filename, mesh)

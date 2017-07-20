@@ -2,25 +2,23 @@ from __future__ import division, print_function
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.ffd_geometry import Geometry
+from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
-from openmdao.devtools import iprofile
 from openmdao.api import view_model
 from six import iteritems
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 21,
-             'num_x' : 11,
+mesh_dict = {'num_y' : 7,
+             'num_x' : 2,
              'wing_type' : 'CRM',
              'symmetry' : True,
-             'num_twist_cp' : 5,
-             'span_cos_spacing' : 0.}
+             'num_twist_cp' : 5}
 
-mesh, _ = generate_mesh(mesh_dict)
+mesh, twist_cp = generate_mesh(mesh_dict)
 
 surf_dict = {
             # Wing definition
@@ -31,9 +29,7 @@ surf_dict = {
             'S_ref_type' : 'wetted', # how we compute the wing area,
                                      # can be 'wetted' or 'projected'
 
-            'mesh' : mesh,
-            'mx' : 3,
-            'my' : 5,
+            'num_twist_cp' : 5,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).
@@ -55,6 +51,9 @@ surf_dict = {
             'with_viscous' : True,  # if true, compute viscous drag
             }
 
+surf_dict.update({'twist_cp' : twist_cp,
+                  'mesh' : mesh})
+
 surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
 surfaces = [surf_dict]
@@ -62,9 +61,11 @@ surfaces = [surf_dict]
 # Create the problem and the model group
 prob = Problem()
 
+num_points = 5
+
 indep_var_comp = IndepVarComp()
-indep_var_comp.add_output('v', val=248.136)
-indep_var_comp.add_output('alpha', val=6.64)
+indep_var_comp.add_output('v', val=np.ones(num_points) * 248.136)
+indep_var_comp.add_output('alpha', val=np.linspace(0, 10, num_points))
 indep_var_comp.add_output('M', val=0.84)
 indep_var_comp.add_output('re', val=1.e6)
 indep_var_comp.add_output('rho', val=0.38)
@@ -86,7 +87,7 @@ for surface in surfaces:
     prob.model.add_subsystem(surface['name'], geom_group)
 
 # Loop through and add a certain number of aero points
-for i in range(1):
+for i in range(2):
 
     # Create the aero point group and add it to the model
     aero_group = AeroPoint(surfaces=surfaces)
@@ -94,8 +95,8 @@ for i in range(1):
     prob.model.add_subsystem(point_name, aero_group)
 
     # Connect flow properties to the analysis point
-    prob.model.connect('v', point_name + '.v')
-    prob.model.connect('alpha', point_name + '.alpha')
+    prob.model.connect('v', point_name + '.v', src_indices=[i])
+    prob.model.connect('alpha', point_name + '.alpha', src_indices=[i])
     prob.model.connect('M', point_name + '.M')
     prob.model.connect('re', point_name + '.re')
     prob.model.connect('rho', point_name + '.rho')
@@ -113,43 +114,31 @@ for i in range(1):
         # Perform the connections with the modified names within the
         # 'aero_states' group.
         prob.model.connect(name + '.def_mesh', point_name + '.aero_states.' + name + '_def_mesh')
-
-from openmdao.api import pyOptSparseDriver
-prob.driver = pyOptSparseDriver()
-prob.driver.options['optimizer'] = "SNOPT"
-prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                            'Major feasibility tolerance': 1.0e-8}
-
-# # Setup problem and add design variables, constraint, and objective
-prob.model.add_design_var('alpha', lower=-15, upper=15)
-prob.model.add_design_var('wing.shape', lower=-3, upper=2)
-
-# prob.model.add_constraint('wing.shape', equals=0., indices=range(surf_dict['my'] * 2), linear=True)
-prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
-prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
-
-# iprofile.setup()
-# iprofile.start()
+#
+# from openmdao.api import pyOptSparseDriver
+# prob.driver = pyOptSparseDriver()
+# prob.driver.options['optimizer'] = "SNOPT"
+# prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+#                             'Major feasibility tolerance': 1.0e-8}
+#
+# # # Setup problem and add design variables, constraint, and objective
+# prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+# prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
+# prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 
 # Set up the problem
 prob.setup()
 
 view_model(prob, outfile='aero.html', show_browser=False)
 
-# prob.run_model()
-prob.run_driver()
+prob.run_model()
+# prob.run_driver()
 
 # prob.check_partials(compact_print=True)
 
 print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
 print("Wing CD:", prob['aero_point_0.wing_perf.CD'])
 
-
-from helper import plot_3d_points
-
-mesh = prob['aero_point_0.wing.def_mesh']
-plot_3d_points(mesh)
-
-filename = mesh_dict['wing_type'] + '_' + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
-filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
-np.save(filename, mesh)
+for i in range(5):
+    print(prob['aero_point_{}.wing_perf.L'.format(i)])
+    print(prob['wing.twist_cp'])
