@@ -13,14 +13,14 @@ from openmdao.api import view_model
 from six import iteritems
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 51,
-             'num_x' : 3,
-             'wing_type' : 'rect',
+mesh_dict = {'num_y' : 15,
+             'num_x' : 2,
+             'wing_type' : 'CRM',
              'symmetry' : True,
              'num_twist_cp' : 5,
              'span_cos_spacing' : 0.}
 
-mesh = generate_mesh(mesh_dict)
+mesh, _ = generate_mesh(mesh_dict)
 
 surf_dict = {
             # Wing definition
@@ -32,8 +32,8 @@ surf_dict = {
                                      # can be 'wetted' or 'projected'
 
             'mesh' : mesh,
-            'mx' : 3,
-            'my' : 20,
+            'mx' : 2,
+            'my' : 5,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).
@@ -122,7 +122,7 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
 
 # # Setup problem and add design variables, constraint, and objective
 prob.model.add_design_var('alpha', lower=-15, upper=15)
-prob.model.add_design_var('wing.shape', lower=-1, upper=1)
+prob.model.add_design_var('wing.shape', lower=-5, upper=5)
 prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
 prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 
@@ -142,7 +142,12 @@ prob.run_driver()
 print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
 print("Wing CD:", prob['aero_point_0.wing_perf.CD'])
 
-from openaerostruct.geometry.ffd_component import plot_3d_points
+
+from helper import plot_3d_points
 
 mesh = prob['aero_point_0.wing.def_mesh']
 plot_3d_points(mesh)
+
+# filename = mesh_dict['wing_type'] + '_' + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
+# filename += '_' + str(surf_dict['num_x']) + '_' + str(surf_dict['num_y']) + '.mesh'
+# np.save(filename, mesh)

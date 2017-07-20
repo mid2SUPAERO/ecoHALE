@@ -118,94 +118,76 @@ def view_mat(mat):
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
-def plot_3d_points(half_mesh):
-    from mpl_toolkits.mplot3d import Axes3D
+def write_FFD_file(surface, mx, my):
+
+    mesh = surface['mesh']
+    nx, ny = mesh.shape[:2]
+
+    half_ffd = np.zeros((mx, my, 3))
+
+    LE = mesh[0, :, :]
+    TE = mesh[-1, :, :]
+
+    half_ffd[0, :, 0] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), LE[:, 0])
+    half_ffd[0, :, 1] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), LE[:, 1])
+    half_ffd[0, :, 2] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), LE[:, 2])
+
+    half_ffd[-1, :, 0] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), TE[:, 0])
+    half_ffd[-1, :, 1] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), TE[:, 1])
+    half_ffd[-1, :, 2] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), TE[:, 2])
+
+    for i in range(my):
+        half_ffd[:, i, 0] = np.linspace(half_ffd[0, i, 0], half_ffd[-1, i, 0], mx)
+        half_ffd[:, i, 1] = np.linspace(half_ffd[0, i, 1], half_ffd[-1, i, 1], mx)
+        half_ffd[:, i, 2] = np.linspace(half_ffd[0, i, 2], half_ffd[-1, i, 2], mx)
+
+    cushion = 2.
+
+    half_ffd[0, :, 0] -= cushion
+    half_ffd[-1, :, 0] += cushion
+    half_ffd[:, 0, 1] -= cushion
+    half_ffd[:, -1, 1] += cushion
+
+    bottom_ffd = half_ffd.copy()
+    bottom_ffd[:, :, 2] -= cushion
+
+    top_ffd = half_ffd.copy()
+    top_ffd[:, :, 2] += cushion
+
+    ffd = np.vstack((bottom_ffd, top_ffd))
+
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
+    xs = ffd[:, :, 0].flatten()
+    ys = ffd[:, :, 1].flatten()
+    zs = ffd[:, :, 2].flatten()
 
-    right_mesh = half_mesh.copy()
-    right_mesh[:, :, 1] *= -1
-    mesh = np.hstack((half_mesh, right_mesh[:, ::-1, :]))
+    ax.scatter(xs, ys, zs, c='red')
 
-    xs = half_mesh[:, :, 0]
-    ys = half_mesh[:, :, 1]
-    zs = half_mesh[:, :, 2]
-    ax.plot_wireframe(xs, ys, zs, color='k')
+    xs = mesh[:, :, 0].flatten()
+    ys = mesh[:, :, 1].flatten()
+    zs = mesh[:, :, 2].flatten()
 
-    xs = right_mesh[:, :, 0]
-    ys = right_mesh[:, :, 1]
-    zs = right_mesh[:, :, 2]
-    ax.plot_wireframe(xs, ys, zs, color='k')
-
-    ax.set_axis_off()
-
-    ax.set_xlim([10, 60])
-    ax.set_ylim([-25, 25])
-    ax.set_zlim([-25, 25])
+    ax.scatter(xs, ys, zs, c='blue')
 
     ax.set_xlim([-5, 5])
     ax.set_ylim([-5, 5])
     ax.set_zlim([-5, 5])
 
-    plt.show()
+    ax.set_xlim([20, 55])
+    ax.set_ylim([-17.5, 17.5])
+    ax.set_zlim([-17.5, 17.5])
 
-def write_FFD_file(surface, mx, my):
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
 
-    mesh = surface['mesh']
+    ax.set_axis_off()
 
-    xmin, xmax = np.min(mesh[:, :, 0]), np.max(mesh[:, :, 0])
-    ymin, ymax = np.min(mesh[:, :, 1]), np.max(mesh[:, :, 1])
-    zmin, zmax = np.min(mesh[:, :, 2]), np.max(mesh[:, :, 2])
-
-    cushion = 1.
-
-    xlins = np.linspace(xmin - cushion, xmax + cushion, mx)
-    ylins = np.linspace(ymin - cushion, ymax + cushion, my)
-
-    xv, yv = np.meshgrid(xlins, ylins)
-
-    half_ffd = np.zeros((mx, my, 3))
-
-    half_ffd[:, :, 0] = xv.T
-    half_ffd[:, :, 1] = yv.T
-
-    bottom_ffd = half_ffd.copy()
-    bottom_ffd[:, :, 2] = zmin - cushion
-
-    top_ffd = half_ffd.copy()
-    top_ffd[:, :, 2] = zmax + cushion
-
-    ffd = np.vstack((bottom_ffd, top_ffd))
-
-    # from mpl_toolkits.mplot3d import Axes3D
-    # import matplotlib.pyplot as plt
-    #
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    #
-    # xs = ffd[:, :, 0].flatten()
-    # ys = ffd[:, :, 1].flatten()
-    # zs = ffd[:, :, 2].flatten()
-    #
-    # ax.scatter(xs, ys, zs, c='red')
-    #
-    # xs = mesh[:, :, 0].flatten()
-    # ys = mesh[:, :, 1].flatten()
-    # zs = mesh[:, :, 2].flatten()
-    #
-    # ax.scatter(xs, ys, zs, c='blue')
-    #
-    # ax.set_xlim([-5, 5])
-    # ax.set_ylim([-5, 5])
-    # ax.set_zlim([-5, 5])
-    #
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.set_zlabel('z')
-    #
     # plt.show()
 
     filename = surface['name'] + '_ffd.fmt'
