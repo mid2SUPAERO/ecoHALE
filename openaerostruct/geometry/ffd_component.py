@@ -45,37 +45,32 @@ class GeometryMesh(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('DVGeo', type_=DVGeometry, required=True)
-        self.metadata.declare('point_name', type_=str, required=True)
 
     def setup(self):
         self.surface = surface = self.metadata['surface']
-        point_name = self.metadata['point_name']
-        self.DVGeo = self.metadata['DVGeo']
+        self.mx, self.my = self.surface['mx'], self.surface['my']
 
-        # x_weighting = np.array([0., 0.5, 0.55, 0.6, .75, 1.])
+        filename = write_FFD_file(surface, self.mx, self.my)
+
+        self.DVGeo = DVGeometry(filename)
+        self.DVGeo.writePlot3d('debug.fmt')
+        pts = surface['mesh'].reshape(-1, 3)
+
+        self.DVGeo.addPointSet(pts, 'surface')
+        # Associate a 'reference axis' for large-scale manipulation
+        self.DVGeo.addRefAxis('wing_axis', xFraction=0.25, alignIndex='i')
+        # Define a global design variable function:
+        def twist(val, geo):
+           geo.rot_y['wing_axis'].coef[:] = val[:]
+
+        # Now add local (shape) variables
+        self.DVGeo.addGeoDVLocal('shape', lower=-0.5, upper=0.5, axis='z')
 
         coords = self.DVGeo.getLocalIndex(0)
-        self.mx, self.my = coords.shape[0::2]
+        self.inds = coords[:, 0, :]
+        self.inds2 = coords[:, 1, :]
 
-        print(point_name)
-        if '_0' not in point_name:
-            # Now add local (shape) variables
-            index_list = coords[1:, :, :]
-            self.mx, self.my = index_list.shape[0::2]
-            index_list = index_list.flatten()
-            morphing_points = geo_utils.PointSelect('list', index_list)
-            self.DVGeo.addGeoDVLocal('morphing_%s'%point_name, lower=-0.5, upper=0.5, axis='z', pointSelect=morphing_points, config=point_name)
-
-            self.inds = coords[1:, 0, :]
-            self.inds2 = coords[1:, 1, :]
-        else:
-            self.DVGeo.addGeoDVLocal('morphing_%s'%point_name, lower=-0.5, upper=0.5, axis='z', config=point_name)
-
-            coords = self.DVGeo.getLocalIndex(0)
-            self.inds = coords[:, 0, :]
-            self.inds2 = coords[:, 1, :]
-
+        self.add_input('twist', val=0.)
         self.add_input('shape', val=np.zeros((self.mx, self.my)))
 
         self.add_output('mesh', val=surface['mesh'])
@@ -83,33 +78,24 @@ class GeometryMesh(ExplicitComponent):
     def compute(self, inputs, outputs):
         surface = self.surface
 
-        point_name = self.metadata['point_name']
         dvs = self.DVGeo.getValues()
-        print(point_name)
-        print(dvs)
-        print(self.inds)
 
         nx, ny = surface['mesh'].shape[:2]
 
-        for i in range(3):
-            inputs['shape'][:] = 0.
-            inputs['shape'][0, i] = 5.
+        dvs['twist'] = inputs['twist']
 
         for i, row in enumerate(self.inds):
             for j, ind in enumerate(row):
                 ind2 = self.inds2[i, j]
-                print(ind, ind2, i, j)
-                print(dvs['morphing_%s'%point_name].shape, inputs['shape'].shape)
-                dvs['morphing_%s'%point_name][ind] = inputs['shape'][i, j]
-                dvs['morphing_%s'%point_name][ind2] = inputs['shape'][i, j]
+                dvs['shape'][ind] = inputs['shape'][i, j]
+                dvs['shape'][ind2] = inputs['shape'][i, j]
 
         self.DVGeo.setDesignVars(dvs)
-        coords = self.DVGeo.update('surface', config=point_name)
+        coords = self.DVGeo.update('surface')
 
         mesh = coords.copy()
         mesh = mesh.reshape((nx, ny, 3))
         outputs['mesh'] = mesh
-        plot_3d_points(mesh)
 
     def compute_partials(self, inputs, outputs, partials):
         self.DVGeo.computeTotalJacobian('surface')
@@ -124,60 +110,6 @@ class GeometryMesh(ExplicitComponent):
 
         partials['mesh', 'shape'] = my_jac
 
-
-def plot_3d_points(half_mesh, fname=None):
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.pyplot as plt
-
-    fig = plt.figure()
-    axes = []
-
-    axes.append(fig.add_subplot(221, projection='3d'))
-    axes.append(fig.add_subplot(222, projection='3d'))
-    axes.append(fig.add_subplot(223, projection='3d'))
-    axes.append(fig.add_subplot(224, projection='3d'))
-
-    right_mesh = half_mesh.copy()
-    right_mesh[:, :, 1] *= -1
-
-    for i, ax in enumerate(axes):
-        xs = half_mesh[:, :, 0]
-        ys = half_mesh[:, :, 1]
-        zs = half_mesh[:, :, 2]
-        ax.plot_wireframe(xs, ys, zs, color='k')
-
-        # xs = right_mesh[:, :, 0]
-        # ys = right_mesh[:, :, 1]
-        # zs = right_mesh[:, :, 2]
-        # ax.plot_wireframe(xs, ys, zs, color='k')
-
-        ax.set_xlim([20, 55])
-        ax.set_ylim([-17.5, 17.5])
-        ax.set_zlim([-17.5, 17.5])
-
-        ax.set_xlim([20, 40])
-        ax.set_ylim([-25, -5.])
-        ax.set_zlim([-10, 10])
-
-        ax.set_axis_off()
-
-        if i == 0:
-            ax.view_init(elev=0, azim=180)
-        elif i == 1:
-            ax.view_init(elev=0, azim=90)
-        elif i == 2:
-            ax.view_init(elev=100000, azim=0)
-        else:
-            ax.view_init(elev=40, azim=-30)
-
-    plt.tight_layout()
-    plt.subplots_adjust(wspace=0, hspace=0)
-
-    if fname:
-        plt.savefig(fname + '.pdf')
-    else:
-        plt.show()
-
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
@@ -187,7 +119,7 @@ def view_mat(mat):
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
-def write_FFD_file(surface, mx, my, x_weighting=None, y_weighting=None):
+def write_FFD_file(surface, mx, my):
 
     mesh = surface['mesh']
     nx, ny = mesh.shape[:2]
@@ -197,23 +129,18 @@ def write_FFD_file(surface, mx, my, x_weighting=None, y_weighting=None):
     LE = mesh[0, :, :]
     TE = mesh[-1, :, :]
 
-    if x_weighting is None:
-        x_weighting = np.linspace(0., 1., mx)
-    if y_weighting is None:
-        y_weighting = np.linspace(0., 1., my)
+    half_ffd[0, :, 0] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), LE[:, 0])
+    half_ffd[0, :, 1] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), LE[:, 1])
+    half_ffd[0, :, 2] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), LE[:, 2])
 
-    half_ffd[0, :, 0] = np.interp(y_weighting, np.linspace(0, 1, ny), LE[:, 0])
-    half_ffd[0, :, 1] = np.interp(y_weighting, np.linspace(0, 1, ny), LE[:, 1])
-    half_ffd[0, :, 2] = np.interp(y_weighting, np.linspace(0, 1, ny), LE[:, 2])
-
-    half_ffd[-1, :, 0] = np.interp(y_weighting, np.linspace(0, 1, ny), TE[:, 0])
-    half_ffd[-1, :, 1] = np.interp(y_weighting, np.linspace(0, 1, ny), TE[:, 1])
-    half_ffd[-1, :, 2] = np.interp(y_weighting, np.linspace(0, 1, ny), TE[:, 2])
+    half_ffd[-1, :, 0] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), TE[:, 0])
+    half_ffd[-1, :, 1] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), TE[:, 1])
+    half_ffd[-1, :, 2] = np.interp(np.linspace(0, 1, my), np.linspace(0, 1, ny), TE[:, 2])
 
     for i in range(my):
-        half_ffd[:, i, 0] = (half_ffd[-1, i, 0] - half_ffd[0, i, 0]) * x_weighting + half_ffd[0, i, 0]
-        half_ffd[:, i, 1] = (half_ffd[-1, i, 1] - half_ffd[0, i, 1]) * x_weighting + half_ffd[0, i, 1]
-        half_ffd[:, i, 2] = (half_ffd[-1, i, 2] - half_ffd[0, i, 2]) * x_weighting + half_ffd[0, i, 2]
+        half_ffd[:, i, 0] = np.linspace(half_ffd[0, i, 0], half_ffd[-1, i, 0], mx)
+        half_ffd[:, i, 1] = np.linspace(half_ffd[0, i, 1], half_ffd[-1, i, 1], mx)
+        half_ffd[:, i, 2] = np.linspace(half_ffd[0, i, 2], half_ffd[-1, i, 2], mx)
 
     cushion = .5
 

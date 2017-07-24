@@ -13,8 +13,8 @@ from openmdao.api import view_model
 from six import iteritems
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 7,
-             'num_x' : 2,
+mesh_dict = {'num_y' : 21,
+             'num_x' : 11,
              'wing_type' : 'CRM',
              'symmetry' : True,
              'num_twist_cp' : 5,
@@ -32,7 +32,7 @@ surf_dict = {
                                      # can be 'wetted' or 'projected'
 
             'mesh' : mesh,
-            'mx' : 6,
+            'mx' : 3,
             'my' : 5,
 
             # Aerodynamic performance of the lifting surface at
@@ -124,7 +124,7 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
 prob.model.add_design_var('alpha', lower=-15, upper=15)
 prob.model.add_design_var('wing.shape', lower=-3, upper=2)
 
-prob.model.add_constraint('wing.shape', equals=0., indices=range(surf_dict['my'] * 1), linear=True)
+# prob.model.add_constraint('wing.shape', equals=0., indices=range(surf_dict['my'] * 2), linear=True)
 prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
 prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 

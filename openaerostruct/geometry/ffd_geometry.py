@@ -4,8 +4,6 @@ from openaerostruct.geometry.ffd_component import GeometryMesh
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
-from pygeo import *
-
 from openmdao.api import IndepVarComp, Group
 
 class Geometry(Group):
@@ -13,8 +11,6 @@ class Geometry(Group):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('DVGeo', type_=DVGeometry, required=True)
-        self.metadata.declare('point_name', type_=str, required=False)
 
     def setup(self):
         surface = self.metadata['surface']
@@ -31,13 +27,14 @@ class Geometry(Group):
                  indep_var_comp,
                  promotes=['*'])
 
+        indep_var_comp.add_output('twist', val=0.)
         indep_var_comp.add_output('shape', val=np.zeros((surface['mx'] * surface['my'])))
 
         bsp_inputs = []
 
         self.add_subsystem('mesh',
-            GeometryMesh(surface=surface, DVGeo=self.metadata['DVGeo'], point_name=self.metadata['point_name']),
-            promotes_inputs=['shape'],
+            GeometryMesh(surface=surface),
+            promotes_inputs=['twist', 'shape'],
             promotes_outputs=['mesh'])
 
         if surface['type'] == 'aero':

@@ -3,13 +3,10 @@ import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.ffd_geometry import Geometry
-from openaerostruct.geometry.ffd_component import write_FFD_file
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 from openaerostruct.integration.multipoint_comps import MultiCD, GeomMatch
-
-from pygeo import *
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.devtools import iprofile
@@ -17,8 +14,8 @@ from openmdao.api import view_model
 from six import iteritems
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 5,
-             'num_x' : 2,
+mesh_dict = {'num_y' : 21,
+             'num_x' : 11,
              'wing_type' : 'CRM',
              'symmetry' : True,
              'num_twist_cp' : 5,
@@ -36,8 +33,8 @@ surf_dict = {
                                      # can be 'wetted' or 'projected'
 
             'mesh' : mesh,
-            'mx' : 2,
-            'my' : 3,
+            'mx' : 3,
+            'my' : 5,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).
@@ -63,7 +60,7 @@ surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
 surfaces = [surf_dict]
 
-n_points = 2
+n_points = 3
 
 # Create the problem and the model group
 prob = Problem()
@@ -80,14 +77,6 @@ indep_var_comp.add_output('cg', val=np.zeros((3)))
 prob.model.add_subsystem('prob_vars',
     indep_var_comp,
     promotes=['*'])
-
-filename = write_FFD_file(surf_dict, surf_dict['mx'], surf_dict['my'])
-
-DVGeo = DVGeometry(filename)
-DVGeo.writePlot3d('debug.fmt')
-pts = surf_dict['mesh'].reshape(-1, 3)
-
-DVGeo.addPointSet(pts, 'surface')
 
 
 # Loop through and add a certain number of aero points
@@ -110,7 +99,7 @@ for i in range(n_points):
     # Connect the parameters within the model for each aero point
     for surface in surfaces:
 
-        geom_group = Geometry(surface=surface, DVGeo=DVGeo, point_name=point_name)
+        geom_group = Geometry(surface=surface)
 
         # Add tmp_group to the problem as the name of the surface.
         # Note that is a group and performance group for each
@@ -140,19 +129,16 @@ prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
 # # Setup problem and add design variables, constraint, and objective
 prob.model.add_design_var('alpha', lower=-15, upper=15)
 
-prob.model.add_design_var('aero_point_0.wing_geom.shape', lower=-1.5, upper=1.5)
+prob.model.add_design_var('aero_point_0.wing_geom.shape', lower=-3, upper=2)
 prob.model.add_constraint('aero_point_0.wing_perf.CL', equals=0.45)
 
-prob.model.add_design_var('aero_point_1.wing_geom.shape', lower=-1.5, upper=1.5)
+prob.model.add_design_var('aero_point_1.wing_geom.shape', lower=-3, upper=2)
 prob.model.add_constraint('aero_point_1.wing_perf.CL', equals=0.5)
 
-# prob.model.add_design_var('aero_point_2.wing_geom.shape', lower=-.5, upper=.5)
-# prob.model.add_constraint('aero_point_2.wing_perf.CL', equals=0.55)
+prob.model.add_design_var('aero_point_2.wing_geom.shape', lower=-3, upper=2)
+prob.model.add_constraint('aero_point_2.wing_perf.CL', equals=0.55)
 
-# This is for some amount of morphing
-# prob.model.add_constraint('shape_diff', equals=0., indices=range(surf_dict['my'] * (n_points - 1) * 1), linear=True)
-
-# This is for no morphing, only conventional optimization
+prob.model.add_constraint('shape_diff', equals=0., indices=range(surf_dict['my'] * (n_points - 1) * 1), linear=True)
 # prob.model.add_constraint('shape_diff', equals=0., linear=True)
 
 
@@ -174,14 +160,14 @@ prob.run_driver()
 print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
 print("Wing CD:", prob['aero_point_0.wing_perf.CD'])
 print("Wing CD:", prob['aero_point_1.wing_perf.CD'])
-# print("Wing CD:", prob['aero_point_2.wing_perf.CD'])
+print("Wing CD:", prob['aero_point_2.wing_perf.CD'])
 
 from helper import plot_3d_points
 
+# plot_3d_points(mesh)
 
 for i in range(n_points):
     mesh = prob['aero_point_{}.wing.def_mesh'.format(i)]
-    # plot_3d_points(mesh)
     filename = mesh_dict['wing_type'] + '_' + 'aero_point_{}_'.format(i) + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
     filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
     np.save(filename, mesh)
