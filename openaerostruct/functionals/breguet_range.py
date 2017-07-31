@@ -100,12 +100,28 @@ class BreguetRange(ExplicitComponent):
             * R * CT / a / M * CD / CL ** 2
         dfb_dCD = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M / CL
-        dfb_dWs = np.exp(R * CT / a / M * CD / CL) - 1
+        dfb_dCT = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+            * R / a / M / CL * CD
+        dfb_dR = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+            / a / M / CL * CD * CT
+        dfb_da = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+            * R * CT / a**2 / M * CD / CL
+        dfb_dM = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+            * R * CT / a / M**2 * CD / CL
+
+        dfb_dW = np.exp(R * CT / a / M * CD / CL) - 1
 
         partials['fuelburn', 'CL'] = dfb_dCL / g
         partials['fuelburn', 'CD'] = dfb_dCD / g
+        partials['fuelburn', 'CT'] = dfb_dCT / g
+        partials['fuelburn', 'a'] = dfb_da / g
+        partials['fuelburn', 'R'] = dfb_dR / g
+        partials['fuelburn', 'M'] = dfb_dM / g
+        partials['fuelburn', 'W0'] = dfb_dW
+        partials['fuelburn', 'load_factor'] = - Ws * dfb_dW / 9.80665 / inputs['load_factor']**2 
+
 
         for surface in self.metadata['surfaces']:
             name = surface['name']
             inp_name = name + '_structural_weight'
-            partials['fuelburn', inp_name] = dfb_dWs / g
+            partials['fuelburn', inp_name] = dfb_dW / g

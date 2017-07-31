@@ -1,16 +1,15 @@
 import unittest
 
 from openaerostruct.functionals.center_of_gravity import CenterOfGravity
-from openaerostruct.utils.testing import run_test, get_default_prob_dict, get_default_surfaces
+from openaerostruct.utils.testing import run_test
 
 
 class Test(unittest.TestCase):
 
     def test(self):
-        surfaces = get_default_surfaces()
-        prob_dict = get_default_prob_dict()
+        surfaces = [{'name' : 'wing'}, {'name' : 'tail'}]
 
-        comp = CenterOfGravity(surfaces=surfaces, prob_dict=prob_dict)
+        comp = CenterOfGravity(surfaces=surfaces)
 
         run_test(self, comp)
 

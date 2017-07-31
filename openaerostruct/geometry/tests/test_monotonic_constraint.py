@@ -7,15 +7,17 @@ from openmdao.api import Problem
 
 from openaerostruct.geometry.monotonic_constraint import MonotonicConstraint
 
-from openaerostruct.utils.testing import run_test, get_default_prob_dict, get_default_surfaces
+from openaerostruct.utils.testing import run_test
 
 
 class Test(unittest.TestCase):
 
     def test(self):
-        surfaces = get_default_surfaces()
 
-        comp = MonotonicConstraint(var_name='x', surface=surfaces[0])
+        surface = {'symmetry' : True,
+                   'num_y' : 5}
+
+        comp = MonotonicConstraint(var_name='x', surface=surface)
 
         run_test(self, comp)
 

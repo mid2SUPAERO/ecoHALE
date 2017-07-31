@@ -7,7 +7,7 @@ from openmdao.api import Problem
 
 from openaerostruct.geometry.bsplines import Bsplines, get_bspline_mtx
 
-from openaerostruct.utils.testing import run_test, get_default_prob_dict, get_default_surfaces
+from openaerostruct.utils.testing import run_test
 
 
 class Test(unittest.TestCase):
@@ -17,8 +17,6 @@ class Test(unittest.TestCase):
         num_pt = 100
 
         jac = get_bspline_mtx(num_cp, num_pt)
-
-        surfaces = get_default_surfaces()
 
         comp = Bsplines(num_cp=num_cp, num_pt=num_pt, jac=jac, in_name='x', out_name='y')
 

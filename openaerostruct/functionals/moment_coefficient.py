@@ -128,7 +128,7 @@ class MomentCoefficient(ExplicitComponent):
             # For the first (main) lifting surface, we save the MAC to correctly
             # normalize CM
             if j == 0:
-                MAC_wing = MAC
+                self.MAC_wing = MAC
             S_ref_tot += S_ref
 
         self.M = M
@@ -136,13 +136,13 @@ class MomentCoefficient(ExplicitComponent):
         # Use the user-provided reference area; otherwise compute the total
         # area of all lifting surfaces.
         # Use the user-provided area; otherwise, use the computed area
-        if inputs['S_ref_total'] == 0.:
+        if inputs['S_ref_total'] - 1e-4 < 0.:
             self.S_ref_tot = S_ref_tot
         else:
             self.S_ref_tot = inputs['S_ref_total']
 
         # Compute the normalized CM
-        outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * MAC_wing)
+        outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * self.MAC_wing)
 
     if fortran_flag:
         def compute_partials(self, inputs, outputs, partials):
@@ -151,7 +151,7 @@ class MomentCoefficient(ExplicitComponent):
             v = inputs['v']
 
             # Here we just use the reverse mode AD results to compute the
-            # partialsobian since we'll always have much fewer outputs than inputs
+            # Jacobian since we'll always have much fewer outputs than inputs
             for j in range(3):
                 CMb = np.zeros((3))
                 CMb[j] = 1.
@@ -213,3 +213,8 @@ class MomentCoefficient(ExplicitComponent):
                     partials['CM', name + '_widths'][j, :] = widthsb + wb
                     partials['CM', name + '_sec_forces'][j, :] = sec_forcesb.flatten()
                     partials['CM', name + '_S_ref'][j, :] = S_refb + sb + s_totb
+
+            if inputs['S_ref_total'] - 1e-4 > 0.:
+                # Need to recompute M
+                self.compute(inputs, outputs)
+                partials['CM', 'S_ref_total'] = -self.M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot**2 * self.MAC_wing)

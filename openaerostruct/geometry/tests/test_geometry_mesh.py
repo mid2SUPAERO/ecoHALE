@@ -7,7 +7,7 @@ from openmdao.api import Problem, Group
 
 from openaerostruct.geometry.geometry_mesh import GeometryMesh
 
-from openaerostruct.utils.testing import run_test, get_default_prob_dict, get_default_surfaces
+from openaerostruct.utils.testing import run_test
 
 
 class Test(unittest.TestCase):
@@ -15,6 +15,7 @@ class Test(unittest.TestCase):
     def test(self):
         surface = {}
         surface['symmetry'] = False
+        surface['type'] = 'aero'
         span = 1
         ny = 5
         mesh = np.zeros((2, ny, 3))
@@ -23,11 +24,18 @@ class Test(unittest.TestCase):
         surface['mesh'] = mesh
         surface['name'] = 'wing'
         surface['num_y'] = ny
-        surface['initial_geo'] = ['taper']
+
+        # The way this is currently set up, we don't actually use the values here
+        surface['twist_cp'] = np.random.random_sample((5))
+        surface['chord_cp'] = np.random.random_sample((5))
+        surface['xshear_cp'] = np.random.random_sample((5))
+        surface['yshear_cp'] = np.random.random_sample((5))
+        surface['zshear_cp'] = np.random.random_sample((5))
+
         surface['span'] = span
         surface['t_over_c'] = .12
 
-        comp = GeometryMesh(surface=surface, desvars={'taper': .4})
+        comp = GeometryMesh(surface=surface)
 
         run_test(self, comp)
 
