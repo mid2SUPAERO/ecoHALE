@@ -12,7 +12,7 @@ def run_test(obj, comp, decimal=3):
     view_model(prob, outfile='test.html', show_browser=False)
     prob.run_model()
     check = prob.check_partials(compact_print=True)
-    for key, subjac in iteritems(check['comp']):
+    for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
             assert_almost_equal(
                 subjac['rel error'].forward, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
