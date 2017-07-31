@@ -1,13 +1,13 @@
 import unittest
 
 from openaerostruct.structures.assemble_k import AssembleK
-from openaerostruct.utils.testing import run_test, get_default_surf_dict
+from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
 class Test(unittest.TestCase):
 
     def test(self):
-        surface = get_default_surf_dict()
+        surface = get_default_surfaces()[0]
 
         comp = AssembleK(surface=surface)
 

@@ -26,13 +26,23 @@ def get_default_surfaces():
                  'S_ref_type' : 'wetted',
                  'CL0' : 0.1,
                  'CD0' : 0.1,
+
                  # Airfoil properties for viscous drag calculation
                  'k_lam' : 0.05,         # percentage of chord with laminar
                                          # flow, used for viscous drag
                  't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
                  'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                          # thickness
-                 'with_viscous' : True}  # if true, compute viscous drag
+                 'with_viscous' : True,  # if true, compute viscous drag
+
+                 # Structural values are based on aluminum 7075
+                 'E' : 70.e9,            # [Pa] Young's modulus of the spar
+                 'G' : 30.e9,            # [Pa] shear modulus of the spar
+                 'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
+                 'mrho' : 3.e3,          # [kg/m^3] material density
+                 'fem_origin' : 0.35,    # normalized chordwise location of the spar
+                 't_over_c' : 0.15,      # maximum airfoil thickness
+                 }
 
     tail_dict = {'name' : 'tail',
                  'num_y' : 5,
