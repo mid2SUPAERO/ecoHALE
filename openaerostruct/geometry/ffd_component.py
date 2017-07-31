@@ -169,11 +169,17 @@ def write_FFD_file(surface, mx, my):
     # axes.append(fig.add_subplot(224, projection='3d'))
     #
     # for i, ax in enumerate(axes):
-    #     xs = ffd[:, :, 0].flatten()
-    #     ys = ffd[:, :, 1].flatten()
-    #     zs = ffd[:, :, 2].flatten()
+    #     xs = ffd[[2, 5], :, 0].flatten()
+    #     ys = ffd[[2, 5], :, 1].flatten()
+    #     zs = ffd[[2, 5], :, 2].flatten()
     #
-    #     ax.scatter(xs, ys, zs, c='red', alpha=1.)
+    #     ax.scatter(xs, ys, zs, c='red', alpha=1., clip_on=False)
+    #
+    #     xs = ffd[[0, 1, 3, 4], :, 0].flatten()
+    #     ys = ffd[[0, 1, 3, 4], :, 1].flatten()
+    #     zs = ffd[[0, 1, 3, 4], :, 2].flatten()
+    #
+    #     ax.scatter(xs, ys, zs, c='blue', alpha=1.)
     #
     #     xs = mesh[:, :, 0]
     #     ys = mesh[:, :, 1]
