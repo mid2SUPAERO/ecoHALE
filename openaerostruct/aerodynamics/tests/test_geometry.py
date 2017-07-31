@@ -1,7 +1,7 @@
 import unittest
 
 from openaerostruct.aerodynamics.geometry import VLMGeometry
-from openaerostruct.utils.testing import run_test, get_default_prob_dict, get_default_surfaces
+from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
 class Test(unittest.TestCase):

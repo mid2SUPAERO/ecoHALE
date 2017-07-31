@@ -9,7 +9,6 @@ def run_test(obj, comp, decimal=3):
     prob.model.add_subsystem('comp', comp)
     prob.setup()
 
-    view_model(prob, outfile='test.html', show_browser=False)
     prob.run_model()
     check = prob.check_partials(compact_print=True)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
@@ -18,3 +17,28 @@ def run_test(obj, comp, decimal=3):
                 subjac['rel error'].forward, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
             assert_almost_equal(
                 subjac['rel error'].reverse, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
+
+def get_default_surfaces():
+    wing_dict = {'name' : 'wing',
+                 'num_y' : 7,
+                 'num_x' : 2,
+                 'symmetry' : True,
+                 'S_ref_type' : 'wetted',
+                 'CL0' : 0.1,
+                 'CD0' : 0.1,
+                 # Airfoil properties for viscous drag calculation
+                 'k_lam' : 0.05,         # percentage of chord with laminar
+                                         # flow, used for viscous drag
+                 't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                 'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
+                                         # thickness
+                 'with_viscous' : True}  # if true, compute viscous drag
+
+    tail_dict = {'name' : 'tail',
+                 'num_y' : 5,
+                 'num_x' : 3,
+                 'symmetry' : False}
+
+    surfaces = [wing_dict, tail_dict]
+
+    return surfaces

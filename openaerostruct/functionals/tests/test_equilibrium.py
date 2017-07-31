@@ -1,13 +1,13 @@
 import unittest
 
 from openaerostruct.functionals.equilibrium import Equilibrium
-from openaerostruct.utils.testing import run_test
+from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
 class Test(unittest.TestCase):
 
     def test(self):
-        surfaces = [{'name' : 'wing'}, {'name' : 'tail'}]
+        surfaces = get_default_surfaces()
 
         comp = Equilibrium(surfaces=surfaces)
 

@@ -1,7 +1,7 @@
 import unittest
 
 from openaerostruct.aerodynamics.lift_drag import LiftDrag
-from openaerostruct.utils.testing import run_test, get_default_prob_dict, get_default_surfaces
+from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
 class Test(unittest.TestCase):

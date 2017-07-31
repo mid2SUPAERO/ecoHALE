@@ -1,13 +1,13 @@
 import unittest
 
 from openaerostruct.aerodynamics.total_lift import TotalLift
-from openaerostruct.utils.testing import run_test, get_default_surf_dict
+from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
 class Test(unittest.TestCase):
 
     def test(self):
-        surface = get_default_surf_dict()
+        surface = get_default_surfaces()[0]
 
         comp = TotalLift(surface=surface)
 

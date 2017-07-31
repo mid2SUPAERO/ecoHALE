@@ -3,7 +3,7 @@ import unittest
 from openmdao.api import Group, IndepVarComp
 
 from openaerostruct.functionals.moment_coefficient import MomentCoefficient
-from openaerostruct.utils.testing import run_test
+from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
 class Test(unittest.TestCase):
@@ -27,16 +27,7 @@ class Test(unittest.TestCase):
     # This is known to have some issues for sufficiently small values of S_ref_total
     # There is probably a derivative bug somewhere in the moment_coefficient.py calcs
     def test2(self):
-        wing_dict = {'name' : 'wing',
-                     'num_y' : 7,
-                     'num_x' : 2,
-                     'symmetry' : True}
-        tail_dict = {'name' : 'tail',
-                     'num_y' : 5,
-                     'num_x' : 3,
-                     'symmetry' : False}
-
-        surfaces = [wing_dict, tail_dict]
+        surfaces = get_default_surfaces()
 
         group = Group()
 
