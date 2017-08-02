@@ -133,7 +133,7 @@ class Forces(ExplicitComponent):
 
 
     if fortran_flag:
-        if 1:
+        if 0:
             def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
                 if mode == 'fwd':
 
