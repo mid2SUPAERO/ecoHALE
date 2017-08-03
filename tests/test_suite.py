@@ -234,7 +234,7 @@ class TestAero(unittest.TestCase):
         # prob.run_model()
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03227945)
+        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.032254149045327085)
 
 
     # TODO: implement this when it's in Blue
@@ -519,7 +519,7 @@ class TestStruct(unittest.TestCase):
         # prob.run_model()
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 469492.85006454)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 462359.26746417052)
 
 
 
@@ -786,7 +786,7 @@ class TestAeroStruct(unittest.TestCase):
 
         # prob.check_partials(compact_print=True)
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 97252.32207548726)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 96858.345415124655)
 
 #
     # if fortran_flag:

@@ -459,6 +459,12 @@ def gen_crm_mesh(num_x, num_y, span_cos_spacing=0., chord_cos_spacing=0., wing_t
     # raw data.
     raw_crm_points = get_crm_points(wing_type)
 
+    # If this is a jig shape, remove all z-deflection to create a
+    # poor person's version of the undeformed CRM.
+    if 'jig' in wing_type or 'CRM' == wing_type:
+        print('jig!')
+        raw_crm_points[:, 3] = 0.
+
     # Get the leading edge of the raw crm points
     le = np.vstack((raw_crm_points[:,1],
                     raw_crm_points[:,2],
@@ -519,6 +525,7 @@ def gen_crm_mesh(num_x, num_y, span_cos_spacing=0., chord_cos_spacing=0., wing_t
     # If we need to add chordwise panels, do so
     if num_x > 2:
         mesh = add_chordwise_panels(mesh, num_x, chord_cos_spacing)
+
 
     return mesh, eta, twist
 
