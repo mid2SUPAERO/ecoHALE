@@ -45,7 +45,7 @@ class Geometry(Group):
                 num_cp=len(surface['chord_cp']), num_pt=int(ny)),
                 promotes_inputs=['chord_cp'], promotes_outputs=['chord'])
             bsp_inputs.append('chord')
-            indep_var_comp.add_output('chord_cp', val=surface['chord_cp'])
+            indep_var_comp.add_output('chord_cp', val=surface['chord_cp'], units='m')
 
         if 'xshear_cp' in surface.keys():
             # Add bspline components for active bspline geometric variables.
@@ -54,7 +54,7 @@ class Geometry(Group):
                 num_cp=len(surface['xshear_cp']), num_pt=int(ny)),
                 promotes_inputs=['xshear_cp'], promotes_outputs=['xshear'])
             bsp_inputs.append('xshear')
-            indep_var_comp.add_output('xshear_cp', val=surface['xshear_cp'])
+            indep_var_comp.add_output('xshear_cp', val=surface['xshear_cp'], units='m')
 
         if 'yshear_cp' in surface.keys():
             # Add bspline components for active bspline geometric variables.
@@ -63,7 +63,7 @@ class Geometry(Group):
                 num_cp=len(surface['yshear_cp']), num_pt=int(ny)),
                 promotes_inputs=['yshear_cp'], promotes_outputs=['yshear'])
             bsp_inputs.append('yshear')
-            indep_var_comp.add_output('yshear_cp', val=surface['yshear_cp'])
+            indep_var_comp.add_output('yshear_cp', val=surface['yshear_cp'], units='m')
 
         if 'zshear_cp' in surface.keys():
             # Add bspline components for active bspline geometric variables.
@@ -72,7 +72,7 @@ class Geometry(Group):
                 num_cp=len(surface['zshear_cp']), num_pt=int(ny)),
                 promotes_inputs=['zshear_cp'], promotes_outputs=['zshear'])
             bsp_inputs.append('zshear')
-            indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'])
+            indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'], units='m')
 
         if 'thickness_cp' in surface.keys():
             # Add bspline components for active bspline geometric variables.
@@ -80,7 +80,7 @@ class Geometry(Group):
                 in_name='thickness_cp', out_name='thickness',
                 num_cp=len(surface['thickness_cp']), num_pt=int(ny-1)),
                 promotes_inputs=['thickness_cp'], promotes_outputs=['thickness'])
-            indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'])
+            indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'], units='m')
 
         mesh_promotes = ['mesh']
 

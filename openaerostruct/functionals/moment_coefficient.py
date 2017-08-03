@@ -53,16 +53,16 @@ class MomentCoefficient(ExplicitComponent):
             ny = surface['num_y']
             nx = surface['num_x']
 
-            self.add_input(name + '_b_pts', val=np.random.rand(nx-1, ny, 3))
-            self.add_input(name + '_widths', val=np.random.rand(ny-1))
-            self.add_input(name + '_chords', val=np.random.rand(ny))
-            self.add_input(name + '_S_ref', val=1.)
-            self.add_input(name + '_sec_forces', val=np.random.rand(nx-1, ny-1, 3))
+            self.add_input(name + '_b_pts', val=np.random.rand(nx-1, ny, 3), units='m')
+            self.add_input(name + '_widths', val=np.random.rand(ny-1), units='m')
+            self.add_input(name + '_chords', val=np.random.rand(ny), units='m')
+            self.add_input(name + '_S_ref', val=1., units='m**2')
+            self.add_input(name + '_sec_forces', val=np.random.rand(nx-1, ny-1, 3), units='N')
 
-        self.add_input('cg', val=np.random.rand(3))
-        self.add_input('v', val=10.)
-        self.add_input('rho', val=3.)
-        self.add_input('S_ref_total', val=0.)
+        self.add_input('cg', val=np.random.rand(3), units='m')
+        self.add_input('v', val=10., units='m/s')
+        self.add_input('rho', val=3., units='kg/m**3')
+        self.add_input('S_ref_total', val=0., units='m**2')
 
         self.add_output('CM', val=np.ones((3)))
 

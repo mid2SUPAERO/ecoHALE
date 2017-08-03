@@ -46,11 +46,11 @@ class SparWithinWing(ExplicitComponent):
         self.ny = surface['num_y']
         nx = surface['num_x']
 
-        self.add_input('mesh', val=np.random.random_sample((nx, self.ny, 3)))
-        self.add_input('radius', val=np.random.random_sample((self.ny-1)))
-        self.add_output('spar_within_wing', val=np.zeros((self.ny-1)))
+        self.add_input('mesh', val=np.random.random_sample((nx, self.ny, 3)), units='m')
+        self.add_input('radius', val=np.random.random_sample((self.ny-1)), units='m')
+        self.add_output('spar_within_wing', val=np.zeros((self.ny-1)), units='m')
 
-    
+
         self.approx_partials('*', '*')
 
     def compute(self, inputs, outputs):

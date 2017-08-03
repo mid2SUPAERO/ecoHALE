@@ -40,15 +40,15 @@ class Equilibrium(ExplicitComponent):
     def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.add_input(name + '_L', val=1.)
-            self.add_input(name + '_structural_weight', val=1.)
+            self.add_input(name + '_L', val=1., units='N')
+            self.add_input(name + '_structural_weight', val=1., units='N')
 
-        self.add_input('fuelburn', val=1.)
-        self.add_input('W0', val=1.)
+        self.add_input('fuelburn', val=1., units='kg')
+        self.add_input('W0', val=1., units='N')
         self.add_input('load_factor', val=1.)
 
         self.add_output('L_equals_W', val=1.)
-        self.add_output('total_weight', val=1.)
+        self.add_output('total_weight', val=1., units='N')
 
     def compute(self, inputs, outputs):
 

@@ -36,7 +36,7 @@ class FailureExact(ExplicitComponent):
         self.ny = surface['num_y']
         self.sigma = surface['yield']
 
-        self.add_input('vonmises', val=np.random.random_sample((self.ny-1, 2)))
+        self.add_input('vonmises', val=np.random.random_sample((self.ny-1, 2)), units='N/m**2')
         self.add_output('failure', val=np.zeros((self.ny-1, 2)))
 
     def compute(self, inputs, outputs):

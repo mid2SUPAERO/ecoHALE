@@ -44,16 +44,16 @@ class BreguetRange(ExplicitComponent):
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1.)
 
-        self.add_input('CT', val=1.)
+        self.add_input('CT', val=1., units='1/s')
         self.add_input('CL', val=1.)
         self.add_input('CD', val=1.)
-        self.add_input('a', val=1.)
-        self.add_input('R', val=1.)
+        self.add_input('a', val=1., units='m/s')
+        self.add_input('R', val=1., units='m')
         self.add_input('M', val=1.)
-        self.add_input('W0', val=1.)
+        self.add_input('W0', val=1., units='kg')
         self.add_input('load_factor', val=1.)
 
-        self.add_output('fuelburn', val=1.)
+        self.add_output('fuelburn', val=1., units='kg')
 
     def compute(self, inputs, outputs):
 
@@ -118,7 +118,7 @@ class BreguetRange(ExplicitComponent):
         partials['fuelburn', 'R'] = dfb_dR / g
         partials['fuelburn', 'M'] = dfb_dM / g
         partials['fuelburn', 'W0'] = dfb_dW
-        partials['fuelburn', 'load_factor'] = - Ws * dfb_dW / 9.80665 / inputs['load_factor']**2 
+        partials['fuelburn', 'load_factor'] = - Ws * dfb_dW / 9.80665 / inputs['load_factor']**2
 
 
         for surface in self.metadata['surfaces']:

@@ -42,11 +42,11 @@ class TotalLiftDrag(ExplicitComponent):
             name = surface['name']
             self.add_input(name + '_CL', val=1.)
             self.add_input(name + '_CD', val=1.)
-            self.add_input(name + '_S_ref', val=1.)
+            self.add_input(name + '_S_ref', val=1., units='m**2')
             self.declare_partials('CL', name + '_CD', dependent=False)
             self.declare_partials('CD', name + '_CL', dependent=False)
 
-        self.add_input('S_ref_total', val=0.)
+        self.add_input('S_ref_total', val=0., units='m**2')
 
         self.add_output('CL', val=1.)
         self.add_output('CD', val=1.)

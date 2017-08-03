@@ -71,9 +71,9 @@ class GeometryMesh(ExplicitComponent):
         self.inds2 = coords[:, 1, :]
 
         self.add_input('twist', val=0.)
-        self.add_input('shape', val=np.zeros((self.mx, self.my)))
+        self.add_input('shape', val=np.zeros((self.mx, self.my)), units='m')
 
-        self.add_output('mesh', val=surface['mesh'])
+        self.add_output('mesh', val=surface['mesh'], units='m')
 
     def compute(self, inputs, outputs):
         surface = self.surface

@@ -45,10 +45,9 @@ class DisplacementTransfer(ExplicitComponent):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_input('mesh', val=np.random.rand(self.nx, self.ny, 3))
-        self.add_input('disp', val=np.random.rand(self.ny, 6))
-        self.add_output('def_mesh', val=np.random.rand(self.nx, self.ny, 3))
-
+        self.add_input('mesh', val=np.random.rand(self.nx, self.ny, 3), units='m')
+        self.add_input('disp', val=np.random.rand(self.ny, 6), units='m')
+        self.add_output('def_mesh', val=np.random.rand(self.nx, self.ny, 3), units='m')
 
         if not fortran_flag:
             self.approx_partials('*', '*')

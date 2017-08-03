@@ -28,7 +28,7 @@ class Geometry(Group):
                  promotes=['*'])
 
         indep_var_comp.add_output('twist', val=0.)
-        indep_var_comp.add_output('shape', val=np.zeros((surface['mx'] * surface['my'])))
+        indep_var_comp.add_output('shape', val=np.zeros((surface['mx'] * surface['my'])), units='m')
 
         bsp_inputs = []
 

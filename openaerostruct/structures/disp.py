@@ -42,9 +42,9 @@ class Disp(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('disp_aug', val=np.random.random_sample(((self.ny+1)*6)))
-        self.add_output('disp', val=np.random.random_sample((self.ny, 6)))
-        
+        self.add_input('disp_aug', val=np.random.random_sample(((self.ny+1)*6)), units='m')
+        self.add_output('disp', val=np.random.random_sample((self.ny, 6)), units='m')
+
         n = self.ny * 6
         disp_disp_aug = np.zeros((n, n+6))
         disp_disp_aug[:n, :n] = np.eye((n))

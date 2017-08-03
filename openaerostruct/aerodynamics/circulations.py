@@ -36,9 +36,9 @@ class Circulations(ImplicitComponent):
 
         self._lup = None
 
-        self.add_input('AIC', val=np.eye(size))
-        self.add_input('rhs', val=np.random.rand(size))
-        self.add_output('circulations', shape=size, val=.1)
+        self.add_input('AIC', val=np.eye(size), units='1/m')
+        self.add_input('rhs', val=np.random.rand(size), units='m/s')
+        self.add_output('circulations', shape=size, val=.1, units='m**2/s')
 
         size = self.metadata['size']
         row_col = np.arange(size, dtype="int")

@@ -35,9 +35,9 @@ class GeomMatch(ExplicitComponent):
         self.mx = self.metadata['mx']
         self.my = self.metadata['my']
         for i in range(self.n_points):
-            self.add_input(str(i) + '_shape', val=np.zeros((self.mx, self.my)))
+            self.add_input(str(i) + '_shape', val=np.zeros((self.mx, self.my)), units='m')
 
-        self.add_output('shape_diff', val=np.zeros((self.mx, self.my * (self.n_points - 1))))
+        self.add_output('shape_diff', val=np.zeros((self.mx, self.my * (self.n_points - 1))), units='m')
 
         self.approx_partials('*', '*')
 

@@ -26,8 +26,11 @@ class TotalDrag(ExplicitComponent):
 
         self.add_input('CDi', val=1.)
         self.add_input('CDv', val=1.)
+        
         self.add_output('CD', val=1.)
+
         self.CD0 = surface['CD0']
+
         self.declare_partials('CD', 'CDi', val=1.)
         self.declare_partials('CD', 'CDv', val=1.)
 

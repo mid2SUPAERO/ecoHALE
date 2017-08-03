@@ -91,17 +91,17 @@ class GeometryMesh(ExplicitComponent):
         if 'twist_cp' in surface.keys():
             self.add_input('twist', val=geo_params['twist'])
         if 'chord_cp' in surface.keys():
-            self.add_input('chord', val=geo_params['chord'])
+            self.add_input('chord', val=geo_params['chord'], units='m')
         if 'xshear_cp' in surface.keys():
-            self.add_input('xshear', val=geo_params['xshear'])
+            self.add_input('xshear', val=geo_params['xshear'], units='m')
         if 'yshear_cp' in surface.keys():
-            self.add_input('yshear', val=geo_params['yshear'])
+            self.add_input('yshear', val=geo_params['yshear'], units='m')
         if 'zshear_cp' in surface.keys():
-            self.add_input('zshear', val=geo_params['zshear'])
+            self.add_input('zshear', val=geo_params['zshear'], units='m')
 
         self.add_output('mesh', val=self.mesh)
         if 'struct' in surface['type']:
-            self.add_output('radius', val=np.zeros((ny - 1)))
+            self.add_output('radius', val=np.zeros((ny - 1)), units='m')
 
         self.symmetry = surface['symmetry']
 

@@ -48,13 +48,13 @@ class AssembleK(ExplicitComponent):
 
         self.size = size = 6 * self.ny + 6
 
-        self.add_input('A', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
-        self.add_input('Iy', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
-        self.add_input('Iz', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
-        self.add_input('J', val=np.random.rand((self.ny - 1)))#, dtype=data_type))
-        self.add_input('nodes', val=np.random.random_sample((self.ny, 3)))#, dtype=data_type))
+        self.add_input('A', val=np.random.rand((self.ny - 1)), units='m**2')#, dtype=data_type))
+        self.add_input('Iy', val=np.random.rand((self.ny - 1)), units='m**4')#, dtype=data_type))
+        self.add_input('Iz', val=np.random.rand((self.ny - 1)), units='m**4')#, dtype=data_type))
+        self.add_input('J', val=np.random.rand((self.ny - 1)), units='m**4')#, dtype=data_type))
+        self.add_input('nodes', val=np.random.random_sample((self.ny, 3)), units='m')#, dtype=data_type))
 
-        self.add_output('K', val=np.ones((size, size), dtype=data_type))
+        self.add_output('K', val=np.ones((size, size), dtype=data_type), units='N/m')
 
         # Get material properties from the surface dictionary
         self.E = surface['E']

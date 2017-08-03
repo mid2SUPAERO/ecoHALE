@@ -45,10 +45,10 @@ class LiftDrag(ExplicitComponent):
         nx = surface['num_x']
         self.num_panels = (nx - 1) * (ny - 1)
 
-        self.add_input('sec_forces', val=np.random.random((nx-1, ny-1, 3)))
+        self.add_input('sec_forces', val=np.random.random((nx-1, ny-1, 3)), units='N')
         self.add_input('alpha', val=3.)
-        self.add_output('L', val=0.)
-        self.add_output('D', val=0.)
+        self.add_output('L', val=0., units='N')
+        self.add_output('D', val=0., units='N')
 
     def compute(self, inputs, outputs):
         alpha = inputs['alpha'] * np.pi / 180.

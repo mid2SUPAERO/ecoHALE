@@ -45,9 +45,12 @@ class LoadTransfer(ExplicitComponent):
         self.nx = surface['num_x']
         self.fem_origin = surface['fem_origin']
 
-        self.add_input('def_mesh', val=np.ones((self.nx, self.ny, 3)))
-        self.add_input('sec_forces', val=np.ones((self.nx-1, self.ny-1, 3)))
-        self.add_output('loads', val=np.ones((self.ny, 6)))
+        self.add_input('def_mesh', val=np.ones((self.nx, self.ny, 3)), units='m')
+        self.add_input('sec_forces', val=np.ones((self.nx-1, self.ny-1, 3)), units='N')
+
+        # Well, technically the units of this load array are mixed.
+        # The first 3 indices are N and the last 3 are N*m.
+        self.add_output('loads', val=np.ones((self.ny, 6)), units='N')
 
         if not fortran_flag:
             self.approx_partials('*', '*')

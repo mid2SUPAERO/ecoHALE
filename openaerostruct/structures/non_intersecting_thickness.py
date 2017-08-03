@@ -42,9 +42,9 @@ class NonIntersectingThickness(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('thickness', val=np.random.rand((self.ny-1)))
-        self.add_input('radius', val=np.random.rand((self.ny-1)))
-        self.add_output('thickness_intersects', val=np.zeros((self.ny-1)))
+        self.add_input('thickness', val=np.random.rand((self.ny-1)), units='m')
+        self.add_input('radius', val=np.random.rand((self.ny-1)), units='m')
+        self.add_output('thickness_intersects', val=np.zeros((self.ny-1)), units='m')
 
         mat = np.eye(self.ny-1)
         self.declare_partials('thickness_intersects', 'thickness', val=mat)
