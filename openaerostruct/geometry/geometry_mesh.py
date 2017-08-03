@@ -99,7 +99,7 @@ class GeometryMesh(ExplicitComponent):
         if 'zshear_cp' in surface.keys():
             self.add_input('zshear', val=geo_params['zshear'], units='m')
 
-        self.add_output('mesh', val=self.mesh)
+        self.add_output('mesh', val=self.mesh, units='m')
         if 'struct' in surface['type']:
             self.add_output('radius', val=np.zeros((ny - 1)), units='m')
 

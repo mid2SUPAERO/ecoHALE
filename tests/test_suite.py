@@ -166,13 +166,13 @@ class TestAero(unittest.TestCase):
         prob = Problem()
 
         indep_var_comp = IndepVarComp()
-        indep_var_comp.add_output('v', val=248.136)
+        indep_var_comp.add_output('v', val=248.136, units='m/s')
         indep_var_comp.add_output('alpha', val=5.)
         indep_var_comp.add_output('M', val=0.84)
-        indep_var_comp.add_output('re', val=1.e6)
-        indep_var_comp.add_output('rho', val=0.38)
-        indep_var_comp.add_output('S_ref_total', val=0.)
-        indep_var_comp.add_output('cg', val=np.zeros((3)))
+        indep_var_comp.add_output('re', val=1.e6, units='1/m')
+        indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
+        indep_var_comp.add_output('S_ref_total', val=0., units='m**2')
+        indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
 
         prob.model.add_subsystem('prob_vars',
             indep_var_comp,
@@ -462,6 +462,7 @@ class TestStruct(unittest.TestCase):
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     't_over_c' : 0.15,      # maximum airfoil thickness
                     'thickness_cp' : np.ones((3)) * .1,
+                    'wing_weight_ratio' : 2.,
 
                     'exact_failure_constraint' : False,
                     }
@@ -480,7 +481,7 @@ class TestStruct(unittest.TestCase):
             ny = surface['num_y']
 
             indep_var_comp = IndepVarComp()
-            indep_var_comp.add_output('loads', val=np.ones(ny) * 2e5)
+            indep_var_comp.add_output('loads', val=np.ones(ny) * 2e5, units='N')
 
             struct_group = SpatialBeamAlone(surface=surface)
 
@@ -519,7 +520,7 @@ class TestStruct(unittest.TestCase):
         # prob.run_model()
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 462359.26746417052)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 924718.53492899518)
 
 
 
@@ -674,6 +675,7 @@ class TestAeroStruct(unittest.TestCase):
                     'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
+                    'wing_weight_ratio' : 2.,
 
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
@@ -691,17 +693,17 @@ class TestAeroStruct(unittest.TestCase):
 
         # Add problem information as an independent variables component
         indep_var_comp = IndepVarComp()
-        indep_var_comp.add_output('v', val=248.136)
+        indep_var_comp.add_output('v', val=248.136, units='m/s')
         indep_var_comp.add_output('alpha', val=5.)
         indep_var_comp.add_output('M', val=0.84)
-        indep_var_comp.add_output('re', val=1.e6)
-        indep_var_comp.add_output('rho', val=0.38)
-        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6)
-        indep_var_comp.add_output('R', val=11.165e6)
-        indep_var_comp.add_output('W0', val=0.4 * 3e5)
-        indep_var_comp.add_output('a', val=295.4)
+        indep_var_comp.add_output('re', val=1.e6, units='1/m')
+        indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
+        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
+        indep_var_comp.add_output('R', val=11.165e6, units='m')
+        indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
+        indep_var_comp.add_output('a', val=295.4, units='m/s')
         indep_var_comp.add_output('load_factor', val=1.)
-        indep_var_comp.add_output('empty_cg', val=np.zeros((3)))
+        indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 
         prob.model.add_subsystem('prob_vars',
              indep_var_comp,
@@ -786,7 +788,7 @@ class TestAeroStruct(unittest.TestCase):
 
         # prob.check_partials(compact_print=True)
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 96858.345415124655)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 103784.67761759525)
 
 #
     # if fortran_flag:

@@ -116,8 +116,14 @@ class Bsplines(ExplicitComponent):
 
         meta['jac'] = get_bspline_mtx(meta['num_cp'], meta['num_pt'], order=min(meta['num_cp'], 4))
 
-        self.add_input(meta['in_name'], val=np.random.random(meta['num_cp']))
-        self.add_output(meta['out_name'], val=np.random.random(meta['num_pt']))
+        # Add the correct units; all bspline quantities are in m except twist
+        if 'twist' in meta['in_name']:
+            units = None
+        else:
+            units = 'm'
+
+        self.add_input(meta['in_name'], val=np.random.random(meta['num_cp']), units=units)
+        self.add_output(meta['out_name'], val=np.random.random(meta['num_pt']), units=units)
 
         meta = self.metadata
 

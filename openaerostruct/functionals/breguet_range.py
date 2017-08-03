@@ -42,7 +42,7 @@ class BreguetRange(ExplicitComponent):
     def setup(self):
         for surface in self.metadata['surfaces']:
             name = surface['name']
-            self.add_input(name + '_structural_weight', val=1.)
+            self.add_input(name + '_structural_weight', val=1., units='N')
 
         self.add_input('CT', val=1., units='1/s')
         self.add_input('CL', val=1.)

@@ -53,7 +53,7 @@ class Weight(ExplicitComponent):
         # Calculate the volume and weight of the structure
         element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
         volume = np.sum(element_volumes)
-        weight = volume * self.surface['mrho'] * 9.81
+        weight = volume * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio']
 
         # Calculate the center-of-gravity location of the spar elements only
         center_of_elements = (nodes[1:, :] + nodes[:-1, :]) / 2.
@@ -78,7 +78,7 @@ class Weight(ExplicitComponent):
         norms = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
 
         # Multiply by the material density and force of gravity
-        dweight_dA = norms * self.surface['mrho'] * 9.81
+        dweight_dA = norms * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio']
 
         # Account for symmetry
         if self.surface['symmetry']:
@@ -96,7 +96,7 @@ class Weight(ExplicitComponent):
         nodesb[:-1, :] -= tempb
 
         # Apply the multipliers for material properties and symmetry
-        nodesb *= self.surface['mrho'] * 9.81
+        nodesb *= self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio']
 
         if self.surface['symmetry']:
             nodesb *= 2.

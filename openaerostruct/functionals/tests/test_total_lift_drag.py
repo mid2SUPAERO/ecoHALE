@@ -34,7 +34,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
 
-        indep_var_comp.add_output('S_ref_total', val=10.)
+        indep_var_comp.add_output('S_ref_total', val=10., units='m**2')
 
         group.add_subsystem('moment_calc', comp)
         group.add_subsystem('indep_var_comp', indep_var_comp)

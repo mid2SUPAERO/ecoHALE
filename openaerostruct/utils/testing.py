@@ -42,6 +42,8 @@ def get_default_surfaces():
                  'mrho' : 3.e3,          # [kg/m^3] material density
                  'fem_origin' : 0.35,    # normalized chordwise location of the spar
                  't_over_c' : 0.15,      # maximum airfoil thickness
+                 'wing_weight_ratio' : 2.,
+
                  }
 
     tail_dict = {'name' : 'tail',

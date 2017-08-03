@@ -93,7 +93,7 @@ class Geometry(Group):
             promotes_outputs=mesh_promotes)
 
         if surface['type'] == 'aero':
-            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)))
+            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)), units='m')
             self.add_subsystem('def_mesh',
                 DisplacementTransfer(surface=surface),
                 promotes_inputs=['disp', 'mesh'],
