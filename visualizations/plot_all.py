@@ -28,6 +28,7 @@ else:
 
 from six import iteritems
 import numpy as np
+from openmdao.recorders.sqlite_reader import SqliteCaseReader
 
 try:
     import matplotlib
@@ -100,7 +101,13 @@ class Display(object):
             self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
-        self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
+        self.db = SqliteCaseReader(self.db_name)
+        print(dir(self.db.driver_cases))
+        print(self.db.driver_cases.get_case(0).desvars)
+
+
+        exit()
+        # self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
 
         self.twist = []
         self.mesh = []

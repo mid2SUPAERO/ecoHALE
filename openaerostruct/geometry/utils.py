@@ -462,7 +462,6 @@ def gen_crm_mesh(num_x, num_y, span_cos_spacing=0., chord_cos_spacing=0., wing_t
     # If this is a jig shape, remove all z-deflection to create a
     # poor person's version of the undeformed CRM.
     if 'jig' in wing_type or 'CRM' == wing_type:
-        print('jig!')
         raw_crm_points[:, 3] = 0.
 
     # Get the leading edge of the raw crm points
@@ -608,7 +607,7 @@ def get_default_geo_dict():
                 # Wing definition
                 'num_x' : 3,            # number of chordwise points
                 'num_y' : 5,            # number of spanwise points
-                'span_cos_spacing' : 1, # 0 for uniform spanwise panels
+                'span_cos_spacing' : 0, # 0 for uniform spanwise panels
                                         # 1 for cosine-spaced panels
                                         # any value between 0 and 1 for
                                         # a mixed spacing

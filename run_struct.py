@@ -7,13 +7,13 @@ from openaerostruct.structures.struct_groups import SpatialBeamAlone
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.geometry_group import Geometry
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer, SqliteRecorder#, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
 
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 7,
+mesh_dict = {'num_y' : 5,
              'wing_type' : 'CRM',
              'symmetry' : True,
              'num_twist_cp' : 5}
@@ -35,6 +35,7 @@ surf_dict = {
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
             't_over_c' : 0.15,      # maximum airfoil thickness
             'thickness_cp' : np.ones((3)) * .1,
+            'wing_weight_ratio' : 2.,
 
             'exact_failure_constraint' : False,
             }
@@ -82,6 +83,15 @@ prob.model.add_constraint('wing.thickness_intersects', upper=0.)
 
 # Add design variables, constraisnt, and objective on the problem
 prob.model.add_objective('wing.structural_weight', scaler=1e-4)
+
+import os
+os.remove('struct.db')
+recorder = SqliteRecorder('struct.db')
+recorder.options['record_desvars'] = True
+# recorder.options['record_responses'] = False
+recorder.options['record_objectives'] = True
+recorder.options['record_metadata'] = True
+prob.driver.add_recorder(recorder)
 
 # Set up the problem
 prob.setup()
