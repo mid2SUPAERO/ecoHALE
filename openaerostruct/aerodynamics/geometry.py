@@ -54,6 +54,7 @@ class VLMGeometry(ExplicitComponent):
         self.add_output('c_pts', val=np.random.random((self.nx-1, self.ny-1, 3)), units='m')
         self.add_output('widths', val=np.random.random((self.ny-1)), units='m')
         self.add_output('cos_sweep', val=np.random.random((self.ny-1)), units='m')
+
         self.add_output('lengths', val=np.random.random((self.ny)), units='m')
         self.add_output('chords', val=np.random.random((self.ny)), units='m')
         self.add_output('normals', val=np.random.random((self.nx-1, self.ny-1, 3)))
@@ -147,6 +148,23 @@ class VLMGeometry(ExplicitComponent):
         """ Jacobian for VLM geometry."""
 
         mesh = inputs['def_mesh']
+
+        # Compute the bound points at quarter-chord
+        b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
+
+        # Compute the collocation points at the midpoints of each
+        # panel's 3/4 chord line
+        c_pts = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
+                0.5 * 0.75 * mesh[1:, :-1, :] + \
+                0.5 * 0.25 * mesh[:-1,  1:, :] + \
+                0.5 * 0.75 * mesh[1:,  1:, :]
+
+        # Compute the widths of each panel at the quarter-chord line
+        quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
+        widths = np.linalg.norm(quarter_chord[1:, :] - quarter_chord[:-1, :], axis=1)
+
+        # Compute the cosine of the sweep angle of each panel
+        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1) / widths
 
         nx = self.surface['num_x']
         ny = self.surface['num_y']

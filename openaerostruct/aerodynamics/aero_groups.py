@@ -19,6 +19,7 @@ class AeroPoint(Group):
             self.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
             self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
             self.connect(name + '.normals', 'aero_states.' + name + '_normals')
+            self.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
 
             # Connect the results from 'aero_states' to the performance groups
             self.connect('aero_states.' + name + '_sec_forces', name + '_perf' + '.sec_forces')
@@ -50,7 +51,7 @@ class AeroPoint(Group):
         aero_states.linear_solver = LinearRunOnce()
         self.add_subsystem('aero_states',
                  aero_states,
-                 promotes_inputs=['v', 'alpha', 'rho'], promotes_outputs=['circulations'])
+                 promotes_inputs=['v', 'alpha', 'rho', 'M'], promotes_outputs=['circulations'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.

@@ -129,10 +129,10 @@ prob.setup()
 
 view_model(prob, outfile='aero.html', show_browser=False)
 
-# prob.run_model()
-prob.run_driver()
+prob.run_model()
+# prob.run_driver()
 
-# prob.check_partials(compact_print=True)
+prob.check_partials(compact_print=True)
 
 print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
 print("Wing CD:", prob['aero_point_0.wing_perf.CD'])

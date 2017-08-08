@@ -20,11 +20,6 @@ from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterat
 from openmdao.api import view_model
 from six import iteritems
 
-# Append the parent directory to the system path so we can call those Python
-# files. If you have OpenAeroStruct in your PYTHONPATH, this is not necessary.
-from os import sys, path
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
 try:
     from openaerostruct.fortran import OAS_API
     fortran_flag = True
