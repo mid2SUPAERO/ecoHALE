@@ -94,17 +94,17 @@ class ViscousDrag(ExplicitComponent):
             cd = (cdlam_tr - cdturb_tr)*self.k_lam + cdturb_total
 
             # Multiply by section width to get total normalized drag for section
-            self.d_over_q = 2 * cd * chords
+            d_over_q = 2 * cd * chords
 
             # Calculate form factor (Raymer Eq. 12.30)
-            self.k_FF = 1.34 * M**0.18 * \
+            k_FF = 1.34 * M**0.18 * \
                 (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
-            FF = self.k_FF * cos_sweep**0.28
+            FF = k_FF * cos_sweep**0.28
 
             # Sum individual panel drags to get total drag
-            self.D_over_q = np.sum(self.d_over_q * widths * FF)
+            D_over_q = np.sum(d_over_q * widths * FF)
 
-            outputs['CDv'] = self.D_over_q / S_ref
+            outputs['CDv'] = D_over_q / S_ref
 
             if self.surface['symmetry']:
                 outputs['CDv'] *= 2
@@ -126,9 +126,38 @@ class ViscousDrag(ExplicitComponent):
             lengths = inputs['lengths']
             cos_sweep = inputs['cos_sweep'] / widths
 
-            B = (1. + 0.144*M**2)**0.65
+            # Take panel chord length to be average of its edge lengths
+            chords = (lengths[1:] + lengths[:-1]) / 2.
+            Re_c = re * chords
 
-            FF = self.k_FF * cos_sweep**0.28
+            cdturb_total = 0.455 / (np.log10(Re_c))**2.58 / \
+                (1.0 + 0.144*M**2)**0.65
+            cdlam_tr = 1.328 / np.sqrt(Re_c * self.k_lam)
+
+            # Use eq. 12.27 of Raymer for turbulent Cf
+            if self.k_lam == 0:
+                cdlam_tr = 0.
+                cd = cdturb_total
+
+            elif self.k_lam < 1.0:
+                cdturb_tr = 0.455 / (np.log10(Re_c*self.k_lam))**2.58 / \
+                    (1.0 + 0.144*M**2)**0.65
+
+            else:
+                cdturb_total = 0.
+
+            cd = (cdlam_tr - cdturb_tr)*self.k_lam + cdturb_total
+
+            # Multiply by section width to get total normalized drag for section
+            d_over_q = 2 * cd * chords
+
+            # Calculate form factor (Raymer Eq. 12.30)
+            k_FF = 1.34 * M**0.18 * \
+                (1.0 + 0.6*self.t_over_c/self.c_max_t + 100*self.t_over_c**4)
+            FF = k_FF * cos_sweep**0.28
+
+            # Sum individual panel drags to get total drag
+            D_over_q = np.sum(d_over_q * widths * FF)
 
             chords = (lengths[1:] + lengths[:-1]) / 2.
             Re_c = re * chords
@@ -136,6 +165,8 @@ class ViscousDrag(ExplicitComponent):
             cdl_Re = 0.0
             cdt_Re = 0.0
             cdT_Re = 0.0
+
+            B = (1. + 0.144*M**2)**0.65
 
             if self.k_lam == 0:
                 cdT_Re = 0.455/(np.log10(Re_c))**3.58/B * \
@@ -153,12 +184,12 @@ class ViscousDrag(ExplicitComponent):
             cd_Re = (cdl_Re - cdt_Re)*self.k_lam + cdT_Re
 
             CDv_lengths = 2 * widths * FF / S_ref * \
-                (self.d_over_q / 4 / chords + chords * cd_Re * re / 2.)
+                (d_over_q / 4 / chords + chords * cd_Re * re / 2.)
             partials['CDv', 'lengths'][0, 1:] += CDv_lengths
             partials['CDv', 'lengths'][0, :-1] += CDv_lengths
-            partials['CDv', 'widths'][0, :] = self.d_over_q * FF / S_ref * 0.72
-            partials['CDv', 'S_ref'] = - self.D_over_q / S_ref**2
-            partials['CDv', 'cos_sweep'][0, :] = 0.28 * self.k_FF * self.d_over_q / S_ref / cos_sweep**0.72
+            partials['CDv', 'widths'][0, :] = d_over_q * FF / S_ref * 0.72
+            partials['CDv', 'S_ref'] = - D_over_q / S_ref**2
+            partials['CDv', 'cos_sweep'][0, :] = 0.28 * k_FF * d_over_q / S_ref / cos_sweep**0.72
 
             if self.surface['symmetry']:
                 partials['CDv', 'lengths'][0, :] *=  2

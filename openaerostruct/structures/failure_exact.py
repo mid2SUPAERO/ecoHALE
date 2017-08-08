@@ -39,8 +39,7 @@ class FailureExact(ExplicitComponent):
         self.add_input('vonmises', val=np.random.random_sample((self.ny-1, 2)), units='N/m**2')
         self.add_output('failure', val=np.zeros((self.ny-1, 2)))
 
+        self.declare_partials('failure', 'vonmises', val=np.eye(((self.ny-1)*2)) / self.sigma)
+
     def compute(self, inputs, outputs):
         outputs['failure'] = inputs['vonmises'] / self.sigma - 1
-
-    def compute_partials(self, inputs, partials):
-        partials['failure', 'vonmises'] = np.eye(((self.ny-1)*2)) / self.sigma

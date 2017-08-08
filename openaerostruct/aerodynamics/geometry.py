@@ -147,31 +147,13 @@ class VLMGeometry(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         """ Jacobian for VLM geometry."""
 
+        nx = self.nx
+        ny = self.ny
         mesh = inputs['def_mesh']
-
-        # Compute the bound points at quarter-chord
-        b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
-
-        # Compute the collocation points at the midpoints of each
-        # panel's 3/4 chord line
-        c_pts = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
-                0.5 * 0.75 * mesh[1:, :-1, :] + \
-                0.5 * 0.25 * mesh[:-1,  1:, :] + \
-                0.5 * 0.75 * mesh[1:,  1:, :]
-
-        # Compute the widths of each panel at the quarter-chord line
-        quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
-        widths = np.linalg.norm(quarter_chord[1:, :] - quarter_chord[:-1, :], axis=1)
-
-        # Compute the cosine of the sweep angle of each panel
-        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1)
-
-        nx = self.surface['num_x']
-        ny = self.surface['num_y']
 
         if fortran_flag:
 
-            normalsb = np.zeros((self.nx-1, self.ny-1, 3))
+            normalsb = np.zeros((nx-1, ny-1, 3))
             for i in range(nx-1):
                 for j in range(ny-1):
                     for ind in range(3):
@@ -201,17 +183,23 @@ class VLMGeometry(ExplicitComponent):
                 np.fill_diagonal(partials['c_pts', 'def_mesh']
                     [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
 
+        # Compute the widths of each panel at the quarter-chord line
+        quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
+        widths = np.linalg.norm(quarter_chord[1:, :] - quarter_chord[:-1, :], axis=1)
+
+        # Compute the cosine of the sweep angle of each panel
+        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1)
+
         partials['widths', 'def_mesh'] = np.zeros_like(partials['widths', 'def_mesh'])
         partials['cos_sweep', 'def_mesh'] = np.zeros_like(partials['cos_sweep', 'def_mesh'])
-        qc = 0.25 * mesh[-1] + 0.75 * mesh[0]
         gap = [0, (nx-1)*ny*3]
         factor = [0.75, 0.25]
         for i in range(ny-1):
             w = widths[i]
             cos_sweep = cos_sweep_array[i]
-            dx = (qc[i+1, 0] - qc[i, 0])
-            dy = (qc[i+1, 1] - qc[i, 1])
-            dz = (qc[i+1, 2] - qc[i, 2])
+            dx = (quarter_chord[i+1, 0] - quarter_chord[i, 0])
+            dy = (quarter_chord[i+1, 1] - quarter_chord[i, 1])
+            dz = (quarter_chord[i+1, 2] - quarter_chord[i, 2])
             for j in range(2):
                 partials['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
                 partials['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w

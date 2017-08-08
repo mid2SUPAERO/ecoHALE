@@ -119,8 +119,6 @@ class VonMisesTube(ExplicitComponent):
                     disp = inputs['disp']
                     nodes = inputs['nodes']
 
-                    self.compute(inputs, {})
-
                     E = self.E
                     G = self.G
                     x_gl = self.x_gl

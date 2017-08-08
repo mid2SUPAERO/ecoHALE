@@ -120,7 +120,6 @@ class BreguetRange(ExplicitComponent):
         partials['fuelburn', 'W0'] = dfb_dW
         partials['fuelburn', 'load_factor'] = - Ws * dfb_dW / 9.80665 / inputs['load_factor']**2
 
-
         for surface in self.metadata['surfaces']:
             name = surface['name']
             inp_name = name + '_structural_weight'

@@ -138,6 +138,27 @@ class Forces(ExplicitComponent):
     if fortran_flag:
         if 0:
             def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
+                circ = inputs['circulations']
+                alpha = inputs['alpha'] * np.pi / 180.
+                rho = inputs['rho']
+                cosa = np.cos(alpha)
+                sina = np.sin(alpha)
+
+                # Assemble a different matrix here than the AIC_mtx from above; Note
+                # that the collocation points used here are the midpoints of each
+                # bound vortex filament, not the collocation points from above
+                _assemble_AIC_mtx(self.mtx, inputs, self.surfaces, skip=True)
+
+                # Compute the induced velocities at the midpoints of the
+                # bound vortex filaments
+                for ind in range(3):
+                    self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
+
+                # Add the freestream velocity to the induced velocity so that
+                # self.v is the total velocity seen at the point
+                self.v[:, 0] += cosa * inputs['v']
+                self.v[:, 2] += sina * inputs['v']
+
                 if mode == 'fwd':
 
                     circ = inputs['circulations']
@@ -271,6 +292,26 @@ class Forces(ExplicitComponent):
 
         else:
             def compute_partials(self, inputs, partials):
+                circ = inputs['circulations']
+                alpha = inputs['alpha'] * np.pi / 180.
+                rho = inputs['rho']
+                cosa = np.cos(alpha)
+                sina = np.sin(alpha)
+
+                # Assemble a different matrix here than the AIC_mtx from above; Note
+                # that the collocation points used here are the midpoints of each
+                # bound vortex filament, not the collocation points from above
+                _assemble_AIC_mtx(self.mtx, inputs, self.surfaces, skip=True)
+
+                # Compute the induced velocities at the midpoints of the
+                # bound vortex filaments
+                for ind in range(3):
+                    self.v[:, ind] = self.mtx[:, :, ind].dot(circ)
+
+                # Add the freestream velocity to the induced velocity so that
+                # self.v is the total velocity seen at the point
+                self.v[:, 0] += cosa * inputs['v']
+                self.v[:, 2] += sina * inputs['v']
 
                 for surface in self.surfaces:
 
