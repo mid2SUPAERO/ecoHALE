@@ -171,7 +171,11 @@ class AerostructPoint(Group):
 
         coupled.jacobian = DenseJacobian()
         coupled.linear_solver = DirectSolver()
-        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=False)
+        coupled.nonlinear_solver.options['iprint'] = 2
+        coupled.nonlinear_solver.options['maxiter'] = 1
+
+
 
         # # 1. GS without aitken:
         # print('1')

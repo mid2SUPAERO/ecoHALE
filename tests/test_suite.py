@@ -778,10 +778,10 @@ class TestAeroStruct(unittest.TestCase):
         # Save an N2 diagram for the problem
         view_model(prob, outfile='aerostruct.html', show_browser=False)
 
-        # prob.run_model()
-        prob.run_driver()
+        prob.run_model()
+        # prob.run_driver()
 
-        # prob.check_partials(compact_print=True)
+        prob.check_partials(compact_print=True)
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104535.72523321533)
 

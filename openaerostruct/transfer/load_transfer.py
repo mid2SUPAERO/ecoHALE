@@ -96,6 +96,8 @@ class LoadTransfer(ExplicitComponent):
     if fortran_flag:
         def compute_partials(self, inputs, partials):
 
+            self.compute(inputs, {})
+
             ny = self.surface['num_y']
             d_loads = np.zeros((ny, 6))
 
