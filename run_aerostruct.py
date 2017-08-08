@@ -6,7 +6,8 @@ from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer
+from openmdao.devtools import iprofile# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 
 # Create a dictionary to store options about the surface
@@ -45,6 +46,7 @@ surf_dict = {
             'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                     # thickness
             'with_viscous' : True,
+            'wing_weight_ratio' : 1.,
 
             # Structural values are based on aluminum 7075
             'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -71,7 +73,7 @@ prob = Problem()
 indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=248.136)
 indep_var_comp.add_output('alpha', val=5.)
-indep_var_comp.add_output('M', val=0.84)
+indep_var_comp.add_output('M', val=0.1)
 indep_var_comp.add_output('re', val=1.e6)
 indep_var_comp.add_output('rho', val=0.38)
 indep_var_comp.add_output('CT', val=9.80665 * 17.e-6)
@@ -156,12 +158,15 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 # Set up the problem
 prob.setup()
 
+# iprofile.setup()
+# iprofile.start()
+
 # Save an N2 diagram for the problem
 view_model(prob, outfile='aerostruct.html', show_browser=False)
 
-# prob.run_model()
-prob.run_driver()
+prob.run_model()
+# prob.run_driver()
 
-# prob.check_partials(compact_print=True)
+prob.check_partials(compact_print=True)
 
 print("\nFuelburn", prob['AS_point_0.fuelburn'])

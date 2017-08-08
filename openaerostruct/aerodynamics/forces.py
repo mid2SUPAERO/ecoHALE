@@ -13,6 +13,8 @@ except:
     fortran_flag = False
     data_type = complex
 
+compressible = False
+
 def view_mat(mat):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
@@ -69,25 +71,24 @@ class Forces(ExplicitComponent):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-            self.add_input(name + '_def_mesh', val=np.random.random_sample((nx, ny, 3)), units='m')#, dtype=data_type))            # self.add_input(name + '_cos_sweep', val=np.random.rand((ny-1)), units='m')
-            self.add_input(name + '_b_pts', val=np.random.random_sample((nx-1, ny, 3)), units='m')#, dtype=data_type))
-            self.add_input(name + '_cos_sweep', val=np.random.random_sample((ny-1)), units='m')#, dtype=data_type))
-            self.add_input(name + '_widths', val=np.random.random_sample((ny-1)), units='m')#, dtype=data_type))
+            self.add_input(name + '_def_mesh', val=np.random.random_sample((nx, ny, 3)), units='m')#, dtype=data_type))            self.add_input(name + '_b_pts', val=np.random.random_sample((nx-1, ny, 3)), units='m')#, dtype=data_type))
+            self.add_input(name + '_cos_sweep', val=np.zeros((ny-1)), units='m')#, dtype=data_type))
+            self.add_input(name + '_widths', val=np.ones((ny-1)), units='m')#, dtype=data_type))
             self.add_output(name + '_sec_forces', val=np.zeros((nx-1, ny-1, 3)), units='N')#, dtype=data_type))
 
         self.tot_panels = tot_panels
 
         self.add_input('circulations', val=np.random.rand((tot_panels)), units='m**2/s')
         self.add_input('alpha', val=3.)
-        self.add_input('M', val=0.)
+        self.add_input('M', val=0.1)
         self.add_input('v', val=10., units='m/s')
         self.add_input('rho', val=3., units='kg/m**3')
 
         self.mtx = np.zeros((tot_panels, tot_panels, 3), dtype=data_type)
         self.v = np.zeros((tot_panels, 3), dtype=data_type)
 
-        # if not fortran_flag:
-        self.approx_partials('*', '*')
+        if not fortran_flag:
+            self.approx_partials('*', '*')
 
     def compute(self, inputs, outputs):
         circ = inputs['circulations']
@@ -139,13 +140,16 @@ class Forces(ExplicitComponent):
                         (inputs['rho'] * circ[i:i+num_panels] * cross[:, ind])
 
             # Reshape the forces into the expected form
-            outputs[name + '_sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
+            forces = sec_forces.reshape((nx-1, ny-1, 3), order='F')
 
             sweep_angle = inputs[name + '_cos_sweep'] / inputs[name + '_widths']
             beta = np.sqrt(1 - inputs['M']**2 * sweep_angle**2)
 
-            for i, B in enumerate(beta):
-                outputs[name + '_sec_forces'][:, i, :] /= B
+            if not compressible:
+                beta[:] = 1.
+
+            for j, B in enumerate(beta):
+                outputs[name + '_sec_forces'][:, j, :] = forces[:, j, :] / B
 
             i += num_panels
 
@@ -339,8 +343,6 @@ class Forces(ExplicitComponent):
 
                     b_pts = inputs[name + '_b_pts']
 
-                    print(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
-
                     sec_forces = OAS_API.oas_api.forcecalc(self.v[i:i+num_panels, :], circ[i:i+num_panels], rho, b_pts)
 
                     # Reshape the forces into the expected form
@@ -359,6 +361,9 @@ class Forces(ExplicitComponent):
                     sweep_angle = inputs[name + '_cos_sweep'] / inputs[name + '_widths']
                     beta = np.sqrt(1 - inputs['M']**2 * sweep_angle**2)
 
+                    if not compressible:
+                        beta[:] = 1.
+
                     for k, val in enumerate(sec_forcesb.flatten()):
                         for key in inputs:
                             d_inputs[key] = inputs[key].copy()
@@ -371,8 +376,6 @@ class Forces(ExplicitComponent):
 
                         for i, B in enumerate(beta):
                             sec_forcesb[:, i, :] /= B
-
-
 
                         sec_forcesb = sec_forcesb.reshape((-1, 3), order='F')
 
@@ -430,21 +433,28 @@ class Forces(ExplicitComponent):
                         for key in d_inputs:
                             partials[name + '_sec_forces', key][k, :] = d_inputs[key].flatten()
 
-                    M = inputs['M']
-                    S = inputs[name + '_cos_sweep']
-                    X = not_real_outputs[name + '_sec_forces']
-                    W = inputs[name + '_widths']
-                    d_M = np.zeros((ny-1, 3))
-                    d_S = np.zeros((ny-1, 3))
-                    d_W = np.zeros((ny-1, 3))
-                    for ind in range(3):
-                        d_M[:, ind] = (M * S**2 * X[:, :, ind]) / (W**2 * (1 - (M**2 * S**2) / W**2)**1.5)
-                        d_S[:, ind] = (M**2 * S * X[:, :, ind]) / (W**2 * (1 - (M**2 * S**2) / W**2)**1.5)
-                        d_W[:, ind] = (M**2 * S**2 * X[:, :, ind]) / (W**3 * (1 - (M**2 * S**2) / W**2)**1.5)
+                    if compressible:
 
-                    partials[name + '_sec_forces', 'M'] = d_M.flatten()
+                        M = inputs['M']
+                        S = inputs[name + '_cos_sweep']
+                        X = not_real_outputs[name + '_sec_forces']
+                        W = inputs[name + '_widths']
+                        nx = surface['num_x']
+                        ny = surface['num_y']
+                        d_M = np.zeros((nx-1, ny-1, 3))
+                        d_S = np.zeros((nx-1, ny-1, 3))
+                        d_W = np.zeros((nx-1, ny-1, 3))
+                        for ix in range(nx-1):
+                            for ind in range(3):
+                                d_M[ix, :, ind] = (M * S**2 * X[ix, :, ind]) / (W**2 * (1 - (M**2 * S**2) / W**2)**1.5)
+                                d_S[ix, :, ind] = (M**2 * S * X[ix, :, ind]) / (W**2 * (1 - (M**2 * S**2) / W**2)**1.5)
+                                d_W[ix, :, ind] = (M**2 * S**2 * X[ix, :, ind]) / (W**3 * (1 - (M**2 * S**2) / W**2)**1.5)
 
-                    for i in range(ny-1):
-                        for ind in range(3):
-                            partials[name + '_sec_forces', name + '_cos_sweep'][3*i:3*(i+1), i][ind] = d_S[i, ind]
-                            partials[name + '_sec_forces', name + '_widths'][3*i:3*(i+1), i][ind] = -d_W[i, ind]
+                        partials[name + '_sec_forces', 'M'] = d_M.flatten()
+
+                        ny3 = (ny-1) * 3
+                        for i in range(ny-1):
+                            for ix in range(nx-1):
+                                for ind in range(3):
+                                    partials[name + '_sec_forces', name + '_cos_sweep'][3*i+ix*ny3:3*(i+1)+ix*ny3, i][ind] = d_S[ix, i, ind]
+                                    partials[name + '_sec_forces', name + '_widths'][3*i+ix*ny3:3*(i+1)+ix*ny3, i][ind] = -d_W[ix, i, ind]

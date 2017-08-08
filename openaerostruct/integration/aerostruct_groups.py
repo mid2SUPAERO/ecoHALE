@@ -106,6 +106,8 @@ class AerostructPoint(Group):
             coupled.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
             coupled.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
             coupled.connect(name + '.normals', 'aero_states.' + name + '_normals')
+            coupled.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
+            coupled.connect(name + '.widths', 'aero_states.' + name + '_widths')
 
             # Connect the results from 'coupled' to the performance groups
             coupled.connect(name + '.def_mesh', name + '_loads.def_mesh')
@@ -152,7 +154,7 @@ class AerostructPoint(Group):
         # coupled group.
         coupled.add_subsystem('aero_states',
             VLMStates(surfaces=surfaces),
-            promotes_inputs=['v', 'alpha', 'rho'])
+            promotes_inputs=['v', 'alpha', 'rho', 'M'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.
@@ -163,18 +165,17 @@ class AerostructPoint(Group):
             coupled.add_subsystem(name + '_loads', LoadTransfer(surface=surface))
 
         # Set solver properties for the coupled group
-        coupled.linear_solver = ScipyIterativeSolver()
-        coupled.linear_solver.precon = LinearRunOnce()
+        # coupled.linear_solver = ScipyIterativeSolver()
+        # coupled.linear_solver.precon = LinearRunOnce()
 
         coupled.nonlinear_solver = NonlinearBlockGS()
         coupled.nonlinear_solver.options['maxiter'] = 20
 
         coupled.jacobian = DenseJacobian()
         coupled.linear_solver = DirectSolver()
-        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=False)
-        coupled.nonlinear_solver.options['iprint'] = 2
-        coupled.nonlinear_solver.options['maxiter'] = 1
-
+        # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+        # coupled.nonlinear_solver.options['iprint'] = 2
+        # coupled.nonlinear_solver.options['maxiter'] = 4
 
 
         # # 1. GS without aitken:
@@ -244,7 +245,7 @@ class AerostructPoint(Group):
         # coupled.nonlinear_solver.options['iprint'] = 2
 
         # Add the coupled group to the model problem
-        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho'])
+        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho', 'M'])
 
         for surface in surfaces:
             name = surface['name']
