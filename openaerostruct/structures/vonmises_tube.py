@@ -60,7 +60,6 @@ class VonMisesTube(ExplicitComponent):
         radius = inputs['radius']
         disp = inputs['disp']
         nodes = inputs['nodes']
-        vonmises = outputs['vonmises']
         T = self.T
         E = self.E
         G = self.G
@@ -97,43 +96,42 @@ class VonMisesTube(ExplicitComponent):
                 sxx1 = E * (u0x - u1x) / L + E * radius[ielem] / L * tmp
                 sxt = G * radius[ielem] * (r1x - r0x) / L
 
-                vonmises[ielem, 0] = np.sqrt(sxx0**2 + sxt**2)
-                vonmises[ielem, 1] = np.sqrt(sxx1**2 + sxt**2)
+                outputs['vonmises'][ielem, 0] = np.sqrt(sxx0**2 + sxt**2)
+                outputs['vonmises'][ielem, 1] = np.sqrt(sxx1**2 + sxt**2)
 
 
+    if fortran_flag:
+        def compute_partials(self, inputs, partials):
 
-    def compute_partials(self, inputs, outputs, partials):
+            for param in inputs:
 
-        for param in inputs:
+                d_inputs = {}
+                d_inputs[param] = inputs[param].copy()
+                d_outputs = {}
 
-            d_inputs = {}
-            d_inputs[param] = inputs[param].copy()
-            d_outputs = {}
+                for j, val in enumerate(np.array(d_inputs[param]).flatten()):
+                    d_in_b = np.array(d_inputs[param]).flatten()
+                    d_in_b[:] = 0.
+                    d_in_b[j] = 1.
+                    d_inputs[param] = d_in_b.reshape(d_inputs[param].shape)
 
-            for j, val in enumerate(np.array(d_inputs[param]).flatten()):
-                d_in_b = np.array(d_inputs[param]).flatten()
-                d_in_b[:] = 0.
-                d_in_b[j] = 1.
-                d_inputs[param] = d_in_b.reshape(d_inputs[param].shape)
+                    radius = inputs['radius']
+                    disp = inputs['disp']
+                    nodes = inputs['nodes']
 
-                radius = inputs['radius']
-                disp = inputs['disp']
-                nodes = inputs['nodes']
+                    self.compute(inputs, {})
 
-                self.compute(inputs, outputs)
-                vonmises = outputs['vonmises']
+                    E = self.E
+                    G = self.G
+                    x_gl = self.x_gl
 
-                E = self.E
-                G = self.G
-                x_gl = self.x_gl
+                    if 'nodes' not in d_inputs:
+                        d_inputs['nodes'] = inputs['nodes'] * 0
+                    if 'radius' not in d_inputs:
+                        d_inputs['radius'] = inputs['radius'] * 0
+                    if 'disp' not in d_inputs:
+                        d_inputs['disp'] = inputs['disp'] * 0
 
-                if 'nodes' not in d_inputs:
-                    d_inputs['nodes'] = inputs['nodes'] * 0
-                if 'radius' not in d_inputs:
-                    d_inputs['radius'] = inputs['radius'] * 0
-                if 'disp' not in d_inputs:
-                    d_inputs['disp'] = inputs['disp'] * 0
+                    _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(nodes, d_inputs['nodes'], radius, d_inputs['radius'], disp, d_inputs['disp'], E, G, x_gl)
 
-                _, vonmisesd = OAS_API.oas_api.calc_vonmises_d(nodes, d_inputs['nodes'], radius, d_inputs['radius'], disp, d_inputs['disp'], E, G, x_gl)
-
-                partials['vonmises', param][:, j] = vonmisesd.flatten()
+                    partials['vonmises', param][:, j] = vonmisesd.flatten()

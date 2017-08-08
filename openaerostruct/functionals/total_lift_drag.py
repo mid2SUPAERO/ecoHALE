@@ -75,7 +75,7 @@ class TotalLiftDrag(ExplicitComponent):
         outputs['CL'] = CL / S_ref_total
         outputs['CD'] = CD / S_ref_total
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
 
         # Compute the weighted CL and CD contributions from each surface,
         # weighted by the individual surface areas

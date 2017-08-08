@@ -260,7 +260,7 @@ class AssembleAIC(ExplicitComponent):
                         i += num_panels
 
         else:
-            def compute_partials(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, partials):
 
                 for param in inputs:
 

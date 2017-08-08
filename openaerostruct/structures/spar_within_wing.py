@@ -58,5 +58,5 @@ class SparWithinWing(ExplicitComponent):
         max_radius = radii(mesh, self.surface['t_over_c'])
         outputs['spar_within_wing'] = inputs['radius'] - max_radius
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         partials['spar_within_wing', 'radius'] = np.eye(self.ny-1)

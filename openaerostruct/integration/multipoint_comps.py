@@ -19,7 +19,7 @@ class MultiCD(ExplicitComponent):
         for i in range(self.n_points):
             outputs['CD'] += inputs[str(i) + '_CD']
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         for i in range(self.n_points):
             partials['CD', str(i) + '_CD'] = 1.
 

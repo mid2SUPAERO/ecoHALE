@@ -476,7 +476,7 @@ class TestStruct(unittest.TestCase):
             ny = surface['num_y']
 
             indep_var_comp = IndepVarComp()
-            indep_var_comp.add_output('loads', val=np.ones(ny) * 2e5, units='N')
+            indep_var_comp.add_output('loads', val=np.ones((ny, 6)) * 2e5, units='N')
 
             struct_group = SpatialBeamAlone(surface=surface)
 
@@ -515,7 +515,7 @@ class TestStruct(unittest.TestCase):
         # prob.run_model()
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 697303.59351161518)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 697303.59351161518, places=2)
 
 
 

@@ -97,7 +97,7 @@ class GeometryMesh(ExplicitComponent):
         mesh = mesh.reshape((nx, ny, 3))
         outputs['mesh'] = mesh
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         self.DVGeo.computeTotalJacobian('surface')
         jac = self.DVGeo.JT['surface'].toarray().T
         my_jac = partials['mesh', 'shape']

@@ -145,7 +145,7 @@ class MomentCoefficient(ExplicitComponent):
         outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * self.MAC_wing)
 
     if fortran_flag:
-        def compute_partials(self, inputs, outputs, partials):
+        def compute_partials(self, inputs, partials):
             cg = inputs['cg']
             rho = inputs['rho']
             v = inputs['v']
@@ -216,5 +216,5 @@ class MomentCoefficient(ExplicitComponent):
 
             if inputs['S_ref_total'] - 1e-4 > 0.:
                 # Need to recompute M
-                self.compute(inputs, outputs)
+                self.compute(inputs, {})
                 partials['CM', 'S_ref_total'] = -self.M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot**2 * self.MAC_wing)

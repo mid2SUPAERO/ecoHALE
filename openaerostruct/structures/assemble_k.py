@@ -128,49 +128,49 @@ class AssembleK(ExplicitComponent):
 
         outputs['K'] = self.K
 
+    if fortran_flag:
+        def compute_partials(self, inputs, partials):
 
-    def compute_partials(self, inputs, outputs, partials):
+            for param in inputs:
 
-        for param in inputs:
+                d_inputs = {}
+                d_inputs[param] = inputs[param].copy()
+                d_outputs = {}
 
-            d_inputs = {}
-            d_inputs[param] = inputs[param].copy()
-            d_outputs = {}
+                for j, val in enumerate(np.array(d_inputs[param]).flatten()):
+                    d_in_b = np.array(d_inputs[param]).flatten()
+                    d_in_b[:] = 0.
+                    d_in_b[j] = 1.
+                    d_inputs[param] = d_in_b.reshape(d_inputs[param].shape)
 
-            for j, val in enumerate(np.array(d_inputs[param]).flatten()):
-                d_in_b = np.array(d_inputs[param]).flatten()
-                d_in_b[:] = 0.
-                d_in_b[j] = 1.
-                d_inputs[param] = d_in_b.reshape(d_inputs[param].shape)
+                    # Find constrained nodes based on closeness to specified cg point
+                    nodes = inputs['nodes']
+                    dist = nodes - np.array([5., 0, 0])
+                    idx = (np.linalg.norm(dist, axis=1)).argmin()
+                    self.cons = idx
 
-                # Find constrained nodes based on closeness to specified cg point
-                nodes = inputs['nodes']
-                dist = nodes - np.array([5., 0, 0])
-                idx = (np.linalg.norm(dist, axis=1)).argmin()
-                self.cons = idx
+                    A = inputs['A']
+                    J = inputs['J']
+                    Iy = inputs['Iy']
+                    Iz = inputs['Iz']
 
-                A = inputs['A']
-                J = inputs['J']
-                Iy = inputs['Iy']
-                Iz = inputs['Iz']
+                    if 'nodes' not in d_inputs:
+                        d_inputs['nodes'] = inputs['nodes'] * 0
+                    if 'A' not in d_inputs:
+                        d_inputs['A'] = inputs['A'] * 0
+                    if 'J' not in d_inputs:
+                        d_inputs['J'] = inputs['J'] * 0
+                    if 'Iy' not in d_inputs:
+                        d_inputs['Iy'] = inputs['Iy'] * 0
+                    if 'Iz' not in d_inputs:
+                        d_inputs['Iz'] = inputs['Iz'] * 0
 
-                if 'nodes' not in d_inputs:
-                    d_inputs['nodes'] = inputs['nodes'] * 0
-                if 'A' not in d_inputs:
-                    d_inputs['A'] = inputs['A'] * 0
-                if 'J' not in d_inputs:
-                    d_inputs['J'] = inputs['J'] * 0
-                if 'Iy' not in d_inputs:
-                    d_inputs['Iy'] = inputs['Iy'] * 0
-                if 'Iz' not in d_inputs:
-                    d_inputs['Iz'] = inputs['Iz'] * 0
+                    K, Kd = OAS_API.oas_api.assemblestructmtx_d(nodes, d_inputs['nodes'], A, d_inputs['A'],
+                                                 J, d_inputs['J'], Iy, d_inputs['Iy'],
+                                                 Iz, d_inputs['Iz'],
+                                                 self.K_a, self.K_t, self.K_y, self.K_z,
+                                                 self.cons, self.E, self.G, self.x_gl, self.T,
+                                                 self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
+                                                 self.const2, self.const_y, self.const_z)
 
-                K, Kd = OAS_API.oas_api.assemblestructmtx_d(nodes, d_inputs['nodes'], A, d_inputs['A'],
-                                             J, d_inputs['J'], Iy, d_inputs['Iy'],
-                                             Iz, d_inputs['Iz'],
-                                             self.K_a, self.K_t, self.K_y, self.K_z,
-                                             self.cons, self.E, self.G, self.x_gl, self.T,
-                                             self.K_elem, self.S_a, self.S_t, self.S_y, self.S_z, self.T_elem,
-                                             self.const2, self.const_y, self.const_z)
-
-                partials['K', param][:, j] = Kd.flatten()
+                    partials['K', param][:, j] = Kd.flatten()

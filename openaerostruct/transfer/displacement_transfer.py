@@ -99,26 +99,23 @@ class DisplacementTransfer(ExplicitComponent):
 
         outputs['def_mesh'] = def_mesh
 
-    def compute_partials(self, inputs, outputs, partials):
+    if fortran_flag:
+        def compute_partials(self, inputs, partials):
 
-        for param in outputs:
+            d_mesh = np.zeros((self.nx, self.ny, 3))
 
-            d_outputs = {}
-            d_outputs[param] = outputs[param].copy()
-            d_inputs = {}
-
-            for j, val in enumerate(np.array(d_outputs[param]).flatten()):
-                d_out_b = np.array(d_outputs[param]).flatten()
+            for j, val in enumerate(np.array(d_mesh).flatten()):
+                d_out_b = np.array(d_mesh).flatten()
                 d_out_b[:] = 0.
                 d_out_b[j] = 1.
-                d_outputs[param] = d_out_b.reshape(d_outputs[param].shape)
+                d_mesh = d_out_b.reshape(d_mesh.shape)
 
                 mesh = inputs['mesh']
                 disp = inputs['disp']
 
                 w = self.surface['fem_origin']
 
-                d_inputs['mesh'], d_inputs['disp'] = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, outputs['def_mesh'], d_outputs['def_mesh'])
+                d_mesh, d_disp = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, d_mesh, d_mesh)
 
-                partials[param, 'mesh'][j, :] = d_inputs['mesh'].flatten()
-                partials[param, 'disp'][j, :] = d_inputs['disp'].flatten()
+                partials['def_mesh', 'mesh'][j, :] = d_mesh.flatten()
+                partials['def_mesh', 'disp'][j, :] = d_disp.flatten()

@@ -72,7 +72,7 @@ class Equilibrium(ExplicitComponent):
             self.declare_partials('total_weight', name + '_L', dependent=False)
             self.declare_partials('L_equals_W', name + '_structural_weight', dependent=False)
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
 
         g = 9.80665 * inputs['load_factor']
         W0 = inputs['W0'] * g

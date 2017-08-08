@@ -68,7 +68,7 @@ class Weight(ExplicitComponent):
         outputs['structural_weight'] = weight
         outputs['cg_location'] = cg_loc
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
 
         A = inputs['A']
         nodes = inputs['nodes']

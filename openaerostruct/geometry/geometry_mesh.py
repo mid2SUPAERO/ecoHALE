@@ -156,7 +156,7 @@ class GeometryMesh(ExplicitComponent):
             #   0.64529818,  0.71405547,  0.78276348])
 
     if fortran_flag:
-        def compute_partials(self, inputs, outputs, partials):
+        def compute_partials(self, inputs, partials):
 
             # We actually use the values in self.geo_params to modify the mesh,
             # but we update self.geo_params using the OpenMDAO params here.

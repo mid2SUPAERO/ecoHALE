@@ -44,6 +44,6 @@ class Energy(ExplicitComponent):
     def compute(self, inputs, outputs):
         outputs['energy'] = np.sum(inputs['disp'] * inputs['loads'])
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         partials['energy', 'disp'][0, :] = inputs['loads'].real.flatten()
         partials['energy', 'loads'][0, :] = inputs['disp'].real.flatten()

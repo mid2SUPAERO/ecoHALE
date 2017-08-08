@@ -111,7 +111,7 @@ class ViscousDrag(ExplicitComponent):
         else:
             outputs['CDv'] = 0.0
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         """ Jacobian for viscous drag."""
 
         partials['CDv', 'lengths'] = np.zeros_like(partials['CDv', 'lengths'])

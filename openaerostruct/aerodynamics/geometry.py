@@ -144,7 +144,7 @@ class VLMGeometry(ExplicitComponent):
         outputs['S_ref'] = S_ref
         outputs['chords'] = chords
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         """ Jacobian for VLM geometry."""
 
         mesh = inputs['def_mesh']
@@ -164,14 +164,14 @@ class VLMGeometry(ExplicitComponent):
         widths = np.linalg.norm(quarter_chord[1:, :] - quarter_chord[:-1, :], axis=1)
 
         # Compute the cosine of the sweep angle of each panel
-        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1) / widths
+        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1)
 
         nx = self.surface['num_x']
         ny = self.surface['num_y']
 
         if fortran_flag:
 
-            normalsb = np.zeros(outputs['normals'].shape)
+            normalsb = np.zeros((self.nx-1, self.ny-1, 3))
             for i in range(nx-1):
                 for j in range(ny-1):
                     for ind in range(3):
@@ -207,8 +207,8 @@ class VLMGeometry(ExplicitComponent):
         gap = [0, (nx-1)*ny*3]
         factor = [0.75, 0.25]
         for i in range(ny-1):
-            w = outputs['widths'][i]
-            cos_sweep = outputs['cos_sweep'][i]
+            w = widths[i]
+            cos_sweep = cos_sweep_array[i]
             dx = (qc[i+1, 0] - qc[i, 0])
             dy = (qc[i+1, 1] - qc[i, 1])
             dz = (qc[i+1, 2] - qc[i, 2])

@@ -83,7 +83,7 @@ class LiftCoeff2D(ExplicitComponent):
         # Lift coefficient distribution
         outputs['Cl'] = lift_dist[:] / ( 0.5 * rho * v**2 * chord[:] )
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         """ Jacobian for 2D lift coefficient distribution."""
 
         # Input inputeters

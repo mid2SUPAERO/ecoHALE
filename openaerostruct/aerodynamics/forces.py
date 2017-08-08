@@ -131,7 +131,6 @@ class Forces(ExplicitComponent):
             outputs[name + '_sec_forces'] = sec_forces.reshape((nx-1, ny-1, 3), order='F')
 
             cos_sweep = inputs[name + '_cos_sweep']
-            print(cos_sweep)
 
             i += num_panels
 
@@ -271,13 +270,13 @@ class Forces(ExplicitComponent):
                     _assemble_AIC_mtx_b(mtxb, inputs, d_inputs, self.surfaces, skip=True)
 
         else:
-            def compute_partials(self, inputs, outputs, partials):
+            def compute_partials(self, inputs, partials):
 
                 for surface in self.surfaces:
 
                     name = surface['name']
                     d_inputs = {}
-                    sec_forcesb = np.zeros(outputs[name + '_sec_forces'].shape)
+                    sec_forcesb = np.zeros((surface['num_x'] - 1, surface['num_y'] - 1, 3))
 
                     for k, val in enumerate(sec_forcesb.flatten()):
                         for key in inputs:
@@ -287,7 +286,7 @@ class Forces(ExplicitComponent):
                         sec_forcesb[:] = 0.
                         sec_forcesb = sec_forcesb.flatten()
                         sec_forcesb[k] = 1.
-                        sec_forcesb = sec_forcesb.reshape(outputs[name + '_sec_forces'].shape)
+                        sec_forcesb = sec_forcesb.reshape(surface['num_x'] - 1, surface['num_y'] - 1, 3)
                         sec_forcesb = sec_forcesb.reshape((-1, 3), order='F')
 
                         circ = inputs['circulations']
@@ -300,10 +299,10 @@ class Forces(ExplicitComponent):
                         v = inputs['v']
                         vb = np.zeros(self.v.shape)
 
-                        for surface in self.surfaces:
-                            name_ = surface['name']
-                            nx_ = surface['num_x']
-                            ny_ = surface['num_y']
+                        for surface_ in self.surfaces:
+                            name_ = surface_['name']
+                            nx_ = surface_['num_x']
+                            ny_ = surface_['num_y']
                             num_panels_ = (nx_ - 1) * (ny_ - 1)
 
                             if name == name_:

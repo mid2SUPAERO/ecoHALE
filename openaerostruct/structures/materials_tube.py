@@ -59,7 +59,7 @@ class MaterialsTube(ExplicitComponent):
         outputs['Iz'] = pi * (r2**4 - r1**4) / 4.
         outputs['J'] = pi * (r2**4 - r1**4) / 2.
 
-    def compute_partials(self, inputs, outputs, partials):
+    def compute_partials(self, inputs, partials):
         pi = np.pi
         radius = inputs['radius'].real
         t = inputs['thickness'].real
