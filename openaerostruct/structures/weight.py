@@ -42,10 +42,12 @@ class Weight(ExplicitComponent):
         self.add_input('nodes', val=np.random.random_sample((self.ny, 3)), units='m')#, dtype=data_type))
         self.add_input('load_factor', val=1.)
         self.add_output('structural_weight', val=0., units='N')
+        self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')
         self.add_output('cg_location', val=np.random.random_sample((3)), units='m')#, dtype=data_type))
 
         self.approx_partials('cg_location', 'A')
         self.approx_partials('cg_location', 'nodes')
+        self.approx_partials('element_weights', '*')
 
     def compute(self, inputs, outputs):
         A = inputs['A']
@@ -53,8 +55,9 @@ class Weight(ExplicitComponent):
 
         # Calculate the volume and weight of the structure
         element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
+        element_weights = element_volumes * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
+        weight = np.sum(element_weights)
         volume = np.sum(element_volumes)
-        weight = volume * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
 
         # Calculate the center-of-gravity location of the spar elements only
         center_of_elements = (nodes[1:, :] + nodes[:-1, :]) / 2.
@@ -68,6 +71,7 @@ class Weight(ExplicitComponent):
 
         outputs['structural_weight'] = weight
         outputs['cg_location'] = cg_loc
+        outputs['element_weights'] = element_weights
 
     def compute_partials(self, inputs, partials):
 

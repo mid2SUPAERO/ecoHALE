@@ -134,12 +134,14 @@ class Test(unittest.TestCase):
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
+                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.radius', com_name + '.radius')
-                prob.model.connect(name + '.A', com_name + '.A')
                 prob.model.connect(name + '.thickness', com_name + '.thickness')
                 prob.model.connect(name + '.nodes', com_name + '.nodes')
+                prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
+                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
         from openmdao.api import pyOptSparseDriver
         prob.driver = pyOptSparseDriver()
@@ -163,7 +165,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104535.72523321533)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 101833.16349700389)
 
 
 if __name__ == '__main__':

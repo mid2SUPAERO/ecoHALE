@@ -1,6 +1,8 @@
 from openmdao.api import Group
 from openaerostruct.structures.compute_nodes import ComputeNodes
 from openaerostruct.structures.assemble_k import AssembleK
+from openaerostruct.structures.weight import Weight
+
 
 
 class SpatialBeamSetup(Group):
@@ -20,3 +22,8 @@ class SpatialBeamSetup(Group):
         self.add_subsystem('assembly',
                  AssembleK(surface=surface),
                  promotes_inputs=['A', 'Iy', 'Iz', 'J', 'nodes'], promotes_outputs=['K'])
+
+        self.add_subsystem('structural_weight',
+                 Weight(surface=surface),
+                 promotes_inputs=['A', 'nodes', 'load_factor'],
+                 promotes_outputs=['structural_weight', 'cg_location', 'element_weights'])

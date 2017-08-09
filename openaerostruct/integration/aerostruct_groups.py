@@ -37,11 +37,13 @@ class Aerostruct(Group):
 
         self.add_subsystem('tube',
             MaterialsTube(surface=surface),
-            promotes_inputs=['thickness', 'radius'], promotes_outputs=['A', 'Iy', 'Iz', 'J'])
+            promotes_inputs=['thickness', 'radius'],
+            promotes_outputs=['A', 'Iy', 'Iz', 'J'])
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'], promotes_outputs=['nodes', 'K'])
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
+            promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
 
 class PreAS(Group):
 
@@ -53,7 +55,7 @@ class PreAS(Group):
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads'], promotes_outputs=['disp'])
+            promotes_inputs=['K', 'forces', 'loads', 'element_weights'], promotes_outputs=['disp'])
 
         self.add_subsystem('def_mesh',
             DisplacementTransfer(surface=surface),
@@ -79,7 +81,7 @@ class CoupledPerformance(Group):
 
         self.add_subsystem('struct_funcs',
             SpatialBeamFunctionals(surface=surface),
-            promotes_inputs=['thickness', 'radius', 'A', 'nodes', 'disp'], promotes_outputs=['thickness_intersects', 'structural_weight', 'cg_location', 'vonmises', 'failure'])
+            promotes_inputs=['thickness', 'radius', 'nodes', 'disp'], promotes_outputs=['thickness_intersects', 'vonmises', 'failure'])
 
 class AerostructPoint(Group):
 
@@ -117,7 +119,6 @@ class AerostructPoint(Group):
             self.connect('coupled.aero_states.' + name + '_sec_forces', name + '_perf' + '.sec_forces')
 
             # Connection performance functional variables
-            self.connect(name + '_perf.structural_weight', 'total_perf.' + name + '_structural_weight')
             self.connect(name + '_perf.L', 'total_perf.' + name + '_L')
             self.connect(name + '_perf.CL', 'total_perf.' + name + '_CL')
             self.connect(name + '_perf.CD', 'total_perf.' + name + '_CD')
@@ -137,7 +138,6 @@ class AerostructPoint(Group):
             self.connect('coupled.' + name + '.widths', 'total_perf.' + name + '_widths')
             self.connect('coupled.' + name + '.chords', 'total_perf.' + name + '_chords')
             self.connect('coupled.' + name + '.b_pts', 'total_perf.' + name + '_b_pts')
-            self.connect(name + '_perf.cg_location', 'total_perf.' + name + '_cg_location')
 
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters

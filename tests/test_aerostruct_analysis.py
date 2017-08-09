@@ -134,20 +134,26 @@ class Test(unittest.TestCase):
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
+                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.radius', com_name + '.radius')
-                prob.model.connect(name + '.A', com_name + '.A')
                 prob.model.connect(name + '.thickness', com_name + '.thickness')
                 prob.model.connect(name + '.nodes', com_name + '.nodes')
+                prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
+                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
         # Set up the problem
         prob.setup()
 
+        from openmdao.api import view_model
+
+        view_model(prob, 'aerostruct.html', show_browser=False)
+
         prob.run_model()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 252270.55648281652)
-        self.assertAlmostEqual(prob['AS_point_0.CM'][1], -0.065267791479846737)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 261452.92692824677)
+        self.assertAlmostEqual(prob['AS_point_0.CM'][1], -0.062063144440326901)
 
 
 if __name__ == '__main__':

@@ -27,11 +27,6 @@ class SpatialBeamFunctionals(Group):
                  promotes_inputs=['thickness', 'radius'],
                  promotes_outputs=['thickness_intersects'])
 
-        self.add_subsystem('structural_weight',
-                 Weight(surface=surface),
-                 promotes_inputs=['A', 'nodes', 'load_factor'],
-                 promotes_outputs=['structural_weight', 'cg_location'])
-
         self.add_subsystem('vonmises',
                  VonMisesTube(surface=surface),
                  promotes_inputs=['radius', 'nodes', 'disp'],

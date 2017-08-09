@@ -33,15 +33,15 @@ class SpatialBeamAlone(Group):
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],
-            promotes_outputs=['nodes', 'K'])
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
+            promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads'],
+            promotes_inputs=['K', 'forces', 'loads', 'element_weights'],
             promotes_outputs=['disp'])
 
         self.add_subsystem('struct_funcs',
             SpatialBeamFunctionals(surface=surface),
-            promotes_inputs=['thickness', 'radius', 'A', 'nodes', 'disp', 'load_factor'],
-            promotes_outputs=['thickness_intersects', 'structural_weight', 'cg_location', 'vonmises', 'failure'])
+            promotes_inputs=['thickness', 'radius', 'nodes', 'disp'],
+            promotes_outputs=['thickness_intersects', 'vonmises', 'failure'])
