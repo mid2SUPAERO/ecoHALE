@@ -56,7 +56,50 @@ class Test(unittest.TestCase):
                     'with_viscous' : True,  # if true, compute viscous drag
                     }
 
-        surfaces = [surf_dict]
+        # Create a dictionary to store options about the surface
+        mesh_dict = {'num_y' : 7,
+                     'num_x' : 2,
+                     'wing_type' : 'rect',
+                     'symmetry' : True,
+                     'offset' : np.array([50., 0., 0.])}
+
+        mesh = generate_mesh(mesh_dict)
+
+        surf_dict2 = {
+                    # Wing definition
+                    'name' : 'tail',        # name of the surface
+                    'type' : 'aero',
+                    'symmetry' : True,     # if true, model one half of wing
+                                            # reflected across the plane y = 0
+                    'S_ref_type' : 'wetted', # how we compute the wing area,
+                                             # can be 'wetted' or 'projected'
+
+                    'twist_cp' : twist_cp,
+                    'mesh' : mesh,
+                    'num_x' : mesh.shape[0],
+                    'num_y' : mesh.shape[1],
+
+                    # Aerodynamic performance of the lifting surface at
+                    # an angle of attack of 0 (alpha=0).
+                    # These CL0 and CD0 values are added to the CL and CD
+                    # obtained from aerodynamic analysis of the surface to get
+                    # the total CL and CD.
+                    # These CL0 and CD0 values do not vary wrt alpha.
+                    'CL0' : 0.0,            # CL of the surface at alpha=0
+                    'CD0' : 0.0,            # CD of the surface at alpha=0
+
+                    'fem_origin' : 0.35,
+
+                    # Airfoil properties for viscous drag calculation
+                    'k_lam' : 0.05,         # percentage of chord with laminar
+                                            # flow, used for viscous drag
+                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
+                                            # thickness
+                    'with_viscous' : True,  # if true, compute viscous drag
+                    }
+
+        surfaces = [surf_dict, surf_dict2]
 
         # Create the problem and the model group
         prob = Problem()
@@ -118,9 +161,9 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03721668954472605)
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.51232315219856261)
-        self.assertAlmostEqual(prob['aero_point_0.CM'][1], -0.17933464818322539)
+        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.037222504855115246)
+        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.51247264106905233)
+        self.assertAlmostEqual(prob['aero_point_0.CM'][1], -0.18108463722015625)
 
 
 

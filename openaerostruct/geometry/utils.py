@@ -388,7 +388,7 @@ def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spac
         half_wing = cosine * span_cos_spacing + (1 - span_cos_spacing) * uniform
         full_wing = np.hstack((-half_wing[:-1], half_wing[::-1])) * span
 
-    nx2 = (num_x + 1) / 2
+    nx2 = (num_x + 1) // 2
     beta = np.linspace(0, np.pi/2, nx2)
 
     # mixed spacing with span_cos_spacing as a weighting factor

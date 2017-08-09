@@ -1,24 +1,12 @@
 from __future__ import division, print_function
-import sys
-from time import time
 import unittest
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
-from openaerostruct.structures.struct_groups import SpatialBeamAlone
-
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
-from openaerostruct.aerodynamics.states import VLMStates
-from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.geometry_group import Geometry
-
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
-from openmdao.api import view_model
-from six import iteritems
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer
 
 
 class Test(unittest.TestCase):
@@ -43,7 +31,10 @@ class Test(unittest.TestCase):
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
 
-                    'num_twist_cp' : 5,
+                    'twist_cp' : twist_cp,
+                    'mesh' : mesh,
+                    'num_x' : mesh.shape[0],
+                    'num_y' : mesh.shape[1],
 
                     # Aerodynamic performance of the lifting surface at
                     # an angle of attack of 0 (alpha=0).
@@ -64,11 +55,6 @@ class Test(unittest.TestCase):
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
                     }
-
-        surf_dict.update({'twist_cp' : twist_cp,
-                          'mesh' : mesh})
-
-        surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
         surfaces = [surf_dict]
 
@@ -141,9 +127,6 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
-        view_model(prob, outfile='aero.html', show_browser=False)
-
-        # prob.run_model()
         prob.run_driver()
 
         self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073)
