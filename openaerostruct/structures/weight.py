@@ -40,6 +40,7 @@ class Weight(ExplicitComponent):
 
         self.add_input('A', val=np.random.random_sample((self.ny - 1)), units='m**2')#, dtype=data_type))
         self.add_input('nodes', val=np.random.random_sample((self.ny, 3)), units='m')#, dtype=data_type))
+        self.add_input('load_factor', val=1.)
         self.add_output('structural_weight', val=0., units='N')
         self.add_output('cg_location', val=np.random.random_sample((3)), units='m')#, dtype=data_type))
 
@@ -53,7 +54,7 @@ class Weight(ExplicitComponent):
         # Calculate the volume and weight of the structure
         element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
         volume = np.sum(element_volumes)
-        weight = volume * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio']
+        weight = volume * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
 
         # Calculate the center-of-gravity location of the spar elements only
         center_of_elements = (nodes[1:, :] + nodes[:-1, :]) / 2.
@@ -73,12 +74,17 @@ class Weight(ExplicitComponent):
         A = inputs['A']
         nodes = inputs['nodes']
 
+        # Calculate the volume and weight of the structure
+        element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
+        volume = np.sum(element_volumes)
+        weight = volume * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
+
         # First we will solve for dweight_dA
         # Calculate the volume and weight of the total structure
         norms = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
 
         # Multiply by the material density and force of gravity
-        dweight_dA = norms * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio']
+        dweight_dA = norms * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
 
         # Account for symmetry
         if self.surface['symmetry']:
@@ -96,10 +102,13 @@ class Weight(ExplicitComponent):
         nodesb[:-1, :] -= tempb
 
         # Apply the multipliers for material properties and symmetry
-        nodesb *= self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio']
+        nodesb *= self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
 
         if self.surface['symmetry']:
             nodesb *= 2.
+            partials['structural_weight', 'load_factor'] = weight * 2
+        else:
+            partials['structural_weight', 'load_factor'] = weight
 
         # Store the flattened array in the jacobian dictionary
         partials['structural_weight', 'nodes'] = nodesb.reshape(1, -1)

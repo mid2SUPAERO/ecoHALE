@@ -43,5 +43,5 @@ class SpatialBeamAlone(Group):
 
         self.add_subsystem('struct_funcs',
             SpatialBeamFunctionals(surface=surface),
-            promotes_inputs=['thickness', 'radius', 'A', 'nodes', 'disp'],
+            promotes_inputs=['thickness', 'radius', 'A', 'nodes', 'disp', 'load_factor'],
             promotes_outputs=['thickness_intersects', 'structural_weight', 'cg_location', 'vonmises', 'failure'])

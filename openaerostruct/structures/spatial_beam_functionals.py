@@ -29,7 +29,7 @@ class SpatialBeamFunctionals(Group):
 
         self.add_subsystem('structural_weight',
                  Weight(surface=surface),
-                 promotes_inputs=['A', 'nodes'],
+                 promotes_inputs=['A', 'nodes', 'load_factor'],
                  promotes_outputs=['structural_weight', 'cg_location'])
 
         self.add_subsystem('vonmises',
