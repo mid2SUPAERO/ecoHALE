@@ -50,12 +50,12 @@ install:
 
 script:
 - if [ "$FORTRAN" ]; then
-    make;
+    cd openaerostruct/fortran; make;
   fi
 - cd ..
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - cd -
-- coverage run --source=OpenAeroStruct test_suite.py
+- coverage run --source=OpenAeroStruct testflo
 
 after_success:
 - coveralls
