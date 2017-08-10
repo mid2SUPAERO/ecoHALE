@@ -5,6 +5,7 @@ from openmdao.api import Group
 
 from openaerostruct.functionals.moment_coefficient import MomentCoefficient
 from openaerostruct.functionals.total_lift_drag import TotalLiftDrag
+from openaerostruct.functionals.sum_areas import SumAreas
 
 class TotalAeroPerformance(Group):
     """
@@ -16,6 +17,11 @@ class TotalAeroPerformance(Group):
 
     def setup(self):
         surfaces = self.metadata['surfaces']
+
+        self.add_subsystem('sum_areas',
+             SumAreas(surfaces=surfaces),
+             promotes_inputs=['*S_ref'],
+             promotes_outputs=['S_ref_total'])
 
         self.add_subsystem('CL_CD',
                  TotalLiftDrag(surfaces=surfaces),

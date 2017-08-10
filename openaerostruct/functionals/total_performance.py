@@ -8,6 +8,7 @@ from openaerostruct.functionals.equilibrium import Equilibrium
 from openaerostruct.functionals.center_of_gravity import CenterOfGravity
 from openaerostruct.functionals.moment_coefficient import MomentCoefficient
 from openaerostruct.functionals.total_lift_drag import TotalLiftDrag
+from openaerostruct.functionals.sum_areas import SumAreas
 
 
 class TotalPerformance(Group):
@@ -21,9 +22,14 @@ class TotalPerformance(Group):
     def setup(self):
         surfaces = self.metadata['surfaces']
 
+        self.add_subsystem('sum_areas',
+             SumAreas(surfaces=surfaces),
+             promotes_inputs=['*S_ref'],
+             promotes_outputs=['S_ref_total'])
+
         self.add_subsystem('CL_CD',
              TotalLiftDrag(surfaces=surfaces),
-             promotes_inputs=['*CL', '*CD', '*S_ref'],
+             promotes_inputs=['*CL', '*CD', '*S_ref', 'S_ref_total'],
              promotes_outputs=['CL', 'CD'])
 
         self.add_subsystem('fuelburn',
@@ -33,7 +39,7 @@ class TotalPerformance(Group):
 
         self.add_subsystem('L_equals_W',
              Equilibrium(surfaces=surfaces),
-             promotes_inputs=['*L', '*D', '*structural_weight', '*S_ref', 'fuelburn', 'W0', 'load_factor', 'alpha', 'rho', 'v'],
+             promotes_inputs=['*L', '*D', '*structural_weight', 'S_ref_total', 'fuelburn', 'W0', 'load_factor', 'alpha', 'rho', 'v'],
              promotes_outputs=['L_equals_W', 'total_weight'])
 
         self.add_subsystem('CG',
@@ -43,5 +49,5 @@ class TotalPerformance(Group):
 
         self.add_subsystem('moment',
              MomentCoefficient(surfaces=surfaces),
-             promotes_inputs=['v', 'rho', 'cg', '*S_ref', '*b_pts', '*widths', '*chords', '*sec_forces'],
+             promotes_inputs=['v', 'rho', 'cg', 'S_ref_total', '*b_pts', '*widths', '*chords', '*sec_forces', '*S_ref'],
              promotes_outputs=['CM'])

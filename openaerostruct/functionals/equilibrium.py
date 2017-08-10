@@ -41,7 +41,6 @@ class Equilibrium(ExplicitComponent):
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
-            self.add_input(name + '_S_ref', val=1., units='m**2')
 
         self.add_input('fuelburn', val=1., units='kg')
         self.add_input('W0', val=1., units='kg')
@@ -51,7 +50,7 @@ class Equilibrium(ExplicitComponent):
         self.add_input('CL', val=0.)
         self.add_input('CD', val=0.)
 
-        self.add_input('S_ref_total', val=0., units='m**2')
+        self.add_input('S_ref_total', val=1., units='m**2')
         self.add_input('v', val=1., units='m/s')
         self.add_input('rho', val=1., units='kg/m**3')
 
@@ -73,23 +72,15 @@ class Equilibrium(ExplicitComponent):
         rho = inputs['rho']
         v = inputs['v']
 
-        S_ref_tot = 0.
         structural_weight = 0.
         symmetry = False
         for surface in self.metadata['surfaces']:
             name = surface['name']
             structural_weight += inputs[name + '_structural_weight']
-            S_ref_tot += inputs[name + '_S_ref']
             if surface['symmetry']:
                 symmetry = True
 
-        # Use the user-provided reference area; otherwise compute the total
-        # area of all lifting surfaces.
-        # Use the user-provided area; otherwise, use the computed area
-        if inputs['S_ref_total'] - 1e-4 < 0.:
-            S_ref_tot = S_ref_tot
-        else:
-            S_ref_tot = inputs['S_ref_total']
+        S_ref_tot = inputs['S_ref_total']
 
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
@@ -103,20 +94,12 @@ class Equilibrium(ExplicitComponent):
         rho = inputs['rho']
         v = inputs['v']
 
-        S_ref_tot = 0.
         structural_weight = 0.
         for surface in self.metadata['surfaces']:
             name = surface['name']
             structural_weight += inputs[name + '_structural_weight']
-            S_ref_tot += inputs[name + '_S_ref']
 
-        # Use the user-provided reference area; otherwise compute the total
-        # area of all lifting surfaces.
-        # Use the user-provided area; otherwise, use the computed area
-        if inputs['S_ref_total'] - 1e-4 < 0.:
-            S_ref_tot = S_ref_tot
-        else:
-            S_ref_tot = inputs['S_ref_total']
+        S_ref_tot = inputs['S_ref_total']
 
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
@@ -138,4 +121,3 @@ class Equilibrium(ExplicitComponent):
             name = surface['name']
             partials['total_weight', name + '_structural_weight'] = 1.0
             partials['L_equals_W', name + '_structural_weight'] = (L * np.cos(alpha) - D * np.sin(alpha)) / tot_weight**2
-            partials['L_equals_W', name + '_S_ref'] = -.5 * rho * v**2 * (inputs['CL'] * np.cos(alpha) - inputs['CD'] * np.sin(alpha)) / tot_weight

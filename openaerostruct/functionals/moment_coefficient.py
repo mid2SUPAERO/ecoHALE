@@ -62,7 +62,7 @@ class MomentCoefficient(ExplicitComponent):
         self.add_input('cg', val=np.random.rand(3), units='m')
         self.add_input('v', val=10., units='m/s')
         self.add_input('rho', val=3., units='kg/m**3')
-        self.add_input('S_ref_total', val=0., units='m**2')
+        self.add_input('S_ref_total', val=1., units='m**2')
 
         self.add_output('CM', val=np.ones((3)))
 
@@ -133,16 +133,8 @@ class MomentCoefficient(ExplicitComponent):
 
         self.M = M
 
-        # Use the user-provided reference area; otherwise compute the total
-        # area of all lifting surfaces.
-        # Use the user-provided area; otherwise, use the computed area
-        if inputs['S_ref_total'] - 1e-4 < 0.:
-            self.S_ref_tot = S_ref_tot
-        else:
-            self.S_ref_tot = inputs['S_ref_total']
-
         # Compute the normalized CM
-        outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot * self.MAC_wing)
+        outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * inputs['S_ref_total'] * self.MAC_wing)
 
     if fortran_flag:
         def compute_partials(self, inputs, partials):
@@ -175,7 +167,7 @@ class MomentCoefficient(ExplicitComponent):
                         MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
                         if surface['symmetry']:
                             MAC *= 2
-                        temp1 = self.S_ref_tot * MAC
+                        temp1 = inputs['S_ref_total'] * MAC
                         temp0 = 0.5 * rho * v**2
                         temp = temp0 * temp1
                         tempb = np.sum(-(self.M * CMb / temp)) / temp
@@ -183,8 +175,7 @@ class MomentCoefficient(ExplicitComponent):
                         Mb_master = Mb.copy()
                         partials['CM', 'rho'][j] += v**2*temp1*0.5*tempb
                         partials['CM', 'v'][j] += 0.5*rho*temp1*2*v*tempb
-                        s_totb = temp0 * MAC * tempb
-                        macb = temp0 * self.S_ref_tot * tempb
+                        macb = temp0 * inputs['S_ref_total'] * tempb
                         if surface['symmetry']:
                             macb *= 2
                         chordsb = np.zeros((ny))
@@ -212,9 +203,8 @@ class MomentCoefficient(ExplicitComponent):
                     partials['CM', name + '_chords'][j, :] = chordsb + cb
                     partials['CM', name + '_widths'][j, :] = widthsb + wb
                     partials['CM', name + '_sec_forces'][j, :] = sec_forcesb.flatten()
-                    partials['CM', name + '_S_ref'][j, :] = S_refb + sb + s_totb
+                    partials['CM', name + '_S_ref'][j, :] = S_refb + sb
 
-            if inputs['S_ref_total'] - 1e-4 > 0.:
-                # Need to recompute M
-                self.compute(inputs, {})
-                partials['CM', 'S_ref_total'] = -self.M / (0.5 * rho * inputs['v']**2 * self.S_ref_tot**2 * self.MAC_wing)
+            # Need to recompute M
+            self.compute(inputs, {})
+            partials['CM', 'S_ref_total'] = -self.M / (0.5 * rho * inputs['v']**2 * inputs['S_ref_total']**2 * self.MAC_wing)
