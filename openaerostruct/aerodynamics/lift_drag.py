@@ -66,6 +66,8 @@ class LiftDrag(ExplicitComponent):
             outputs['D'] *= 2
             outputs['L'] *= 2
 
+        print(outputs['L'], outputs['D'])
+
     def compute_partials(self, inputs, partials):
         """ Jacobian for lift and drag."""
 

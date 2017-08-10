@@ -145,6 +145,7 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
                 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
+
         # Set up the problem
         prob.setup()
 

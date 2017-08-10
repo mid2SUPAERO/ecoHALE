@@ -33,7 +33,7 @@ class TotalPerformance(Group):
 
         self.add_subsystem('L_equals_W',
              Equilibrium(surfaces=surfaces),
-             promotes_inputs=['*L', '*D', '*structural_weight', 'fuelburn', 'W0', 'load_factor', 'alpha'],
+             promotes_inputs=['*L', '*D', '*structural_weight', '*S_ref', 'fuelburn', 'W0', 'load_factor', 'alpha', 'rho', 'v'],
              promotes_outputs=['L_equals_W', 'total_weight'])
 
         self.add_subsystem('CG',

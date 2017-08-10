@@ -119,8 +119,6 @@ class AerostructPoint(Group):
             self.connect('coupled.aero_states.' + name + '_sec_forces', name + '_perf' + '.sec_forces')
 
             # Connection performance functional variables
-            self.connect(name + '_perf.L', 'total_perf.' + name + '_L')
-            self.connect(name + '_perf.D', 'total_perf.' + name + '_D')
             self.connect(name + '_perf.CL', 'total_perf.' + name + '_CL')
             self.connect(name + '_perf.CD', 'total_perf.' + name + '_CD')
             self.connect('coupled.aero_states.' + name + '_sec_forces', 'total_perf.' + name + '_sec_forces')
