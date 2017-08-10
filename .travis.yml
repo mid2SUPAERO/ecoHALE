@@ -46,7 +46,7 @@ install:
     fi
   fi
 - pip install coveralls
-- pip install openmdao
+- pip install git+git://github.com/OpenMDAO/blue.git
 
 script:
 - if [ "$FORTRAN" ]; then
