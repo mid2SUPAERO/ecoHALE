@@ -129,6 +129,8 @@ class Test(unittest.TestCase):
 
             for surface in surfaces:
 
+                prob.model.connect('load_factor', name + '.load_factor')
+
                 com_name = point_name + '.' + name + '_perf'
                 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
 
@@ -151,6 +153,8 @@ class Test(unittest.TestCase):
         view_model(prob, 'aerostruct.html', show_browser=False)
 
         prob.run_model()
+
+        prob.check_partials(compact_print=True)
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 261452.92692824677)
         self.assertAlmostEqual(prob['AS_point_0.CM'][1], -0.062063144440326901)

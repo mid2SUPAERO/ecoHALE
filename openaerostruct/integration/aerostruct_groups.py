@@ -120,6 +120,7 @@ class AerostructPoint(Group):
 
             # Connection performance functional variables
             self.connect(name + '_perf.L', 'total_perf.' + name + '_L')
+            self.connect(name + '_perf.D', 'total_perf.' + name + '_D')
             self.connect(name + '_perf.CL', 'total_perf.' + name + '_CL')
             self.connect(name + '_perf.CD', 'total_perf.' + name + '_CD')
             self.connect('coupled.aero_states.' + name + '_sec_forces', 'total_perf.' + name + '_sec_forces')
@@ -261,5 +262,5 @@ class AerostructPoint(Group):
         # of the parameters.
         self.add_subsystem('total_perf',
                  TotalPerformance(surfaces=surfaces),
-                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor'],
+                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'alpha'],
                  promotes_outputs=['L_equals_W', 'fuelburn', 'CM', 'cg'])

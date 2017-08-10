@@ -129,6 +129,8 @@ class Test(unittest.TestCase):
 
             for surface in surfaces:
 
+                prob.model.connect('load_factor', name + '.load_factor')
+
                 com_name = point_name + '.' + name + '_perf'
                 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
 
@@ -165,7 +167,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 101833.16349700389)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 101383.59993839913)
 
 
 if __name__ == '__main__':
