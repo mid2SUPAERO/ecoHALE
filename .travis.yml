@@ -51,7 +51,7 @@ install:
 
 script:
 - if [ "$FORTRAN" ]; then
-    cd openaerostruct/fortran; make; cd ../..
+    cd openaerostruct/fortran; make; cd ../..;
   fi
 - cd ..
 - export PYTHONPATH=$PYTHONPATH:$PWD

@@ -9,7 +9,15 @@ from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructP
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer
 
+try:
+    from openaerostruct.fortran import OAS_API
+    fortran_flag = True
+    data_type = float
+except:
+    fortran_flag = False
+    data_type = complex
 
+@unittest.skipUnless(fortran_flag, "Fortran is required.")
 class Test(unittest.TestCase):
 
     def test(self):
