@@ -55,7 +55,7 @@ script:
 - cd ..
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - cd -
-- coverage run --source=openaerostruct testflo .
+- testflo --coverage --coverpkg openmdao
 
 after_success:
 - coveralls

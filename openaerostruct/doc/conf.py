@@ -34,8 +34,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
-    'numpydoc'
+    'sphinx.ext.viewcode'
 ]
 
 # Generate the API documentation when building
