@@ -55,7 +55,7 @@ script:
 - cd ..
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - cd -
-- testflo .
+- coverage run --source=openaerostruct testflo .
 
 after_success:
 - coveralls
