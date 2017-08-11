@@ -73,11 +73,12 @@ class Test(unittest.TestCase):
         except:
             from openmdao.api import ScipyOptimizer
             prob.driver = ScipyOptimizer()
+            prob.driver.options['disp'] = True
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
         prob.model.add_constraint('wing.failure', upper=0.)
-        prob.model.add_constraint('wing.thickness_intersects', upper=0., scaler=1e1)
+        prob.model.add_constraint('wing.thickness_intersects', upper=0.)
 
         # Add design variables, constraisnt, and objective on the problem
         prob.model.add_objective('wing.structural_weight', scaler=1e-5)

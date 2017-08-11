@@ -154,6 +154,7 @@ class Test(unittest.TestCase):
         except:
             from openmdao.api import ScipyOptimizer
             prob.driver = ScipyOptimizer()
+            prob.driver.options['tol'] = 1e-9
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
