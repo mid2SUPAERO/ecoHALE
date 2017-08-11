@@ -151,8 +151,6 @@ class Test(unittest.TestCase):
 
         from openmdao.api import view_model
 
-        view_model(prob, 'aerostruct.html', show_browser=False)
-
         prob.run_model()
 
         prob.check_partials(compact_print=True)

@@ -145,11 +145,15 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
                 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
-        from openmdao.api import pyOptSparseDriver
-        prob.driver = pyOptSparseDriver()
-        prob.driver.options['optimizer'] = "SNOPT"
-        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                    'Major feasibility tolerance': 1.0e-8}
+        try:
+            from openmdao.api import pyOptSparseDriver
+            prob.driver = pyOptSparseDriver()
+            prob.driver.options['optimizer'] = "SNOPT"
+            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                        'Major feasibility tolerance': 1.0e-8}
+        except:
+            from openmdao.api import ScipyOptimizer
+            prob.driver = ScipyOptimizer()
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)

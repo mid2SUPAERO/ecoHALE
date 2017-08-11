@@ -6,7 +6,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP
 
 
 class Test(unittest.TestCase):
@@ -113,11 +113,15 @@ class Test(unittest.TestCase):
                 # 'aero_states' group.
                 prob.model.connect(name + '.def_mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
-        from openmdao.api import pyOptSparseDriver
-        prob.driver = pyOptSparseDriver()
-        prob.driver.options['optimizer'] = "SNOPT"
-        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                    'Major feasibility tolerance': 1.0e-8}
+        try:
+            from openmdao.api import pyOptSparseDriver
+            prob.driver = pyOptSparseDriver()
+            prob.driver.options['optimizer'] = "SNOPT"
+            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                        'Major feasibility tolerance': 1.0e-8}
+        except:
+            from openmdao.api import ScipyOptimizer
+            prob.driver = ScipyOptimizer()
 
         # # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
