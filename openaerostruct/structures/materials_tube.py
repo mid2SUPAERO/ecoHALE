@@ -9,7 +9,7 @@ class MaterialsTube(ExplicitComponent):
     The thicknesses are added to the interior of the element, so the
     'radius' value is the outer radius of the tube.
 
-    inputeters
+    parameters
     ----------
     radius : numpy array
         Outer radii for each FEM element.

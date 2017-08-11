@@ -3,7 +3,8 @@ from __future__ import print_function, division
 from openmdao.api import ExplicitComponent
 
 class TotalLift(ExplicitComponent):
-    """ Calculate total lift in force units.
+    """
+    Calculate total lift in force units.
 
     Parameters
     ----------

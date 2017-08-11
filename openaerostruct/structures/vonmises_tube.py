@@ -16,7 +16,7 @@ except:
 class VonMisesTube(ExplicitComponent):
     """ Compute the von Mises stress in each element.
 
-    inputeters
+    parameters
     ----------
     nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.

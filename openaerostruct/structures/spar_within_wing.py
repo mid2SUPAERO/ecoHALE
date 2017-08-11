@@ -21,7 +21,7 @@ class SparWithinWing(ExplicitComponent):
         This component has not been extensively tested.
         It may require additional coding to work as intended.
 
-    inputeters
+    parameters
     ----------
     mesh[nx, ny, 3] : numpy array
         Array defining the nodal points of the lifting surface.

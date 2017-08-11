@@ -17,7 +17,7 @@ class LiftDrag(ExplicitComponent):
     Calculate total lift and drag in force units based on section forces.
     This is for one given lifting surface.
 
-    inputeters
+    parameters
     ----------
     sec_forces[nx-1, ny-1, 3] : numpy array
         Flattened array containing the sectional forces acting on each panel.

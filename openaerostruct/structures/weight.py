@@ -14,7 +14,7 @@ except:
 class Weight(ExplicitComponent):
     """ Compute total weight and center-of-gravity location of the spar elements.
 
-    inputeters
+    parameters
     ----------
     A[ny-1] : numpy array
         Areas for each FEM element.

@@ -15,7 +15,7 @@ data_type = float
 class VLMGeometry(ExplicitComponent):
     """ Compute various geometric properties for VLM analysis.
 
-    inputeters
+    parameters
     ----------
     def_mesh[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.

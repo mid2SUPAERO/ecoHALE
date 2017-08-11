@@ -63,7 +63,7 @@ class LiftCoeff2D(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
-        # Input inputeters
+        # Input parameters
         alpha = inputs['alpha'] * np.pi / 180.
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
@@ -86,7 +86,7 @@ class LiftCoeff2D(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         """ Jacobian for 2D lift coefficient distribution."""
 
-        # Input inputeters
+        # Input parameters
         alpha = inputs['alpha'] * np.pi / 180.
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
