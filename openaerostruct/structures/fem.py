@@ -38,7 +38,7 @@ class FEM(ImplicitComponent):
 
         self.add_input('K', val=np.eye(size), units='N/m')
         self.add_input('forces', val=np.ones(size), units='N')
-        self.add_output('disp_aug', shape=size, val=.1, units='m')
+        self.add_output('disp_aug', shape=size, val=.1, units='m', ref=1e-2, res_ref=1e-8)
 
         size = self.metadata['size']
         row_col = np.arange(size, dtype="int")

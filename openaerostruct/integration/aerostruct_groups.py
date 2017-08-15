@@ -12,7 +12,7 @@ from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, ExplicitComponent
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, LinearRunOnce, ExplicitComponent, PetscKSP
 
 
 class Aerostruct(Group):
@@ -66,6 +66,7 @@ class PreAS(Group):
             promotes_inputs=['def_mesh'], promotes_outputs=['b_pts', 'c_pts', 'widths', 'cos_sweep', 'lengths', 'chords', 'normals', 'S_ref'])
 
         self.linear_solver = LinearRunOnce()
+
 
 class CoupledPerformance(Group):
 
@@ -166,13 +167,16 @@ class AerostructPoint(Group):
         # Set solver properties for the coupled group
         coupled.linear_solver = ScipyIterativeSolver()
         coupled.linear_solver.precon = LinearRunOnce()
+        # coupled.linear_solver.precon.options['maxiter'] = 2
         coupled.linear_solver.options['iprint'] = 2
+        coupled.linear_solver.options['rtol'] = 1e-12
 
         # coupled.nonlinear_solver = NonlinearBlockGS()
         # coupled.nonlinear_solver.options['maxiter'] = 20
 
-        # coupled.jacobian = DenseJacobian()
-        # coupled.linear_solver = DirectSolver()
+        coupled.jacobian = DenseJacobian()
+        coupled.linear_solver = DirectSolver()
+
         coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         coupled.nonlinear_solver.options['iprint'] = 2
         coupled.nonlinear_solver.options['maxiter'] = 50

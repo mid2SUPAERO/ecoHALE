@@ -7,7 +7,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 
 from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer
 
 try:
     from openaerostruct.fortran import OAS_API
@@ -178,7 +178,25 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
+        prob.final_setup()
+
+
+        prob.run_model()
+        # from openmdao.api import view_model
+        # view_model(prob, 'aerostruct.html', show_browser=False)
+        # prob.check_partials(compact_print=True)
+
+        # prob.check_total_derivatives(compact_print=True)
+        # exit()
+
+        from openmdao.devtools.debug import tree
+        tree(prob.model)
+
+        prob.set_solver_print()
+
         prob.run_driver()
+
+        prob.model.AS_point_0.list_outputs()
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 101017.24353051548, places=3)
 

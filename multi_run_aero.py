@@ -8,7 +8,7 @@ from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 from openaerostruct.integration.multipoint_comps import MultiCD, GeomMatch
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearRunOnce, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.devtools import iprofile
 from openmdao.api import view_model
 from six import iteritems
