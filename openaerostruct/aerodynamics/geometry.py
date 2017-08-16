@@ -50,15 +50,15 @@ class VLMGeometry(ExplicitComponent):
         self.nx = surface['num_x']
 
         self.add_input('def_mesh', val=np.random.random((self.nx, self.ny, 3)), units='m')
-        self.add_output('b_pts', val=np.random.random((self.nx-1, self.ny, 3)), units='m', ref=1e1)
-        self.add_output('c_pts', val=np.random.random((self.nx-1, self.ny-1, 3)), units='m', ref=1e1)
-        self.add_output('widths', val=np.ones((self.ny-1)), units='m', ref=1e1)
-        self.add_output('cos_sweep', val=np.zeros((self.ny-1)), units='m', ref=1e1)
+        self.add_output('b_pts', val=np.random.random((self.nx-1, self.ny, 3)), units='m')
+        self.add_output('c_pts', val=np.random.random((self.nx-1, self.ny-1, 3)), units='m')
+        self.add_output('widths', val=np.ones((self.ny-1)), units='m')
+        self.add_output('cos_sweep', val=np.zeros((self.ny-1)), units='m')
 
-        self.add_output('lengths', val=np.random.random((self.ny)), units='m', ref=1e1)
-        self.add_output('chords', val=np.random.random((self.ny)), units='m', ref=1e1)
-        self.add_output('normals', val=np.random.random((self.nx-1, self.ny-1, 3)), ref=1e0)
-        self.add_output('S_ref', val=1., units='m**2', ref=1e2)
+        self.add_output('lengths', val=np.random.random((self.ny)), units='m')
+        self.add_output('chords', val=np.random.random((self.ny)), units='m')
+        self.add_output('normals', val=np.random.random((self.nx-1, self.ny-1, 3)))
+        self.add_output('S_ref', val=1., units='m**2')
 
 
         if not fortran_flag:

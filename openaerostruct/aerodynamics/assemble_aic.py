@@ -76,7 +76,7 @@ class AssembleAIC(ExplicitComponent):
         self.add_input('v', val=1., units='m/s')
         self.add_input('alpha', val=1.)
 
-        self.add_output('AIC', val=np.ones((tot_panels, tot_panels), dtype=data_type), units='1/m', ref=1e-2)
+        self.add_output('AIC', val=np.ones((tot_panels, tot_panels), dtype=data_type), units='1/m')
         self.add_output('rhs', val=np.ones((tot_panels), dtype=data_type), units='m/s')
 
         self.AIC_mtx = np.zeros((tot_panels, tot_panels, 3),

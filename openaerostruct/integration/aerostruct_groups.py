@@ -165,21 +165,18 @@ class AerostructPoint(Group):
             coupled.add_subsystem(name + '_loads', LoadTransfer(surface=surface))
 
         # Set solver properties for the coupled group
-        coupled.linear_solver = ScipyIterativeSolver()
-        coupled.linear_solver.precon = LinearRunOnce()
-        # coupled.linear_solver.precon.options['maxiter'] = 2
-        coupled.linear_solver.options['iprint'] = 2
-        coupled.linear_solver.options['rtol'] = 1e-12
+        # coupled.linear_solver = ScipyIterativeSolver()
+        # coupled.linear_solver.precon = LinearRunOnce()
 
-        # coupled.nonlinear_solver = NonlinearBlockGS()
-        # coupled.nonlinear_solver.options['maxiter'] = 20
+        coupled.nonlinear_solver = NonlinearBlockGS()
+        coupled.nonlinear_solver.options['maxiter'] = 20
 
         coupled.jacobian = DenseJacobian()
         coupled.linear_solver = DirectSolver()
 
-        coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
-        coupled.nonlinear_solver.options['iprint'] = 2
-        coupled.nonlinear_solver.options['maxiter'] = 50
+        # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+        # coupled.nonlinear_solver.options['iprint'] = 2
+        # coupled.nonlinear_solver.options['maxiter'] = 50
 
 
         # # 1. GS without aitken:

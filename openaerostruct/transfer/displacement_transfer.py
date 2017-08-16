@@ -47,7 +47,7 @@ class DisplacementTransfer(ExplicitComponent):
 
         self.add_input('mesh', val=np.random.rand(self.nx, self.ny, 3), units='m')
         self.add_input('disp', val=np.random.rand(self.ny, 6), units='m')
-        self.add_output('def_mesh', val=np.random.rand(self.nx, self.ny, 3), units='m', ref=1e1)
+        self.add_output('def_mesh', val=np.random.rand(self.nx, self.ny, 3), units='m')
 
         if not fortran_flag:
             self.approx_partials('*', '*')
