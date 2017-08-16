@@ -27,18 +27,17 @@ class Geometry(Group):
                  indep_var_comp,
                  promotes=['*'])
 
-        indep_var_comp.add_output('twist', val=0.)
-        indep_var_comp.add_output('shape', val=np.zeros((surface['mx'] * surface['my'])), units='m')
+        indep_var_comp.add_output('shape', val=np.zeros((surface['mx'], surface['my'])), units='m')
 
         bsp_inputs = []
 
         self.add_subsystem('mesh',
             GeometryMesh(surface=surface),
-            promotes_inputs=['twist', 'shape'],
+            promotes_inputs=['shape'],
             promotes_outputs=['mesh'])
 
         if surface['type'] == 'aero':
-            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)))
+            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)), units='m')
             self.add_subsystem('def_mesh',
                 DisplacementTransfer(surface=surface),
                 promotes_inputs=['disp', 'mesh'],

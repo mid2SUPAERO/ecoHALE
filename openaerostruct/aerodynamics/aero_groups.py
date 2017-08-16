@@ -1,4 +1,4 @@
-from openmdao.api import Group, LinearBlockGS
+from openmdao.api import Group, LinearRunOnce
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -28,7 +28,7 @@ class AeroPoint(Group):
             # Connect S_ref for performance calcs
             self.connect(name + '.S_ref', name + '_perf.S_ref')
             self.connect(name + '.widths', name + '_perf.widths')
-            self.connect(name + '.chords', name + '_perf.chords')
+            # self.connect(name + '.chords', name + '_perf.chords')
             self.connect(name + '.lengths', name + '_perf.lengths')
             self.connect(name + '.cos_sweep', name + '_perf.cos_sweep')
 
@@ -49,8 +49,7 @@ class AeroPoint(Group):
         # this component requires information from all surfaces because
         # each surface interacts with the others.
         aero_states = VLMStates(surfaces=surfaces)
-        aero_states.linear_solver = LinearBlockGS()
-        aero_states.linear_solver.options['iprint'] = 2
+        aero_states.linear_solver = LinearRunOnce()
 
         self.add_subsystem('aero_states',
                  aero_states,

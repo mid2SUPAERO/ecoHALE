@@ -70,7 +70,8 @@ class LiftDrag(ExplicitComponent):
         """ Jacobian for lift and drag."""
 
         # Analytic derivatives for sec_forces
-        alpha = float(inputs['alpha']) * np.pi / 180.
+        p180 = np.pi / 180.
+        alpha = float(inputs['alpha']) * p180
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
 
@@ -88,7 +89,6 @@ class LiftDrag(ExplicitComponent):
         partials['D', 'sec_forces'] = \
             np.atleast_2d(np.tile(tmp, self.num_panels)) * symmetry_factor
 
-        p180 = np.pi / 180.
         partials['L', 'alpha'] = p180 * symmetry_factor * \
             np.sum(-forces[:, :, 0] * cosa - forces[:, :, 2] * sina)
         partials['D', 'alpha'] = p180 * symmetry_factor * \

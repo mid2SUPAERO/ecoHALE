@@ -23,10 +23,11 @@ class VLMFunctionals(Group):
             ViscousDrag(surface=surface),
             promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref'], promotes_outputs=['CDv'])
 
-        self.add_subsystem('liftcoeff',
-             LiftCoeff2D(surface=surface),
-             promotes_inputs=['v', 'alpha', 'rho', 'widths', 'chords', 'sec_forces'],
-             promotes_outputs=['Cl'])
+        # This component is generally not needed unless you want the sectional CLs
+        # self.add_subsystem('liftcoeff',
+        #      LiftCoeff2D(surface=surface),
+        #      promotes_inputs=['v', 'alpha', 'rho', 'widths', 'chords', 'sec_forces'],
+        #      promotes_outputs=['Cl'])
 
         self.add_subsystem('liftdrag',
             LiftDrag(surface=surface),

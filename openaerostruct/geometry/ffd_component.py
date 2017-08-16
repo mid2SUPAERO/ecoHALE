@@ -33,8 +33,6 @@ class GeometryMesh(ExplicitComponent):
 
     Parameters
     ----------
-    twist[ny] : numpy array
-        1-D array of rotation angles for each wing slice in degrees.
 
     Returns
     -------
@@ -59,9 +57,6 @@ class GeometryMesh(ExplicitComponent):
         self.DVGeo.addPointSet(pts, 'surface')
         # Associate a 'reference axis' for large-scale manipulation
         self.DVGeo.addRefAxis('wing_axis', xFraction=0.25, alignIndex='i')
-        # Define a global design variable function:
-        def twist(val, geo):
-           geo.rot_y['wing_axis'].coef[:] = val[:]
 
         # Now add local (shape) variables
         self.DVGeo.addGeoDVLocal('shape', lower=-0.5, upper=0.5, axis='z')
@@ -70,7 +65,6 @@ class GeometryMesh(ExplicitComponent):
         self.inds = coords[:, 0, :]
         self.inds2 = coords[:, 1, :]
 
-        self.add_input('twist', val=0.)
         self.add_input('shape', val=np.zeros((self.mx, self.my)), units='m')
 
         self.add_output('mesh', val=surface['mesh'], units='m')
@@ -81,8 +75,6 @@ class GeometryMesh(ExplicitComponent):
         dvs = self.DVGeo.getValues()
 
         nx, ny = surface['mesh'].shape[:2]
-
-        dvs['twist'] = inputs['twist']
 
         for i, row in enumerate(self.inds):
             for j, ind in enumerate(row):
