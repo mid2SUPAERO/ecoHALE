@@ -29,6 +29,8 @@ class Aerostruct(Group):
             geom_promotes.append('thickness_cp')
         if 'twist_cp' in surface.keys():
             geom_promotes.append('twist_cp')
+        if 'mx' in surface.keys():
+            geom_promotes.append('shape')
 
         self.add_subsystem('geometry',
             Geometry(surface=surface),
@@ -78,7 +80,7 @@ class CoupledPerformance(Group):
 
         self.add_subsystem('aero_funcs',
             VLMFunctionals(surface=surface),
-            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'chords', 'S_ref', 'sec_forces'], promotes_outputs=['CDv', 'Cl', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
+            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'S_ref', 'sec_forces'], promotes_outputs=['CDv', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
 
         self.add_subsystem('struct_funcs',
             SpatialBeamFunctionals(surface=surface),
@@ -129,7 +131,7 @@ class AerostructPoint(Group):
             self.connect('coupled.' + name + '.disp', name + '_perf.disp')
             self.connect('coupled.' + name + '.S_ref', name + '_perf.S_ref')
             self.connect('coupled.' + name + '.widths', name + '_perf.widths')
-            self.connect('coupled.' + name + '.chords', name + '_perf.chords')
+            # self.connect('coupled.' + name + '.chords', name + '_perf.chords')
             self.connect('coupled.' + name + '.lengths', name + '_perf.lengths')
             self.connect('coupled.' + name + '.cos_sweep', name + '_perf.cos_sweep')
 

@@ -2,18 +2,6 @@ from __future__ import division, print_function
 import numpy as np
 import unittest
 
-from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.ffd_geometry import Geometry
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
-
-from openaerostruct.aerodynamics.aero_groups import AeroPoint
-from openaerostruct.integration.multipoint_comps import MultiCD, GeomMatch
-
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
-from openmdao.devtools import iprofile
-from openmdao.api import view_model
-from six import iteritems
-
 try:
     import pygeo
     pygeo_flag = True
@@ -24,6 +12,19 @@ except:
 class Test(unittest.TestCase):
 
     def test(self):
+
+        from openaerostruct.geometry.utils import generate_mesh
+        from openaerostruct.geometry.ffd_geometry import Geometry
+        from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
+
+        from openaerostruct.aerodynamics.aero_groups import AeroPoint
+        from openaerostruct.integration.multipoint_comps import MultiCD, GeomMatch
+
+        from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
+        from openmdao.devtools import iprofile
+        from openmdao.api import view_model
+        from six import iteritems
+
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 5,
                      'num_x' : 3,

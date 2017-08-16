@@ -100,8 +100,6 @@ class GeometryMesh(ExplicitComponent):
             self.add_input('zshear', val=geo_params['zshear'], units='m')
 
         self.add_output('mesh', val=self.mesh, units='m')
-        if 'struct' in surface['type']:
-            self.add_output('radius', val=np.zeros((ny - 1)), units='m')
 
         self.symmetry = surface['symmetry']
 
@@ -148,12 +146,6 @@ class GeometryMesh(ExplicitComponent):
             rotate(mesh, self.geo_params['twist'], self.symmetry, self.rotate_x)
 
         outputs['mesh'] = mesh
-
-        if 'struct' in self.metadata['surface']['type']:
-            outputs['radius'] = radii(mesh, self.metadata['surface']['t_over_c'])
-            # outputs['radius'] = np.array([ 0.17806111,  0.20682864,  0.23559643,  0.26436396,  0.29313175,  0.32189928,
-            #   0.35066707,  0.37936881,  0.4081366,   0.44796837,  0.50773076,  0.57649212,
-            #   0.64529818,  0.71405547,  0.78276348])
 
     if fortran_flag:
         def compute_partials(self, inputs, partials):

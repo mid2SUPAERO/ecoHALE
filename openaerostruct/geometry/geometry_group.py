@@ -1,7 +1,8 @@
 import numpy as np
 
-from openaerostruct.geometry.geometry_mesh import GeometryMesh
+
 from openaerostruct.geometry.bsplines import Bsplines
+from openaerostruct.geometry.radius_comp import RadiusComp
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
 from openmdao.api import IndepVarComp, Group
@@ -27,52 +28,90 @@ class Geometry(Group):
                  indep_var_comp,
                  promotes=['*'])
 
-        bsp_inputs = []
+        if 'geom_manipulator' in [i for i in surface.keys()]:
+            if surface['geom_manipulator'] == 'FFD':
+                use_FFD = True
+            else:
+                use_FFD = False
+        else:
+            use_FFD = False
 
-        if 'twist_cp' in surface.keys():
-            # Add bspline components for active bspline geometric variables.
-            self.add_subsystem('twist_bsp', Bsplines(
-                in_name='twist_cp', out_name='twist',
-                num_cp=len(surface['twist_cp']), num_pt=int(ny)),
-                promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
-            bsp_inputs.append('twist')
-            indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
+        if use_FFD:
+            from openaerostruct.geometry.ffd_geometry import GeometryMesh
+            indep_var_comp.add_output('shape', val=np.zeros((surface['mx'], surface['my'])), units='m')
 
-        if 'chord_cp' in surface.keys():
-            # Add bspline components for active bspline geometric variables.
-            self.add_subsystem('chord_bsp', Bsplines(
-                in_name='chord_cp', out_name='chord',
-                num_cp=len(surface['chord_cp']), num_pt=int(ny)),
-                promotes_inputs=['chord_cp'], promotes_outputs=['chord'])
-            bsp_inputs.append('chord')
-            indep_var_comp.add_output('chord_cp', val=surface['chord_cp'], units='m')
+            self.add_subsystem('mesh',
+                GeometryMesh(surface=surface),
+                promotes_inputs=['shape'],
+                promotes_outputs=['mesh'])
 
-        if 'xshear_cp' in surface.keys():
-            # Add bspline components for active bspline geometric variables.
-            self.add_subsystem('xshear_bsp', Bsplines(
-                in_name='xshear_cp', out_name='xshear',
-                num_cp=len(surface['xshear_cp']), num_pt=int(ny)),
-                promotes_inputs=['xshear_cp'], promotes_outputs=['xshear'])
-            bsp_inputs.append('xshear')
-            indep_var_comp.add_output('xshear_cp', val=surface['xshear_cp'], units='m')
+        else:
+            from openaerostruct.geometry.geometry_mesh import GeometryMesh
 
-        if 'yshear_cp' in surface.keys():
-            # Add bspline components for active bspline geometric variables.
-            self.add_subsystem('yshear_bsp', Bsplines(
-                in_name='yshear_cp', out_name='yshear',
-                num_cp=len(surface['yshear_cp']), num_pt=int(ny)),
-                promotes_inputs=['yshear_cp'], promotes_outputs=['yshear'])
-            bsp_inputs.append('yshear')
-            indep_var_comp.add_output('yshear_cp', val=surface['yshear_cp'], units='m')
+            bsp_inputs = []
 
-        if 'zshear_cp' in surface.keys():
-            # Add bspline components for active bspline geometric variables.
-            self.add_subsystem('zshear_bsp', Bsplines(
-                in_name='zshear_cp', out_name='zshear',
-                num_cp=len(surface['zshear_cp']), num_pt=int(ny)),
-                promotes_inputs=['zshear_cp'], promotes_outputs=['zshear'])
-            bsp_inputs.append('zshear')
-            indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'], units='m')
+            if 'twist_cp' in surface.keys():
+                # Add bspline components for active bspline geometric variables.
+                self.add_subsystem('twist_bsp', Bsplines(
+                    in_name='twist_cp', out_name='twist',
+                    num_cp=len(surface['twist_cp']), num_pt=int(ny)),
+                    promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
+                bsp_inputs.append('twist')
+                indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
+
+            if 'chord_cp' in surface.keys():
+                # Add bspline components for active bspline geometric variables.
+                self.add_subsystem('chord_bsp', Bsplines(
+                    in_name='chord_cp', out_name='chord',
+                    num_cp=len(surface['chord_cp']), num_pt=int(ny)),
+                    promotes_inputs=['chord_cp'], promotes_outputs=['chord'])
+                bsp_inputs.append('chord')
+                indep_var_comp.add_output('chord_cp', val=surface['chord_cp'], units='m')
+
+            if 'xshear_cp' in surface.keys():
+                # Add bspline components for active bspline geometric variables.
+                self.add_subsystem('xshear_bsp', Bsplines(
+                    in_name='xshear_cp', out_name='xshear',
+                    num_cp=len(surface['xshear_cp']), num_pt=int(ny)),
+                    promotes_inputs=['xshear_cp'], promotes_outputs=['xshear'])
+                bsp_inputs.append('xshear')
+                indep_var_comp.add_output('xshear_cp', val=surface['xshear_cp'], units='m')
+
+            if 'yshear_cp' in surface.keys():
+                # Add bspline components for active bspline geometric variables.
+                self.add_subsystem('yshear_bsp', Bsplines(
+                    in_name='yshear_cp', out_name='yshear',
+                    num_cp=len(surface['yshear_cp']), num_pt=int(ny)),
+                    promotes_inputs=['yshear_cp'], promotes_outputs=['yshear'])
+                bsp_inputs.append('yshear')
+                indep_var_comp.add_output('yshear_cp', val=surface['yshear_cp'], units='m')
+
+            if 'zshear_cp' in surface.keys():
+                # Add bspline components for active bspline geometric variables.
+                self.add_subsystem('zshear_bsp', Bsplines(
+                    in_name='zshear_cp', out_name='zshear',
+                    num_cp=len(surface['zshear_cp']), num_pt=int(ny)),
+                    promotes_inputs=['zshear_cp'], promotes_outputs=['zshear'])
+                bsp_inputs.append('zshear')
+                indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'], units='m')
+
+            self.add_subsystem('mesh',
+                GeometryMesh(surface=surface),
+                promotes_inputs=bsp_inputs,
+                promotes_outputs=['mesh'])
+
+        if surface['type'] == 'aero':
+            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)), units='m')
+            self.add_subsystem('def_mesh',
+                DisplacementTransfer(surface=surface),
+                promotes_inputs=['disp', 'mesh'],
+                promotes_outputs=['def_mesh'])
+
+        if 'struct' in surface['type']:
+            self.add_subsystem('radius_comp',
+                RadiusComp(surface=surface),
+                promotes_inputs=['mesh'],
+                promotes_outputs=['radius'])
 
         if 'thickness_cp' in surface.keys():
             # Add bspline components for active bspline geometric variables.
@@ -81,20 +120,3 @@ class Geometry(Group):
                 num_cp=len(surface['thickness_cp']), num_pt=int(ny-1)),
                 promotes_inputs=['thickness_cp'], promotes_outputs=['thickness'])
             indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'], units='m')
-
-        mesh_promotes = ['mesh']
-
-        if 'struct' in surface['type']:
-            mesh_promotes.append('radius')
-
-        self.add_subsystem('mesh',
-            GeometryMesh(surface=surface),
-            promotes_inputs=bsp_inputs,
-            promotes_outputs=mesh_promotes)
-
-        if surface['type'] == 'aero':
-            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)), units='m')
-            self.add_subsystem('def_mesh',
-                DisplacementTransfer(surface=surface),
-                promotes_inputs=['disp', 'mesh'],
-                promotes_outputs=['def_mesh'])

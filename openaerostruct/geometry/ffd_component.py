@@ -4,10 +4,6 @@ from __future__ import division, print_function
 import numpy as np
 from pygeo import *
 
-from openaerostruct.geometry.utils import \
-    rotate, scale_x, shear_x, shear_y, shear_z, \
-    sweep, dihedral, stretch, taper
-
 from openmdao.api import ExplicitComponent
 from openaerostruct.structures.utils import radii
 
@@ -74,8 +70,6 @@ class GeometryMesh(ExplicitComponent):
 
         dvs = self.DVGeo.getValues()
 
-        nx, ny = surface['mesh'].shape[:2]
-
         for i, row in enumerate(self.inds):
             for j, ind in enumerate(row):
                 ind2 = self.inds2[i, j]
@@ -86,7 +80,7 @@ class GeometryMesh(ExplicitComponent):
         coords = self.DVGeo.update('surface')
 
         mesh = coords.copy()
-        mesh = mesh.reshape((nx, ny, 3))
+        mesh = mesh.reshape(surface['mesh'].shape)
         outputs['mesh'] = mesh
 
     def compute_partials(self, inputs, partials):
