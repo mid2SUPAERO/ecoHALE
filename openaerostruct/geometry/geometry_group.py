@@ -37,7 +37,7 @@ class Geometry(Group):
             use_FFD = False
 
         if use_FFD:
-            from openaerostruct.geometry.ffd_geometry import GeometryMesh
+            from openaerostruct.geometry.ffd_component import GeometryMesh
             indep_var_comp.add_output('shape', val=np.zeros((surface['mx'], surface['my'])), units='m')
 
             self.add_subsystem('mesh',

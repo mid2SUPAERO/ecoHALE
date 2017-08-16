@@ -45,10 +45,8 @@ class Equilibrium(ExplicitComponent):
         self.add_input('fuelburn', val=1., units='kg')
         self.add_input('W0', val=1., units='kg')
         self.add_input('load_factor', val=1.)
-        self.add_input('alpha', val=0.)
 
-        self.add_input('CL', val=0.)
-        self.add_input('CD', val=0.)
+        self.add_input('CL', val=1.)
 
         self.add_input('S_ref_total', val=1., units='m**2')
         self.add_input('v', val=1., units='m/s')
@@ -57,7 +55,6 @@ class Equilibrium(ExplicitComponent):
         self.add_output('L_equals_W', val=1.)
         self.add_output('total_weight', val=1., units='N')
 
-        self.declare_partials('total_weight', 'alpha', dependent=False)
         for surface in self.metadata['surfaces']:
             name = surface['name']
             self.declare_partials('L_equals_W', name + '_structural_weight', dependent=False)
@@ -68,7 +65,6 @@ class Equilibrium(ExplicitComponent):
 
         g = 9.80665 * inputs['load_factor']
         W0 = inputs['W0'] * g
-        alpha = inputs['alpha'] * np.pi / 180.
         rho = inputs['rho']
         v = inputs['v']
 
@@ -85,12 +81,11 @@ class Equilibrium(ExplicitComponent):
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
         outputs['total_weight'] = tot_weight
-        outputs['L_equals_W'] = 1 - (0.5 * rho * v**2 * S_ref_tot) * (inputs['CL'] * np.cos(alpha) - inputs['CD'] * np.sin(alpha)) / tot_weight
+        outputs['L_equals_W'] = 1 - (0.5 * rho * v**2 * S_ref_tot) * inputs['CL'] / tot_weight
 
     def compute_partials(self, inputs, partials):
         g = 9.80665 * inputs['load_factor']
         W0 = inputs['W0'] * g
-        alpha = inputs['alpha'] * np.pi / 180.
         rho = inputs['rho']
         v = inputs['v']
 
@@ -104,20 +99,18 @@ class Equilibrium(ExplicitComponent):
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
         L = inputs['CL'] * (0.5 * rho * v**2 * S_ref_tot)
-        D = inputs['CD'] * (0.5 * rho * v**2 * S_ref_tot)
 
         partials['total_weight', 'fuelburn'] = g
         partials['total_weight', 'W0'] = g
         partials['total_weight', 'load_factor'] = (inputs['fuelburn'] + inputs['W0']) * 9.80665
 
-        partials['L_equals_W', 'fuelburn'] = (L * np.cos(alpha) - D * np.sin(alpha)) / tot_weight**2 * g
-        partials['L_equals_W', 'W0'] = (L * np.cos(alpha) - D * np.sin(alpha)) / tot_weight**2 * g
-        partials['L_equals_W', 'load_factor'] = (L * np.cos(alpha) - D * np.sin(alpha)) / tot_weight**2 * (inputs['fuelburn'] * 9.80665 + inputs['W0'] * 9.80665)
-        partials['L_equals_W', 'rho'] = -.5 * S_ref_tot * v**2 * (inputs['CL'] * np.cos(alpha) - inputs['CD'] * np.sin(alpha)) / tot_weight
-        partials['L_equals_W', 'v'] = - rho * S_ref_tot * v * (inputs['CL'] * np.cos(alpha) - inputs['CD'] * np.sin(alpha)) / tot_weight
+        partials['L_equals_W', 'fuelburn'] = L / tot_weight**2 * g
+        partials['L_equals_W', 'W0'] = L / tot_weight**2 * g
+        partials['L_equals_W', 'load_factor'] = L / tot_weight**2 * (inputs['fuelburn'] * 9.80665 + inputs['W0'] * 9.80665)
+        partials['L_equals_W', 'rho'] = -.5 * S_ref_tot * v**2 * inputs['CL'] / tot_weight
+        partials['L_equals_W', 'v'] = - rho * S_ref_tot * v * inputs['CL'] / tot_weight
 
-        partials['L_equals_W', 'alpha'] = (D * np.cos(alpha) + L * np.sin(alpha)) / tot_weight * np.pi / 180.
         for surface in self.metadata['surfaces']:
             name = surface['name']
             partials['total_weight', name + '_structural_weight'] = 1.0
-            partials['L_equals_W', name + '_structural_weight'] = (L * np.cos(alpha) - D * np.sin(alpha)) / tot_weight**2
+            partials['L_equals_W', name + '_structural_weight'] = L / tot_weight**2

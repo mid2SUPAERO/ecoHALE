@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
     def test(self):
 
         from openaerostruct.geometry.utils import generate_mesh
-        from openaerostruct.geometry.ffd_geometry import Geometry
+        from openaerostruct.geometry.geometry_group import Geometry
         from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
         from openaerostruct.aerodynamics.aero_groups import AeroPoint
@@ -47,6 +47,7 @@ class Test(unittest.TestCase):
                     'mesh' : mesh,
                     'mx' : 2,
                     'my' : 3,
+                    'geom_manipulator' : 'FFD',
 
                     # Aerodynamic performance of the lifting surface at
                     # an angle of attack of 0 (alpha=0).
