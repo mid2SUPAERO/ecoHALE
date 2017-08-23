@@ -166,6 +166,10 @@ class AerostructPoint(Group):
             # Add a loads component to the coupled group
             coupled.add_subsystem(name + '_loads', LoadTransfer(surface=surface))
 
+        """
+        ### Change the solver settings here ###
+        """
+
         # Set solver properties for the coupled group
         # coupled.linear_solver = ScipyIterativeSolver()
         # coupled.linear_solver.precon = LinearRunOnce()
@@ -180,72 +184,9 @@ class AerostructPoint(Group):
         # coupled.nonlinear_solver.options['iprint'] = 2
         # coupled.nonlinear_solver.options['maxiter'] = 50
 
-
-        # # 1. GS without aitken:
-        # print('1')
-        # coupled.ln_solver = ScipyIterativeSolver()
-        # coupled.ln_solver.options['maxiter'] = 200
-        # coupled.ln_solver.options['atol'] = 1e-16
-        # coupled.ln_solver.preconditioner = LinearBlockGS()
-        # coupled.ln_solver.preconditioner.options['maxiter'] = 1
-        #
-        # coupled.nl_solver = NonlinearBlockGS()
-        # coupled.nl_solver.options['maxiter'] = 20
-        #
-        # coupled.nl_solver.options['atol'] = 1e-12
-        # coupled.nl_solver.options['rtol'] = 1e-100
-        # # coupled.nl_solver.options['utol'] = 1e-100
-
-        # # 2. GS with aitken:
-        #
-        # print('2')
-        # coupled.ln_solver = ScipyIterativeSolver()
-        # coupled.ln_solver.options['maxiter'] = 200
-        # coupled.ln_solver.options['atol'] =1e-16
-        # coupled.ln_solver.preconditioner = LinearBlockGS()
-        # coupled.ln_solver.preconditioner.options['maxiter'] = 1
-        #
-        # coupled.nl_solver = NonlinearBlockGS()
-        # coupled.nl_solver.options['maxiter'] = 2000
-        # coupled.nl_solver.options['use_aitken'] = True
-        # coupled.nl_solver.options['aitken_alpha_min'] = 0.01
-        # coupled.nl_solver.options['aitken_alpha_max'] = 1.5
-        #
-        # coupled.nl_solver.options['atol'] = 1e-12
-        # coupled.nl_solver.options['rtol'] = 1e-100
-        # # coupled.nl_solver.options['utol'] = 1e-100
-
-        # # 3. Newton with GMRES:
-        #
-        # print('3')
-        # coupled.ln_solver = ScipyIterativeSolver()
-        # coupled.ln_solver.options['maxiter'] = 200
-        # coupled.ln_solver.preconditioner = LinearBlockGS()
-        # coupled.ln_solver.preconditioner.options['maxiter'] = 1
-        # coupled.ln_solver.options['atol'] =1e-16
-        #
-        # coupled.nl_solver = NewtonSolver()
-        # coupled.nl_solver.options['maxiter'] = 30
-        # coupled.nl_solver.options['solve_subsystems'] = False
-        #
-        # coupled.nl_solver.options['atol'] = 1e-12
-        # coupled.nl_solver.options['rtol'] = 1e-100
-        # # coupled.nl_solver.options['utol'] = 1e-100
-
-
-        # 4. Newton with DirectSolver:
-
-        # print('4')
-        # coupled.ln_solver = DirectSolver()
-        # coupled.nl_solver = NewtonSolver()
-        # coupled.nl_solver.options['maxiter'] = 10
-        #
-        # coupled.nl_solver.options['atol'] = 1e-12
-        # coupled.nl_solver.options['rtol'] = 1e-100
-        # # coupled.nl_solver.options['utol'] = 1e-100
-
-        # coupled.linear_solver.options['iprint'] = 2
-        # coupled.nonlinear_solver.options['iprint'] = 2
+        """
+        ### End change of solver settings ###
+        """
 
         # Add the coupled group to the model problem
         self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho', 'M'])
