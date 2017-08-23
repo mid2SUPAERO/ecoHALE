@@ -7,7 +7,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 
 from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, LinearRunOnce
 
 try:
     from openaerostruct.fortran import OAS_API
@@ -39,8 +39,8 @@ class Test(unittest.TestCase):
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
 
-                    'thickness_cp' : np.array([1.]),
-                    'twist_cp' : np.array([1.]),
+                    'thickness_cp' : np.array([1., 1.]),
+                    'twist_cp' : np.array([1., 1.]),
 
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
@@ -178,9 +178,34 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
+        """
+        ### Change the solver settings here ###
+        """
+
+        # Set solver properties for the coupled group
+        # prob.model.AS_point_0.coupled.linear_solver = ScipyIterativeSolver()
+        # prob.model.AS_point_0.coupled.linear_solver.precon = LinearRunOnce()
+
+        # prob.model.AS_point_0.coupled.nonlinear_solver = NonlinearBlockGS()
+
+        prob.model.AS_point_0.coupled.jacobian = DenseJacobian()
+        prob.model.AS_point_0.coupled.linear_solver = DirectSolver()
+
+        prob.model.AS_point_0.coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+
+        prob.model.AS_point_0.coupled.nonlinear_solver.options['maxiter'] = 20
+        prob.model.AS_point_0.coupled.nonlinear_solver.options['iprint'] = 2
+
+        # This takes a long, long time to run (~600 secs vs 6 secs without)
+        # prob.model.approx_total_derivs(method='fd', step_calc='rel')
+
+        """
+        ### End change of solver settings ###
+        """
+
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 103378.62529372144, places=3)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 102350.04692237034, places=3)
 
 
 if __name__ == '__main__':
