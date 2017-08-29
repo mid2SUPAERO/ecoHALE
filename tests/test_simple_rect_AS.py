@@ -39,8 +39,8 @@ class Test(unittest.TestCase):
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
 
-                    'thickness_cp' : np.array([1., 1.]),
-                    'twist_cp' : np.array([1., 1.]),
+                    'thickness_cp' : np.array([.075, .075]),
+                    'twist_cp' : np.array([-10., 15.]),
 
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
@@ -83,7 +83,7 @@ class Test(unittest.TestCase):
         # Add problem information as an independent variables component
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
-        indep_var_comp.add_output('alpha', val=5.)
+        indep_var_comp.add_output('alpha', val=9.)
         indep_var_comp.add_output('M', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
