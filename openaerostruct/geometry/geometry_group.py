@@ -1,9 +1,7 @@
 import numpy as np
 
-
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.radius_comp import RadiusComp
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
 from openmdao.api import IndepVarComp, Group
 
@@ -99,13 +97,6 @@ class Geometry(Group):
                 GeometryMesh(surface=surface),
                 promotes_inputs=bsp_inputs,
                 promotes_outputs=['mesh'])
-
-        if surface['type'] == 'aero':
-            indep_var_comp.add_output('disp', val=np.zeros((ny, 6)), units='m')
-            self.add_subsystem('def_mesh',
-                DisplacementTransfer(surface=surface),
-                promotes_inputs=['disp', 'mesh'],
-                promotes_outputs=['def_mesh'])
 
         if 'struct' in surface['type']:
             self.add_subsystem('radius_comp',

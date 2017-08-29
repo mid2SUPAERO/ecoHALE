@@ -48,14 +48,16 @@ class GeometryMesh(ExplicitComponent):
 
         self.DVGeo = DVGeometry(filename)
         self.DVGeo.writePlot3d('debug.fmt')
-        pts = surface['mesh'].reshape(-1, 3)
 
-        self.DVGeo.addPointSet(pts, 'surface')
         # Associate a 'reference axis' for large-scale manipulation
         self.DVGeo.addRefAxis('wing_axis', xFraction=0.25, alignIndex='i')
 
         # Now add local (shape) variables
         self.DVGeo.addGeoDVLocal('shape', lower=-0.5, upper=0.5, axis='z')
+
+        pts = surface['mesh'].reshape(-1, 3)
+
+        self.DVGeo.addPointSet(pts, 'surface')
 
         coords = self.DVGeo.getLocalIndex(0)
         self.inds = coords[:, 0, :]
@@ -143,65 +145,66 @@ def write_FFD_file(surface, mx, my):
 
     ffd = np.vstack((bottom_ffd, top_ffd))
 
-    # import matplotlib.pyplot as plt
-    # from mpl_toolkits.mplot3d import Axes3D
-    #
-    # fig = plt.figure()
-    # axes = []
-    #
-    # axes.append(fig.add_subplot(221, projection='3d'))
-    # axes.append(fig.add_subplot(222, projection='3d'))
-    # axes.append(fig.add_subplot(223, projection='3d'))
-    # axes.append(fig.add_subplot(224, projection='3d'))
-    #
-    # for i, ax in enumerate(axes):
-    #     xs = ffd[[2, 5], :, 0].flatten()
-    #     ys = ffd[[2, 5], :, 1].flatten()
-    #     zs = ffd[[2, 5], :, 2].flatten()
-    #
-    #     ax.scatter(xs, ys, zs, c='red', alpha=1., clip_on=False)
-    #
-    #     xs = ffd[[0, 1, 3, 4], :, 0].flatten()
-    #     ys = ffd[[0, 1, 3, 4], :, 1].flatten()
-    #     zs = ffd[[0, 1, 3, 4], :, 2].flatten()
-    #
-    #     ax.scatter(xs, ys, zs, c='blue', alpha=1.)
-    #
-    #     xs = mesh[:, :, 0]
-    #     ys = mesh[:, :, 1]
-    #     zs = mesh[:, :, 2]
-    #
-    #     ax.plot_wireframe(xs, ys, zs, color='k')
-    #
-    #     ax.set_xlim([-5, 5])
-    #     ax.set_ylim([-5, 5])
-    #     ax.set_zlim([-5, 5])
-    #
-    #     ax.set_xlim([20, 40])
-    #     ax.set_ylim([-25, -5.])
-    #     ax.set_zlim([-10, 10])
-    #
-    #     ax.set_xlabel('x')
-    #     ax.set_ylabel('y')
-    #     ax.set_zlabel('z')
-    #
-    #     ax.set_axis_off()
-    #
-    #     ax.set_axis_off()
-    #
-    #     if i == 0:
-    #         ax.view_init(elev=0, azim=180)
-    #     elif i == 1:
-    #         ax.view_init(elev=0, azim=90)
-    #     elif i == 2:
-    #         ax.view_init(elev=100000, azim=0)
-    #     else:
-    #         ax.view_init(elev=40, azim=-30)
-    #
-    # plt.tight_layout()
-    # plt.subplots_adjust(wspace=0, hspace=0)
-    #
-    # plt.show()
+    if 0:
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
+        fig = plt.figure()
+        axes = []
+
+        axes.append(fig.add_subplot(221, projection='3d'))
+        axes.append(fig.add_subplot(222, projection='3d'))
+        axes.append(fig.add_subplot(223, projection='3d'))
+        axes.append(fig.add_subplot(224, projection='3d'))
+
+        for i, ax in enumerate(axes):
+            xs = ffd[:, :, 0].flatten()
+            ys = ffd[:, :, 1].flatten()
+            zs = ffd[:, :, 2].flatten()
+
+            ax.scatter(xs, ys, zs, c='red', alpha=1., clip_on=False)
+
+            xs = ffd[:, :, 0].flatten()
+            ys = ffd[:, :, 1].flatten()
+            zs = ffd[:, :, 2].flatten()
+
+            ax.scatter(xs, ys, zs, c='blue', alpha=1.)
+
+            xs = mesh[:, :, 0]
+            ys = mesh[:, :, 1]
+            zs = mesh[:, :, 2]
+
+            ax.plot_wireframe(xs, ys, zs, color='k')
+
+            ax.set_xlim([-5, 5])
+            ax.set_ylim([-5, 5])
+            ax.set_zlim([-5, 5])
+
+            ax.set_xlim([20, 40])
+            ax.set_ylim([-25, -5.])
+            ax.set_zlim([-10, 10])
+
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('z')
+
+            ax.set_axis_off()
+
+            ax.set_axis_off()
+
+            if i == 0:
+                ax.view_init(elev=0, azim=180)
+            elif i == 1:
+                ax.view_init(elev=0, azim=90)
+            elif i == 2:
+                ax.view_init(elev=100000, azim=0)
+            else:
+                ax.view_init(elev=40, azim=-30)
+
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=0, hspace=0)
+
+        plt.show()
 
     filename = surface['name'] + '_ffd.fmt'
 

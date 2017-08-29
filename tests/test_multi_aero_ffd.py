@@ -23,7 +23,6 @@ class Test(unittest.TestCase):
         from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
         from openmdao.devtools import iprofile
         from openmdao.api import view_model
-        from six import iteritems
 
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 5,
@@ -57,8 +56,6 @@ class Test(unittest.TestCase):
                     # These CL0 and CD0 values do not vary wrt alpha.
                     'CL0' : 0.0,            # CL of the surface at alpha=0
                     'CD0' : 0.015,            # CD of the surface at alpha=0
-
-                    'fem_origin' : 0.35,
 
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
@@ -124,11 +121,11 @@ class Test(unittest.TestCase):
                 prob.model.connect(point_name + '.wing_geom.shape', 'geom_match.' + str(i) + '_shape')
 
                 # Connect the mesh from the geometry component to the analysis point
-                prob.model.connect(point_name + '.' + name + '_geom.def_mesh', point_name + '.' + name + '.def_mesh')
+                prob.model.connect(point_name + '.' + name + '_geom.mesh', point_name + '.' + name + '.def_mesh')
 
                 # Perform the connections with the modified names within the
                 # 'aero_states' group.
-                prob.model.connect(point_name + '.' + name + '_geom.def_mesh', point_name + '.aero_states.' + name + '_def_mesh')
+                prob.model.connect(point_name + '.' + name + '_geom.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
         prob.model.add_subsystem('multi_CD', MultiCD(n_points=n_points), promotes_outputs=['CD'])
         prob.model.add_subsystem('geom_match', GeomMatch(n_points=n_points, mx=surf_dict['mx'], my=surf_dict['my']), promotes_outputs=['shape_diff'])

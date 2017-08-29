@@ -45,8 +45,6 @@ class Test(unittest.TestCase):
                     'CL0' : 0.0,            # CL of the surface at alpha=0
                     'CD0' : 0.015,            # CD of the surface at alpha=0
 
-                    'fem_origin' : 0.35,
-
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
@@ -107,11 +105,11 @@ class Test(unittest.TestCase):
                 name = surface['name']
 
                 # Connect the mesh from the geometry component to the analysis point
-                prob.model.connect(name + '.def_mesh', point_name + '.' + name + '.def_mesh')
+                prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
 
                 # Perform the connections with the modified names within the
                 # 'aero_states' group.
-                prob.model.connect(name + '.def_mesh', point_name + '.aero_states.' + name + '_def_mesh')
+                prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
         # Set up the problem
         prob.setup()

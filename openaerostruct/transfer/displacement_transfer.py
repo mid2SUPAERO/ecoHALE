@@ -97,6 +97,8 @@ class DisplacementTransfer(ExplicitComponent):
             # Apply the displacements to the mesh
             def_mesh = mesh + mesh_disp
 
+        print(inputs['disp'])
+
         outputs['def_mesh'] = def_mesh
 
     if fortran_flag:
