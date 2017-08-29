@@ -2,25 +2,25 @@ from __future__ import division, print_function
 import unittest
 import numpy as np
 
-from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.geometry_group import Geometry
-
-from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
-
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, LinearRunOnce
-
 try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
+    import pygeo
+    pygeo_flag = True
 except:
-    fortran_flag = False
-    data_type = complex
+    pygeo_flag = False
 
-@unittest.skipUnless(fortran_flag, "Fortran is required.")
+@unittest.skipUnless(pygeo_flag, "pyGeo is required.")
 class Test(unittest.TestCase):
 
     def test(self):
+        from openaerostruct.geometry.utils import generate_mesh, write_FFD_file
+        from openaerostruct.geometry.geometry_group import Geometry
+
+        from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
+
+        from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer
+        from pygeo import DVGeometry
+
+
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 5,
                      'num_x' : 2,
@@ -39,12 +39,15 @@ class Test(unittest.TestCase):
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
 
-                    'thickness_cp' : np.array([1., 1.]),
-                    'twist_cp' : np.array([1., 1.]),
+                    'thickness_cp' : np.array([.1, .2, .3]),
 
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
                     'num_y' : mesh.shape[1],
+
+                    'geom_manipulator' : 'FFD',
+                    'mx' : 2,
+                    'my' : 3,
 
                     # Aerodynamic performance of the lifting surface at
                     # an angle of attack of 0 (alpha=0).
@@ -105,7 +108,9 @@ class Test(unittest.TestCase):
             # only for this surface
             name = surface['name']
 
-            aerostruct_group = Aerostruct(surface=surface)
+            filename = write_FFD_file(surface, surface['mx'], surface['my'])
+            DVGeo = DVGeometry(filename)
+            aerostruct_group = Aerostruct(surface=surface, DVGeo=DVGeo)
 
             # Add tmp_group to the problem with the name of the surface.
             prob.model.add_subsystem(name, aerostruct_group)
@@ -153,19 +158,15 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
                 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizer
-            prob.driver = ScipyOptimizer()
-            prob.driver.options['tol'] = 1e-9
+
+        from openmdao.api import pyOptSparseDriver
+        prob.driver = pyOptSparseDriver()
+        prob.driver.options['optimizer'] = "SNOPT"
+        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
+                                    'Major feasibility tolerance': 1.0e-8}
 
         # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
+        prob.model.add_design_var('wing.shape', lower=-3, upper=2)
         prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
         prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
         prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
@@ -175,41 +176,34 @@ class Test(unittest.TestCase):
         prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
         prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 
+        # iprofile.setup()
+        # iprofile.start()
+
         # Set up the problem
         prob.setup()
 
-        """
-        ### Change the solver settings here ###
-        """
+        # from openmdao.api import view_model
+        # view_model(prob, outfile='aerostruct_ffd', show_browser=False)
 
-        # Set solver properties for the coupled group
-        # prob.model.AS_point_0.coupled.linear_solver = ScipyIterativeSolver()
-        # prob.model.AS_point_0.coupled.linear_solver.precon = LinearRunOnce()
-
-        # prob.model.AS_point_0.coupled.linear_solver = PetscKSP()
-
-        prob.model.AS_point_0.coupled.jacobian = DenseJacobian()
-        prob.model.AS_point_0.coupled.linear_solver = DirectSolver()
-
-
-        # prob.model.AS_point_0.coupled.nonlinear_solver = NonlinearBlockGS()
-
-        prob.model.AS_point_0.coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
-
-
-        prob.model.AS_point_0.coupled.nonlinear_solver.options['maxiter'] = 20
-        prob.model.AS_point_0.coupled.nonlinear_solver.options['iprint'] = 2
-
-        # This takes a long, long time to run (~600 secs vs 6 secs without)
-        # prob.model.approx_total_derivs(method='fd', step_calc='rel')
-
-        """
-        ### End change of solver settings ###
-        """
-
+        # prob.run_model()
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 102350.04692237034, places=3)
+        # prob.check_partials(compact_print=True)
+
+        # print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
+        # print("Wing CD:", prob['aero_point_0.wing_perf.CD'])
+
+
+        # from helper import plot_3d_points
+        #
+        # mesh = prob['aero_point_0.wing.def_mesh']
+        # plot_3d_points(mesh)
+        #
+        # filename = mesh_dict['wing_type'] + '_' + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
+        # filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
+        # np.save(filename, mesh)
+
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 102310.58271266764, places=3)
 
 
 if __name__ == '__main__':

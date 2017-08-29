@@ -161,21 +161,6 @@ class Test(unittest.TestCase):
 
         # prob.check_partials(compact_print=True)
 
-        # print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
-        # print("Wing CD:", prob['aero_point_0.wing_perf.CD'])
-        # print("Wing CD:", prob['aero_point_1.wing_perf.CD'])
-        # print("Wing CD:", prob['aero_point_2.wing_perf.CD'])
-        #
-        # from helper import plot_3d_points
-        #
-        # # plot_3d_points(mesh)
-        #
-        # for i in range(n_points):
-        #     mesh = prob['aero_point_{}.wing.def_mesh'.format(i)]
-        #     filename = mesh_dict['wing_type'] + '_' + 'aero_point_{}_'.format(i) + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
-        #     filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
-        #     np.save(filename, mesh)
-
         self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.45)
         self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03229832696709703)
         self.assertAlmostEqual(prob['aero_point_1.wing_perf.CL'][0], 0.5)
