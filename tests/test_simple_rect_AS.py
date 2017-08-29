@@ -22,13 +22,13 @@ class Test(unittest.TestCase):
 
     def test(self):
         # Create a dictionary to store options about the surface
+        # OM: vary 'num_y' and 'num_x' to change the size of the mesh
         mesh_dict = {'num_y' : 5,
                      'num_x' : 2,
-                     'wing_type' : 'CRM',
-                     'symmetry' : True,
-                     'num_twist_cp' : 5}
+                     'wing_type' : 'rect',
+                     'symmetry' : True}
 
-        mesh, twist_cp = generate_mesh(mesh_dict)
+        mesh = generate_mesh(mesh_dict)
 
         surf_dict = {
                     # Wing definition
@@ -179,10 +179,10 @@ class Test(unittest.TestCase):
         prob.setup()
 
         """
-        ### Change the solver settings here ###
+        # OM: Change the solver settings here ###
         """
 
-        # Set solver properties for the coupled group
+        # Set linear solver properties for the coupled group
         # prob.model.AS_point_0.coupled.linear_solver = ScipyIterativeSolver()
         # prob.model.AS_point_0.coupled.linear_solver.precon = LinearRunOnce()
 
@@ -191,10 +191,10 @@ class Test(unittest.TestCase):
         prob.model.AS_point_0.coupled.jacobian = DenseJacobian()
         prob.model.AS_point_0.coupled.linear_solver = DirectSolver()
 
+        # Set nonlinear solver properties
+        prob.model.AS_point_0.coupled.nonlinear_solver = NonlinearBlockGS()
 
-        # prob.model.AS_point_0.coupled.nonlinear_solver = NonlinearBlockGS()
-
-        prob.model.AS_point_0.coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
+        # prob.model.AS_point_0.coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
 
 
         prob.model.AS_point_0.coupled.nonlinear_solver.options['maxiter'] = 20
@@ -209,7 +209,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 102350.04692237034, places=3)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 74283.180227023186, places=3)
 
 
 if __name__ == '__main__':
