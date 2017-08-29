@@ -19,6 +19,7 @@ class Aerostruct(Group):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('DVGeo', required=False)
 
     def setup(self):
         surface = self.metadata['surface']
@@ -33,7 +34,7 @@ class Aerostruct(Group):
             geom_promotes.append('shape')
 
         self.add_subsystem('geometry',
-            Geometry(surface=surface),
+            Geometry(surface=surface, DVGeo=self.metadata['DVGeo']),
             promotes_inputs=[],
             promotes_outputs=['mesh', 'radius', 'thickness'] + geom_promotes)
 

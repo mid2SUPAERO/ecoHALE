@@ -13,7 +13,7 @@ class Test(unittest.TestCase):
 
     def test(self):
 
-        from openaerostruct.geometry.utils import generate_mesh
+        from openaerostruct.geometry.utils import generate_mesh, write_FFD_file
         from openaerostruct.geometry.geometry_group import Geometry
         from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
@@ -23,6 +23,7 @@ class Test(unittest.TestCase):
         from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
         from openmdao.devtools import iprofile
         from openmdao.api import view_model
+        from pygeo import DVGeometry
 
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 5,
@@ -109,7 +110,9 @@ class Test(unittest.TestCase):
             # Connect the parameters within the model for each aero point
             for surface in surfaces:
 
-                geom_group = Geometry(surface=surface)
+                filename = write_FFD_file(surface, surface['mx'], surface['my'])
+                DVGeo = DVGeometry(filename)
+                geom_group = Geometry(surface=surface, DVGeo=DVGeo)
 
                 # Add tmp_group to the problem as the name of the surface.
                 # Note that is a group and performance group for each

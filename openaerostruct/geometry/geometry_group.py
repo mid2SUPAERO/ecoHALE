@@ -10,6 +10,7 @@ class Geometry(Group):
 
     def initialize(self):
         self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('DVGeo', required=False)
 
     def setup(self):
         surface = self.metadata['surface']
@@ -26,20 +27,13 @@ class Geometry(Group):
                  indep_var_comp,
                  promotes=['*'])
 
-        if 'geom_manipulator' in [i for i in surface.keys()]:
-            if surface['geom_manipulator'] == 'FFD':
-                use_FFD = True
-            else:
-                use_FFD = False
-        else:
-            use_FFD = False
 
-        if use_FFD:
+        if self.metadata['DVGeo']:
             from openaerostruct.geometry.ffd_component import GeometryMesh
             indep_var_comp.add_output('shape', val=np.zeros((surface['mx'], surface['my'])), units='m')
 
             self.add_subsystem('mesh',
-                GeometryMesh(surface=surface),
+                GeometryMesh(surface=surface, DVGeo=self.metadata['DVGeo']),
                 promotes_inputs=['shape'],
                 promotes_outputs=['mesh'])
 

@@ -115,5 +115,4 @@ class Circulations(ImplicitComponent):
             sol_vec, rhs_vec = d_residuals, d_outputs
             t = 1
 
-        # print("foobar", rhs_vec['circulations'])
         sol_vec['circulations'] = linalg.lu_solve(self._lup, rhs_vec['circulations'], trans=t)
