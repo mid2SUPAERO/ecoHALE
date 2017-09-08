@@ -15,7 +15,48 @@ In general, you'll follow these five steps to set up and run a problem in OpenAe
 4. Call setup() on the problem
 5. Call run() to perform analysis or optimization
 
-We'll now investigate these steps individually, using an aerodynamic optimization case as an example.
+We'll now investigate these steps individually, using an aerostructural optimization case as an example.
+We will explain each portion of the run-script below, but here is the full code block:
+
+.. code-block:: python
+
+  from __future__ import division, print_function
+  from OpenAeroStruct import OASProblem
+
+  # Set problem type
+  prob_dict = {'type' : 'aerostruct',
+               'optimize' : True}
+
+  # Instantiate problem and add default surface
+  OAS_prob = OASProblem(prob_dict)
+
+  # Create a dictionary to store options about the surface
+  surf_dict = {'num_y' : 5,
+               'num_x' : 2,
+               'wing_type' : 'CRM',
+               'CD0' : 0.015,
+               'symmetry' : True,
+               'num_twist_cp' : 3,
+               'num_thickness_cp' : 3}
+
+  # Add the specified wing surface to the problem
+  OAS_prob.add_surface(surf_dict)
+
+  # Add design variables, constraint, and objective on the problem
+  OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+  OAS_prob.add_constraint('L_equals_W', equals=0.)
+  OAS_prob.add_objective('fuelburn', scaler=1e-5)
+
+  # Setup problem and add design variables, constraint, and objective
+  OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
+  OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+  OAS_prob.add_constraint('wing_perf.failure', upper=0.)
+  OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
+  OAS_prob.setup()
+
+  # Actually run the problem
+  OAS_prob.run()
+
 
 1. Initialize your problem
 --------------------------
@@ -31,16 +72,19 @@ Here is a sample code block for this step:
 
 .. code-block:: python
 
-  from __future__ import print_function
+  from __future__ import division, print_function
   from OpenAeroStruct import OASProblem
 
-  # Set problem type and instantiate problem
-  prob_dict = {'type' : 'aero',
+  # Set problem type
+  prob_dict = {'type' : 'aerostruct',
                'optimize' : True}
+
+  # Instantiate problem and add default surface
   OAS_prob = OASProblem(prob_dict)
 
 Although some options are only used for aerostructural cases, each problem always
 has every option defined.
+Here we only specify two options; the rest of the options use the defaults.
 The user-specified options overwrite any of the default options.
 Keywords are case-specific.
 
@@ -76,17 +120,22 @@ Here is a sample code block:
 
 .. code-block:: python
 
-  # Add lifting surface
-  surf_dict = {'name' : 'wing',
+  # Create a dictionary to store options about the surface
+  surf_dict = {'num_y' : 5,
+               'num_x' : 2,
+               'wing_type' : 'CRM',
+               'CD0' : 0.015,
                'symmetry' : True,
-               'num_y' : 11,
-               'num_x' : 3}
+               'num_twist_cp' : 3,
+               'num_thickness_cp' : 3}
+
+  # Add the specified wing surface to the problem
   OAS_prob.add_surface(surf_dict)
 
 3. Add your design variables, constraints, and objective
 --------------------------------------------------------
 .. note::
-  This step is only necessary when performing an optimization, with
+  This step is only necessary when performing an optimization with
   `optimize = True` in the problem dictionary.
 
 With the problem and surfaces defined, we can now add a description of the
@@ -126,11 +175,16 @@ Sample code block:
 
 .. code-block:: python
 
-  # Add design variables, constraint, and objective and setup problem
-  OAS_prob.add_desvar('wing.twist_cp', lower=-10., upper=15.)
-  OAS_prob.add_constraint('wing_perf.CL', equals=0.5)
-  OAS_prob.add_objective('wing_perf.CD', scaler=1e4)
+  # Add design variables, constraint, and objective on the problem
+  OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
+  OAS_prob.add_constraint('L_equals_W', equals=0.)
+  OAS_prob.add_objective('fuelburn', scaler=1e-5)
 
+  # Setup problem and add design variables, constraint, and objective
+  OAS_prob.add_desvar('wing.twist_cp', lower=-15., upper=15.)
+  OAS_prob.add_desvar('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+  OAS_prob.add_constraint('wing_perf.failure', upper=0.)
+  OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
 
 4. Call setup() on the problem
 ------------------------------
@@ -193,11 +247,10 @@ the variables as shown below:
   # Actually run the problem
   OAS_prob.run()
 
-  print("\nWing CL:", OAS_prob.prob['wing_perf.CL'])
-  print("Wing CD:", OAS_prob.prob['wing_perf.CD'])
+  print("\nFuelburn:", OAS_prob.prob['fuelburn'])
 
 Within this method, OpenAeroStruct gives the design variables, constraints, and objective to the OpenMDAO problem.
-We also tell OpenMDAO that we want the optimization history saved in a `.db` file and that we want the problem layout saved in an `.html` file.
+Behind the scenes, we also tell OpenMDAO that we want the optimization history saved in a `.db` file and that we want the problem layout saved in an `.html` file.
 After running an analysis or optimization, you can view these outputted files.
 
 Use any web browser to open the `.html` file and you can examine your problem layout.
