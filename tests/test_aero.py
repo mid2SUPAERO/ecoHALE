@@ -6,7 +6,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, SqliteRecorder
 
 
 class Test(unittest.TestCase):
@@ -126,8 +126,18 @@ class Test(unittest.TestCase):
         prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
         prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 
+        recorder = SqliteRecorder('boop.hst')
+        recorder.options['record_outputs'] = True
+        recorder.options['record_inputs'] = True
+        # recorder.options['record_objectives'] = True
+        # recorder.options['record_constraints'] = True
+        prob.model.add_recorder(recorder)
+
         # Set up the problem
         prob.setup()
+
+        from openmdao.api import view_model
+        view_model(prob.model, 'aero')
 
         prob.run_driver()
 

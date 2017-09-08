@@ -102,8 +102,14 @@ class Display(object):
 
     def load_db(self):
         self.db = SqliteCaseReader(self.db_name)
-        print(dir(self.db.driver_cases))
-        print(self.db.driver_cases.get_case(0).desvars)
+        cases = self.db.system_cases.list_cases()
+        print(cases)
+        print(cases[0])
+        c0 = self.db.system_cases.get_case(-1)
+        print(dir(c0))
+        print(c0.inputs)
+        print()
+        print(c0.outputs['wing.twist_bsp.twist'])
 
 
         exit()
