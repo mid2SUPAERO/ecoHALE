@@ -14,13 +14,15 @@ class Test(unittest.TestCase):
     def test(self):
 
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 7,
+        mesh_dict = {'num_y' : 31,
                      'num_x' : 2,
-                     'wing_type' : 'CRM',
+                     'wing_type' : 'rect',
                      'symmetry' : True,
-                     'num_twist_cp' : 5}
+                     'num_twist_cp' : 3,
+                     'span_cos_spacing' : 1.,
+                     }
 
-        mesh, twist_cp = generate_mesh(mesh_dict)
+        mesh = generate_mesh(mesh_dict)
 
         surf_dict = {
                     # Wing definition
@@ -31,7 +33,7 @@ class Test(unittest.TestCase):
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
 
-                    'twist_cp' : twist_cp,
+                    'twist_cp' : np.zeros((5)),
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
                     'num_y' : mesh.shape[1],
@@ -126,20 +128,71 @@ class Test(unittest.TestCase):
         prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
         prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 
-        recorder = SqliteRecorder('boop.hst')
-        recorder.options['record_outputs'] = True
-        recorder.options['record_inputs'] = True
-        # recorder.options['record_objectives'] = True
-        # recorder.options['record_constraints'] = True
-        prob.model.add_recorder(recorder)
+        # recorder = SqliteRecorder('boop.hst')
+        # recorder.options['record_outputs'] = True
+        # recorder.options['record_inputs'] = True
+        # # recorder.options['record_objectives']mesh = True
+        # # recorder.options['record_constraints'] = True
+        # prob.model.add_recorder(recorder)
 
         # Set up the problem
         prob.setup()
 
-        from openmdao.api import view_model
-        view_model(prob.model, 'aero')
+        # from openmdao.api import view_model
+        # view_model(prob.model, 'aero')
 
+        prob.driver.opt_settings['Major iterations limit'] = 20
         prob.run_driver()
+        # prob.check_partials(compact_print=True)
+
+        rho = 0.38
+        v = 248.136
+        m_vals = prob['aero_point_0.wing.def_mesh']
+        widths = prob['aero_point_0.wing.widths']
+        cvec = m_vals[0, :, :] - m_vals[-1, :, :]
+        chords = np.sqrt(np.sum(cvec**2, axis=1))
+        chords = 0.5 * (chords[1:] + chords[:-1])
+        a = prob['alpha']
+        cosa = np.cos(a)
+        sina = np.sin(a)
+
+        mirror_mesh = m_vals.copy()
+        mirror_mesh[:, :, 1] *= -1.
+        mirror_mesh = mirror_mesh[:, ::-1, :][:, 1:, :]
+        m_vals = np.hstack((m_vals, mirror_mesh))
+
+        widths = np.hstack((widths, widths[::-1]))
+
+        forces = np.sum(prob['aero_point_0.aero_states.wing_sec_forces'], axis=0)
+        mirror_forces = forces.copy()
+        mirror_forces = mirror_forces[::-1, :]
+        forces = np.vstack((forces, mirror_forces))
+
+        print(forces.shape)
+        print(widths.shape)
+
+        lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
+            widths/0.5/rho/v**2
+
+        span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
+        span = span - (span[0] + .5)
+
+        lift_area = np.sum(lift * (span[1:] - span[:-1]))
+
+        lift_ell = 4 * lift_area / np.pi * np.sqrt(1 - (2*span)**2)
+
+        span = m_vals[0, -1, 1] - m_vals[0, 0, 1]
+        rel_span = (m_vals[0, :, 1] - m_vals[0, 0, 1]) * 2 / span - 1
+        span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
+
+        print(lift)
+        print(lift_ell)
+
+        import matplotlib.pyplot as plt
+
+        plt.plot(rel_span, lift_ell)
+        plt.plot(span_diff, lift)
+        plt.show()
 
         self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073)
         self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.5)
