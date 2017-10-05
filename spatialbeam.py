@@ -264,11 +264,13 @@ class AssembleK(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        # Find constrained nodes based on closeness to central point
-        nodes = params['nodes']
-        dist = nodes - np.array([5., 0, 0])
+        # Find constrained nodes based on closeness to specified cg point
+        nodes = params['nodes'].copy()
+        nodes[:, 1] = 0.
+        dist = nodes - np.array([0, 0, 0])
         idx = (np.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
+        nodes = params['nodes']
 
         self.K = \
             _assemble_system(params['nodes'],
@@ -286,10 +288,12 @@ class AssembleK(Component):
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
         # Find constrained nodes based on closeness to specified cg point
-        nodes = params['nodes']
-        dist = nodes - np.array([5., 0, 0])
+        nodes = params['nodes'].copy()
+        nodes[:, 1] = 0.
+        dist = nodes - np.array([0, 0, 0])
         idx = (np.linalg.norm(dist, axis=1)).argmin()
         self.cons = idx
+        nodes = params['nodes']
 
         A = params['A']
         J = params['J']
