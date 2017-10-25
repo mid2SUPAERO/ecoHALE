@@ -25,18 +25,18 @@ class FEATransformComp(ExplicitComponent):
             transform_name = '{}_transform'.format(lifting_surface_name)
 
             self.add_input(mesh_name, shape=(num_points_z, 3))
-            self.add_output(transform_name, shape=(num_points_z - 1, 3, 3))
+            self.add_output(transform_name, shape=(num_points_z - 1, 12, 12))
 
             mesh_indices = np.arange(3 * num_points_z).reshape((num_points_z, 3))
-            transform_indices = np.arange(9 * (num_points_z - 1)).reshape((num_points_z - 1, 3, 3))
+            transform_indices = np.arange(144 * (num_points_z - 1)).reshape((num_points_z - 1, 12, 12))
 
             rows = np.concatenate([
                 np.einsum('ijk,l->ijkl', transform_indices, np.ones(3, int)).flatten(),
                 np.einsum('ijk,l->ijkl', transform_indices, np.ones(3, int)).flatten(),
             ])
             cols = np.concatenate([
-                np.einsum('il,jk->ijkl', mesh_indices[:-1, :], np.ones((3, 3), int)).flatten(),
-                np.einsum('il,jk->ijkl', mesh_indices[ 1:, :], np.ones((3, 3), int)).flatten(),
+                np.einsum('il,jk->ijkl', mesh_indices[:-1, :], np.ones((12, 12), int)).flatten(),
+                np.einsum('il,jk->ijkl', mesh_indices[ 1:, :], np.ones((12, 12), int)).flatten(),
             ])
             self.declare_partials(transform_name, mesh_name, rows=rows, cols=cols)
 
@@ -65,9 +65,10 @@ class FEATransformComp(ExplicitComponent):
             cross = compute_cross(row0, row1)
             row2 = cross
 
-            outputs[transform_name][:, 0, :] = row0
-            outputs[transform_name][:, 1, :] = row1
-            outputs[transform_name][:, 2, :] = row2
+            for k in range(4):
+                outputs[transform_name][:, 3*k + 0, 3*k : 3*k + 3] = row0
+                outputs[transform_name][:, 3*k + 1, 3*k : 3*k + 3] = row1
+                outputs[transform_name][:, 3*k + 2, 3*k : 3*k + 3] = row2
 
     def compute_partials(self, inputs, partials):
         lifting_surfaces = self.metadata['lifting_surfaces']
@@ -103,13 +104,14 @@ class FEATransformComp(ExplicitComponent):
             row2 = cross
             row2_deriv = cross_deriv
 
-            derivs = partials[transform_name, mesh_name].reshape((2, num_points_z - 1, 3, 3, 3))
+            derivs = partials[transform_name, mesh_name].reshape((2, num_points_z - 1, 12, 12, 3))
 
-            derivs[0, :, 0, :, :] = -row0_deriv
-            derivs[1, :, 0, :, :] =  row0_deriv
+            for k in range(4):
+                derivs[0, :, 3*k + 0, 3*k : 3*k + 3, :] = -row0_deriv
+                derivs[1, :, 3*k + 0, 3*k : 3*k + 3, :] =  row0_deriv
 
-            derivs[0, :, 1, :, :] = -row1_deriv
-            derivs[1, :, 1, :, :] =  row1_deriv
+                derivs[0, :, 3*k + 1, 3*k : 3*k + 3, :] = -row1_deriv
+                derivs[1, :, 3*k + 1, 3*k : 3*k + 3, :] =  row1_deriv
 
-            derivs[0, :, 2, :, :] = -row2_deriv
-            derivs[1, :, 2, :, :] =  row2_deriv
+                derivs[0, :, 3*k + 2, 3*k : 3*k + 3, :] = -row2_deriv
+                derivs[1, :, 3*k + 2, 3*k : 3*k + 3, :] =  row2_deriv

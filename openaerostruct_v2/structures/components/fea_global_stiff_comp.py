@@ -21,7 +21,7 @@ class FEAGlobalStiffComp(ExplicitComponent):
 
             size = 6 * num_points_z + 6
 
-            local_name = '{}_local_stiff'.format(lifting_surface_name)
+            local_name = '{}_local_stiff_transformed'.format(lifting_surface_name)
             global_name = '{}_global_stiff'.format(lifting_surface_name)
 
             self.add_input(local_name, shape=(num_points_z - 1, 12, 12))
@@ -47,7 +47,7 @@ class FEAGlobalStiffComp(ExplicitComponent):
 
             size = 6 * num_points_z + 6
 
-            local_name = '{}_local_stiff'.format(lifting_surface_name)
+            local_name = '{}_local_stiff_transformed'.format(lifting_surface_name)
             global_name = '{}_global_stiff'.format(lifting_surface_name)
 
             arange = np.arange(num_points_z - 1)
