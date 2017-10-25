@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from dep_mdo.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
+from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
 
 
 class VLMPanelForcesComp(ExplicitComponent):

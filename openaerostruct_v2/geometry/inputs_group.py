@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import Group, IndepVarComp
 
-from dep_mdo.common.bspline_comp import BsplinesComp
+from openaerostruct_v2.common.bspline_comp import BsplinesComp
 
 
 class InputsGroup(Group):
