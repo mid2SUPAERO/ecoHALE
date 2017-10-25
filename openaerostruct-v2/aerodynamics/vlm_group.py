@@ -3,25 +3,25 @@ import numpy as np
 
 from openmdao.api import Group
 
-from dep_mdo.vlm.components.mesh.vlm_mesh_comp import VLMMeshComp
-from dep_mdo.vlm.components.mesh.vlm_normals_comp import VLMNormalsComp
-from dep_mdo.vlm.components.mesh.vlm_mesh_points_comp import VLMMeshPointsComp
+from openaerostruct_v2.vlm.components.mesh.vlm_mesh_comp import VLMMeshComp
+from openaerostruct_v2.vlm.components.mesh.vlm_normals_comp import VLMNormalsComp
+from openaerostruct_v2.vlm.components.mesh.vlm_mesh_points_comp import VLMMeshPointsComp
 
-from dep_mdo.vlm.components.velocities.vlm_inflow_velocities_comp import VLMInflowVelocitiesComp
-from dep_mdo.vlm.components.velocities.vlm_eval_vectors_comp import VLMEvalVectorsComp
-from dep_mdo.vlm.components.velocities.vlm_eval_vel_mtx_comp import VLMEvalVelMtxComp
-from dep_mdo.vlm.components.velocities.vlm_eval_velocities_comp import VLMEvalVelocitiesComp
+from openaerostruct_v2.vlm.components.velocities.vlm_inflow_velocities_comp import VLMInflowVelocitiesComp
+from openaerostruct_v2.vlm.components.velocities.vlm_eval_vectors_comp import VLMEvalVectorsComp
+from openaerostruct_v2.vlm.components.velocities.vlm_eval_vel_mtx_comp import VLMEvalVelMtxComp
+from openaerostruct_v2.vlm.components.velocities.vlm_eval_velocities_comp import VLMEvalVelocitiesComp
 
-from dep_mdo.vlm.components.circulations.vlm_mtx_rhs_comp import VLMMtxRHSComp
-from dep_mdo.vlm.components.circulations.vlm_circulations_comp import VLMCirculationsComp
-from dep_mdo.vlm.components.circulations.vlm_horseshoe_circulations_comp import VLMHorseshoeCirculationsComp
+from openaerostruct_v2.vlm.components.circulations.vlm_mtx_rhs_comp import VLMMtxRHSComp
+from openaerostruct_v2.vlm.components.circulations.vlm_circulations_comp import VLMCirculationsComp
+from openaerostruct_v2.vlm.components.circulations.vlm_horseshoe_circulations_comp import VLMHorseshoeCirculationsComp
 
-from dep_mdo.vlm.components.forces.vlm_panel_forces_comp import VLMPanelForcesComp
-from dep_mdo.vlm.components.forces.vlm_panel_coeffs_comp import VLMPanelCoeffsComp
-from dep_mdo.vlm.components.forces.vlm_total_forces_comp import VLMTotalForcesComp
-from dep_mdo.vlm.components.forces.vlm_total_coeffs_comp import VLMTotalCoeffsComp
+from openaerostruct_v2.vlm.components.forces.vlm_panel_forces_comp import VLMPanelForcesComp
+from openaerostruct_v2.vlm.components.forces.vlm_panel_coeffs_comp import VLMPanelCoeffsComp
+from openaerostruct_v2.vlm.components.forces.vlm_total_forces_comp import VLMTotalForcesComp
+from openaerostruct_v2.vlm.components.forces.vlm_total_coeffs_comp import VLMTotalCoeffsComp
 
-from dep_mdo.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
+from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
 
 
 class VLMGroup(Group):
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model
 
-    from dep_mdo.geometry.inputs_group import InputsGroup
+    from openaerostruct_v2.geometry.inputs_group import InputsGroup
 
     num_points_x = 2
     num_points_z_half = 31

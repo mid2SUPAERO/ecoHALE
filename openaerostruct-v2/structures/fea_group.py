@@ -3,8 +3,8 @@ import numpy as np
 
 from openmdao.api import Group
 
-from dep_mdo.fea.components.fea_mesh_comp import FEAMeshComp
-from dep_mdo.fea.components.tube_properties_comp import TubePropertiesComp
+from openaerostruct_v2.fea.components.fea_mesh_comp import FEAMeshComp
+from openaerostruct_v2.fea.components.tube_properties_comp import TubePropertiesComp
 
 
 class FEAGroup(Group):
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model
 
-    from dep_mdo.geometry.inputs_group import InputsGroup
+    from openaerostruct_v2.geometry.inputs_group import InputsGroup
 
     num_points_x = 2
     num_points_z_half = 11

@@ -2,7 +2,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from dep_mdo.utils.bsplines import get_bspline_mtx
+from openaerostruct_v2.utils.bsplines import get_bspline_mtx
 
 
 class BsplinesComp(ExplicitComponent):

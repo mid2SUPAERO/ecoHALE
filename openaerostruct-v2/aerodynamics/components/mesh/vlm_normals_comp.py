@@ -3,9 +3,9 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from dep_mdo.utils.vector_algebra import add_ones_axis
-from dep_mdo.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
-from dep_mdo.utils.vector_algebra import compute_norm, compute_norm_deriv
+from openaerostruct_v2.utils.vector_algebra import add_ones_axis
+from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
+from openaerostruct_v2.utils.vector_algebra import compute_norm, compute_norm_deriv
 
 
 class VLMNormalsComp(ExplicitComponent):
