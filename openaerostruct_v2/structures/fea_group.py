@@ -3,8 +3,8 @@ import numpy as np
 
 from openmdao.api import Group
 
-from openaerostruct_v2.fea.components.fea_mesh_comp import FEAMeshComp
-from openaerostruct_v2.fea.components.tube_properties_comp import TubePropertiesComp
+from openaerostruct_v2.structures.components.fea_mesh_comp import FEAMeshComp
+from openaerostruct_v2.structures.components.tube_properties_comp import TubePropertiesComp
 
 
 class FEAGroup(Group):
