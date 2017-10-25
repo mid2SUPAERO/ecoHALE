@@ -18,8 +18,8 @@ from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterat
 class Aerostruct(Group):
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('DVGeo', required=False)
+        self.metadata.declare('surface', type_=dict)
+        # self.metadata.declare('DVGeo')
 
     def setup(self):
         surface = self.metadata['surface']
@@ -34,7 +34,7 @@ class Aerostruct(Group):
             geom_promotes.append('shape')
 
         self.add_subsystem('geometry',
-            Geometry(surface=surface, DVGeo=self.metadata['DVGeo']),
+            Geometry(surface=surface),
             promotes_inputs=[],
             promotes_outputs=['mesh', 'radius', 'thickness'] + geom_promotes)
 
@@ -51,7 +51,7 @@ class Aerostruct(Group):
 class PreAS(Group):
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('surface', type_=dict)
 
     def setup(self):
         surface = self.metadata['surface']
@@ -74,7 +74,7 @@ class PreAS(Group):
 class CoupledPerformance(Group):
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('surface', type_=dict)
 
     def setup(self):
         surface = self.metadata['surface']
@@ -90,7 +90,7 @@ class CoupledPerformance(Group):
 class AerostructPoint(Group):
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list, required=True)
+        self.metadata.declare('surfaces', type_=list)
 
     def setup(self):
         surfaces = self.metadata['surfaces']

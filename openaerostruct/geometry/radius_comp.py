@@ -34,7 +34,7 @@ class RadiusComp(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('surface', type_=dict)
 
     def setup(self):
         surface = self.metadata['surface']
@@ -43,7 +43,7 @@ class RadiusComp(ExplicitComponent):
         self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
         self.add_output('radius', val=np.zeros((self.ny - 1)), units='m')
 
-        self.approx_partials('*', '*')
+        self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         outputs['radius'] = radii(inputs['mesh'], self.metadata['surface']['t_over_c'])

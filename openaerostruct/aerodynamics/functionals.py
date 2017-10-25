@@ -14,7 +14,7 @@ class VLMFunctionals(Group):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('surface', type_=dict)
 
     def setup(self):
         surface = self.metadata['surface']

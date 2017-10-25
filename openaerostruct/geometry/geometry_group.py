@@ -9,8 +9,8 @@ class Geometry(Group):
     """ Group that contains everything needed for a structural-only problem. """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('DVGeo', required=False)
+        self.metadata.declare('surface', type_=dict)
+        # self.metadata.declare('DVGeo')
 
     def setup(self):
         surface = self.metadata['surface']
@@ -28,7 +28,7 @@ class Geometry(Group):
                  promotes=['*'])
 
 
-        if self.metadata['DVGeo']:
+        if 0:#self.metadata['DVGeo']:
             from openaerostruct.geometry.ffd_component import GeometryMesh
             indep_var_comp.add_output('shape', val=np.zeros((surface['mx'], surface['my'])), units='m')
 

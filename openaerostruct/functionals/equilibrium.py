@@ -35,7 +35,7 @@ class Equilibrium(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list, required=True)
+        self.metadata.declare('surfaces', type_=list)
 
     def setup(self):
         for surface in self.metadata['surfaces']:
@@ -59,7 +59,7 @@ class Equilibrium(ExplicitComponent):
             name = surface['name']
             self.declare_partials('L_equals_W', name + '_structural_weight', dependent=False)
 
-        self.approx_partials('*', '*')
+        self.declare_partials('*', '*', 'fd')
 
     def compute(self, inputs, outputs):
 

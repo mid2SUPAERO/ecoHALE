@@ -7,7 +7,7 @@ class SpatialBeamStates(Group):
     """ Group that contains the spatial beam states. """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
+        self.metadata.declare('surface', type_=dict)
 
     def setup(self):
         surface = self.metadata['surface']

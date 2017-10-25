@@ -37,7 +37,7 @@ class BreguetRange(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list, required=True)
+        self.metadata.declare('surfaces', type_=list)
 
     def setup(self):
         for surface in self.metadata['surfaces']:

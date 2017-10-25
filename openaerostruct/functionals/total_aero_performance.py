@@ -13,7 +13,7 @@ class TotalAeroPerformance(Group):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list, required=True)
+        self.metadata.declare('surfaces', type_=list)
 
     def setup(self):
         surfaces = self.metadata['surfaces']

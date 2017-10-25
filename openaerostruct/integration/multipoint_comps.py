@@ -5,7 +5,7 @@ from openmdao.api import ExplicitComponent
 class MultiCD(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('n_points', type_=int, required=True)
+        self.metadata.declare('n_points', type_=int)
 
     def setup(self):
         self.n_points = self.metadata['n_points']
@@ -26,9 +26,9 @@ class MultiCD(ExplicitComponent):
 class GeomMatch(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('n_points', type_=int, required=True)
-        self.metadata.declare('mx', type_=int, required=True)
-        self.metadata.declare('my', type_=int, required=True)
+        self.metadata.declare('n_points', type_=int)
+        self.metadata.declare('mx', type_=int)
+        self.metadata.declare('my', type_=int)
 
     def setup(self):
         self.n_points = self.metadata['n_points']

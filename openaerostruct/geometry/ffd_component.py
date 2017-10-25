@@ -29,8 +29,8 @@ class GeometryMesh(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict, required=True)
-        self.metadata.declare('DVGeo', required=False)
+        self.metadata.declare('surface', type_=dict)
+        self.metadata.declare('DVGeo')
 
     def setup(self):
         self.surface = surface = self.metadata['surface']
