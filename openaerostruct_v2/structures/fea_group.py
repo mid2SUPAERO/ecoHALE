@@ -134,6 +134,6 @@ if __name__ == '__main__':
     prob.run_model()
     prob.check_partials(compact_print=True)
 
-    print(prob['wing_states'])
-    print(prob['wing_disp'])
+    # print(prob['wing_states'])
+    # print(prob['wing_disp'])
     # exit()

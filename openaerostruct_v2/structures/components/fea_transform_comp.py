@@ -65,6 +65,7 @@ class FEATransformComp(ExplicitComponent):
             cross = compute_cross(row0, row1)
             row2 = cross
 
+            outputs[transform_name] = 0.
             for k in range(4):
                 outputs[transform_name][:, 3*k + 0, 3*k : 3*k + 3] = row0
                 outputs[transform_name][:, 3*k + 1, 3*k : 3*k + 3] = row1
