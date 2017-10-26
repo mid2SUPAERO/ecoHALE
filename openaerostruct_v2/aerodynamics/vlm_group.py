@@ -20,6 +20,7 @@ from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_forces_comp impo
 from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_coeffs_comp import VLMPanelCoeffsComp
 from openaerostruct_v2.aerodynamics.components.forces.vlm_total_forces_comp import VLMTotalForcesComp
 from openaerostruct_v2.aerodynamics.components.forces.vlm_total_coeffs_comp import VLMTotalCoeffsComp
+from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_forces_surf_comp import VLMPanelForcesSurfComp
 
 from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
 
@@ -103,6 +104,9 @@ class VLMGroup(Group):
         comp = VLMTotalCoeffsComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_total_coeffs_comp', comp, promotes=['*'])
 
+        comp = VLMPanelForcesSurfComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_panel_forces_surf_comp', comp, promotes=['*'])
+
 
 if __name__ == '__main__':
 
@@ -165,8 +169,10 @@ if __name__ == '__main__':
     prob['wing_chord_cp'] = [0.5, 1.0, 0.5]
 
     prob.run_model()
-    # prob.check_partials(compact_print=True)
-    # exit()
+
+    if 0:
+        prob.check_partials(compact_print=True)
+        exit()
 
     prob.run_driver()
 
