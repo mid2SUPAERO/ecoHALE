@@ -3,15 +3,18 @@ import numpy as np
 
 from openmdao.api import Group
 
-from openaerostruct_v2.structures.components.fea_bspline_comp import FEABsplineGroup
-from openaerostruct_v2.structures.components.fea_mesh_comp import FEAMeshComp
+from openaerostruct_v2.structures.fea_bspline_group import FEABsplineGroup
 from openaerostruct_v2.structures.components.tube_properties_comp import TubePropertiesComp
+from openaerostruct_v2.structures.components.fea_mesh_comp import FEAMeshComp
 from openaerostruct_v2.structures.components.fea_transform_comp import FEATransformComp
 from openaerostruct_v2.structures.components.fea_length_comp import FEALengthComp
 from openaerostruct_v2.structures.components.fea_local_stiff_comp import FEALocalStiffComp
 from openaerostruct_v2.structures.components.fea_local_stiff_permuted_comp import FEALocalStiffPermutedComp
 from openaerostruct_v2.structures.components.fea_local_stiff_transformed_comp import FEALocalStiffTransformedComp
 from openaerostruct_v2.structures.components.fea_global_stiff_comp import FEAGlobalStiffComp
+from openaerostruct_v2.structures.components.fea_forces_comp import FEAForcesComp
+from openaerostruct_v2.structures.components.fea_states_comp import FEAStatesComp
+from openaerostruct_v2.structures.components.fea_disp_comp import FEADispComp
 
 
 class FEAGroup(Group):
@@ -59,6 +62,15 @@ class FEAGroup(Group):
 
         comp = FEAGlobalStiffComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_global_stiff_comp', comp, promotes=['*'])
+
+        comp = FEAForcesComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('fea_forces_comp', comp, promotes=['*'])
+
+        comp = FEAStatesComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('fea_states_comp', comp, promotes=['*'])
+
+        comp = FEADispComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('fea_disp_comp', comp, promotes=['*'])
 
 
 if __name__ == '__main__':
@@ -121,4 +133,7 @@ if __name__ == '__main__':
 
     prob.run_model()
     prob.check_partials(compact_print=True)
+
+    print(prob['wing_states'])
+    print(prob['wing_disp'])
     # exit()
