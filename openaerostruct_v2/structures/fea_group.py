@@ -15,6 +15,8 @@ from openaerostruct_v2.structures.components.fea_global_stiff_comp import FEAGlo
 from openaerostruct_v2.structures.components.fea_forces_comp import FEAForcesComp
 from openaerostruct_v2.structures.components.fea_states_comp import FEAStatesComp
 from openaerostruct_v2.structures.components.fea_disp_comp import FEADispComp
+from openaerostruct_v2.structures.components.fea_volume_comp import FEAVolumeComp
+from openaerostruct_v2.structures.components.fea_compliance_comp import FEAComplianceComp
 
 
 class FEAGroup(Group):
@@ -72,6 +74,12 @@ class FEAGroup(Group):
         comp = FEADispComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_disp_comp', comp, promotes=['*'])
 
+        comp = FEAVolumeComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('fea_volume_comp', comp, promotes=['*'])
+
+        comp = FEAComplianceComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('fea_compliance_comp', comp, promotes=['*'])
+
 
 if __name__ == '__main__':
 
@@ -81,11 +89,11 @@ if __name__ == '__main__':
 
     from openaerostruct_v2.geometry.inputs_group import InputsGroup
 
-    E = 1.
-    G = 1.
+    E = 1.e11
+    G = 1.e11
 
     num_points_x = 2
-    num_points_z_half = 3
+    num_points_z_half = 30
 
     num_points_z = 2 * num_points_z_half - 1
 
@@ -103,7 +111,7 @@ if __name__ == '__main__':
             'twist_bspline': (2, 2),
             'sec_z_bspline': (num_points_z_half, 2),
             'chord_bspline': (2, 2),
-            'thickness_bspline': (11, 3),
+            'thickness_bspline': (10, 3),
             'thickness' : .1,
             'radius' : 1.,
         })
@@ -127,13 +135,31 @@ if __name__ == '__main__':
         promotes=['*'],
     )
 
+    prob.model.add_design_var('wing_tube_thickness_cp', lower=0.01)
+    prob.model.add_objective('compliance')
+    prob.model.add_constraint('structural_volume', equals=10)
+
+    prob.driver = pyOptSparseDriver()
+    prob.driver.options['optimizer'] = 'SNOPT'
+    prob.driver.opt_settings['Major optimality tolerance'] = 2e-7
+    prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
+    # prob.driver.opt_settings['Verify level'] = 3
+
     prob.setup()
 
     prob['wing_chord_cp'] = [0.5, 1.0, 0.5]
 
     prob.run_model()
-    prob.check_partials(compact_print=True)
-
-    # print(prob['wing_states'])
-    # print(prob['wing_disp'])
+    # prob.check_partials(compact_print=True)
     # exit()
+
+    print(prob['structural_volume'])
+
+    prob.run_driver()
+
+    print(prob['wing_tube_thickness'])
+
+    import matplotlib.pyplot as plt
+    x = prob['wing_mesh']
+    plt.plot(0.5 * x[:-1] + 0.5 * x[1:], prob['wing_tube_thickness'])
+    plt.show()
