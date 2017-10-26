@@ -78,7 +78,7 @@ class FEAStatesComp(ImplicitComponent):
 
     def solve_linear(self, d_outputs, d_residuals, mode):
         lifting_surfaces = self.metadata['lifting_surfaces']
-        
+
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
 
@@ -89,6 +89,6 @@ class FEAStatesComp(ImplicitComponent):
             lu = self.lu[lifting_surface_name]
 
             if mode == 'fwd':
-                d_outputs[states_name] = lu_solve(self.lu, d_residuals[states_name], trans=0)
+                d_outputs[states_name] = lu_solve(lu, d_residuals[states_name], trans=0)
             else:
-                d_residuals[states_name] = lu_solve(self.lu, d_outputs[states_name], trans=1)
+                d_residuals[states_name] = lu_solve(lu, d_outputs[states_name], trans=1)
