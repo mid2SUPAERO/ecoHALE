@@ -15,7 +15,7 @@ class VLMEvalVectorsComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
         eval_name = self.metadata['eval_name']
         num_eval_points = self.metadata['num_eval_points']
-        
+
         self.declare_partials('*', '*', dependent=False)
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:

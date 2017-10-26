@@ -3,6 +3,7 @@ import numpy as np
 
 from openmdao.api import Group
 
+from openaerostruct_v2.structures.components.fea_bspline_comp import FEABsplineGroup
 from openaerostruct_v2.structures.components.fea_mesh_comp import FEAMeshComp
 from openaerostruct_v2.structures.components.tube_properties_comp import TubePropertiesComp
 from openaerostruct_v2.structures.components.fea_transform_comp import FEATransformComp
@@ -30,6 +31,9 @@ class FEAGroup(Group):
         lifting_surfaces = self.metadata['lifting_surfaces']
         E = self.metadata['E']
         G = self.metadata['G']
+
+        comp = FEABsplineGroup(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('tube_bspline_comp', comp, promotes=['*'])
 
         comp = FEAMeshComp(lifting_surfaces=lifting_surfaces, section_origin=section_origin,
             spar_location=spar_location)
@@ -87,6 +91,9 @@ if __name__ == '__main__':
             'twist_bspline': (2, 2),
             'sec_z_bspline': (num_points_z_half, 2),
             'chord_bspline': (2, 2),
+            'thickness_bspline': (11, 3),
+            'thickness' : .1,
+            'radius' : 1.,
         })
     ]
 
@@ -97,8 +104,6 @@ if __name__ == '__main__':
     indep_var_comp.add_output('v_m_s', 200.)
     indep_var_comp.add_output('alpha_rad', 3. * np.pi / 180.)
     indep_var_comp.add_output('rho_kg_m3', 1.225)
-    indep_var_comp.add_output('wing_tube_radius', shape=num_points_z - 1)
-    indep_var_comp.add_output('wing_tube_thickness', shape=num_points_z - 1)
     prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
     inputs_group = InputsGroup(lifting_surfaces=lifting_surfaces)
@@ -113,8 +118,6 @@ if __name__ == '__main__':
     prob.setup()
 
     prob['wing_chord_cp'] = [0.5, 1.0, 0.5]
-    prob['wing_tube_radius'] = 1.0
-    prob['wing_tube_thickness'] = 0.1
 
     prob.run_model()
     prob.check_partials(compact_print=True)
