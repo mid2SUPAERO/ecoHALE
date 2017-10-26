@@ -7,6 +7,9 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 
 
 class VLMPanelForcesComp(ExplicitComponent):
+    """
+    Total forces by panel (flattened), aligned with the freestream (the lift and drag axes).
+    """
 
     def initialize(self):
         self.metadata.declare('lifting_surfaces', type_=list)

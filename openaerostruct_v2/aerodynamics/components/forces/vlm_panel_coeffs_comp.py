@@ -7,6 +7,9 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 
 
 class VLMPanelCoeffsComp(ExplicitComponent):
+    """
+    Lift and drag coefficients by section, by surface.
+    """
 
     def initialize(self):
         self.metadata.declare('lifting_surfaces', type_=list)

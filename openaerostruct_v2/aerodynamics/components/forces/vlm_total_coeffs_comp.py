@@ -5,6 +5,9 @@ from openmdao.api import ExplicitComponent
 
 
 class VLMTotalCoeffsComp(ExplicitComponent):
+    """
+    Total lift and drag coefficients.
+    """
 
     def initialize(self):
         self.metadata.declare('lifting_surfaces', type_=list)

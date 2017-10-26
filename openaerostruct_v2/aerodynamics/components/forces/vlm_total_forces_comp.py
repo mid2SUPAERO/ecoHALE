@@ -7,6 +7,9 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 
 
 class VLMTotalForcesComp(ExplicitComponent):
+    """
+    Total lift and drag.
+    """
 
     def initialize(self):
         self.metadata.declare('lifting_surfaces', type_=list)
