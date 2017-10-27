@@ -27,19 +27,19 @@ class VLMTotalForcesComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('panel_forces', shape=(system_size, 3))
+        self.add_input('panel_forces_rotated', shape=(system_size, 3))
         self.add_output('lift')
         self.add_output('drag')
 
-        self.declare_partials('lift', 'panel_forces', val=1.,
+        self.declare_partials('lift', 'panel_forces_rotated', val=1.,
             rows=np.zeros(system_size, int),
             cols=np.arange(3 * system_size).reshape((system_size, 3))[:, 1],
         )
-        self.declare_partials('drag', 'panel_forces', val=1.,
+        self.declare_partials('drag', 'panel_forces_rotated', val=1.,
             rows=np.zeros(system_size, int),
             cols=np.arange(3 * system_size).reshape((system_size, 3))[:, 0],
         )
 
     def compute(self, inputs, outputs):
-        outputs['lift'] = np.sum(inputs['panel_forces'][:, 1])
-        outputs['drag'] = np.sum(inputs['panel_forces'][:, 0])
+        outputs['lift'] = np.sum(inputs['panel_forces_rotated'][:, 1])
+        outputs['drag'] = np.sum(inputs['panel_forces_rotated'][:, 0])

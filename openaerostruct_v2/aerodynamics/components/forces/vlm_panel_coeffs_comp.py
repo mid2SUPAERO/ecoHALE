@@ -29,9 +29,9 @@ class VLMPanelCoeffsComp(ExplicitComponent):
 
         self.add_input('rho_kg_m3')
         self.add_input('v_m_s')
-        self.add_input('panel_forces', shape=(system_size, 3))
+        self.add_input('panel_forces_rotated', shape=(system_size, 3))
 
-        panel_forces_arange = np.arange(3 * system_size).reshape((system_size, 3))
+        panel_forces_rotated_arange = np.arange(3 * system_size).reshape((system_size, 3))
 
         ind1, ind2 = 0, 0
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
@@ -57,12 +57,12 @@ class VLMPanelCoeffsComp(ExplicitComponent):
                 rows=np.arange(num_points_z - 1),
                 cols=np.zeros(num_points_z - 1, int),
             )
-            self.declare_partials(sec_C_L_name, 'panel_forces',
+            self.declare_partials(sec_C_L_name, 'panel_forces_rotated',
                 rows=np.outer(
                     np.ones(num_points_x - 1, int),
                     np.arange(num_points_z - 1),
                 ).flatten(),
-                cols=panel_forces_arange[ind1:ind2, 1],
+                cols=panel_forces_rotated_arange[ind1:ind2, 1],
             )
             self.declare_partials(sec_C_L_name, sec_areas_name,
                 rows=np.arange(num_points_z - 1),
@@ -77,12 +77,12 @@ class VLMPanelCoeffsComp(ExplicitComponent):
                 rows=np.arange(num_points_z - 1),
                 cols=np.zeros(num_points_z - 1, int),
             )
-            self.declare_partials(sec_C_D_name, 'panel_forces',
+            self.declare_partials(sec_C_D_name, 'panel_forces_rotated',
                 rows=np.outer(
                     np.ones(num_points_x - 1, int),
                     np.arange(num_points_z - 1),
                 ).flatten(),
-                cols=panel_forces_arange[ind1:ind2, 0],
+                cols=panel_forces_rotated_arange[ind1:ind2, 0],
             )
             self.declare_partials(sec_C_D_name, sec_areas_name,
                 rows=np.arange(num_points_z - 1),
@@ -109,8 +109,8 @@ class VLMPanelCoeffsComp(ExplicitComponent):
 
             ind2 += num
 
-            panel_lift = inputs['panel_forces'][ind1:ind2, 1].reshape((num_points_x - 1, num_points_z - 1))
-            panel_drag = inputs['panel_forces'][ind1:ind2, 0].reshape((num_points_x - 1, num_points_z - 1))
+            panel_lift = inputs['panel_forces_rotated'][ind1:ind2, 1].reshape((num_points_x - 1, num_points_z - 1))
+            panel_drag = inputs['panel_forces_rotated'][ind1:ind2, 0].reshape((num_points_x - 1, num_points_z - 1))
 
             outputs[sec_C_L_name] = np.sum(panel_lift, axis=0) \
                 / (0.5 * rho_kg_m3 * v_m_s ** 2 * inputs[sec_areas_name])
@@ -122,8 +122,8 @@ class VLMPanelCoeffsComp(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         rho_kg_m3 = inputs['rho_kg_m3']
         v_m_s = inputs['v_m_s']
-        panel_lift = inputs['panel_forces'][:, 1]
-        panel_drag = inputs['panel_forces'][:, 0]
+        panel_lift = inputs['panel_forces_rotated'][:, 1]
+        panel_drag = inputs['panel_forces_rotated'][:, 0]
 
         lifting_surfaces = self.metadata['lifting_surfaces']
 
@@ -139,12 +139,12 @@ class VLMPanelCoeffsComp(ExplicitComponent):
 
             ind2 += num
 
-            panel_lift = inputs['panel_forces'][ind1:ind2, 1].reshape((num_points_x - 1, num_points_z - 1))
-            panel_drag = inputs['panel_forces'][ind1:ind2, 0].reshape((num_points_x - 1, num_points_z - 1))
+            panel_lift = inputs['panel_forces_rotated'][ind1:ind2, 1].reshape((num_points_x - 1, num_points_z - 1))
+            panel_drag = inputs['panel_forces_rotated'][ind1:ind2, 0].reshape((num_points_x - 1, num_points_z - 1))
 
             partials[sec_C_L_name, 'rho_kg_m3'] = -np.sum(panel_lift, axis=0) / (0.5 * rho_kg_m3 ** 2 * v_m_s ** 2 * inputs[sec_areas_name])
             partials[sec_C_L_name, 'v_m_s'] = -2. * np.sum(panel_lift, axis=0) / (0.5 * rho_kg_m3 * v_m_s ** 3 * inputs[sec_areas_name])
-            partials[sec_C_L_name, 'panel_forces'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2
+            partials[sec_C_L_name, 'panel_forces_rotated'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2
                 * np.outer(
                     np.ones(num_points_x - 1),
                     inputs[sec_areas_name],
@@ -154,7 +154,7 @@ class VLMPanelCoeffsComp(ExplicitComponent):
 
             partials[sec_C_D_name, 'rho_kg_m3'] = -np.sum(panel_drag, axis=0) / (0.5 * rho_kg_m3 ** 2 * v_m_s ** 2 * inputs[sec_areas_name])
             partials[sec_C_D_name, 'v_m_s'] = -2. * np.sum(panel_drag, axis=0) / (0.5 * rho_kg_m3 * v_m_s ** 3 * inputs[sec_areas_name])
-            partials[sec_C_D_name, 'panel_forces'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2
+            partials[sec_C_D_name, 'panel_forces_rotated'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2
                 * np.outer(
                     np.ones(num_points_x - 1),
                     inputs[sec_areas_name],
