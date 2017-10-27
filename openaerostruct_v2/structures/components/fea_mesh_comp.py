@@ -20,7 +20,7 @@ class FEAMeshComp(ExplicitComponent):
             num_points_x = lifting_surface_data['num_points_x']
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
 
-            mesh_name = '{}_mesh'.format(lifting_surface_name)
+            mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
 
             for name in ['chord', 'twist', 'sec_x', 'sec_y', 'sec_z']:
                 in_name = '{}_{}'.format(lifting_surface_name, name)
@@ -51,7 +51,7 @@ class FEAMeshComp(ExplicitComponent):
             num_points_x = lifting_surface_data['num_points_x']
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
 
-            mesh_name = '{}_mesh'.format(lifting_surface_name)
+            mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
 
             chord = inputs['{}_{}'.format(lifting_surface_name, 'chord')]
             twist = inputs['{}_{}'.format(lifting_surface_name, 'twist')]
@@ -77,7 +77,7 @@ class FEAMeshComp(ExplicitComponent):
             num_points_x = lifting_surface_data['num_points_x']
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
 
-            mesh_name = '{}_mesh'.format(lifting_surface_name)
+            mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
 
             chord_name = '{}_{}'.format(lifting_surface_name, 'chord')
             twist_name = '{}_{}'.format(lifting_surface_name, 'twist')

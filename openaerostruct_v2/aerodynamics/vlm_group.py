@@ -6,6 +6,7 @@ from openmdao.api import Group
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_comp import VLMMeshComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_normals_comp import VLMNormalsComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_points_comp import VLMMeshPointsComp
+from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_cp_comp import VLMMeshCPComp
 
 from openaerostruct_v2.aerodynamics.components.velocities.vlm_inflow_velocities_comp import VLMInflowVelocitiesComp
 from openaerostruct_v2.aerodynamics.components.velocities.vlm_eval_vectors_comp import VLMEvalVectorsComp
@@ -28,12 +29,10 @@ from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2
 class VLMGroup(Group):
 
     def initialize(self):
-        self.metadata.declare('num', type_=int)
         self.metadata.declare('section_origin', type_=(int, float))
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
-        num = self.metadata['num']
         section_origin = self.metadata['section_origin']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
@@ -59,6 +58,9 @@ class VLMGroup(Group):
 
         comp = VLMMeshPointsComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_mesh_points_comp', comp, promotes=['*'])
+
+        comp = VLMMeshCPComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_mesh_cp_comp', comp, promotes=['*'])
 
         comp = VLMInflowVelocitiesComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_inflow_velocities_comp', comp, promotes=['*'])
@@ -124,7 +126,6 @@ if __name__ == '__main__':
     airfoil = np.zeros(num_points_x)
     # airfoil[1:-1] = 0.2
 
-    num = 1
     section_origin = 0.25
     lifting_surfaces = [
         ('wing', {
@@ -150,7 +151,7 @@ if __name__ == '__main__':
     prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
     prob.model.add_subsystem('vlm_group',
-        VLMGroup(num=num, section_origin=section_origin, lifting_surfaces=lifting_surfaces),
+        VLMGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces),
         promotes=['*'],
     )
 

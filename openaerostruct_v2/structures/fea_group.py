@@ -22,7 +22,6 @@ from openaerostruct_v2.structures.components.fea_compliance_comp import FEACompl
 class FEAGroup(Group):
 
     def initialize(self):
-        self.metadata.declare('num', type_=int)
         self.metadata.declare('section_origin', type_=(int, float))
         self.metadata.declare('spar_location', type_=(int, float))
         self.metadata.declare('lifting_surfaces', type_=list)
@@ -30,7 +29,6 @@ class FEAGroup(Group):
         self.metadata.declare('G')
 
     def setup(self):
-        num = self.metadata['num']
         section_origin = self.metadata['section_origin']
         spar_location = self.metadata['spar_location']
         lifting_surfaces = self.metadata['lifting_surfaces']
@@ -100,7 +98,6 @@ if __name__ == '__main__':
     airfoil = np.zeros(num_points_x)
     # airfoil[1:-1] = 0.2
 
-    num = 1
     section_origin = 0.25
     spar_location = 0.35
     lifting_surfaces = [
@@ -130,7 +127,7 @@ if __name__ == '__main__':
     prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
     prob.model.add_subsystem('fea_group',
-        FEAGroup(num=num, section_origin=section_origin, lifting_surfaces=lifting_surfaces,
+        FEAGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
             spar_location=spar_location, E=E, G=G),
         promotes=['*'],
     )
@@ -160,6 +157,6 @@ if __name__ == '__main__':
     print(prob['wing_tube_thickness'])
 
     import matplotlib.pyplot as plt
-    x = prob['wing_mesh']
+    x = prob['wing_fea_mesh']
     plt.plot(0.5 * x[:-1] + 0.5 * x[1:], prob['wing_tube_thickness'])
     plt.show()
