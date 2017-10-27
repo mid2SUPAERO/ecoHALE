@@ -4,6 +4,7 @@ import numpy as np
 from openmdao.api import Group
 
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_comp import VLMMeshComp
+from openaerostruct_v2.aerodynamics.components.mesh.vlm_displace_meshes_comp import VLMDisplaceMeshesComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_normals_comp import VLMNormalsComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_points_comp import VLMMeshPointsComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_cp_comp import VLMMeshCPComp
@@ -50,12 +51,15 @@ class VLMGroup(Group):
         comp = VLMMeshComp(lifting_surfaces=lifting_surfaces, section_origin=section_origin)
         self.add_subsystem('vlm_mesh_comp', comp, promotes=['*'])
 
-        comp = VLMNormalsComp(lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_normals_comp', comp, promotes=['*'])
-
         comp = VLMMeshComp(lifting_surfaces=lifting_surfaces, section_origin=section_origin,
             vortex_mesh=True)
         self.add_subsystem('vlm_vortex_mesh_comp', comp, promotes=['*'])
+
+        comp = VLMDisplaceMeshesComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_displace_meshes_comp', comp, promotes=['*'])
+
+        comp = VLMNormalsComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_normals_comp', comp, promotes=['*'])
 
         comp = VLMMeshPointsComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_mesh_points_comp', comp, promotes=['*'])

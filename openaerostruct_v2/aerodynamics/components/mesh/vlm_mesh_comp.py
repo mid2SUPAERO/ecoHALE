@@ -29,9 +29,9 @@ class VLMMeshComp(ExplicitComponent):
                 self.add_input(in_name, shape=num_points_z)
 
             if vortex_mesh:
-                mesh_name = '{}_vortex_mesh'.format(lifting_surface_name)
+                mesh_name = '{}_undeformed_vortex_mesh'.format(lifting_surface_name)
             else:
-                mesh_name = '{}_mesh'.format(lifting_surface_name)
+                mesh_name = '{}_undeformed_mesh'.format(lifting_surface_name)
 
             if not vortex_mesh:
                 area_name = '{}_area_m2'.format(lifting_surface_name)
@@ -105,9 +105,9 @@ class VLMMeshComp(ExplicitComponent):
             airfoil_x, airfoil_y = self.airfoils[lifting_surface_name]
 
             if vortex_mesh:
-                mesh_name = '{}_vortex_mesh'.format(lifting_surface_name)
+                mesh_name = '{}_undeformed_vortex_mesh'.format(lifting_surface_name)
             else:
-                mesh_name = '{}_mesh'.format(lifting_surface_name)
+                mesh_name = '{}_undeformed_mesh'.format(lifting_surface_name)
 
             chord = inputs['{}_{}'.format(lifting_surface_name, 'chord')]
             twist = inputs['{}_{}'.format(lifting_surface_name, 'twist')]
@@ -144,9 +144,9 @@ class VLMMeshComp(ExplicitComponent):
             airfoil_x, airfoil_y = self.airfoils[lifting_surface_name]
 
             if vortex_mesh:
-                mesh_name = '{}_vortex_mesh'.format(lifting_surface_name)
+                mesh_name = '{}_undeformed_vortex_mesh'.format(lifting_surface_name)
             else:
-                mesh_name = '{}_mesh'.format(lifting_surface_name)
+                mesh_name = '{}_undeformed_mesh'.format(lifting_surface_name)
 
             chord_name = '{}_{}'.format(lifting_surface_name, 'chord')
             twist_name = '{}_{}'.format(lifting_surface_name, 'twist')
