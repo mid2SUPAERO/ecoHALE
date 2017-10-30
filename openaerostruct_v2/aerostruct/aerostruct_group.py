@@ -48,8 +48,8 @@ if __name__ == '__main__':
 
     from openaerostruct_v2.geometry.inputs_group import InputsGroup
 
-    E = 1.e11
-    G = 1.e11
+    E = 1.e1
+    G = 1.e1
 
     num_points_x = 2
     num_points_z_half = 3
