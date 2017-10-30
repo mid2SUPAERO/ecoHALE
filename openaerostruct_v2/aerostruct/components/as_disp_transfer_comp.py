@@ -55,6 +55,10 @@ class ASDispTransferComp(ExplicitComponent):
             cols = np.einsum('ijl,k->ijkl', mesh_indices, np.ones(3, int)).flatten()
             self.declare_partials(mesh_disp_name, mesh_name, rows=rows, cols=cols)
 
+            rows = np.einsum('ijl,k->ijkl', mesh_disp_indices, np.ones(3, int)).flatten()
+            cols = np.einsum('jkl,i->ijkl', transform_indices, np.ones(num_points_x, int)).flatten()
+            self.declare_partials(mesh_disp_name, transform_name, rows=rows, cols=cols)
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
         vortex_mesh = self.metadata['vortex_mesh']
@@ -99,3 +103,10 @@ class ASDispTransferComp(ExplicitComponent):
 
             partials[mesh_disp_name, axis_name] = -np.einsum('i,jkl->ijkl',
                 np.ones(num_points_x), inputs[transform_name]).flatten()
+
+            partials[mesh_disp_name, mesh_name] = np.einsum('i,jkl->ijkl',
+                np.ones(num_points_x), inputs[transform_name]).flatten()
+
+            partials[mesh_disp_name, transform_name] = np.einsum('ijk,l->ijkl',
+                inputs[mesh_name] - np.einsum('i,jk->ijk', np.ones(num_points_x), inputs[axis_name]),
+                np.ones(3)).flatten()

@@ -113,17 +113,20 @@ class ASLoadTransferComp(ExplicitComponent):
             fea_mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
             loads_name = '{}_loads'.format(lifting_surface_name)
 
-            aero_pts = inputs[vlm_mesh_name]
-            struct_pts = np.einsum('i,jk->ijk', np.ones(num_points_x - 1), inputs[fea_mesh_name][:-1, :])
-
             deriv_array = np.einsum('...,ij->...ij',
                 np.ones((num_points_x - 1, num_points_z - 1)),
                 np.eye(3))
+
+            aero_pts = inputs[vlm_mesh_name]
+            struct_pts = np.einsum('i,jk->ijk', np.ones(num_points_x - 1), inputs[fea_mesh_name][:-1, :])
 
             ind1 = 2 * (num_points_x - 1) * (num_points_z - 1) * 3 + 0 * (num_points_x - 1) * (num_points_z - 1) * 3 * 3
             ind2 = 2 * (num_points_x - 1) * (num_points_z - 1) * 3 + 1 * (num_points_x - 1) * (num_points_z - 1) * 3 * 3
             derivs = partials[loads_name, forces_name][ind1:ind2].reshape((num_points_x - 1, num_points_z - 1, 3, 3))
             derivs[:, :, :, :] = 0.5 * compute_cross_deriv2(aero_pts - struct_pts, deriv_array)
+
+            aero_pts = inputs[vlm_mesh_name]
+            struct_pts = np.einsum('i,jk->ijk', np.ones(num_points_x - 1), inputs[fea_mesh_name][1:, :])
 
             ind1 = 2 * (num_points_x - 1) * (num_points_z - 1) * 3 + 1 * (num_points_x - 1) * (num_points_z - 1) * 3 * 3
             ind2 = 2 * (num_points_x - 1) * (num_points_z - 1) * 3 + 2 * (num_points_x - 1) * (num_points_z - 1) * 3 * 3

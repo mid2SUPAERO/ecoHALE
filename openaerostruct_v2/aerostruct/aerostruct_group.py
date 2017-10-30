@@ -31,6 +31,7 @@ class AerostructGroup(Group):
         )
         self.add_subsystem('as_load_transfer_comp',
             ASLoadTransferComp(lifting_surfaces=lifting_surfaces),
+            promotes=['*'],
         )
 
         self.add_subsystem('fea_group',
@@ -40,9 +41,11 @@ class AerostructGroup(Group):
         )
         self.add_subsystem('as_disp_transfer_comp',
             ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=False),
+            promotes=['*'],
         )
         self.add_subsystem('as_disp_transfer_vortex_comp',
             ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=True),
+            promotes=['*'],
         )
 
 
