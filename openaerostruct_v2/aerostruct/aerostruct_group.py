@@ -6,6 +6,7 @@ from openmdao.api import Group
 from openaerostruct_v2.aerodynamics.vlm_group import VLMGroup
 from openaerostruct_v2.structures.fea_group import FEAGroup
 from openaerostruct_v2.aerostruct.components.as_load_transfer_comp import ASLoadTransferComp
+from openaerostruct_v2.aerostruct.components.as_disp_transfer_comp import ASDispTransferComp
 
 
 class AerostructGroup(Group):
@@ -28,15 +29,20 @@ class AerostructGroup(Group):
             VLMGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
+        self.add_subsystem('as_load_transfer_comp',
+            ASLoadTransferComp(lifting_surfaces=lifting_surfaces),
+        )
 
         self.add_subsystem('fea_group',
             FEAGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
                 spar_location=spar_location, E=E, G=G),
             promotes=['*'],
         )
-
-        self.add_subsystem('as_load_transfer_comp',
-            ASLoadTransferComp(lifting_surfaces=lifting_surfaces),
+        self.add_subsystem('as_disp_transfer_comp',
+            ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=False),
+        )
+        self.add_subsystem('as_disp_transfer_vortex_comp',
+            ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=True),
         )
 
 

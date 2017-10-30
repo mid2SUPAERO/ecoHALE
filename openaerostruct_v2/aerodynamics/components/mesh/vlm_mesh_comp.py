@@ -3,6 +3,8 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import get_airfoils
+
 
 class VLMMeshComp(ExplicitComponent):
 
@@ -16,7 +18,7 @@ class VLMMeshComp(ExplicitComponent):
         section_origin = self.metadata['section_origin']
         vortex_mesh = self.metadata['vortex_mesh']
 
-        self.airfoils = airfoils = {}
+        self.airfoils = get_airfoils(lifting_surfaces, section_origin, vortex_mesh)
 
         self.declare_partials('*', '*', dependent=False)
 
@@ -84,15 +86,6 @@ class VLMMeshComp(ExplicitComponent):
                         np.arange(num_points_z)[1: ],
                     ])
                 )
-
-            airfoil_x = np.linspace(0., 1., num_points_x) - section_origin
-            airfoil_y = np.array(lifting_surface_data['airfoil'])
-
-            if vortex_mesh:
-                airfoil_x[:-1] = 0.75 * airfoil_x[:-1] + 0.25 * airfoil_x[1:]
-                airfoil_y[:-1] = 0.75 * airfoil_y[:-1] + 0.25 * airfoil_y[1:]
-
-            airfoils[lifting_surface_name] = (airfoil_x, airfoil_y)
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']

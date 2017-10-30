@@ -3,6 +3,7 @@ import numpy as np
 
 from openmdao.api import Group
 
+from openaerostruct_v2.aerodynamics.components.mesh.vlm_ref_axis_comp import VLMRefAxisComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_comp import VLMMeshComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_displace_meshes_comp import VLMDisplaceMeshesComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_normals_comp import VLMNormalsComp
@@ -47,6 +48,9 @@ class VLMGroup(Group):
             num_collocation_points += (num_points_x - 1) * (num_points_z - 1)
 
         num_force_points = num_collocation_points
+
+        comp = VLMRefAxisComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_ref_axis_comp', comp, promotes=['*'])
 
         comp = VLMMeshComp(lifting_surfaces=lifting_surfaces, section_origin=section_origin)
         self.add_subsystem('vlm_mesh_comp', comp, promotes=['*'])
