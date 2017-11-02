@@ -3,9 +3,15 @@ import numpy as np
 
 from openmdao.api import Group, NonlinearBlockGS, LinearBlockGS
 
-from openaerostruct_v2.aerodynamics.vlm_group import VLMGroup
+from openaerostruct_v2.aerodynamics.vlm_preprocess_group import VLMPreprocessGroup
+from openaerostruct_v2.aerodynamics.vlm_states_group import VLMStatesGroup
+from openaerostruct_v2.aerodynamics.vlm_postprocess_group import VLMPostprocessGroup
+
+from openaerostruct_v2.structures.fea_preprocess_group import FEAPreprocessGroup
+from openaerostruct_v2.structures.fea_states_group import FEAStatesGroup
+from openaerostruct_v2.structures.fea_postprocess_group import FEAPostprocessGroup
+
 from openaerostruct_v2.aerostruct.load_transfer_group import LoadTransferGroup
-from openaerostruct_v2.structures.fea_group import FEAGroup
 from openaerostruct_v2.aerostruct.disp_transfer_group import DispTransferGroup
 
 
@@ -25,17 +31,16 @@ class AerostructGroup(Group):
         E = self.metadata['E']
         G = self.metadata['G']
 
-        self.add_subsystem('vlm_group',
-            VLMGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces),
+        self.add_subsystem('vlm_states_group',
+            VLMStatesGroup(lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('load_transfer_group',
             LoadTransferGroup(lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
-        self.add_subsystem('fea_group',
-            FEAGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
-                spar_location=spar_location, E=E, G=G),
+        self.add_subsystem('fea_states_group',
+            FEAStatesGroup(lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('disp_transfer_group',
@@ -98,9 +103,28 @@ if __name__ == '__main__':
     group = FEABsplineGroup(lifting_surfaces=lifting_surfaces)
     prob.model.add_subsystem('tube_bspline_group', group, promotes=['*'])
 
+    prob.model.add_subsystem('vlm_preprocess_group',
+        VLMPreprocessGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces),
+        promotes=['*'],
+    )
+    prob.model.add_subsystem('fea_preprocess_group',
+        FEAPreprocessGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
+            spar_location=spar_location, E=E, G=G),
+        promotes=['*'],
+    )
+
     prob.model.add_subsystem('aerostruct_group',
         AerostructGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
             spar_location=spar_location, E=E, G=G),
+        promotes=['*'],
+    )
+
+    prob.model.add_subsystem('vlm_postprocess_group',
+        VLMPostprocessGroup(lifting_surfaces=lifting_surfaces),
+        promotes=['*'],
+    )
+    prob.model.add_subsystem('fea_postprocess_group',
+        FEAPostprocessGroup(lifting_surfaces=lifting_surfaces),
         promotes=['*'],
     )
 
