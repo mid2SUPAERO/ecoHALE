@@ -47,8 +47,6 @@ class VLMTotalCoeffsComp(ExplicitComponent):
         outputs['C_L'] = lift / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
         outputs['C_D'] = drag / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
 
-        print(outputs['C_L'], outputs['C_D'])
-
     def compute_partials(self, inputs, partials):
         lift = inputs['lift']
         drag = inputs['drag']

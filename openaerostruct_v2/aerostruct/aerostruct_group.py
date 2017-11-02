@@ -1,13 +1,12 @@
 from __future__ import print_function
 import numpy as np
 
-from openmdao.api import Group
+from openmdao.api import Group, NonlinearBlockGS, LinearBlockGS
 
 from openaerostruct_v2.aerodynamics.vlm_group import VLMGroup
+from openaerostruct_v2.aerostruct.load_transfer_group import LoadTransferGroup
 from openaerostruct_v2.structures.fea_group import FEAGroup
-from openaerostruct_v2.aerostruct.components.as_load_transfer_comp import ASLoadTransferComp
-from openaerostruct_v2.aerostruct.components.as_disp_transform_comp import ASDispTransformComp
-from openaerostruct_v2.aerostruct.components.as_disp_transfer_comp import ASDispTransferComp
+from openaerostruct_v2.aerostruct.disp_transfer_group import DispTransferGroup
 
 
 class AerostructGroup(Group):
@@ -30,28 +29,22 @@ class AerostructGroup(Group):
             VLMGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
-        self.add_subsystem('as_load_transfer_comp',
-            ASLoadTransferComp(lifting_surfaces=lifting_surfaces),
+        self.add_subsystem('load_transfer_group',
+            LoadTransferGroup(lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
-
         self.add_subsystem('fea_group',
             FEAGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
                 spar_location=spar_location, E=E, G=G),
             promotes=['*'],
         )
-        self.add_subsystem('as_disp_transform_comp',
-            ASDispTransformComp(lifting_surfaces=lifting_surfaces),
+        self.add_subsystem('disp_transfer_group',
+            DispTransferGroup(lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
-        self.add_subsystem('as_disp_transfer_comp',
-            ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=False),
-            promotes=['*'],
-        )
-        self.add_subsystem('as_disp_transfer_vortex_comp',
-            ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=True),
-            promotes=['*'],
-        )
+
+        self.nonlinear_solver = NonlinearBlockGS(iprint=2, maxiter=100)
+        self.linear_solver = LinearBlockGS(iprint=2, maxiter=100)
 
 
 if __name__ == '__main__':
@@ -61,9 +54,10 @@ if __name__ == '__main__':
     from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model
 
     from openaerostruct_v2.geometry.inputs_group import InputsGroup
+    from openaerostruct_v2.structures.fea_bspline_group import FEABsplineGroup
 
-    E = 1.e1
-    G = 1.e1
+    E = 1.e11
+    G = 1.e11
 
     num_points_x = 2
     num_points_z_half = 3
@@ -101,6 +95,9 @@ if __name__ == '__main__':
     inputs_group = InputsGroup(lifting_surfaces=lifting_surfaces)
     prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
+    group = FEABsplineGroup(lifting_surfaces=lifting_surfaces)
+    prob.model.add_subsystem('tube_bspline_group', group, promotes=['*'])
+
     prob.model.add_subsystem('aerostruct_group',
         AerostructGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
             spar_location=spar_location, E=E, G=G),
@@ -110,4 +107,9 @@ if __name__ == '__main__':
     prob.setup()
 
     prob.run_model()
-    prob.check_partials(compact_print=True)
+    # prob.check_partials(compact_print=True)
+
+    print(prob['circulations'])
+    print(prob['wing_disp'])
+
+    # view_model(prob)

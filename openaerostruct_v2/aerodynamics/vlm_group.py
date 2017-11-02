@@ -106,11 +106,11 @@ class VLMGroup(Group):
         comp = VLMPanelForcesComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_panel_forces_comp', comp, promotes=['*'])
 
-        comp = VLMPanelCoeffsComp(lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_panel_coeffs_comp', comp, promotes=['*'])
-
         comp = VLMRotatePanelForcesComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_rotate_panel_forces_comp', comp, promotes=['*'])
+
+        comp = VLMPanelCoeffsComp(lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_panel_coeffs_comp', comp, promotes=['*'])
 
         comp = VLMTotalForcesComp(lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_total_forces_comp', comp, promotes=['*'])

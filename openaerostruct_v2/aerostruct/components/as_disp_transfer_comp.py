@@ -35,7 +35,7 @@ class ASDispTransferComp(ExplicitComponent):
             self.add_input(axis_name, shape=(num_points_z, 3))
             self.add_input(mesh_name, shape=(num_points_x, num_points_z, 3))
             self.add_input(transform_name, shape=(num_points_z, 3, 3))
-            self.add_output(mesh_disp_name, shape=(num_points_x, num_points_z, 3))
+            self.add_output(mesh_disp_name, shape=(num_points_x, num_points_z, 3), val=0.)
 
             disp_indices = get_array_indices(num_points_z, 6)
             axis_indices = get_array_indices(num_points_z, 3)

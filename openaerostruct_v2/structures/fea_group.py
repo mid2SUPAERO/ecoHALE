@@ -3,7 +3,6 @@ import numpy as np
 
 from openmdao.api import Group
 
-from openaerostruct_v2.structures.fea_bspline_group import FEABsplineGroup
 from openaerostruct_v2.structures.components.tube_properties_comp import TubePropertiesComp
 from openaerostruct_v2.structures.components.fea_mesh_comp import FEAMeshComp
 from openaerostruct_v2.structures.components.fea_transform_comp import FEATransformComp
@@ -34,9 +33,6 @@ class FEAGroup(Group):
         lifting_surfaces = self.metadata['lifting_surfaces']
         E = self.metadata['E']
         G = self.metadata['G']
-
-        comp = FEABsplineGroup(lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('tube_bspline_comp', comp, promotes=['*'])
 
         comp = FEAMeshComp(lifting_surfaces=lifting_surfaces, section_origin=section_origin,
             spar_location=spar_location)
@@ -86,6 +82,7 @@ if __name__ == '__main__':
     from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model
 
     from openaerostruct_v2.geometry.inputs_group import InputsGroup
+    from openaerostruct_v2.structures.fea_bspline_group import FEABsplineGroup
 
     E = 1.e11
     G = 1.e11
@@ -121,10 +118,14 @@ if __name__ == '__main__':
     indep_var_comp.add_output('v_m_s', 200.)
     indep_var_comp.add_output('alpha_rad', 3. * np.pi / 180.)
     indep_var_comp.add_output('rho_kg_m3', 1.225)
+    indep_var_comp.add_output('wing_loads', np.outer(np.ones(num_points_z), np.array([0., 1., 0., 0., 0., 0.])))
     prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
     inputs_group = InputsGroup(lifting_surfaces=lifting_surfaces)
     prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
+
+    group = FEABsplineGroup(lifting_surfaces=lifting_surfaces)
+    prob.model.add_subsystem('tube_bspline_group', group, promotes=['*'])
 
     prob.model.add_subsystem('fea_group',
         FEAGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
@@ -155,6 +156,8 @@ if __name__ == '__main__':
     prob.run_driver()
 
     print(prob['wing_tube_thickness'])
+
+    print(prob['wing_disp'])
 
     import matplotlib.pyplot as plt
     x = prob['wing_fea_mesh']
