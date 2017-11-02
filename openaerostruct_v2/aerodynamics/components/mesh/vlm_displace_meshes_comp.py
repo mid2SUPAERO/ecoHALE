@@ -33,8 +33,10 @@ class VLMDisplaceMeshesComp(ExplicitComponent):
             vortex_mesh_name = '{}_vortex_mesh'.format(lifting_surface_name)
             mesh_name = '{}_mesh'.format(lifting_surface_name)
 
-            self.add_output(vortex_mesh_name, shape=(num_points_x, num_points_z, 3))
-            self.add_output(mesh_name, shape=(num_points_x, num_points_z, 3))
+            self.add_output(vortex_mesh_name, shape=(num_points_x, num_points_z, 3),
+                val=np.random.rand(num_points_x, num_points_z, 3))
+            self.add_output(mesh_name, shape=(num_points_x, num_points_z, 3),
+                val=np.random.rand(num_points_x, num_points_z, 3))
 
             arange = np.arange(num_points_x * num_points_z * 3)
 

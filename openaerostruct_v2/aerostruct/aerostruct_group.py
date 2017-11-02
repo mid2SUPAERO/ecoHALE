@@ -61,8 +61,8 @@ if __name__ == '__main__':
     from openaerostruct_v2.geometry.inputs_group import InputsGroup
     from openaerostruct_v2.structures.fea_bspline_group import FEABsplineGroup
 
-    E = 1.e11
-    G = 1.e11
+    E = 70.e9
+    G = 25.e9
 
     num_points_x = 2
     num_points_z_half = 3
@@ -83,8 +83,8 @@ if __name__ == '__main__':
             'sec_z_bspline': (num_points_z_half, 2),
             'chord_bspline': (2, 2),
             'thickness_bspline': (10, 3),
-            'thickness' : .1,
-            'radius' : 1.,
+            'thickness' : .005,
+            'radius' : 0.1,
         })
     ]
 
