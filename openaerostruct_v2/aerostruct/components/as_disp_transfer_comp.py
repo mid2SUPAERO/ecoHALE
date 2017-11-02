@@ -101,10 +101,10 @@ class ASDispTransferComp(ExplicitComponent):
                 mesh_disp_name = '{}_mesh_displacement'.format(lifting_surface_name)
                 mesh_name = '{}_undeformed_mesh'.format(lifting_surface_name)
 
-            partials[mesh_disp_name, axis_name] = -np.einsum('i,jkl->ijkl',
+            partials[mesh_disp_name, axis_name] = -np.einsum('i,jlk->ijkl',
                 np.ones(num_points_x), inputs[transform_name]).flatten()
 
-            partials[mesh_disp_name, mesh_name] = np.einsum('i,jkl->ijkl',
+            partials[mesh_disp_name, mesh_name] = np.einsum('i,jlk->ijkl',
                 np.ones(num_points_x), inputs[transform_name]).flatten()
 
             partials[mesh_disp_name, transform_name] = np.einsum('ijk,l->ijkl',
