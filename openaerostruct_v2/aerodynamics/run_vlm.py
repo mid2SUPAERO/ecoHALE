@@ -64,18 +64,19 @@ prob.model.add_subsystem('objective',
     promotes=['*'],
 )
 
-prob.model.add_design_var('wing_twist_cp', lower=-3.*np.pi/180., upper=8.*np.pi/180.)
+prob.model.add_design_var('alpha_rad', lower=-3.*np.pi/180., upper=8.*np.pi/180.)
+prob.model.add_design_var('wing_twist_dv', lower=-3.*np.pi/180., upper=8.*np.pi/180.)
 prob.model.add_objective('obj')
 prob.model.add_constraint('C_L', equals=np.linspace(0.4, 0.6, num_nodes))
 
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SNOPT'
-prob.driver.opt_settings['Major optimality tolerance'] = 2e-7
-prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
+prob.driver.opt_settings['Major optimality tolerance'] = 3e-7
+prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
 
 prob.setup()
 
-prob['wing_chord_cp'] = np.outer(np.ones(num_nodes), np.array([0.5, 1.0, 0.5]))
+prob['wing_chord_dv'] = np.array([0.5, 1.0, 0.5])
 
 prob.run_model()
 
@@ -85,26 +86,31 @@ if 0:
 
 prob.run_driver()
 
+print('alpha', prob['alpha_rad'])
+
 if 1:
     for i in range(num_nodes):
         C_L = prob['wing_sec_C_L'].reshape((num_nodes, num_points_x - 1, num_points_z - 1))[i, 0, :] \
             * 0.5 * (prob['wing_chord'][i, 1:] + prob['wing_chord'][i, :-1])
         sec_z = 0.5 * (prob['wing_sec_z'][i, 1:] + prob['wing_sec_z'][i, :-1])
         elliptical = C_L[num_points_z_half - 1] * np.sqrt(np.abs(1 - (sec_z / sec_z[-1]) ** 2))
-        plt.subplot(2, 2, 2 * i + 1)
+        plt.subplot(num_nodes + 1, 2, 2 * i + 1)
+        plt.plot(prob['wing_sec_z'][i, :], prob['wing_twist'][i, :] + prob['alpha_rad'][i], 'ko-')
+        plt.subplot(num_nodes + 1, 2, 2 * i + 2)
         plt.plot(sec_z, C_L, 'bo-')
         plt.plot(sec_z, elliptical, 'ro-')
-        plt.subplot(2, 2, 2 * i + 2)
-        plt.plot(prob['wing_sec_z'][i, :], prob['wing_twist'][i, :], 'ko-')
+    plt.subplot(num_nodes + 1, 2, 2 * num_nodes + 1)
+    plt.plot(prob['wing_sec_z'][i, :], prob['wing_twist'][i, :], 'ko-')
     plt.show()
 
-if 0:
-    mesh = prob['wing_mesh']
-    vortex_mesh = prob['wing_vortex_mesh']
-    collocation_points = prob['coll_pts']
-    force_points = prob['force_pts']
-    bound_vecs = prob['bound_vecs']
-    wing_normals = prob['wing_normals'].reshape((int(np.prod(prob['wing_normals'].shape[:2])), 3))
+if 1:
+    mesh = prob['wing_mesh'][0]
+    vortex_mesh = prob['wing_vortex_mesh'][0]
+    collocation_points = prob['coll_pts'][0]
+    force_points = prob['force_pts'][0]
+    bound_vecs = prob['bound_vecs'][0]
+    wing_normals = prob['wing_normals'][0].reshape(
+        (int(np.prod(prob['wing_normals'][0].shape[:2])), 3))
 
     fig = plt.figure()
 
@@ -119,7 +125,7 @@ if 0:
     plt.xlabel('z')
     plt.ylabel('x')
 
-    print(prob['horseshoe_circulations'].reshape((
-        num_points_x - 1, 2 * num_points_z_half - 2 )))
+    # print(prob['horseshoe_circulations'][0].reshape((
+    #     num_points_x - 1, 2 * num_points_z_half - 2 )))
 
     plt.show()
