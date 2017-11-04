@@ -5,13 +5,17 @@ from scipy.sparse import csc_matrix
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
+
 
 class VLMHorseshoeCirculationsComp(ExplicitComponent):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         system_size = 0
@@ -24,8 +28,8 @@ class VLMHorseshoeCirculationsComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('circulations', shape=system_size)
-        self.add_output('horseshoe_circulations', shape=system_size)
+        self.add_input('circulations', shape=(num_nodes, system_size))
+        self.add_output('horseshoe_circulations', shape=(num_nodes, system_size))
 
         data = [np.ones(system_size)]
         rows = [np.arange(system_size)]
@@ -56,9 +60,21 @@ class VLMHorseshoeCirculationsComp(ExplicitComponent):
         rows = np.concatenate(rows)
         cols = np.concatenate(cols)
 
-        self.mtx = csc_matrix((data, (rows, cols)), shape=(system_size, system_size))
+        data, rows, cols = tile_sparse_jac(data, rows, cols,
+            system_size, system_size, num_nodes)
+
+        self.mtx = csc_matrix((data, (rows, cols)),
+            shape=(num_nodes * system_size, num_nodes * system_size))
 
         self.declare_partials('horseshoe_circulations', 'circulations', val=data, rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        outputs['horseshoe_circulations'] = self.mtx.dot(inputs['circulations'])
+        num_nodes = self.metadata['num_nodes']
+
+        system_size = self.system_size
+
+        out_shape = (num_nodes, system_size)
+        in_shape = (num_nodes, system_size)
+
+        out = self.mtx * inputs['circulations'].reshape(np.prod(in_shape))
+        outputs['horseshoe_circulations'] = out.reshape(out_shape)

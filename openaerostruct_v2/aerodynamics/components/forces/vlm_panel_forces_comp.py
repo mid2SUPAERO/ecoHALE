@@ -5,6 +5,8 @@ from openmdao.api import ExplicitComponent
 
 from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
 
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
+
 
 class VLMPanelForcesComp(ExplicitComponent):
     """
@@ -12,9 +14,11 @@ class VLMPanelForcesComp(ExplicitComponent):
     """
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         system_size = 0
@@ -29,48 +33,55 @@ class VLMPanelForcesComp(ExplicitComponent):
 
         velocities_name = '{}_velocities'.format('force_pts')
 
-        self.add_input('rho_kg_m3')
-        self.add_input('horseshoe_circulations', shape=system_size)
-        self.add_input(velocities_name, shape=(system_size, 3))
-        self.add_input('bound_vecs', shape=(system_size, 3))
-        self.add_output('panel_forces', shape=(system_size, 3))
+        self.add_input('rho_kg_m3', shape=num_nodes)
+        self.add_input('horseshoe_circulations', shape=(num_nodes, system_size))
+        self.add_input(velocities_name, shape=(num_nodes, system_size, 3))
+        self.add_input('bound_vecs', shape=(num_nodes, system_size, 3))
+        self.add_output('panel_forces', shape=(num_nodes, system_size, 3))
 
-        self.declare_partials('panel_forces', 'rho_kg_m3',
-            rows=np.arange(3 * system_size),
-            cols=np.zeros(3 * system_size, int),
-        )
-        self.declare_partials('panel_forces', 'horseshoe_circulations',
-            rows=np.arange(3 * system_size),
-            cols=np.outer(np.arange(system_size), np.ones(3, int)).flatten(),
-        )
-        self.declare_partials('panel_forces', velocities_name,
-            rows=np.einsum('ij,k->ijk',
-                np.arange(3 * system_size).reshape((system_size, 3)),
-                np.ones(3, int),
-            ).flatten(),
-            cols=np.einsum('ik,j->ijk',
-                np.arange(3 * system_size).reshape((system_size, 3)),
-                np.ones(3, int),
-            ).flatten(),
-        )
-        self.declare_partials('panel_forces', 'bound_vecs',
-            rows=np.einsum('ij,k->ijk',
-                np.arange(3 * system_size).reshape((system_size, 3)),
-                np.ones(3, int),
-            ).flatten(),
-            cols=np.einsum('ik,j->ijk',
-                np.arange(3 * system_size).reshape((system_size, 3)),
-                np.ones(3, int),
-            ).flatten(),
-        )
+        rows = np.arange(3 * system_size)
+        cols = np.zeros(3 * system_size, int)
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size * 3, 1., num_nodes)
+        self.declare_partials('panel_forces', 'rho_kg_m3', rows=rows, cols=cols)
+
+        rows = np.arange(3 * system_size)
+        cols = np.outer(np.arange(system_size), np.ones(3, int)).flatten()
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size * 3, system_size, num_nodes)
+        self.declare_partials('panel_forces', 'horseshoe_circulations', rows=rows, cols=cols)
+
+        rows = np.einsum('ij,k->ijk',
+            np.arange(3 * system_size).reshape((system_size, 3)),
+            np.ones(3, int),
+        ).flatten()
+        cols = np.einsum('ik,j->ijk',
+            np.arange(3 * system_size).reshape((system_size, 3)),
+            np.ones(3, int),
+        ).flatten()
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size * 3, system_size * 3, num_nodes)
+        self.declare_partials('panel_forces', velocities_name, rows=rows, cols=cols)
+
+        rows = np.einsum('ij,k->ijk',
+            np.arange(3 * system_size).reshape((system_size, 3)),
+            np.ones(3, int),
+        ).flatten()
+        cols = np.einsum('ik,j->ijk',
+            np.arange(3 * system_size).reshape((system_size, 3)),
+            np.ones(3, int),
+        ).flatten()
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size * 3, system_size * 3, num_nodes)
+        self.declare_partials('panel_forces', 'bound_vecs', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         velocities_name = '{}_velocities'.format('force_pts')
 
         system_size = self.system_size
 
-        rho_kg_m3 = inputs['rho_kg_m3'][0]
-        horseshoe_circulations = np.outer(inputs['horseshoe_circulations'], np.ones(3))
+        rho_kg_m3 = np.einsum('i,jk->ijk', inputs['rho_kg_m3'], np.ones((system_size, 3)))
+        horseshoe_circulations = np.einsum('ij,k->ijk', inputs['horseshoe_circulations'], np.ones(3))
         velocities = inputs[velocities_name]
         bound_vecs = inputs['bound_vecs']
 
@@ -78,20 +89,22 @@ class VLMPanelForcesComp(ExplicitComponent):
             rho_kg_m3 * horseshoe_circulations * compute_cross(velocities, bound_vecs)
 
     def compute_partials(self, inputs, partials):
-        velocities_name = '{}_velocities'.format('force_pts')
+        num_nodes = self.metadata['num_nodes']
 
         system_size = self.system_size
 
-        rho_kg_m3 = inputs['rho_kg_m3'][0]
-        horseshoe_circulations = np.outer(inputs['horseshoe_circulations'], np.ones(3))
+        velocities_name = '{}_velocities'.format('force_pts')
+
+        rho_kg_m3 = np.einsum('i,jk->ijk', inputs['rho_kg_m3'], np.ones((system_size, 3)))
+        horseshoe_circulations = np.einsum('ij,k->ijk', inputs['horseshoe_circulations'], np.ones(3))
         velocities = inputs[velocities_name]
         bound_vecs = inputs['bound_vecs']
 
+        horseshoe_circulations_ones = np.einsum('ij,kl->ijkl', inputs['horseshoe_circulations'], np.ones((3, 3)))
+        rho_kg_m3_ones = np.einsum('i,jkl->ijkl', inputs['rho_kg_m3'], np.ones((system_size, 3, 3)))
 
-        horseshoe_circulations_ones = np.einsum('i,jk->ijk', inputs['horseshoe_circulations'], np.ones((3, 3)))
-
-        deriv_array = np.einsum('i,jk->ijk',
-            np.ones(self.system_size),
+        deriv_array = np.einsum('ij,kl->ijkl',
+            np.ones((num_nodes, system_size)),
             np.eye(3))
 
         partials['panel_forces', 'rho_kg_m3'] = \
@@ -99,6 +112,6 @@ class VLMPanelForcesComp(ExplicitComponent):
         partials['panel_forces', 'horseshoe_circulations'] = \
             (rho_kg_m3 * compute_cross(velocities, bound_vecs)).flatten()
         partials['panel_forces', velocities_name] = \
-            (rho_kg_m3 * horseshoe_circulations_ones * compute_cross_deriv1(deriv_array, bound_vecs)).flatten()
+            (rho_kg_m3_ones * horseshoe_circulations_ones * compute_cross_deriv1(deriv_array, bound_vecs)).flatten()
         partials['panel_forces', 'bound_vecs'] = \
-            (rho_kg_m3 * horseshoe_circulations_ones * compute_cross_deriv2(velocities, deriv_array)).flatten()
+            (rho_kg_m3_ones * horseshoe_circulations_ones * compute_cross_deriv2(velocities, deriv_array)).flatten()

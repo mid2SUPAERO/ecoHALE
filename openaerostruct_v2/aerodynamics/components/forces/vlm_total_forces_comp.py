@@ -5,6 +5,8 @@ from openmdao.api import ExplicitComponent
 
 from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
 
+from openaerostruct_v2.utils.misc_utils import get_array_indices, tile_sparse_jac
+
 
 class VLMTotalForcesComp(ExplicitComponent):
     """
@@ -12,9 +14,11 @@ class VLMTotalForcesComp(ExplicitComponent):
     """
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         system_size = 0
@@ -27,19 +31,22 @@ class VLMTotalForcesComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('panel_forces_rotated', shape=(system_size, 3))
-        self.add_output('lift')
-        self.add_output('drag')
+        self.add_input('panel_forces_rotated', shape=(num_nodes, system_size, 3))
+        self.add_output('lift', shape=num_nodes)
+        self.add_output('drag', shape=num_nodes)
 
-        self.declare_partials('lift', 'panel_forces_rotated', val=1.,
-            rows=np.zeros(system_size, int),
-            cols=np.arange(3 * system_size).reshape((system_size, 3))[:, 1],
-        )
-        self.declare_partials('drag', 'panel_forces_rotated', val=1.,
-            rows=np.zeros(system_size, int),
-            cols=np.arange(3 * system_size).reshape((system_size, 3))[:, 0],
-        )
+        rows = np.zeros(system_size, int)
+        cols = np.arange(3 * system_size).reshape((system_size, 3))[:, 1]
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            1, system_size * 3, num_nodes)
+        self.declare_partials('lift', 'panel_forces_rotated', val=1., rows=rows, cols=cols)
+
+        rows = np.zeros(system_size, int)
+        cols = np.arange(3 * system_size).reshape((system_size, 3))[:, 0]
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            1, system_size * 3, num_nodes)
+        self.declare_partials('drag', 'panel_forces_rotated', val=1., rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        outputs['lift'] = np.sum(inputs['panel_forces_rotated'][:, 1])
-        outputs['drag'] = np.sum(inputs['panel_forces_rotated'][:, 0])
+        outputs['lift'] = np.sum(inputs['panel_forces_rotated'][:, :, 1], axis=1)
+        outputs['drag'] = np.sum(inputs['panel_forces_rotated'][:, :, 0], axis=1)

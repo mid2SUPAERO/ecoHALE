@@ -23,9 +23,11 @@ from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_forces_surf_comp
 class VLMStatesGroup(Group):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         num_collocation_points = 0
@@ -38,49 +40,49 @@ class VLMStatesGroup(Group):
 
         num_force_points = num_collocation_points
 
-        comp = VLMDisplaceMeshesComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMDisplaceMeshesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_displace_meshes_comp', comp, promotes=['*'])
 
-        comp = VLMNormalsComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMNormalsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_normals_comp', comp, promotes=['*'])
 
-        comp = VLMMeshPointsComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMMeshPointsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_mesh_points_comp', comp, promotes=['*'])
 
-        comp = VLMMeshCPComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMMeshCPComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_mesh_cp_comp', comp, promotes=['*'])
 
-        comp = VLMEvalVectorsComp(lifting_surfaces=lifting_surfaces, eval_name='coll_pts',
-            num_eval_points=num_collocation_points)
+        comp = VLMEvalVectorsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            eval_name='coll_pts', num_eval_points=num_collocation_points)
         self.add_subsystem('vlm_collocation_eval_vectors_comp', comp, promotes=['*'])
 
-        comp = VLMEvalVelMtxComp(lifting_surfaces=lifting_surfaces, eval_name='coll_pts',
-            num_eval_points=num_collocation_points)
+        comp = VLMEvalVelMtxComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            eval_name='coll_pts', num_eval_points=num_collocation_points)
         self.add_subsystem('vlm_collocation_eval_vel_mtx_comp', comp, promotes=['*'])
 
-        comp = VLMMtxRHSComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMMtxRHSComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_mtx_rhs_comp', comp, promotes=['*'])
 
-        comp = VLMCirculationsComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMCirculationsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_circulations_comp', comp, promotes=['*'])
 
-        comp = VLMHorseshoeCirculationsComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMHorseshoeCirculationsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_horseshoe_circulations_comp', comp, promotes=['*'])
 
-        comp = VLMEvalVectorsComp(lifting_surfaces=lifting_surfaces, eval_name='force_pts',
-            num_eval_points=num_force_points)
+        comp = VLMEvalVectorsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            eval_name='force_pts', num_eval_points=num_force_points)
         self.add_subsystem('vlm_force_eval_vectors_comp', comp, promotes=['*'])
 
-        comp = VLMEvalVelMtxComp(lifting_surfaces=lifting_surfaces, eval_name='force_pts',
-            num_eval_points=num_force_points)
+        comp = VLMEvalVelMtxComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            eval_name='force_pts', num_eval_points=num_force_points)
         self.add_subsystem('vlm_force_eval_vel_mtx_comp', comp, promotes=['*'])
 
-        comp = VLMEvalVelocitiesComp(lifting_surfaces=lifting_surfaces, eval_name='force_pts',
-            num_eval_points=num_force_points)
+        comp = VLMEvalVelocitiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            eval_name='force_pts', num_eval_points=num_force_points)
         self.add_subsystem('vlm_force_eval_velocities_comp', comp, promotes=['*'])
 
-        comp = VLMPanelForcesComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMPanelForcesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_panel_forces_comp', comp, promotes=['*'])
 
-        comp = VLMPanelForcesSurfComp(lifting_surfaces=lifting_surfaces)
+        comp = VLMPanelForcesSurfComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_panel_forces_surf_comp', comp, promotes=['*'])

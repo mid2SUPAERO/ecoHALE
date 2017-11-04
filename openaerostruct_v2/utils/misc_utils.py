@@ -1,6 +1,24 @@
 import numpy as np
 
 
+def tile_sparse_jac(data, rows, cols, nrow, ncol, num_nodes):
+    nnz = len(rows)
+
+    if np.isscalar(data):
+        data = data * np.ones(nnz)
+
+    if not np.isscalar(nrow):
+        nrow = np.prod(nrow)
+
+    if not np.isscalar(ncol):
+        ncol = np.prod(ncol)
+
+    data = np.tile(data, num_nodes)
+    rows = np.tile(rows, num_nodes) + np.repeat(np.arange(num_nodes), nnz) * nrow
+    cols = np.tile(cols, num_nodes) + np.repeat(np.arange(num_nodes), nnz) * ncol
+
+    return data, rows, cols
+
 def get_array_indices(*shape):
     return np.arange(np.prod(shape)).reshape(shape)
 

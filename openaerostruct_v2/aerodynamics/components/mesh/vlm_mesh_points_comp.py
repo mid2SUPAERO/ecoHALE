@@ -3,6 +3,8 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
+
 
 non_singular_force_pts = False
 
@@ -10,9 +12,11 @@ non_singular_force_pts = False
 class VLMMeshPointsComp(ExplicitComponent):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         num_eval_points = 0
@@ -23,9 +27,9 @@ class VLMMeshPointsComp(ExplicitComponent):
 
             num_eval_points += (num_points_x - 1) * (num_points_z - 1)
 
-        self.add_output('coll_pts', shape=(num_eval_points, 3))
-        self.add_output('force_pts', shape=(num_eval_points, 3))
-        self.add_output('bound_vecs', shape=(num_eval_points, 3))
+        self.add_output('coll_pts', shape=(num_nodes, num_eval_points, 3))
+        self.add_output('force_pts', shape=(num_nodes, num_eval_points, 3))
+        self.add_output('bound_vecs', shape=(num_nodes, num_eval_points, 3))
 
         eval_indices = np.arange(num_eval_points * 3).reshape((num_eval_points, 3))
 
@@ -38,13 +42,13 @@ class VLMMeshPointsComp(ExplicitComponent):
             ind_eval_points_2 += (num_points_x - 1) * (num_points_z - 1)
 
             mesh_name = '{}_mesh'.format(lifting_surface_name)
-            self.add_input(mesh_name, shape=(num_points_x, num_points_z, 3))
+            self.add_input(mesh_name, shape=(num_nodes, num_points_x, num_points_z, 3))
 
             mesh_indices = np.arange(num_points_x * num_points_z * 3).reshape(
                 (num_points_x, num_points_z, 3))
 
-            rows = np.tile(eval_indices[ind_eval_points_1:ind_eval_points_2, :].flatten(), 4)
-            cols = np.concatenate([
+            rows0 = np.tile(eval_indices[ind_eval_points_1:ind_eval_points_2, :].flatten(), 4)
+            cols0 = np.concatenate([
                 mesh_indices[0:-1, 0:-1, :].flatten(),
                 mesh_indices[1:  , 0:-1, :].flatten(),
                 mesh_indices[0:-1, 1:  , :].flatten(),
@@ -57,6 +61,9 @@ class VLMMeshPointsComp(ExplicitComponent):
                 0.25 * 0.5 * np.ones((num_points_x - 1) * (num_points_z - 1) * 3),  # FL
                 0.75 * 0.5 * np.ones((num_points_x - 1) * (num_points_z - 1) * 3),  # BL
             ])
+            data, rows, cols = tile_sparse_jac(data, rows0, cols0,
+                num_eval_points * 3,
+                num_points_x * num_points_z * 3, num_nodes)
             self.declare_partials('coll_pts', mesh_name, val=data, rows=rows, cols=cols)
 
             if non_singular_force_pts:
@@ -73,6 +80,9 @@ class VLMMeshPointsComp(ExplicitComponent):
                     0.75 * 0.5 * np.ones((num_points_x - 1) * (num_points_z - 1) * 3),  # FL
                     0.25 * 0.5 * np.ones((num_points_x - 1) * (num_points_z - 1) * 3),  # BL
                 ])
+            data, rows, cols = tile_sparse_jac(data, rows0, cols0,
+                num_eval_points * 3,
+                num_points_x * num_points_z * 3, num_nodes)
             self.declare_partials('force_pts', mesh_name, val=data, rows=rows, cols=cols)
 
             data = np.concatenate([
@@ -81,11 +91,15 @@ class VLMMeshPointsComp(ExplicitComponent):
                 -0.75 * np.ones((num_points_x - 1) * (num_points_z - 1) * 3),  # FL
                 -0.25 * np.ones((num_points_x - 1) * (num_points_z - 1) * 3),  # BL
             ])
+            data, rows, cols = tile_sparse_jac(data, rows0, cols0,
+                num_eval_points * 3,
+                num_points_x * num_points_z * 3, num_nodes)
             self.declare_partials('bound_vecs', mesh_name, val=data, rows=rows, cols=cols)
 
             ind_eval_points_1 += (num_points_x - 1) * (num_points_z - 1)
 
     def compute(self, inputs, outputs):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         ind_eval_points_1 = 0
@@ -98,33 +112,33 @@ class VLMMeshPointsComp(ExplicitComponent):
 
             mesh_name = '{}_mesh'.format(lifting_surface_name)
 
-            outputs['coll_pts'][ind_eval_points_1:ind_eval_points_2, :] = (
-                0.25 * 0.5 * inputs[mesh_name][0:-1, 0:-1, :] +
-                0.75 * 0.5 * inputs[mesh_name][1:  , 0:-1, :] +
-                0.25 * 0.5 * inputs[mesh_name][0:-1, 1:  , :] +
-                0.75 * 0.5 * inputs[mesh_name][1:  , 1:  , :]
-            ).reshape(((num_points_x - 1) * (num_points_z - 1), 3))
+            outputs['coll_pts'][:, ind_eval_points_1:ind_eval_points_2, :] = (
+                0.25 * 0.5 * inputs[mesh_name][:, 0:-1, 0:-1, :] +
+                0.75 * 0.5 * inputs[mesh_name][:, 1:  , 0:-1, :] +
+                0.25 * 0.5 * inputs[mesh_name][:, 0:-1, 1:  , :] +
+                0.75 * 0.5 * inputs[mesh_name][:, 1:  , 1:  , :]
+            ).reshape((num_nodes, (num_points_x - 1) * (num_points_z - 1), 3))
 
             if non_singular_force_pts:
-                outputs['force_pts'][ind_eval_points_1:ind_eval_points_2, :] = (
-                    0.5 * 0.5 * inputs[mesh_name][0:-1, 0:-1, :] +
-                    0.5 * 0.5 * inputs[mesh_name][1:  , 0:-1, :] +
-                    0.5 * 0.5 * inputs[mesh_name][0:-1, 1:  , :] +
-                    0.5 * 0.5 * inputs[mesh_name][1:  , 1:  , :]
-                ).reshape(((num_points_x - 1) * (num_points_z - 1), 3))
+                outputs['force_pts'][:, ind_eval_points_1:ind_eval_points_2, :] = (
+                    0.5 * 0.5 * inputs[mesh_name][:, 0:-1, 0:-1, :] +
+                    0.5 * 0.5 * inputs[mesh_name][:, 1:  , 0:-1, :] +
+                    0.5 * 0.5 * inputs[mesh_name][:, 0:-1, 1:  , :] +
+                    0.5 * 0.5 * inputs[mesh_name][:, 1:  , 1:  , :]
+                ).reshape((num_nodes, (num_points_x - 1) * (num_points_z - 1), 3))
             else:
-                outputs['force_pts'][ind_eval_points_1:ind_eval_points_2, :] = (
-                    0.75 * 0.5 * inputs[mesh_name][0:-1, 0:-1, :] +
-                    0.25 * 0.5 * inputs[mesh_name][1:  , 0:-1, :] +
-                    0.75 * 0.5 * inputs[mesh_name][0:-1, 1:  , :] +
-                    0.25 * 0.5 * inputs[mesh_name][1:  , 1:  , :]
-                ).reshape(((num_points_x - 1) * (num_points_z - 1), 3))
+                outputs['force_pts'][:, ind_eval_points_1:ind_eval_points_2, :] = (
+                    0.75 * 0.5 * inputs[mesh_name][:, 0:-1, 0:-1, :] +
+                    0.25 * 0.5 * inputs[mesh_name][:, 1:  , 0:-1, :] +
+                    0.75 * 0.5 * inputs[mesh_name][:, 0:-1, 1:  , :] +
+                    0.25 * 0.5 * inputs[mesh_name][:, 1:  , 1:  , :]
+                ).reshape((num_nodes, (num_points_x - 1) * (num_points_z - 1), 3))
 
-            outputs['bound_vecs'][ind_eval_points_1:ind_eval_points_2, :] = (
-                 0.75 * inputs[mesh_name][0:-1, 0:-1, :] +
-                 0.25 * inputs[mesh_name][1:  , 0:-1, :] +
-                -0.75 * inputs[mesh_name][0:-1, 1:  , :] +
-                -0.25 * inputs[mesh_name][1:  , 1:  , :]
-            ).reshape(((num_points_x - 1) * (num_points_z - 1), 3))
+            outputs['bound_vecs'][:, ind_eval_points_1:ind_eval_points_2, :] = (
+                 0.75 * inputs[mesh_name][:, 0:-1, 0:-1, :] +
+                 0.25 * inputs[mesh_name][:, 1:  , 0:-1, :] +
+                -0.75 * inputs[mesh_name][:, 0:-1, 1:  , :] +
+                -0.25 * inputs[mesh_name][:, 1:  , 1:  , :]
+            ).reshape((num_nodes, (num_points_x - 1) * (num_points_z - 1), 3))
 
             ind_eval_points_1 += (num_points_x - 1) * (num_points_z - 1)

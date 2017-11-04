@@ -3,6 +3,8 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import get_airfoils, tile_sparse_jac
+
 
 class VLMTotalCoeffsComp(ExplicitComponent):
     """
@@ -10,32 +12,32 @@ class VLMTotalCoeffsComp(ExplicitComponent):
     """
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
-        system_size = 0
+        self.add_input('rho_kg_m3', shape=num_nodes)
+        self.add_input('v_m_s', shape=num_nodes)
+        self.add_input('wing_area_m2', shape=num_nodes)
+        self.add_input('lift', shape=num_nodes)
+        self.add_input('drag', shape=num_nodes)
+        self.add_output('C_L', shape=num_nodes)
+        self.add_output('C_D', shape=num_nodes)
 
-        for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+        arange = np.arange(num_nodes)
 
-            system_size += (num_points_x - 1) * (num_points_z - 1)
+        self.declare_partials('C_L', 'rho_kg_m3', rows=arange, cols=arange)
+        self.declare_partials('C_L', 'v_m_s', rows=arange, cols=arange)
+        self.declare_partials('C_L', 'wing_area_m2', rows=arange, cols=arange)
+        self.declare_partials('C_L', 'lift', rows=arange, cols=arange)
 
-        self.system_size = system_size
-
-        self.add_input('rho_kg_m3')
-        self.add_input('v_m_s')
-        self.add_input('wing_area_m2')
-        self.add_input('lift')
-        self.add_input('drag')
-        self.add_output('C_L')
-        self.add_output('C_D')
-
-        self.declare_partials('*', '*')
-        self.declare_partials('C_L', 'drag', dependent=False)
-        self.declare_partials('C_D', 'lift', dependent=False)
+        self.declare_partials('C_D', 'rho_kg_m3', rows=arange, cols=arange)
+        self.declare_partials('C_D', 'v_m_s', rows=arange, cols=arange)
+        self.declare_partials('C_D', 'wing_area_m2', rows=arange, cols=arange)
+        self.declare_partials('C_D', 'drag', rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
         lift = inputs['lift']

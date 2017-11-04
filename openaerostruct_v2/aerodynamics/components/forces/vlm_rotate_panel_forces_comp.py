@@ -4,6 +4,7 @@ import numpy as np
 from openmdao.api import ExplicitComponent
 
 from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
 
 
 class VLMRotatePanelForcesComp(ExplicitComponent):
@@ -12,9 +13,11 @@ class VLMRotatePanelForcesComp(ExplicitComponent):
     """
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         system_size = 0
@@ -29,80 +32,83 @@ class VLMRotatePanelForcesComp(ExplicitComponent):
 
         velocities_name = '{}_velocities'.format('force_pts')
 
-        self.add_input('alpha_rad')
-        self.add_input('panel_forces', shape=(system_size, 3))
-        self.add_output('panel_forces_rotated', shape=(system_size, 3))
+        self.add_input('alpha_rad', shape=num_nodes)
+        self.add_input('panel_forces', shape=(num_nodes, system_size, 3))
+        self.add_output('panel_forces_rotated', shape=(num_nodes, system_size, 3))
 
-        self.declare_partials('panel_forces_rotated', 'alpha_rad',
-            rows=np.arange(3 * system_size),
-            cols=np.zeros(3 * system_size, int),
-        )
+        rows = np.arange(3 * system_size)
+        cols = np.zeros(3 * system_size, int)
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size * 3, 1., num_nodes)
+        self.declare_partials('panel_forces_rotated', 'alpha_rad', rows=rows, cols=cols)
 
-        self.declare_partials('panel_forces_rotated', 'panel_forces',
-            rows=np.einsum('ij,k->ijk',
-                np.arange(3 * system_size).reshape((system_size, 3)),
-                np.ones(3, int),
-            ).flatten(),
-            cols=np.einsum('ik,j->ijk',
-                np.arange(3 * system_size).reshape((system_size, 3)),
-                np.ones(3, int),
-            ).flatten(),
-        )
+        rows = np.einsum('ij,k->ijk',
+            np.arange(3 * system_size).reshape((system_size, 3)),
+            np.ones(3, int),
+        ).flatten()
+        cols = np.einsum('ik,j->ijk',
+            np.arange(3 * system_size).reshape((system_size, 3)),
+            np.ones(3, int),
+        ).flatten()
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size * 3, system_size * 3, num_nodes)
+        self.declare_partials('panel_forces_rotated', 'panel_forces', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
+        num_nodes = self.metadata['num_nodes']
+
         system_size = self.system_size
 
-        alpha_rad = inputs['alpha_rad'][0]
+        alpha_rad = inputs['alpha_rad']
         panel_forces = inputs['panel_forces']
 
-        rotation = np.einsum('i,jk->ijk',
-            np.ones(system_size),
-            np.array([
-                [ np.cos(alpha_rad) , np.sin(alpha_rad) , 0. ],
-                [-np.sin(alpha_rad) , np.cos(alpha_rad) , 0. ],
-                [0., 0., 1.],
-            ])
-        )
+        ones = np.ones(system_size)
 
-        outputs['panel_forces_rotated'] = np.einsum('ijk,ik->ij',
+        rotation = np.zeros((num_nodes, system_size, 3, 3))
+        rotation[:, :, 0, 0] = np.outer( np.cos(alpha_rad), ones)
+        rotation[:, :, 0, 1] = np.outer( np.sin(alpha_rad), ones)
+        rotation[:, :, 1, 0] = np.outer(-np.sin(alpha_rad), ones)
+        rotation[:, :, 1, 1] = np.outer( np.cos(alpha_rad), ones)
+        rotation[:, :, 2, 2] = 1.
+
+        outputs['panel_forces_rotated'] = np.einsum('ijkl,ijl->ijk',
             rotation,
             panel_forces,
         )
 
     def compute_partials(self, inputs, partials):
+        num_nodes = self.metadata['num_nodes']
+
         system_size = self.system_size
 
-        alpha_rad = inputs['alpha_rad'][0]
+        alpha_rad = inputs['alpha_rad']
         panel_forces = inputs['panel_forces']
 
-        rotation = np.einsum('i,jk->ijk',
-            np.ones(system_size),
-            np.array([
-                [ np.cos(alpha_rad) ,  np.sin(alpha_rad) , 0. ],
-                [-np.sin(alpha_rad) ,  np.cos(alpha_rad) , 0. ],
-                [0., 0., 1.],
-            ])
-        )
+        ones = np.ones(system_size)
 
-        deriv_rotation = np.einsum('i,jk->ijk',
-            np.ones(system_size),
-            np.array([
-                [-np.sin(alpha_rad) ,  np.cos(alpha_rad) , 0. ],
-                [-np.cos(alpha_rad) , -np.sin(alpha_rad) , 0. ],
-                [0., 0., 1.],
-            ])
-        )
+        rotation = np.zeros((num_nodes, system_size, 3, 3))
+        rotation[:, :, 0, 0] = np.outer( np.cos(alpha_rad), ones)
+        rotation[:, :, 0, 1] = np.outer( np.sin(alpha_rad), ones)
+        rotation[:, :, 1, 0] = np.outer(-np.sin(alpha_rad), ones)
+        rotation[:, :, 1, 1] = np.outer( np.cos(alpha_rad), ones)
+        rotation[:, :, 2, 2] = 1.
 
-        deriv_panel_forces = np.einsum('i,jk->ijk',
-            np.ones(system_size),
+        deriv_rotation = np.zeros((num_nodes, system_size, 3, 3))
+        deriv_rotation[:, :, 0, 0] = np.outer(-np.sin(alpha_rad), ones)
+        deriv_rotation[:, :, 0, 1] = np.outer( np.cos(alpha_rad), ones)
+        deriv_rotation[:, :, 1, 0] = np.outer(-np.cos(alpha_rad), ones)
+        deriv_rotation[:, :, 1, 1] = np.outer(-np.sin(alpha_rad), ones)
+
+        deriv_panel_forces = np.einsum('ij,kl->ijkl',
+            np.ones((num_nodes, system_size)),
             np.eye(3))
 
-        partials['panel_forces_rotated', 'alpha_rad'] = np.einsum('ijk,ik->ij',
+        partials['panel_forces_rotated', 'alpha_rad'] = np.einsum('ijkl,ijl->ijk',
             deriv_rotation,
             panel_forces,
         ).flatten()
 
-        partials['panel_forces_rotated', 'panel_forces'] = np.einsum('ijk,ikl->ijl',
+        partials['panel_forces_rotated', 'panel_forces'] = np.einsum('ijkl,ijlm->ijkm',
             rotation,
             deriv_panel_forces,
         ).flatten()

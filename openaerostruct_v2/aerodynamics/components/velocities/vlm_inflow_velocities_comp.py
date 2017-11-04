@@ -3,13 +3,17 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
+
 
 class VLMInflowVelocitiesComp(ExplicitComponent):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         system_size = 0
@@ -22,34 +26,45 @@ class VLMInflowVelocitiesComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('alpha_rad')
-        self.add_input('v_m_s')
-        self.add_output('inflow_velocities', shape=(system_size, 3))
+        self.add_input('alpha_rad', shape=num_nodes)
+        self.add_input('v_m_s', shape=num_nodes)
+        self.add_output('inflow_velocities', shape=(num_nodes, system_size, 3))
 
-        self.declare_partials('*', '*')
+        rows = np.arange(3 * system_size)
+        cols = np.zeros(3 * system_size)
+
+        _, rows, cols = tile_sparse_jac(1., rows, cols, 3 * system_size, 1, num_nodes)
+        self.declare_partials('inflow_velocities', 'alpha_rad', rows=rows, cols=cols)
+        self.declare_partials('inflow_velocities', 'v_m_s', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
+        num_nodes = self.metadata['num_nodes']
+
         system_size = self.system_size
 
-        alpha_rad = inputs['alpha_rad'][0]
-        v_m_s = inputs['v_m_s'][0]
+        alpha_rad = inputs['alpha_rad']
+        v_m_s = inputs['v_m_s']
 
-        outputs['inflow_velocities'][:, 0] = v_m_s * np.cos(alpha_rad)
-        outputs['inflow_velocities'][:, 1] = v_m_s * np.sin(alpha_rad)
-        outputs['inflow_velocities'][:, 2] = 0.
+        ones = np.ones(system_size)
+
+        outputs['inflow_velocities'][:, :, 0] = np.outer(v_m_s * np.cos(alpha_rad), ones)
+        outputs['inflow_velocities'][:, :, 1] = np.outer(v_m_s * np.sin(alpha_rad), ones)
+        outputs['inflow_velocities'][:, :, 2] = 0.
 
     def compute_partials(self, inputs, partials):
+        num_nodes = self.metadata['num_nodes']
+
         system_size = self.system_size
 
         alpha_rad = inputs['alpha_rad'][0]
         v_m_s = inputs['v_m_s'][0]
 
-        partials['inflow_velocities', 'v_m_s'] = np.outer(
-            np.ones(system_size),
+        partials['inflow_velocities', 'v_m_s'] = np.einsum('ij,k->ijk',
+            np.ones((num_nodes, system_size)),
             np.array([ np.cos(alpha_rad) , np.sin(alpha_rad) , 0. ]),
-        ).reshape((3 * system_size, 1))
+        ).flatten()
 
         partials['inflow_velocities', 'alpha_rad'] = np.outer(
-            v_m_s * np.ones(system_size),
+            v_m_s * np.ones((num_nodes, system_size)),
             np.array([ -np.sin(alpha_rad) , np.cos(alpha_rad) , 0. ]),
-        ).reshape((3 * system_size, 1))
+        ).flatten()

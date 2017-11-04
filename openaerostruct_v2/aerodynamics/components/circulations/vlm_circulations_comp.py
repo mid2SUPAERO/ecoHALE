@@ -4,13 +4,17 @@ from scipy.linalg import lu_factor, lu_solve
 
 from openmdao.api import ImplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
+
 
 class VLMCirculationsComp(ImplicitComponent):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         system_size = 0
@@ -23,42 +27,61 @@ class VLMCirculationsComp(ImplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('mtx', shape=(system_size, system_size))
-        self.add_input('rhs', shape=system_size)
-        self.add_output('circulations', shape=system_size)
+        self.add_input('mtx', shape=(num_nodes, system_size, system_size))
+        self.add_input('rhs', shape=(num_nodes, system_size))
+        self.add_output('circulations', shape=(num_nodes, system_size))
 
-        self.declare_partials('circulations', 'circulations',
-            rows=np.outer(np.arange(system_size), np.ones(system_size, int)).flatten(),
-            cols=np.outer(np.ones(system_size, int), np.arange(system_size)).flatten(),
-        )
-        self.declare_partials('circulations', 'mtx',
-            rows=np.outer(np.arange(system_size), np.ones(system_size, int)).flatten(),
-            cols=np.arange(system_size ** 2),
-        )
-        self.declare_partials('circulations', 'rhs', val=-1.,
-            rows=np.arange(system_size),
-            cols=np.arange(system_size),
-        )
+        rows = np.outer(np.arange(system_size), np.ones(system_size, int)).flatten()
+        cols = np.outer(np.ones(system_size, int), np.arange(system_size)).flatten()
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size, system_size, num_nodes)
+        self.declare_partials('circulations', 'circulations', rows=rows, cols=cols)
+
+        rows = np.outer(np.arange(system_size), np.ones(system_size, int)).flatten()
+        cols = np.arange(system_size ** 2)
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size, system_size ** 2, num_nodes)
+        self.declare_partials('circulations', 'mtx', rows=rows, cols=cols)
+
+        rows = np.arange(system_size)
+        cols = np.arange(system_size)
+        _, rows, cols = tile_sparse_jac(1., rows, cols,
+            system_size, system_size, num_nodes)
+        self.declare_partials('circulations', 'rhs', val=-1., rows=rows, cols=cols)
+
+        self.lu = {}
 
     def apply_nonlinear(self, inputs, outputs, residuals):
-        residuals['circulations'] = inputs['mtx'].dot(outputs['circulations']) - inputs['rhs']
+        residuals['circulations'] = np.einsum('ijk,ik->ij', inputs['mtx'], outputs['circulations']) \
+            - inputs['rhs']
 
     def solve_nonlinear(self, inputs, outputs):
-        self.lu = lu_factor(inputs['mtx'])
+        num_nodes = self.metadata['num_nodes']
 
-        outputs['circulations'] = lu_solve(self.lu, inputs['rhs'])
+        for i in range(num_nodes):
+            self.lu[i] = lu_factor(inputs['mtx'][i, :, :])
+
+            outputs['circulations'][i, :] = lu_solve(self.lu[i], inputs['rhs'][i, :])
 
     def linearize(self, inputs, outputs, partials):
+        num_nodes = self.metadata['num_nodes']
+
         system_size = self.system_size
 
-        self.lu = lu_factor(inputs['mtx'])
+        for i in range(num_nodes):
+            self.lu[i] = lu_factor(inputs['mtx'][i, :, :])
 
         partials['circulations', 'circulations'] = inputs['mtx'].flatten()
         partials['circulations', 'mtx'] = \
-            np.outer(np.ones(system_size), outputs['circulations']).flatten()
+            np.einsum('j,ik->ijk', np.ones(system_size), outputs['circulations']).flatten()
+            # np.outer(np.ones(system_size), outputs['circulations']).flatten()
 
     def solve_linear(self, d_outputs, d_residuals, mode):
+        num_nodes = self.metadata['num_nodes']
+
         if mode == 'fwd':
-            d_outputs['circulations'] = lu_solve(self.lu, d_residuals['circulations'], trans=0)
+            for i in range(num_nodes):
+                d_outputs['circulations'][i, :] = lu_solve(self.lu[i], d_residuals['circulations'][i, :], trans=0)
         else:
-            d_residuals['circulations'] = lu_solve(self.lu, d_outputs['circulations'], trans=1)
+            for i in range(num_nodes):
+                d_residuals['circulations'][i, :] = lu_solve(self.lu[i], d_outputs['circulations'][i, :], trans=1)

@@ -9,9 +9,11 @@ from openaerostruct_v2.common.bspline_comp import BsplinesComp
 class InputsGroup(Group):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         default_bspline = (2, 2)
@@ -32,27 +34,30 @@ class InputsGroup(Group):
             sec_z_ncp, sec_z_order = lifting_surface_data.get('sec_z_bspline', default_bspline)
 
             name = '{}_{}_cp'.format(lifting_surface_name, 'chord')
-            comp.add_output(name, val=chord, shape=2 * chord_ncp - 1)
+            comp.add_output(name, val=chord, shape=(num_nodes, 2 * chord_ncp - 1))
 
             name = '{}_{}_cp'.format(lifting_surface_name, 'twist')
-            comp.add_output(name, val=twist, shape=2 * twist_ncp - 1)
+            comp.add_output(name, val=twist, shape=(num_nodes, 2 * twist_ncp - 1))
 
             sec_x = np.zeros(2 * sec_x_ncp - 1)
             sec_x[sec_x_ncp - 1:] = np.linspace(0., sweep_x, sec_x_ncp)
             sec_x[:sec_x_ncp][::-1] = np.linspace(0., sweep_x, sec_x_ncp)
+            sec_x = np.outer(np.ones(num_nodes), sec_x)
             name = '{}_{}_cp'.format(lifting_surface_name, 'sec_x')
-            comp.add_output(name, val=sec_x)
+            comp.add_output(name, val=sec_x, shape=(num_nodes, 2 * sec_x_ncp - 1))
 
             sec_y = np.zeros(2 * sec_y_ncp - 1)
             sec_y[sec_y_ncp - 1:] = np.linspace(0., dihedral_y, sec_y_ncp)
             sec_y[:sec_y_ncp][::-1] = np.linspace(0., dihedral_y, sec_y_ncp)
+            sec_y = np.outer(np.ones(num_nodes), sec_y)
             name = '{}_{}_cp'.format(lifting_surface_name, 'sec_y')
-            comp.add_output(name, val=sec_y)
+            comp.add_output(name, val=sec_y, shape=(num_nodes, 2 * sec_y_ncp - 1))
 
             sec_z = np.zeros(2 * sec_z_ncp - 1)
             sec_z = span * np.linspace(-1., 1., 2 * sec_z_ncp - 1)
+            sec_z = np.outer(np.ones(num_nodes), sec_z)
             name = '{}_{}_cp'.format(lifting_surface_name, 'sec_z')
-            comp.add_output(name, val=sec_z)
+            comp.add_output(name, val=sec_z, shape=(num_nodes, 2 * sec_z_ncp - 1))
 
         self.add_subsystem('indep_var_comp', comp, promotes=['*'])
 
@@ -67,6 +72,7 @@ class InputsGroup(Group):
                 in_name = '{}_{}_cp'.format(lifting_surface_name, name)
                 out_name = '{}_{}'.format(lifting_surface_name, name)
                 comp = BsplinesComp(
+                    num_nodes=num_nodes,
                     num_control_points=num_control_points,
                     num_points=num_points_z,
                     bspline_order=bspline_order,

@@ -3,18 +3,20 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
+
 
 class VLMDisplaceMeshesComp(ExplicitComponent):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         self.airfoils = airfoils = {}
-
-        self.declare_partials('*', '*', dependent=False)
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_x = lifting_surface_data['num_points_x']
@@ -25,30 +27,33 @@ class VLMDisplaceMeshesComp(ExplicitComponent):
             vortex_mesh_displacement = '{}_vortex_mesh_displacement'.format(lifting_surface_name)
             mesh_displacement = '{}_mesh_displacement'.format(lifting_surface_name)
 
-            self.add_input(undeformed_vortex_mesh_name, shape=(num_points_x, num_points_z, 3))
-            self.add_input(undeformed_mesh_name, shape=(num_points_x, num_points_z, 3))
-            self.add_input(vortex_mesh_displacement, shape=(num_points_x, num_points_z, 3), val=0.)
-            self.add_input(mesh_displacement, shape=(num_points_x, num_points_z, 3), val=0.)
+            self.add_input(undeformed_vortex_mesh_name, shape=(num_nodes, num_points_x, num_points_z, 3))
+            self.add_input(undeformed_mesh_name, shape=(num_nodes, num_points_x, num_points_z, 3))
+            self.add_input(vortex_mesh_displacement, shape=(num_nodes, num_points_x, num_points_z, 3), val=0.)
+            self.add_input(mesh_displacement, shape=(num_nodes, num_points_x, num_points_z, 3), val=0.)
 
             vortex_mesh_name = '{}_vortex_mesh'.format(lifting_surface_name)
             mesh_name = '{}_mesh'.format(lifting_surface_name)
 
-            self.add_output(vortex_mesh_name, shape=(num_points_x, num_points_z, 3),
-                val=np.random.rand(num_points_x, num_points_z, 3))
-            self.add_output(mesh_name, shape=(num_points_x, num_points_z, 3),
-                val=np.random.rand(num_points_x, num_points_z, 3))
+            self.add_output(vortex_mesh_name, shape=(num_nodes, num_points_x, num_points_z, 3),
+                val=np.random.rand(num_nodes, num_points_x, num_points_z, 3))
+            self.add_output(mesh_name, shape=(num_nodes, num_points_x, num_points_z, 3),
+                val=np.random.rand(num_nodes, num_points_x, num_points_z, 3))
 
             arange = np.arange(num_points_x * num_points_z * 3)
 
+            _, rows, cols = tile_sparse_jac(1., arange, arange,
+                num_points_x * num_points_z * 3, num_points_x * num_points_z * 3, num_nodes)
+
             self.declare_partials(vortex_mesh_name, undeformed_vortex_mesh_name,
-                rows=arange, cols=arange, val=1.)
+                rows=rows, cols=cols, val=1.)
             self.declare_partials(vortex_mesh_name, vortex_mesh_displacement,
-                rows=arange, cols=arange, val=1.)
+                rows=rows, cols=cols, val=1.)
 
             self.declare_partials(mesh_name, undeformed_mesh_name,
-                rows=arange, cols=arange, val=1.)
+                rows=rows, cols=cols, val=1.)
             self.declare_partials(mesh_name, mesh_displacement,
-                rows=arange, cols=arange, val=1.)
+                rows=rows, cols=cols, val=1.)
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
