@@ -3,13 +3,17 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import get_airfoils, tile_sparse_jac
+
 
 class TubePropertiesComp(ExplicitComponent):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
@@ -17,11 +21,11 @@ class TubePropertiesComp(ExplicitComponent):
 
             for in_name_ in ['radius', 'thickness']:
                 in_name = '{}_tube_{}'.format(lifting_surface_name, in_name_)
-                self.add_input(in_name, shape=num_points_z - 1)
+                self.add_input(in_name, shape=(num_nodes, num_points_z - 1))
 
             for out_name_ in ['A', 'Iy', 'Iz', 'J']:
                 out_name = '{}_element_{}'.format(lifting_surface_name, out_name_)
-                self.add_output(out_name, shape=num_points_z - 1)
+                self.add_output(out_name, shape=(num_nodes, num_points_z - 1))
 
             arange = np.arange(num_points_z - 1)
 
@@ -31,7 +35,9 @@ class TubePropertiesComp(ExplicitComponent):
                 for in_name_ in ['radius', 'thickness']:
                     in_name = '{}_tube_{}'.format(lifting_surface_name, in_name_)
 
-                    self.declare_partials(out_name, in_name, rows=arange, cols=arange)
+                    _, rows, cols = tile_sparse_jac(1., arange, arange,
+                        num_points_z - 1, num_points_z - 1, num_nodes)
+                    self.declare_partials(out_name, in_name, rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
@@ -73,11 +79,11 @@ class TubePropertiesComp(ExplicitComponent):
             r1 = inputs[radius_name] - inputs[thickness_name]
             r2 = inputs[radius_name]
 
-            partials[A_name, radius_name] = 2 * np.pi * (r2 * dr2_dr - r1 * dr1_dr)
-            partials[A_name, thickness_name] = 2 * np.pi * (r2 * dr2_dt - r1 * dr1_dt)
-            partials[Iy_name, radius_name] = np.pi * (r2 ** 3 * dr2_dr - r1 ** 3 * dr1_dr)
-            partials[Iy_name, thickness_name] = np.pi * (r2 ** 3 * dr2_dt - r1 ** 3 * dr1_dt)
-            partials[Iz_name, radius_name] = np.pi * (r2 ** 3 * dr2_dr - r1 ** 3 * dr1_dr)
-            partials[Iz_name, thickness_name] = np.pi * (r2 ** 3 * dr2_dt - r1 ** 3 * dr1_dt)
-            partials[J_name, radius_name] = 2 * np.pi * (r2 ** 3 * dr2_dr - r1 ** 3 * dr1_dr)
-            partials[J_name, thickness_name] = 2 * np.pi * (r2 ** 3 * dr2_dt - r1 ** 3 * dr1_dt)
+            partials[A_name, radius_name] = 2 * np.pi * (r2 * dr2_dr - r1 * dr1_dr).flatten()
+            partials[A_name, thickness_name] = 2 * np.pi * (r2 * dr2_dt - r1 * dr1_dt).flatten()
+            partials[Iy_name, radius_name] = np.pi * (r2 ** 3 * dr2_dr - r1 ** 3 * dr1_dr).flatten()
+            partials[Iy_name, thickness_name] = np.pi * (r2 ** 3 * dr2_dt - r1 ** 3 * dr1_dt).flatten()
+            partials[Iz_name, radius_name] = np.pi * (r2 ** 3 * dr2_dr - r1 ** 3 * dr1_dr).flatten()
+            partials[Iz_name, thickness_name] = np.pi * (r2 ** 3 * dr2_dt - r1 ** 3 * dr1_dt).flatten()
+            partials[J_name, radius_name] = 2 * np.pi * (r2 ** 3 * dr2_dr - r1 ** 3 * dr1_dr).flatten()
+            partials[J_name, thickness_name] = 2 * np.pi * (r2 ** 3 * dr2_dt - r1 ** 3 * dr1_dt).flatten()

@@ -16,40 +16,42 @@ from openaerostruct_v2.structures.components.fea_global_stiff_comp import FEAGlo
 class FEAPreprocessGroup(Group):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
+        self.metadata.declare('lifting_surfaces', type_=list)
         self.metadata.declare('section_origin', type_=(int, float))
         self.metadata.declare('spar_location', type_=(int, float))
-        self.metadata.declare('lifting_surfaces', type_=list)
         self.metadata.declare('E')
         self.metadata.declare('G')
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
+        lifting_surfaces = self.metadata['lifting_surfaces']
         section_origin = self.metadata['section_origin']
         spar_location = self.metadata['spar_location']
-        lifting_surfaces = self.metadata['lifting_surfaces']
         E = self.metadata['E']
         G = self.metadata['G']
 
-        comp = TubePropertiesComp(lifting_surfaces=lifting_surfaces)
+        comp = TubePropertiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('tube_properties_comp', comp, promotes=['*'])
 
-        comp = FEAMeshComp(lifting_surfaces=lifting_surfaces, section_origin=section_origin,
-            spar_location=spar_location)
+        comp = FEAMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            section_origin=section_origin, spar_location=spar_location)
         self.add_subsystem('fea_mesh_comp', comp, promotes=['*'])
 
-        comp = FEATransformComp(lifting_surfaces=lifting_surfaces)
+        comp = FEATransformComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_transform_comp', comp, promotes=['*'])
 
-        comp = FEALengthComp(lifting_surfaces=lifting_surfaces)
+        comp = FEALengthComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_length_comp', comp, promotes=['*'])
 
-        comp = FEALocalStiffComp(lifting_surfaces=lifting_surfaces, E=E, G=G)
+        comp = FEALocalStiffComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, E=E, G=G)
         self.add_subsystem('fea_local_stiff_comp', comp, promotes=['*'])
 
-        comp = FEALocalStiffPermutedComp(lifting_surfaces=lifting_surfaces)
+        comp = FEALocalStiffPermutedComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_local_stiff_permuted_comp', comp, promotes=['*'])
 
-        comp = FEALocalStiffTransformedComp(lifting_surfaces=lifting_surfaces)
+        comp = FEALocalStiffTransformedComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_local_stiff_transformed_comp', comp, promotes=['*'])
 
-        comp = FEAGlobalStiffComp(lifting_surfaces=lifting_surfaces)
+        comp = FEAGlobalStiffComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_global_stiff_comp', comp, promotes=['*'])

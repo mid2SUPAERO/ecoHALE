@@ -74,7 +74,6 @@ class VLMCirculationsComp(ImplicitComponent):
         partials['circulations', 'circulations'] = inputs['mtx'].flatten()
         partials['circulations', 'mtx'] = \
             np.einsum('j,ik->ijk', np.ones(system_size), outputs['circulations']).flatten()
-            # np.outer(np.ones(system_size), outputs['circulations']).flatten()
 
     def solve_linear(self, d_outputs, d_residuals, mode):
         num_nodes = self.metadata['num_nodes']

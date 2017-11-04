@@ -76,7 +76,7 @@ prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
 
 prob.setup()
 
-prob['wing_chord_dv'] = np.array([0.5, 1.0, 0.5])
+prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
 prob.run_model()
 

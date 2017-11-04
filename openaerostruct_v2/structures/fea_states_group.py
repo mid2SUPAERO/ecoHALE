@@ -11,16 +11,18 @@ from openaerostruct_v2.structures.components.fea_disp_comp import FEADispComp
 class FEAStatesGroup(Group):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
-        comp = FEAForcesComp(lifting_surfaces=lifting_surfaces)
+        comp = FEAForcesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_forces_comp', comp, promotes=['*'])
 
-        comp = FEAStatesComp(lifting_surfaces=lifting_surfaces)
+        comp = FEAStatesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_states_comp', comp, promotes=['*'])
 
-        comp = FEADispComp(lifting_surfaces=lifting_surfaces)
+        comp = FEADispComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_disp_comp', comp, promotes=['*'])

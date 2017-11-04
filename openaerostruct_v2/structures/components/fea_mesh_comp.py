@@ -3,15 +3,19 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
+
 
 class FEAMeshComp(ExplicitComponent):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
         self.metadata.declare('section_origin', type_=(int, float))
         self.metadata.declare('spar_location', type_=(int, float))
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
         section_origin = self.metadata['section_origin']
         spar_location = self.metadata['spar_location']
@@ -24,19 +28,27 @@ class FEAMeshComp(ExplicitComponent):
 
             for name in ['chord', 'twist', 'sec_x', 'sec_y', 'sec_z']:
                 in_name = '{}_{}'.format(lifting_surface_name, name)
-                self.add_input(in_name, shape=num_points_z)
+                self.add_input(in_name, shape=(num_nodes, num_points_z))
 
-            self.add_output(mesh_name, shape=(num_points_z, 3))
+            self.add_output(mesh_name, shape=(num_nodes, num_points_z, 3))
 
             vals_dict = {
                 'chord': 1.0,
                 'twist': 1.0,
-                'sec_x': np.outer(np.ones(num_points_z), np.array([1., 0., 0.])).flatten(),
-                'sec_y': np.outer(np.ones(num_points_z), np.array([0., 1., 0.])).flatten(),
-                'sec_z': np.outer(np.ones(num_points_z), np.array([0., 0., 1.])).flatten(),
+                'sec_x': np.einsum('ij,k->ijk',
+                    np.ones((num_nodes, num_points_z)),
+                    np.array([1., 0., 0.])).flatten(),
+                'sec_y': np.einsum('ij,k->ijk',
+                    np.ones((num_nodes, num_points_z)),
+                    np.array([0., 1., 0.])).flatten(),
+                'sec_z': np.einsum('ij,k->ijk',
+                    np.ones((num_nodes, num_points_z)),
+                    np.array([0., 0., 1.])).flatten(),
             }
             rows = np.arange(num_points_z * 3)
             cols = np.outer(np.arange(num_points_z), np.ones(3, int)).flatten()
+            _, rows, cols = tile_sparse_jac(1., rows, cols,
+                num_points_z * 3, num_points_z, num_nodes)
 
             for name in ['chord', 'twist', 'sec_x', 'sec_y', 'sec_z']:
                 in_name = '{}_{}'.format(lifting_surface_name, name)
@@ -61,12 +73,12 @@ class FEAMeshComp(ExplicitComponent):
 
             outputs[mesh_name] = 0.
 
-            outputs[mesh_name][:, 0] += sec_x
-            outputs[mesh_name][:, 1] += sec_y
-            outputs[mesh_name][:, 2] += sec_z
+            outputs[mesh_name][:, :, 0] += sec_x
+            outputs[mesh_name][:, :, 1] += sec_y
+            outputs[mesh_name][:, :, 2] += sec_z
 
-            outputs[mesh_name][:, 0] += np.cos(twist) * (spar_location - section_origin) * chord
-            outputs[mesh_name][:, 1] -= np.sin(twist) * (spar_location - section_origin) * chord
+            outputs[mesh_name][:, :, 0] += np.cos(twist) * (spar_location - section_origin) * chord
+            outputs[mesh_name][:, :, 1] -= np.sin(twist) * (spar_location - section_origin) * chord
 
     def compute_partials(self, inputs, partials):
         lifting_surfaces = self.metadata['lifting_surfaces']
@@ -89,11 +101,11 @@ class FEAMeshComp(ExplicitComponent):
             unit_y = np.array([0., 1., 0.])
 
             partials[mesh_name, chord_name] = (
-                np.outer( np.cos(twist) * (spar_location - section_origin), unit_x) +
-                np.outer(-np.sin(twist) * (spar_location - section_origin), unit_y)
+                np.einsum('ij,k->ijk',  np.cos(twist) * (spar_location - section_origin), unit_x) +
+                np.einsum('ij,k->ijk', -np.sin(twist) * (spar_location - section_origin), unit_y)
             ).flatten()
 
             partials[mesh_name, twist_name] = (
-                np.outer(-np.sin(twist) * (spar_location - section_origin) * chord, unit_x) +
-                np.outer(-np.cos(twist) * (spar_location - section_origin) * chord, unit_y)
+                np.einsum('ij,k->ijk', -np.sin(twist) * (spar_location - section_origin) * chord, unit_x) +
+                np.einsum('ij,k->ijk', -np.cos(twist) * (spar_location - section_origin) * chord, unit_y)
             ).flatten()
