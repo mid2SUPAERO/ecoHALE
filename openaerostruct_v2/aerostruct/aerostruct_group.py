@@ -18,6 +18,7 @@ from openaerostruct_v2.aerostruct.disp_transfer_group import DispTransferGroup
 class AerostructGroup(Group):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
         self.metadata.declare('section_origin', type_=(int, float))
         self.metadata.declare('spar_location', type_=(int, float))
@@ -25,6 +26,7 @@ class AerostructGroup(Group):
         self.metadata.declare('G')
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
         section_origin = self.metadata['section_origin']
         spar_location = self.metadata['spar_location']
@@ -32,19 +34,19 @@ class AerostructGroup(Group):
         G = self.metadata['G']
 
         self.add_subsystem('vlm_states_group',
-            VLMStatesGroup(lifting_surfaces=lifting_surfaces),
+            VLMStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('load_transfer_group',
-            LoadTransferGroup(lifting_surfaces=lifting_surfaces),
+            LoadTransferGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('fea_states_group',
-            FEAStatesGroup(lifting_surfaces=lifting_surfaces),
+            FEAStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('disp_transfer_group',
-            DispTransferGroup(lifting_surfaces=lifting_surfaces),
+            DispTransferGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
 
@@ -60,6 +62,8 @@ if __name__ == '__main__':
 
     from openaerostruct_v2.geometry.inputs_group import InputsGroup
     from openaerostruct_v2.structures.fea_bspline_group import FEABsplineGroup
+
+    num_nodes = 2
 
     E = 70.e9
     G = 25.e9
@@ -92,48 +96,49 @@ if __name__ == '__main__':
     prob.model = Group()
 
     indep_var_comp = IndepVarComp()
-    indep_var_comp.add_output('v_m_s', 200.)
-    indep_var_comp.add_output('alpha_rad', 3. * np.pi / 180.)
-    indep_var_comp.add_output('rho_kg_m3', 1.225)
+    indep_var_comp.add_output('v_m_s', shape=num_nodes, val=200.)
+    indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
+    indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
     prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
-    inputs_group = InputsGroup(lifting_surfaces=lifting_surfaces)
+    inputs_group = InputsGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
     prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
-    group = FEABsplineGroup(lifting_surfaces=lifting_surfaces)
+    group = FEABsplineGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
     prob.model.add_subsystem('tube_bspline_group', group, promotes=['*'])
 
     prob.model.add_subsystem('vlm_preprocess_group',
-        VLMPreprocessGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces),
+        VLMPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            section_origin=section_origin),
         promotes=['*'],
     )
     prob.model.add_subsystem('fea_preprocess_group',
-        FEAPreprocessGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
-            spar_location=spar_location, E=E, G=G),
+        FEAPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            section_origin=section_origin, spar_location=spar_location, E=E, G=G),
         promotes=['*'],
     )
 
     prob.model.add_subsystem('aerostruct_group',
-        AerostructGroup(section_origin=section_origin, lifting_surfaces=lifting_surfaces,
-            spar_location=spar_location, E=E, G=G),
+        AerostructGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+            section_origin=section_origin, spar_location=spar_location, E=E, G=G),
         promotes=['*'],
     )
 
     prob.model.add_subsystem('vlm_postprocess_group',
-        VLMPostprocessGroup(lifting_surfaces=lifting_surfaces),
+        VLMPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
         promotes=['*'],
     )
     prob.model.add_subsystem('fea_postprocess_group',
-        FEAPostprocessGroup(lifting_surfaces=lifting_surfaces),
+        FEAPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
         promotes=['*'],
     )
 
     prob.setup()
 
     prob.run_model()
-    # prob.check_partials(compact_print=True)
+    prob.check_partials(compact_print=True)
 
-    print(prob['circulations'])
-    print(prob['wing_disp'])
+    # print(prob['circulations'])
+    # print(prob['wing_disp'])
 
     # view_model(prob)

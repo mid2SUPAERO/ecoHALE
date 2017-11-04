@@ -10,20 +10,24 @@ from openaerostruct_v2.aerostruct.components.as_disp_transfer_comp import ASDisp
 class DispTransferGroup(Group):
 
     def initialize(self):
+        self.metadata.declare('num_nodes', type_=int)
         self.metadata.declare('lifting_surfaces', type_=list)
 
     def setup(self):
+        num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         self.add_subsystem('as_disp_transform_comp',
-            ASDispTransformComp(lifting_surfaces=lifting_surfaces),
+            ASDispTransformComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('as_disp_transfer_comp',
-            ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=False),
+            ASDispTransferComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+                vortex_mesh=False),
             promotes=['*'],
         )
         self.add_subsystem('as_disp_transfer_vortex_comp',
-            ASDispTransferComp(lifting_surfaces=lifting_surfaces, vortex_mesh=True),
+            ASDispTransferComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
+                vortex_mesh=True),
             promotes=['*'],
         )
