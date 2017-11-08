@@ -262,13 +262,16 @@ class AssembleK(Component):
             self.deriv_options['type'] = 'cs'
             self.deriv_options['form'] = 'central'
 
+        self.surface = surface
+
     def solve_nonlinear(self, params, unknowns, resids):
 
         # Find constrained nodes based on closeness to specified cg point
-        nodes = params['nodes'].copy()
-        nodes[:, 1] = 0.
-        dist = nodes - np.array([0, 0, 0])
-        idx = (np.linalg.norm(dist, axis=1)).argmin()
+        symmetry = self.surface['symmetry']
+        if symmetry:
+            idx = self.ny - 1
+        else:
+            idx = (self.ny - 1) // 2
         self.cons = idx
         nodes = params['nodes']
 
@@ -288,10 +291,11 @@ class AssembleK(Component):
     def apply_linear(self, params, unknowns, dparams, dunknowns, dresids, mode):
 
         # Find constrained nodes based on closeness to specified cg point
-        nodes = params['nodes'].copy()
-        nodes[:, 1] = 0.
-        dist = nodes - np.array([0, 0, 0])
-        idx = (np.linalg.norm(dist, axis=1)).argmin()
+        symmetry = self.surface['symmetry']
+        if symmetry:
+            idx = self.ny - 1
+        else:
+            idx = (self.ny - 1) // 2
         self.cons = idx
         nodes = params['nodes']
 
