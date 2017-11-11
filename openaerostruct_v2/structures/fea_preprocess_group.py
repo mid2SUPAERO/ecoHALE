@@ -16,10 +16,10 @@ from openaerostruct_v2.structures.components.fea_global_stiff_comp import FEAGlo
 class FEAPreprocessGroup(Group):
 
     def initialize(self):
-        self.metadata.declare('num_nodes', type_=int)
-        self.metadata.declare('lifting_surfaces', type_=list)
-        self.metadata.declare('section_origin', type_=(int, float))
-        self.metadata.declare('spar_location', type_=(int, float))
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('section_origin', types=(int, float))
+        self.metadata.declare('spar_location', types=(int, float))
         self.metadata.declare('E')
         self.metadata.declare('G')
 

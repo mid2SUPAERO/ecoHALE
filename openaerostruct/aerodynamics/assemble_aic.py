@@ -53,7 +53,7 @@ class AssembleAIC(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.metadata.declare('surfaces', types=list)
 
     def setup(self):
         self.surfaces = surfaces = self.metadata['surfaces']

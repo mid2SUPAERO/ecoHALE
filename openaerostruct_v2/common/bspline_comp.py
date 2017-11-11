@@ -10,13 +10,13 @@ from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
 class BsplinesComp(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('num_nodes', type_=int)
-        self.metadata.declare('num_control_points', type_=int)
-        self.metadata.declare('num_points', type_=int)
-        self.metadata.declare('bspline_order', type_=int)
-        self.metadata.declare('in_name', type_=str)
-        self.metadata.declare('out_name', type_=str)
-        self.metadata.declare('distribution', type_=str)
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('num_control_points', types=int)
+        self.metadata.declare('num_points', types=int)
+        self.metadata.declare('bspline_order', types=int)
+        self.metadata.declare('in_name', types=str)
+        self.metadata.declare('out_name', types=str)
+        self.metadata.declare('distribution', types=str)
 
     def setup(self):
         meta = self.metadata

@@ -7,7 +7,7 @@ class VLMStates(Group):
     """ Group that contains the aerodynamic states. """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.metadata.declare('surfaces', types=list)
 
     def setup(self):
         surfaces = self.metadata['surfaces']

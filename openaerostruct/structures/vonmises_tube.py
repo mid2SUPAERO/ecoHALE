@@ -33,7 +33,7 @@ class VonMisesTube(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.metadata.declare('surface', types=dict)
 
     def setup(self):
         self.surface = surface = self.metadata['surface']

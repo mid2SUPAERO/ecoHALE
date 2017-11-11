@@ -22,8 +22,8 @@ class MonotonicConstraint(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('var_name', type_=str)
-        self.metadata.declare('surface', type_=dict)
+        self.metadata.declare('var_name', types=str)
+        self.metadata.declare('surface', types=dict)
 
     def setup(self):
 

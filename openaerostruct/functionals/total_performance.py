@@ -17,7 +17,7 @@ class TotalPerformance(Group):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.metadata.declare('surfaces', types=list)
 
     def setup(self):
         surfaces = self.metadata['surfaces']

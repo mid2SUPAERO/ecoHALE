@@ -41,7 +41,7 @@ class CenterOfGravity(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.metadata.declare('surfaces', types=list)
 
     def setup(self):
         for surface in self.metadata['surfaces']:

@@ -106,10 +106,10 @@ class Bsplines(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('jac', is_valid=lambda jac: len(jac.shape) == 2)
-        self.metadata.declare('num_cp', type_=int)
-        self.metadata.declare('num_pt', type_=int)
-        self.metadata.declare('in_name', type_=str)
-        self.metadata.declare('out_name', type_=str)
+        self.metadata.declare('num_cp', types=int)
+        self.metadata.declare('num_pt', types=int)
+        self.metadata.declare('in_name', types=str)
+        self.metadata.declare('out_name', types=str)
 
     def setup(self):
         meta = self.metadata

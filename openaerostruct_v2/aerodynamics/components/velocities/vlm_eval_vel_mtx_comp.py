@@ -102,10 +102,10 @@ def compute_semi_infinite_vortex_deriv(u, r, r_deriv):
 class VLMEvalVelMtxComp(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('num_nodes', type_=int)
-        self.metadata.declare('lifting_surfaces', type_=list)
-        self.metadata.declare('eval_name', type_=str)
-        self.metadata.declare('num_eval_points', type_=int)
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('eval_name', types=str)
+        self.metadata.declare('num_eval_points', types=int)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']

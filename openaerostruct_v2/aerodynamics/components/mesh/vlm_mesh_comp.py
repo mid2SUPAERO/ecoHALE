@@ -9,10 +9,10 @@ from openaerostruct_v2.utils.misc_utils import get_airfoils, tile_sparse_jac
 class VLMMeshComp(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('num_nodes', type_=int)
-        self.metadata.declare('lifting_surfaces', type_=list)
-        self.metadata.declare('section_origin', type_=(int, float))
-        self.metadata.declare('vortex_mesh', default=False, type_=bool)
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('section_origin', types=(int, float))
+        self.metadata.declare('vortex_mesh', default=False, types=bool)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']

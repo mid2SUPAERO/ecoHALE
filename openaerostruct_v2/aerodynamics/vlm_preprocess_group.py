@@ -12,9 +12,9 @@ from openaerostruct_v2.aerodynamics.components.velocities.vlm_inflow_velocities_
 class VLMPreprocessGroup(Group):
 
     def initialize(self):
-        self.metadata.declare('num_nodes', type_=int)
-        self.metadata.declare('lifting_surfaces', type_=list)
-        self.metadata.declare('section_origin', type_=(int, float))
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('section_origin', types=(int, float))
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']

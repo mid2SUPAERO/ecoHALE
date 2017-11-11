@@ -35,8 +35,8 @@ class ViscousDrag(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
-        self.metadata.declare('with_viscous', type_=bool)
+        self.metadata.declare('surface', types=dict)
+        self.metadata.declare('with_viscous', types=bool)
 
     def setup(self):
         self.surface = surface = self.metadata['surface']

@@ -10,8 +10,8 @@ from openaerostruct_v2.aerostruct.components.as_disp_transfer_comp import ASDisp
 class DispTransferGroup(Group):
 
     def initialize(self):
-        self.metadata.declare('num_nodes', type_=int)
-        self.metadata.declare('lifting_surfaces', type_=list)
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('lifting_surfaces', types=list)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']

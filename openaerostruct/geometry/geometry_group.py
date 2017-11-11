@@ -9,7 +9,7 @@ class Geometry(Group):
     """ Group that contains everything needed for a structural-only problem. """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.metadata.declare('surface', types=dict)
         # self.metadata.declare('DVGeo')
 
     def setup(self):

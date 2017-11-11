@@ -33,8 +33,8 @@ coeffs_z = np.array([
 class FEALocalStiffComp(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('num_nodes', type_=int)
-        self.metadata.declare('lifting_surfaces', type_=list)
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('lifting_surfaces', types=list)
         self.metadata.declare('E')
         self.metadata.declare('G')
 
