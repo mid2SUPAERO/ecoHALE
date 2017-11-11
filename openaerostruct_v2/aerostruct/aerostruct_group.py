@@ -4,7 +4,8 @@ import numpy as np
 from openmdao.api import Group, NonlinearBlockGS, LinearBlockGS
 
 from openaerostruct_v2.aerodynamics.vlm_preprocess_group import VLMPreprocessGroup
-from openaerostruct_v2.aerodynamics.vlm_states_group import VLMStatesGroup
+from openaerostruct_v2.aerodynamics.vlm_states1_group import VLMStates1Group
+from openaerostruct_v2.aerodynamics.vlm_states2_group import VLMStates2Group
 from openaerostruct_v2.aerodynamics.vlm_postprocess_group import VLMPostprocessGroup
 
 from openaerostruct_v2.structures.fea_preprocess_group import FEAPreprocessGroup
@@ -33,8 +34,12 @@ class AerostructGroup(Group):
         E = self.metadata['E']
         G = self.metadata['G']
 
-        self.add_subsystem('vlm_states_group',
-            VLMStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+        self.add_subsystem('vlm_states1_group',
+            VLMStates1Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+            promotes=['*'],
+        )
+        self.add_subsystem('vlm_states2_group',
+            VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('load_transfer_group',
