@@ -12,11 +12,11 @@ class FEAStatesGroup(Group):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
-        self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('wing_data', types=dict)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
-        lifting_surfaces = self.metadata['lifting_surfaces']
+        lifting_surfaces = self.metadata['wing_data']['lifting_surfaces']
 
         comp = FEAForcesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_forces_comp', comp, promotes=['*'])

@@ -17,19 +17,15 @@ class FEAPreprocessGroup(Group):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
-        self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('section_origin', types=(int, float))
-        self.metadata.declare('spar_location', types=(int, float))
-        self.metadata.declare('E')
-        self.metadata.declare('G')
+        self.metadata.declare('wing_data', types=dict)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
-        lifting_surfaces = self.metadata['lifting_surfaces']
-        section_origin = self.metadata['section_origin']
-        spar_location = self.metadata['spar_location']
-        E = self.metadata['E']
-        G = self.metadata['G']
+        lifting_surfaces = self.metadata['wing_data']['lifting_surfaces']
+        section_origin = self.metadata['wing_data']['section_origin']
+        spar_location = self.metadata['wing_data']['spar_location']
+        E = self.metadata['wing_data']['E']
+        G = self.metadata['wing_data']['G']
 
         comp = TubePropertiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('tube_properties_comp', comp, promotes=['*'])

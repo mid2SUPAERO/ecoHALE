@@ -13,13 +13,12 @@ class VLMPreprocessGroup(Group):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
-        self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('section_origin', types=(int, float))
+        self.metadata.declare('wing_data', types=dict)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
-        lifting_surfaces = self.metadata['lifting_surfaces']
-        section_origin = self.metadata['section_origin']
+        lifting_surfaces = self.metadata['wing_data']['lifting_surfaces']
+        section_origin = self.metadata['wing_data']['section_origin']
 
         comp = VLMRefAxisComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_ref_axis_comp', comp, promotes=['*'])

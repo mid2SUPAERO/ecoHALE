@@ -16,24 +16,27 @@ from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2
 num_nodes = 2
 
 num_points_x = 2
-num_points_z_half = 31
-
+num_points_z_half = 15
 num_points_z = 2 * num_points_z_half - 1
-
-airfoil = np.zeros(num_points_x)
-# airfoil[1:-1] = 0.2
-
-section_origin = 0.25
 lifting_surfaces = [
     ('wing', {
         'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
-        'airfoil': airfoil,
+        'airfoil': np.zeros(num_points_x),
         'chord': 1., 'twist': 0. * np.pi / 180., 'sweep_x': 0., 'dihedral_y': 0., 'span': 5,
         'twist_bspline': (11, 3),
         'sec_z_bspline': (num_points_z_half, 2),
         'chord_bspline': (2, 2),
+        'thickness_bspline': (10, 3),
+        'thickness' : .005,
+        'radius' : 0.1,
     })
 ]
+wing_data = {
+    'section_origin': 0.25,
+    'spar_location': 0.35,
+    'lifting_surfaces': lifting_surfaces,
+    'airfoil': np.zeros(num_points_x),
+}
 
 prob = Problem()
 prob.model = Group()
@@ -44,24 +47,23 @@ indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
 indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
 prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
-inputs_group = InputsGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+inputs_group = InputsGroup(num_nodes=num_nodes, wing_data=wing_data)
 prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
 prob.model.add_subsystem('vlm_preprocess_group',
-    VLMPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
-        section_origin=section_origin),
+    VLMPreprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_states1_group',
-    VLMStates1Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    VLMStates1Group(num_nodes=num_nodes, wing_data=wing_data),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_states2_group',
-    VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    VLMStates2Group(num_nodes=num_nodes, wing_data=wing_data),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_postprocess_group',
-    VLMPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    VLMPostprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
     promotes=['*'],
 )
 prob.model.add_subsystem('objective',
