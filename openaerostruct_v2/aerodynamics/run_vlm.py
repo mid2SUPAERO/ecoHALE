@@ -27,8 +27,8 @@ lifting_surfaces = [
         'sec_z_bspline': (num_points_z_half, 2),
         'chord_bspline': (2, 2),
         'thickness_bspline': (10, 3),
-        'thickness' : .005,
-        'radius' : 0.1,
+        'thickness' : .1,
+        'radius' : 1.,
     })
 ]
 wing_data = {
