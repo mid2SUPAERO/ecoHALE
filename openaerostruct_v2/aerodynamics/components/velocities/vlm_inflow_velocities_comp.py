@@ -28,6 +28,7 @@ class VLMInflowVelocitiesComp(ExplicitComponent):
 
         self.add_input('alpha_rad', shape=num_nodes)
         self.add_input('v_m_s', shape=num_nodes)
+        self.add_input('vlm_ext_velocities', shape=(num_nodes, system_size, 3), val=0.)
         self.add_output('inflow_velocities', shape=(num_nodes, system_size, 3))
 
         rows = np.arange(3 * system_size)
@@ -36,6 +37,11 @@ class VLMInflowVelocitiesComp(ExplicitComponent):
         _, rows, cols = tile_sparse_jac(1., rows, cols, 3 * system_size, 1, num_nodes)
         self.declare_partials('inflow_velocities', 'alpha_rad', rows=rows, cols=cols)
         self.declare_partials('inflow_velocities', 'v_m_s', rows=rows, cols=cols)
+
+        rows = np.arange(3 * system_size)
+        cols = np.arange(3 * system_size)
+        _, rows, cols = tile_sparse_jac(1., rows, cols, 3 * system_size, 3 * system_size, num_nodes)
+        self.declare_partials('inflow_velocities', 'vlm_ext_velocities', val=1., rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
@@ -47,9 +53,11 @@ class VLMInflowVelocitiesComp(ExplicitComponent):
 
         ones = np.ones(system_size)
 
-        outputs['inflow_velocities'][:, :, 0] = np.outer(v_m_s * np.cos(alpha_rad), ones)
-        outputs['inflow_velocities'][:, :, 1] = np.outer(v_m_s * np.sin(alpha_rad), ones)
-        outputs['inflow_velocities'][:, :, 2] = 0.
+        outputs['inflow_velocities'] = inputs['vlm_ext_velocities']
+
+        outputs['inflow_velocities'][:, :, 0] += np.outer(v_m_s * np.cos(alpha_rad), ones)
+        outputs['inflow_velocities'][:, :, 1] += np.outer(v_m_s * np.sin(alpha_rad), ones)
+        outputs['inflow_velocities'][:, :, 2] += 0.
 
     def compute_partials(self, inputs, partials):
         num_nodes = self.metadata['num_nodes']

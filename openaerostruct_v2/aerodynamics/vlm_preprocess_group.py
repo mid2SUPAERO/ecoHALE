@@ -6,8 +6,6 @@ from openmdao.api import Group
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_ref_axis_comp import VLMRefAxisComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_comp import VLMMeshComp
 
-from openaerostruct_v2.aerodynamics.components.velocities.vlm_inflow_velocities_comp import VLMInflowVelocitiesComp
-
 
 class VLMPreprocessGroup(Group):
 
@@ -30,6 +28,3 @@ class VLMPreprocessGroup(Group):
         comp = VLMMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
             section_origin=section_origin, vortex_mesh=True)
         self.add_subsystem('vlm_vortex_mesh_comp', comp, promotes=['*'])
-
-        comp = VLMInflowVelocitiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_inflow_velocities_comp', comp, promotes=['*'])
