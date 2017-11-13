@@ -3,7 +3,6 @@ import numpy as np
 
 from openmdao.api import Group
 
-from openaerostruct_v2.aerodynamics.components.velocities.vlm_inflow_velocities_comp import VLMInflowVelocitiesComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_displace_meshes_comp import VLMDisplaceMeshesComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_normals_comp import VLMNormalsComp
 from openaerostruct_v2.aerodynamics.components.mesh.vlm_mesh_points_comp import VLMMeshPointsComp
@@ -29,9 +28,6 @@ class VLMStates1Group(Group):
             num_collocation_points += (num_points_x - 1) * (num_points_z - 1)
 
         num_force_points = num_collocation_points
-
-        comp = VLMInflowVelocitiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_inflow_velocities_comp', comp, promotes=['*'])
 
         comp = VLMDisplaceMeshesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_displace_meshes_comp', comp, promotes=['*'])

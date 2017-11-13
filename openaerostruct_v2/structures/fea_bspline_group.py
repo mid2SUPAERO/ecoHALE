@@ -16,6 +16,7 @@ class FEABsplineGroup(Group):
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['wing_data']['lifting_surfaces']
+        distribution = self.metadata['wing_data']['distribution']
 
         default_bspline = (2, 2)
 
@@ -56,6 +57,8 @@ class FEABsplineGroup(Group):
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 2
 
+            distribution = lifting_surface_data['distribution']
+
             for name in ['thickness', 'radius']:
                 ncp, bspline_order = lifting_surface_data.get(
                     '{}_bspline'.format(name), default_bspline)
@@ -70,7 +73,7 @@ class FEABsplineGroup(Group):
                     bspline_order=bspline_order,
                     in_name=in_name,
                     out_name=out_name,
-                    distribution='sine',
+                    distribution=distribution,
                 )
                 self.add_subsystem('{}_{}_bspline_comp'.format(lifting_surface_name, name), comp,
                     promotes=['*'])

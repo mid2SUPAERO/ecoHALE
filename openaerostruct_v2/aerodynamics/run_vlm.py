@@ -29,6 +29,7 @@ lifting_surfaces = [
         'thickness_bspline': (10, 3),
         'thickness' : .1,
         'radius' : 1.,
+        'distribution': 'sine',
     })
 ]
 wing_data = {
