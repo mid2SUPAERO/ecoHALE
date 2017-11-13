@@ -13,10 +13,10 @@ from openaerostruct_v2.aerodynamics.vlm_postprocess_group import VLMPostprocessG
 from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
 
 
-num_nodes = 2
+num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 3
+num_points_z_half = 30
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
@@ -88,7 +88,7 @@ prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
 prob.run_model()
 
-if 1:
+if 0:
     prob.check_partials(compact_print=True)
     exit()
 

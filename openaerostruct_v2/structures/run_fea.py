@@ -11,10 +11,10 @@ from openaerostruct_v2.structures.fea_states_group import FEAStatesGroup
 from openaerostruct_v2.structures.fea_postprocess_group import FEAPostprocessGroup
 
 
-num_nodes = 2
+num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 15
+num_points_z_half = 30
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {

@@ -16,7 +16,6 @@ class FEABsplineGroup(Group):
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['wing_data']['lifting_surfaces']
-        distribution = self.metadata['wing_data']['distribution']
 
         default_bspline = (2, 2)
 
