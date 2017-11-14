@@ -11,16 +11,14 @@ class VLMMeshComp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('section_origin', types=(int, float))
         self.metadata.declare('vortex_mesh', default=False, types=bool)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
-        section_origin = self.metadata['section_origin']
         vortex_mesh = self.metadata['vortex_mesh']
 
-        self.airfoils = get_airfoils(lifting_surfaces, section_origin, vortex_mesh)
+        self.airfoils = get_airfoils(lifting_surfaces, vortex_mesh)
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_x = lifting_surface_data['num_points_x']

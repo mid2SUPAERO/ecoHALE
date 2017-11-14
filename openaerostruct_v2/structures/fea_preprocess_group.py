@@ -17,21 +17,16 @@ class FEAPreprocessGroup(Group):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
-        self.metadata.declare('wing_data', types=dict)
+        self.metadata.declare('lifting_surfaces', types=list)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
-        lifting_surfaces = self.metadata['wing_data']['lifting_surfaces']
-        section_origin = self.metadata['wing_data']['section_origin']
-        spar_location = self.metadata['wing_data']['spar_location']
-        E = self.metadata['wing_data']['E']
-        G = self.metadata['wing_data']['G']
+        lifting_surfaces = self.metadata['lifting_surfaces']
 
         comp = TubePropertiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('tube_properties_comp', comp, promotes=['*'])
 
-        comp = FEAMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
-            section_origin=section_origin, spar_location=spar_location)
+        comp = FEAMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_mesh_comp', comp, promotes=['*'])
 
         comp = FEATransformComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
@@ -40,7 +35,7 @@ class FEAPreprocessGroup(Group):
         comp = FEALengthComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_length_comp', comp, promotes=['*'])
 
-        comp = FEALocalStiffComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, E=E, G=G)
+        comp = FEALocalStiffComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_local_stiff_comp', comp, promotes=['*'])
 
         comp = FEALocalStiffPermutedComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)

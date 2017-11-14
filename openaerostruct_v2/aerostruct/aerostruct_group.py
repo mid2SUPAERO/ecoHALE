@@ -16,30 +16,30 @@ class AerostructGroup(Group):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
-        self.metadata.declare('wing_data', types=dict)
+        self.metadata.declare('lifting_surfaces', types=list)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
-        wing_data = self.metadata['wing_data']
+        lifting_surfaces = self.metadata['lifting_surfaces']
 
         self.add_subsystem('vlm_states1_group',
-            VLMStates1Group(num_nodes=num_nodes, wing_data=wing_data),
+            VLMStates1Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('vlm_states2_group',
-            VLMStates2Group(num_nodes=num_nodes, wing_data=wing_data),
+            VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('load_transfer_group',
-            LoadTransferGroup(num_nodes=num_nodes, wing_data=wing_data),
+            LoadTransferGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('fea_states_group',
-            FEAStatesGroup(num_nodes=num_nodes, wing_data=wing_data),
+            FEAStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
         self.add_subsystem('disp_transfer_group',
-            DispTransferGroup(num_nodes=num_nodes, wing_data=wing_data),
+            DispTransferGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
 

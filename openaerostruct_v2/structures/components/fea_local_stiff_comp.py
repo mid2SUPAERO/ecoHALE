@@ -35,14 +35,10 @@ class FEALocalStiffComp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('E')
-        self.metadata.declare('G')
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
-        E = self.metadata['E']
-        G = self.metadata['G']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
@@ -72,11 +68,12 @@ class FEALocalStiffComp(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
-        E = self.metadata['E']
-        G = self.metadata['G']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            E = lifting_surface_data['E']
+            G = lifting_surface_data['G']
 
             A  = inputs['{}_element_{}'.format(lifting_surface_name, 'A')]
             Iy = inputs['{}_element_{}'.format(lifting_surface_name, 'Iy')]
@@ -110,11 +107,12 @@ class FEALocalStiffComp(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
-        E = self.metadata['E']
-        G = self.metadata['G']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            E = lifting_surface_data['E']
+            G = lifting_surface_data['G']
 
             A_name = '{}_element_{}'.format(lifting_surface_name, 'A')
             Iy_name = '{}_element_{}'.format(lifting_surface_name, 'Iy')

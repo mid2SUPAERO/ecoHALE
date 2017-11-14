@@ -11,20 +11,17 @@ class VLMPreprocessGroup(Group):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
-        self.metadata.declare('wing_data', types=dict)
+        self.metadata.declare('lifting_surfaces', types=list)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
-        lifting_surfaces = self.metadata['wing_data']['lifting_surfaces']
-        section_origin = self.metadata['wing_data']['section_origin']
+        lifting_surfaces = self.metadata['lifting_surfaces']
 
         comp = VLMRefAxisComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_ref_axis_comp', comp, promotes=['*'])
 
-        comp = VLMMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
-            section_origin=section_origin, vortex_mesh=False)
+        comp = VLMMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vortex_mesh=False)
         self.add_subsystem('vlm_mesh_comp', comp, promotes=['*'])
 
-        comp = VLMMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
-            section_origin=section_origin, vortex_mesh=True)
+        comp = VLMMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vortex_mesh=True)
         self.add_subsystem('vlm_vortex_mesh_comp', comp, promotes=['*'])

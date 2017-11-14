@@ -30,14 +30,10 @@ lifting_surfaces = [
         'thickness' : .1,
         'radius' : 1.,
         'distribution': 'sine',
+        'section_origin': 0.25,
+        'spar_location': 0.35,
     })
 ]
-wing_data = {
-    'section_origin': 0.25,
-    'spar_location': 0.35,
-    'lifting_surfaces': lifting_surfaces,
-    'airfoil': np.zeros(num_points_x),
-}
 
 prob = Problem()
 prob.model = Group()
@@ -48,23 +44,23 @@ indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
 indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
 prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
-inputs_group = InputsGroup(num_nodes=num_nodes, wing_data=wing_data)
+inputs_group = InputsGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
 prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
 prob.model.add_subsystem('vlm_preprocess_group',
-    VLMPreprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    VLMPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_states1_group',
-    VLMStates1Group(num_nodes=num_nodes, wing_data=wing_data),
+    VLMStates1Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_states2_group',
-    VLMStates2Group(num_nodes=num_nodes, wing_data=wing_data),
+    VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_postprocess_group',
-    VLMPostprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    VLMPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('objective',

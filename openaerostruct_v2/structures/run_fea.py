@@ -28,16 +28,12 @@ lifting_surfaces = [
         'thickness' : .1,
         'radius' : 1.,
         'distribution': 'sine',
+        'section_origin': 0.25,
+        'spar_location': 0.35,
+        'E': 70.e9,
+        'G': 29.e9,
     })
 ]
-wing_data = {
-    'section_origin': 0.25,
-    'spar_location': 0.35,
-    'E': 70.e9,
-    'G': 29.e9,
-    'lifting_surfaces': lifting_surfaces,
-    'airfoil': np.zeros(num_points_x),
-}
 
 wing_loads = np.zeros((num_nodes, num_points_z, 6))
 wing_loads[0, :, 1] = 1.
@@ -54,23 +50,23 @@ indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
 indep_var_comp.add_output('wing_loads', val=wing_loads)
 prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
-inputs_group = InputsGroup(num_nodes=num_nodes, wing_data=wing_data)
+inputs_group = InputsGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
 prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
 prob.model.add_subsystem('tube_bspline_group',
-    FEABsplineGroup(num_nodes=num_nodes, wing_data=wing_data),
+    FEABsplineGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'])
 
 prob.model.add_subsystem('fea_preprocess_group',
-    FEAPreprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    FEAPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('fea_states_group',
-    FEAStatesGroup(num_nodes=num_nodes, wing_data=wing_data),
+    FEAStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('fea_postprocess_group',
-    FEAPostprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    FEAPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('objective',

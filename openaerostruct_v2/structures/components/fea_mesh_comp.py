@@ -11,14 +11,10 @@ class FEAMeshComp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('section_origin', types=(int, float))
-        self.metadata.declare('spar_location', types=(int, float))
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
-        section_origin = self.metadata['section_origin']
-        spar_location = self.metadata['spar_location']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_x = lifting_surface_data['num_points_x']
@@ -56,12 +52,13 @@ class FEAMeshComp(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
-        section_origin = self.metadata['section_origin']
-        spar_location = self.metadata['spar_location']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_x = lifting_surface_data['num_points_x']
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            section_origin = lifting_surface_data['section_origin']
+            spar_location = lifting_surface_data['spar_location']
 
             mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
 
@@ -82,12 +79,13 @@ class FEAMeshComp(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         lifting_surfaces = self.metadata['lifting_surfaces']
-        section_origin = self.metadata['section_origin']
-        spar_location = self.metadata['spar_location']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_x = lifting_surface_data['num_points_x']
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            section_origin = lifting_surface_data['section_origin']
+            spar_location = lifting_surface_data['spar_location']
 
             mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
 

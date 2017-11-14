@@ -33,16 +33,12 @@ lifting_surfaces = [
         'thickness' : .005,
         'radius' : 0.1,
         'distribution': 'sine',
+        'section_origin': 0.25,
+        'spar_location': 0.35,
+        'E': 70.e9,
+        'G': 29.e9,
     })
 ]
-wing_data = {
-    'section_origin': 0.25,
-    'spar_location': 0.35,
-    'E': 70.e9,
-    'G': 29.e9,
-    'lifting_surfaces': lifting_surfaces,
-    'airfoil': np.zeros(num_points_x),
-}
 
 prob = Problem()
 prob.model = Group()
@@ -53,32 +49,32 @@ indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
 indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
 prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
-inputs_group = InputsGroup(num_nodes=num_nodes, wing_data=wing_data)
+inputs_group = InputsGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
 prob.model.add_subsystem('inputs_group', inputs_group, promotes=['*'])
 
-group = FEABsplineGroup(num_nodes=num_nodes, wing_data=wing_data)
+group = FEABsplineGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
 prob.model.add_subsystem('tube_bspline_group', group, promotes=['*'])
 
 prob.model.add_subsystem('vlm_preprocess_group',
-    VLMPreprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    VLMPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('fea_preprocess_group',
-    FEAPreprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    FEAPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 
 prob.model.add_subsystem('aerostruct_group',
-    AerostructGroup(num_nodes=num_nodes, wing_data=wing_data),
+    AerostructGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 
 prob.model.add_subsystem('vlm_postprocess_group',
-    VLMPostprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    VLMPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('fea_postprocess_group',
-    FEAPostprocessGroup(num_nodes=num_nodes, wing_data=wing_data),
+    FEAPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 
