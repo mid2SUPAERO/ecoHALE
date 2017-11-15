@@ -75,7 +75,7 @@ prob.model.add_subsystem('objective',
     promotes=['*'],
 )
 
-prob.model.add_design_var('wing_tube_thickness_dv', lower=0.01, scaler=1e2)
+prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, scaler=1e2)
 prob.model.add_objective('structural_volume', scaler=1e-5)
 prob.model.add_constraint('wing_vonmises', upper=1.)
 
