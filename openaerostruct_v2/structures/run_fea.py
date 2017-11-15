@@ -25,8 +25,8 @@ lifting_surfaces = [
         'sec_z_bspline': (2, 2),
         'chord_bspline': (2, 2),
         'thickness_bspline': (5, 3),
-        'thickness' : .01,
-        'radius' : 1.,
+        'thickness' : .012,
+        'radius' : .12,
         'distribution': 'sine',
         'section_origin': 0.25,
         'spar_location': 0.35,
@@ -37,9 +37,9 @@ lifting_surfaces = [
 ]
 
 wing_loads = np.zeros((num_nodes, num_points_z, 6))
-wing_loads[0, :, 1] = 8e5
+wing_loads[0, :, 1] = 1e4
 if num_nodes > 1:
-    wing_loads[1, :, 0] = 8e5
+    wing_loads[1, :, 0] = 1e4
 
 prob = Problem()
 prob.model = Group()
@@ -77,7 +77,7 @@ prob.model.add_subsystem('objective',
 
 prob.model.add_design_var('wing_tube_thickness_dv', lower=0.01, scaler=1e2)
 prob.model.add_objective('structural_volume', scaler=1e-5)
-prob.model.add_constraint('wing_vonmises', upper=1., scaler=1e-6)
+prob.model.add_constraint('wing_vonmises', upper=1.)
 
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SNOPT'
