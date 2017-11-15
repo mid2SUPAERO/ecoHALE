@@ -14,7 +14,7 @@ from openaerostruct_v2.structures.fea_postprocess_group import FEAPostprocessGro
 num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 30
+num_points_z_half = 10
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
@@ -32,6 +32,7 @@ lifting_surfaces = [
         'spar_location': 0.35,
         'E': 70.e9,
         'G': 29.e9,
+        'sigma_y': 200e6,
     })
 ]
 
@@ -75,14 +76,14 @@ prob.model.add_subsystem('objective',
 )
 
 prob.model.add_design_var('wing_tube_thickness_dv', lower=0.01, scaler=1e2)
-prob.model.add_objective('structural_volume', scaler=1e0)
-prob.model.add_constraint('wing_vonmises', upper=200e6, scaler=1e-8)
+prob.model.add_objective('structural_volume', scaler=1e-5)
+prob.model.add_constraint('wing_vonmises', upper=1., scaler=1e-6)
 
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SNOPT'
 prob.driver.opt_settings['Major optimality tolerance'] = 2e-7
 prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
-prob.driver.opt_settings['Verify level'] = -1
+# prob.driver.opt_settings['Verify level'] = -1
 
 prob.driver.add_recorder(SqliteRecorder('fea.hst'))
 prob.driver.recording_options['includes'] = ['*']

@@ -66,7 +66,7 @@ class FEAVonmisesComp(ExplicitComponent):
             self.declare_partials(vonmises_name, length_name, rows=rows, cols=cols)
 
             self.set_check_partial_options(transform_name, step=1e-10)
-            self.set_check_partial_options(disp_name, step=1e-10)
+            self.set_check_partial_options(disp_name, step=1e-15)
 
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
@@ -76,6 +76,7 @@ class FEAVonmisesComp(ExplicitComponent):
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
             E = lifting_surface_data['E']
             G = lifting_surface_data['G']
+            sigma_y = lifting_surface_data['sigma_y']
 
             transform_name = '{}_transform'.format(lifting_surface_name)
             radius_name = '{}_tube_radius'.format(lifting_surface_name)
@@ -111,8 +112,8 @@ class FEAVonmisesComp(ExplicitComponent):
             vm0 = np.sqrt(sxx0 ** 2 + 3 * sxt ** 2)
             vm1 = np.sqrt(sxx1 ** 2 + 3 * sxt ** 2)
 
-            outputs[vonmises_name][:, :, 0] = vm0
-            outputs[vonmises_name][:, :, 1] = vm1
+            outputs[vonmises_name][:, :, 0] = vm0 / sigma_y
+            outputs[vonmises_name][:, :, 1] = vm1 / sigma_y
 
     def compute_partials(self, inputs, partials):
         num_nodes = self.metadata['num_nodes']
@@ -122,6 +123,7 @@ class FEAVonmisesComp(ExplicitComponent):
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
             E = lifting_surface_data['E']
             G = lifting_surface_data['G']
+            sigma_y = lifting_surface_data['sigma_y']
 
             transform_name = '{}_transform'.format(lifting_surface_name)
             radius_name = '{}_tube_radius'.format(lifting_surface_name)
@@ -181,8 +183,8 @@ class FEAVonmisesComp(ExplicitComponent):
             deriv_vm1 = 0.5 / np.sqrt(sxx1 ** 2 + 3 * sxt ** 2) * (2 * sxx1 * deriv_sxx1 + 6 * sxt * deriv_sxt)
 
             derivs = partials[vonmises_name, transform_name].reshape((num_nodes, num_points_z - 1, 2, 12, 12))
-            derivs[:, :, 0, :, :] = deriv_vm0
-            derivs[:, :, 1, :, :] = deriv_vm1
+            derivs[:, :, 0, :, :] = deriv_vm0 / sigma_y
+            derivs[:, :, 1, :, :] = deriv_vm1 / sigma_y
 
             # ---------------------------------------------------------------
 
@@ -193,8 +195,8 @@ class FEAVonmisesComp(ExplicitComponent):
             deriv_vm1 = 0.5 / np.sqrt(sxx1 ** 2 + 3 * sxt ** 2) * (2 * sxx1 * deriv_sxx1 + 6 * sxt * deriv_sxt)
 
             derivs = partials[vonmises_name, radius_name].reshape((num_nodes, num_points_z - 1, 2, 12, 12))
-            derivs[:, :, 0, :, :] = deriv_vm0
-            derivs[:, :, 1, :, :] = deriv_vm1
+            derivs[:, :, 0, :, :] = deriv_vm0 / sigma_y
+            derivs[:, :, 1, :, :] = deriv_vm1 / sigma_y
 
             # ---------------------------------------------------------------
 
@@ -233,8 +235,8 @@ class FEAVonmisesComp(ExplicitComponent):
             deriv_vm1 = 0.5 / np.sqrt(sxx1 ** 2 + 3 * sxt ** 2) * (2 * sxx1 * deriv_sxx1 + 6 * sxt * deriv_sxt)
 
             derivs = partials[vonmises_name, disp_name].reshape((num_nodes, num_points_z - 1, 2, 12, 12))
-            derivs[:, :, 0, :, :] = deriv_vm0
-            derivs[:, :, 1, :, :] = deriv_vm1
+            derivs[:, :, 0, :, :] = deriv_vm0 / sigma_y
+            derivs[:, :, 1, :, :] = deriv_vm1 / sigma_y
 
             # ---------------------------------------------------------------
 
@@ -245,5 +247,5 @@ class FEAVonmisesComp(ExplicitComponent):
             deriv_vm1 = 0.5 / np.sqrt(sxx1 ** 2 + 3 * sxt ** 2) * (2 * sxx1 * deriv_sxx1 + 6 * sxt * deriv_sxt)
 
             derivs = partials[vonmises_name, length_name].reshape((num_nodes, num_points_z - 1, 2, 12, 12))
-            derivs[:, :, 0, :, :] = deriv_vm0
-            derivs[:, :, 1, :, :] = deriv_vm1
+            derivs[:, :, 0, :, :] = deriv_vm0 / sigma_y
+            derivs[:, :, 1, :, :] = deriv_vm1 / sigma_y
