@@ -90,10 +90,6 @@ prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
 
 prob.driver.add_recorder(SqliteRecorder('fea.hst'))
 prob.driver.recording_options['includes'] = ['*']
-# prob.driver.recording_options['record_responses'] = True
-# prob.driver.recording_options['record_derivatives'] = True
-# prob.driver.recording_options['record_objectives'] = True
-# prob.driver.recording_options['record_constraints'] = True
 
 prob.setup()
 

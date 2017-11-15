@@ -2,7 +2,7 @@ from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 
-from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model, Group, ExecComp
+from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model, Group, ExecComp, SqliteRecorder
 
 from openaerostruct_v2.geometry.inputs_group import InputsGroup
 from openaerostruct_v2.aerodynamics.vlm_preprocess_group import VLMPreprocessGroup
@@ -78,11 +78,14 @@ prob.driver.options['optimizer'] = 'SNOPT'
 prob.driver.opt_settings['Major optimality tolerance'] = 3e-7
 prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
 
+prob.driver.add_recorder(SqliteRecorder('aero.hst'))
+prob.driver.recording_options['includes'] = ['*']
+
 prob.setup()
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-prob.run_model()
+# prob.run_model()
 
 if 0:
     prob.check_partials(compact_print=True)
