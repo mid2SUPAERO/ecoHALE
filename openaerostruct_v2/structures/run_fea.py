@@ -2,7 +2,7 @@ from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 
-from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model, Group, ExecComp
+from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model, Group, ExecComp, SqliteRecorder
 
 from openaerostruct_v2.geometry.inputs_group import InputsGroup
 from openaerostruct_v2.structures.fea_bspline_group import FEABsplineGroup
@@ -22,10 +22,10 @@ lifting_surfaces = [
         'airfoil': np.zeros(num_points_x),
         'chord': 1., 'twist': 0. * np.pi / 180., 'sweep_x': 0., 'dihedral_y': 0., 'span': 5,
         'twist_bspline': (2, 2),
-        'sec_z_bspline': (num_points_z_half, 2),
+        'sec_z_bspline': (2, 2),
         'chord_bspline': (2, 2),
-        'thickness_bspline': (10, 3),
-        'thickness' : .1,
+        'thickness_bspline': (5, 3),
+        'thickness' : .01,
         'radius' : 1.,
         'distribution': 'sine',
         'section_origin': 0.25,
@@ -36,9 +36,9 @@ lifting_surfaces = [
 ]
 
 wing_loads = np.zeros((num_nodes, num_points_z, 6))
-wing_loads[0, :, 1] = 1.
+wing_loads[0, :, 1] = 8e5
 if num_nodes > 1:
-    wing_loads[1, :, 0] = 1.
+    wing_loads[1, :, 0] = 8e5
 
 prob = Problem()
 prob.model = Group()
@@ -74,20 +74,29 @@ prob.model.add_subsystem('objective',
     promotes=['*'],
 )
 
-prob.model.add_design_var('wing_tube_thickness_dv', lower=0.01)
-prob.model.add_objective('obj')
-prob.model.add_constraint('structural_volume', upper=10)
+prob.model.add_design_var('wing_tube_thickness_dv', lower=0.01, scaler=1e2)
+prob.model.add_objective('structural_volume', scaler=1e0)
+prob.model.add_constraint('wing_vonmises', upper=200e6, scaler=1e-8)
 
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SNOPT'
 prob.driver.opt_settings['Major optimality tolerance'] = 2e-7
 prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
 
+prob.driver.add_recorder(SqliteRecorder('fea.hst'))
+prob.driver.recording_options['includes'] = ['*']
+# prob.driver.recording_options['record_responses'] = True
+# prob.driver.recording_options['record_derivatives'] = True
+# prob.driver.recording_options['record_objectives'] = True
+# prob.driver.recording_options['record_constraints'] = True
+
 prob.setup()
+
+# view_model(prob)
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-prob.run_model()
+# prob.run_model()
 
 if 1:
     prob.check_partials(compact_print=True)
@@ -102,15 +111,15 @@ print(prob['wing_tube_thickness'])
 print(prob['wing_disp'])
 
 
-import matplotlib.pyplot as plt
-
-for i in range(num_nodes):
-    x = prob['wing_fea_mesh'][i, :]
-    xx = 0.5 * x[:-1] + 0.5 * x[1:]
-    plt.subplot(num_nodes, 3, 3*i + 1)
-    plt.plot(xx, prob['wing_tube_thickness'][i, :])
-    plt.subplot(num_nodes, 3, 3*i + 2)
-    plt.plot(x, prob['wing_disp'][i, :, 0])
-    plt.subplot(num_nodes, 3, 3*i + 3)
-    plt.plot(x, prob['wing_disp'][i, :, 1])
-plt.show()
+if 0:
+    import matplotlib.pyplot as plt
+    for i in range(num_nodes):
+        x = prob['wing_fea_mesh'][i, :]
+        xx = 0.5 * x[:-1] + 0.5 * x[1:]
+        plt.subplot(num_nodes, 3, 3*i + 1)
+        plt.plot(xx, prob['wing_tube_thickness'][i, :])
+        plt.subplot(num_nodes, 3, 3*i + 2)
+        plt.plot(x, prob['wing_disp'][i, :, 0])
+        plt.subplot(num_nodes, 3, 3*i + 3)
+        plt.plot(x, prob['wing_disp'][i, :, 1])
+    plt.show()
