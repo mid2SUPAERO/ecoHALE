@@ -6,7 +6,6 @@ from openmdao.api import Group
 from openaerostruct_v2.structures.components.fea_volume_comp import FEAVolumeComp
 from openaerostruct_v2.structures.components.fea_compliance_comp import FEAComplianceComp
 from openaerostruct_v2.structures.components.fea_vonmises_comp import FEAVonmisesComp
-from openaerostruct_v2.structures.components.fea_vonmises_old_comp import FEAVonmisesOldComp
 
 
 class FEAPostprocessGroup(Group):
@@ -27,6 +26,3 @@ class FEAPostprocessGroup(Group):
 
         comp = FEAVonmisesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_vonmises_comp', comp, promotes=['*'])
-
-        comp = FEAVonmisesOldComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('fea_vonmises_old_comp', comp, promotes=['*'])

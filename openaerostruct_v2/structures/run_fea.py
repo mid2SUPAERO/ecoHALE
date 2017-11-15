@@ -96,7 +96,7 @@ prob.setup()
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-# prob.run_model()
+prob.run_model()
 
 if 1:
     prob.check_partials(compact_print=True)
