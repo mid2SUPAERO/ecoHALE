@@ -33,6 +33,7 @@ lifting_surfaces = [
         'E': 70.e9,
         'G': 29.e9,
         'sigma_y': 200e6,
+        'rho': 2700,
     })
 ]
 
@@ -76,7 +77,7 @@ prob.model.add_subsystem('objective',
 )
 
 prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, scaler=1e2)
-prob.model.add_objective('structural_volume', scaler=1e2)
+prob.model.add_objective('structural_weight', scaler=1e0)
 prob.model.add_constraint('wing_ks', upper=0.)
 # prob.model.add_objective('obj', scaler=1e-4)
 # prob.model.add_constraint('structural_volume', upper=0.1)
