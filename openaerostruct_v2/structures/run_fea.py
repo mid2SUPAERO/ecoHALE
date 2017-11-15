@@ -82,6 +82,7 @@ prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SNOPT'
 prob.driver.opt_settings['Major optimality tolerance'] = 2e-7
 prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
+prob.driver.opt_settings['Verify level'] = -1
 
 prob.driver.add_recorder(SqliteRecorder('fea.hst'))
 prob.driver.recording_options['includes'] = ['*']
@@ -96,9 +97,8 @@ prob.setup()
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-prob.run_model()
-
 if 0:
+    prob.run_model()
     prob.check_partials(compact_print=True)
     exit()
 
