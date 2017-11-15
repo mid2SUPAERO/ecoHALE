@@ -76,8 +76,10 @@ prob.model.add_subsystem('objective',
 )
 
 prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, scaler=1e2)
-prob.model.add_objective('structural_volume', scaler=1e-5)
-prob.model.add_constraint('wing_vonmises', upper=1.)
+prob.model.add_objective('structural_volume', scaler=1e2)
+prob.model.add_constraint('wing_ks', upper=0.)
+# prob.model.add_objective('obj', scaler=1e-4)
+# prob.model.add_constraint('structural_volume', upper=0.1)
 
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SNOPT'
