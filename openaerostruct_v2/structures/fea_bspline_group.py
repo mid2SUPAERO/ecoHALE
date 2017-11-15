@@ -54,7 +54,7 @@ class FEABsplineGroup(Group):
                     promotes=['*'])
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 2
+            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
 
             distribution = lifting_surface_data['distribution']
 
@@ -68,7 +68,7 @@ class FEABsplineGroup(Group):
                 comp = BsplinesComp(
                     num_nodes=num_nodes,
                     num_control_points=num_control_points,
-                    num_points=num_points_z,
+                    num_points=num_points_z - 1,
                     bspline_order=bspline_order,
                     in_name=in_name,
                     out_name=out_name,
