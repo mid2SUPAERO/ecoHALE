@@ -69,6 +69,8 @@ class ASDispTransferComp(ExplicitComponent):
                 num_points_x * num_points_z * 3, num_points_z * 3 * 3, num_nodes)
             self.declare_partials(mesh_disp_name, transform_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
         vortex_mesh = self.metadata['vortex_mesh']

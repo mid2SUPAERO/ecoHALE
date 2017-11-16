@@ -40,6 +40,8 @@ class ASDispTransformComp(ExplicitComponent):
                 num_points_z * 3 * 3, num_points_z * 6, num_nodes)
             self.declare_partials(transform_name, disp_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

@@ -81,6 +81,8 @@ class ASLoadTransferComp(ExplicitComponent):
                 num_points_z * 6, num_points_z * 3, num_nodes)
             self.declare_partials(loads_name, fea_mesh_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
