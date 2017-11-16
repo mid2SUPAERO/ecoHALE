@@ -49,7 +49,7 @@ prob = Problem()
 prob.model = Group()
 
 indep_var_comp = IndepVarComp()
-indep_var_comp.add_output('v_m_s', shape=num_nodes, val=2.)
+indep_var_comp.add_output('v_m_s', shape=num_nodes, val=200.)
 indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
 indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
 prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
@@ -115,6 +115,9 @@ if 0:
     exit()
 
 prob.run_driver()
+
+print(prob['wing_twist_dv'])
+print(prob['wing_tube_thickness_dv'])
 
 # print(prob['circulations'])
 # print(prob['wing_disp'])

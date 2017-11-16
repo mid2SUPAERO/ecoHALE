@@ -73,7 +73,7 @@ class FEAGlobalStiffComp(ExplicitComponent):
 
             arange = np.arange(6)
 
-            outputs[global_name][:, index + arange, num_dofs + arange] = 1.
-            outputs[global_name][:, num_dofs + arange, index + arange] = 1.
+            outputs[global_name][:, index + arange, num_dofs + arange] = fea_scaler
+            outputs[global_name][:, num_dofs + arange, index + arange] = fea_scaler
 
             outputs[global_name] /= fea_scaler
