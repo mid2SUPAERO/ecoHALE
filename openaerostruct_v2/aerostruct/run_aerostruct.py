@@ -30,8 +30,8 @@ lifting_surfaces = [
         'sec_z_bspline': (num_points_z_half, 2),
         'chord_bspline': (2, 2),
         'thickness_bspline': (6, 3),
-        'thickness' : 0.02,
-        'radius' : 0.2,
+        'thickness' : 0.1,
+        'radius' : 1.,
         'distribution': 'sine',
         'section_origin': 0.25,
         'spar_location': 0.35,
@@ -42,11 +42,14 @@ lifting_surfaces = [
     })
 ]
 
+vlm_scaler = 1e2
+fea_scaler = 1e12
+
 prob = Problem()
 prob.model = Group()
 
 indep_var_comp = IndepVarComp()
-indep_var_comp.add_output('v_m_s', shape=num_nodes, val=200.)
+indep_var_comp.add_output('v_m_s', shape=num_nodes, val=2.)
 indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
 indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
 prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
@@ -62,12 +65,12 @@ prob.model.add_subsystem('vlm_preprocess_group',
     promotes=['*'],
 )
 prob.model.add_subsystem('fea_preprocess_group',
-    FEAPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    FEAPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, fea_scaler=fea_scaler),
     promotes=['*'],
 )
 
 prob.model.add_subsystem('aerostruct_group',
-    AerostructGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    AerostructGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vlm_scaler=vlm_scaler, fea_scaler=fea_scaler),
     promotes=['*'],
 )
 

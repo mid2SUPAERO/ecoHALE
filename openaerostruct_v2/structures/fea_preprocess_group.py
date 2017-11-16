@@ -18,10 +18,12 @@ class FEAPreprocessGroup(Group):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('fea_scaler', types=float)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        fea_scaler = self.metadata['fea_scaler']
 
         comp = TubePropertiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('tube_properties_comp', comp, promotes=['*'])
@@ -44,5 +46,5 @@ class FEAPreprocessGroup(Group):
         comp = FEALocalStiffTransformedComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_local_stiff_transformed_comp', comp, promotes=['*'])
 
-        comp = FEAGlobalStiffComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        comp = FEAGlobalStiffComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, fea_scaler=fea_scaler)
         self.add_subsystem('fea_global_stiff_comp', comp, promotes=['*'])

@@ -14,10 +14,12 @@ class FEAGlobalStiffComp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('fea_scaler', types=float)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
@@ -42,12 +44,13 @@ class FEAGlobalStiffComp(ExplicitComponent):
             cols = np.arange(144 * (num_points_z - 1))
             _, rows, cols = tile_sparse_jac(1., rows, cols,
                 size ** 2, (num_points_z - 1) * 12 * 12, num_nodes)
-            self.declare_partials(global_name, local_name, val=1., rows=rows, cols=cols)
+            self.declare_partials(global_name, local_name, val=1. / fea_scaler, rows=rows, cols=cols)
 
         self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
+        fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
@@ -72,3 +75,5 @@ class FEAGlobalStiffComp(ExplicitComponent):
 
             outputs[global_name][:, index + arange, num_dofs + arange] = 1.
             outputs[global_name][:, num_dofs + arange, index + arange] = 1.
+
+            outputs[global_name] /= fea_scaler

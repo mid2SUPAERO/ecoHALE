@@ -11,10 +11,12 @@ class VLMMtxRHSComp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('vlm_scaler', types=float)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        vlm_scaler = self.metadata['vlm_scaler']
 
         system_size = 0
 
@@ -87,6 +89,7 @@ class VLMMtxRHSComp(ExplicitComponent):
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        vlm_scaler = self.metadata['vlm_scaler']
 
         system_size = self.system_size
 
@@ -112,12 +115,13 @@ class VLMMtxRHSComp(ExplicitComponent):
 
             ind_1 += num
 
-        outputs['mtx'] = np.einsum('ijkl,ijl->ijk', self.mtx_n_n_3, self.normals_n_3)
-        outputs['rhs'] = -np.einsum('ijk,ijk->ij', inputs['inflow_velocities_t'], self.normals_n_3)
+        outputs['mtx'] = np.einsum('ijkl,ijl->ijk', self.mtx_n_n_3, self.normals_n_3) / vlm_scaler
+        outputs['rhs'] = -np.einsum('ijk,ijk->ij', inputs['inflow_velocities_t'], self.normals_n_3) / vlm_scaler
 
     def compute_partials(self, inputs, partials):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        vlm_scaler = self.metadata['vlm_scaler']
 
         system_size = self.system_size
 
@@ -136,12 +140,12 @@ class VLMMtxRHSComp(ExplicitComponent):
             partials['mtx', vel_mtx_name] = np.einsum('jkl,ijl->ijkl',
                 np.ones((system_size, num, 3)),
                 self.normals_n_3,
-            ).flatten()
+            ).flatten() / vlm_scaler
 
-            partials['mtx', normals_name] = self.mtx_n_n_3[:, ind_1:ind_2, :, :].flatten()
+            partials['mtx', normals_name] = self.mtx_n_n_3[:, ind_1:ind_2, :, :].flatten() / vlm_scaler
 
-            partials['rhs', normals_name] = -inputs['inflow_velocities_t'][:, ind_1:ind_2, :].flatten()
+            partials['rhs', normals_name] = -inputs['inflow_velocities_t'][:, ind_1:ind_2, :].flatten() / vlm_scaler
 
             ind_1 += num
 
-        partials['rhs', 'inflow_velocities_t'] = -self.normals_n_3.flatten()
+        partials['rhs', 'inflow_velocities_t'] = -self.normals_n_3.flatten() / vlm_scaler

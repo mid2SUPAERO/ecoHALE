@@ -35,6 +35,8 @@ lifting_surfaces = [
     })
 ]
 
+vlm_scaler = 1e0
+
 prob = Problem()
 prob.model = Group()
 
@@ -56,7 +58,7 @@ prob.model.add_subsystem('vlm_states1_group',
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_states2_group',
-    VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vlm_scaler=vlm_scaler),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_postprocess_group',

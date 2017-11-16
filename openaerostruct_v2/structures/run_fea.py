@@ -42,6 +42,8 @@ wing_loads[0, :, 1] = 1e3
 if num_nodes > 1:
     wing_loads[1, :, 0] = 1e3
 
+fea_scaler = 1e0
+
 prob = Problem()
 prob.model = Group()
 
@@ -60,11 +62,11 @@ prob.model.add_subsystem('tube_bspline_group',
     promotes=['*'])
 
 prob.model.add_subsystem('fea_preprocess_group',
-    FEAPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    FEAPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, fea_scaler=fea_scaler),
     promotes=['*'],
 )
 prob.model.add_subsystem('fea_states_group',
-    FEAStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+    FEAStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, fea_scaler=fea_scaler),
     promotes=['*'],
 )
 prob.model.add_subsystem('fea_postprocess_group',

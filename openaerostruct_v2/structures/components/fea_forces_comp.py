@@ -11,10 +11,12 @@ class FEAForcesComp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('fea_scaler', types=float)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
@@ -30,13 +32,14 @@ class FEAForcesComp(ExplicitComponent):
             arange = np.arange(6 * num_points_z)
             _, rows, cols = tile_sparse_jac(1., arange, arange,
                 size, num_points_z * 6, num_nodes)
-            self.declare_partials(forces_name, loads_name, val=1., rows=rows, cols=cols)
+            self.declare_partials(forces_name, loads_name, val=1. / fea_scaler, rows=rows, cols=cols)
 
         self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
@@ -45,4 +48,4 @@ class FEAForcesComp(ExplicitComponent):
             forces_name = '{}_forces'.format(lifting_surface_name)
 
             outputs[forces_name][:, :6 * num_points_z] = inputs[loads_name].reshape(
-                (num_nodes, 6 * num_points_z))
+                (num_nodes, 6 * num_points_z)) / fea_scaler

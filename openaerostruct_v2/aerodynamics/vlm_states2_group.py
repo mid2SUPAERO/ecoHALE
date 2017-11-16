@@ -21,10 +21,12 @@ class VLMStates2Group(Group):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('vlm_scaler', types=float)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        vlm_scaler = self.metadata['vlm_scaler']
 
         num_collocation_points = 0
 
@@ -50,7 +52,7 @@ class VLMStates2Group(Group):
             eval_name='coll_pts', num_eval_points=num_collocation_points)
         self.add_subsystem('vlm_collocation_eval_vel_mtx_comp', comp, promotes=['*'])
 
-        comp = VLMMtxRHSComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        comp = VLMMtxRHSComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vlm_scaler=vlm_scaler)
         self.add_subsystem('vlm_mtx_rhs_comp', comp, promotes=['*'])
 
         comp = VLMCirculationsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
