@@ -5,6 +5,7 @@ from scipy.linalg import lu_factor, lu_solve
 from openmdao.api import ImplicitComponent
 
 from openaerostruct_v2.utils.misc_utils import get_array_indices, tile_sparse_jac
+from openaerostruct_v2.utils.linear_solvers import OASLinearSolver
 
 
 class FEAStatesComp(ImplicitComponent):
@@ -49,6 +50,11 @@ class FEAStatesComp(ImplicitComponent):
 
         self.lu = {}
 
+        self.solvers = {}
+        for lifting_surface_name, lifting_surface_data in lifting_surfaces:
+            for i in range(num_nodes):
+                self.solvers[lifting_surface_name, i] = OASLinearSolver()
+
     def apply_nonlinear(self, inputs, outputs, residuals):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
@@ -70,9 +76,14 @@ class FEAStatesComp(ImplicitComponent):
             states_name = '{}_states'.format(lifting_surface_name)
 
             for i in range(num_nodes):
-                self.lu[lifting_surface_name, i] = lu = lu_factor(inputs[mtx_name][i, :, :])
+                # self.lu[lifting_surface_name, i] = lu = lu_factor(inputs[mtx_name][i, :, :])
+                # outputs[states_name][i, :] = lu_solve(lu, inputs[forces_name][i, :])
 
-                outputs[states_name][i, :] = lu_solve(lu, inputs[forces_name][i, :])
+                mtx = inputs[mtx_name][i, :, :]
+                solver = self.solvers[lifting_surface_name, i]
+                solver.mtx = mtx
+                solver.lu = lu_factor(mtx)
+                outputs[states_name][i, :] = solver.solve(inputs[forces_name][i, :])
 
     def linearize(self, inputs, outputs, partials):
         num_nodes = self.metadata['num_nodes']
@@ -88,7 +99,12 @@ class FEAStatesComp(ImplicitComponent):
             states_name = '{}_states'.format(lifting_surface_name)
 
             for i in range(num_nodes):
-                self.lu[lifting_surface_name, i] = lu_factor(inputs[mtx_name][i, :, :])
+                # self.lu[lifting_surface_name, i] = lu_factor(inputs[mtx_name][i, :, :])
+
+                mtx = inputs[mtx_name][i, :, :]
+                solver = self.solvers[lifting_surface_name, i]
+                solver.mtx = mtx
+                solver.lu = lu_factor(mtx)
 
             partials[states_name, states_name] = inputs[mtx_name].flatten()
             partials[states_name, mtx_name] = np.einsum('j,ik->ijk',
@@ -107,9 +123,13 @@ class FEAStatesComp(ImplicitComponent):
 
             if mode == 'fwd':
                 for i in range(num_nodes):
-                    lu = self.lu[lifting_surface_name, i]
-                    d_outputs[states_name][i, :] = lu_solve(lu, d_residuals[states_name][i, :], trans=0)
+                    # lu = self.lu[lifting_surface_name, i]
+                    # d_outputs[states_name][i, :] = lu_solve(lu, d_residuals[states_name][i, :], trans=0)
+                    solver = self.solvers[lifting_surface_name, i]
+                    d_outputs[states_name][i, :] = solver.solve(d_residuals[states_name][i, :], mode='fwd')
             else:
                 for i in range(num_nodes):
-                    lu = self.lu[lifting_surface_name, i]
-                    d_residuals[states_name][i, :] = lu_solve(lu, d_outputs[states_name][i, :], trans=1)
+                    # lu = self.lu[lifting_surface_name, i]
+                    # d_residuals[states_name][i, :] = lu_solve(lu, d_outputs[states_name][i, :], trans=1)
+                    solver = self.solvers[lifting_surface_name, i]
+                    d_residuals[states_name][i, :] = solver.solve(d_outputs[states_name][i, :], mode='rev')

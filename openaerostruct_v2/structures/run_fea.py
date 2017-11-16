@@ -14,7 +14,7 @@ from openaerostruct_v2.structures.fea_postprocess_group import FEAPostprocessGro
 num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 10
+num_points_z_half = 30
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
@@ -25,22 +25,22 @@ lifting_surfaces = [
         'sec_z_bspline': (2, 2),
         'chord_bspline': (2, 2),
         'thickness_bspline': (5, 3),
-        'thickness' : .012,
+        'thickness' : .05,
         'radius' : .12,
         'distribution': 'sine',
         'section_origin': 0.25,
         'spar_location': 0.35,
         'E': 70.e9,
         'G': 29.e9,
-        'sigma_y': 200e6,
+        'sigma_y': 200e6, #200e6,
         'rho': 2700,
     })
 ]
 
 wing_loads = np.zeros((num_nodes, num_points_z, 6))
-wing_loads[0, :, 1] = 1e4
+wing_loads[0, :, 1] = 1e3
 if num_nodes > 1:
-    wing_loads[1, :, 0] = 1e4
+    wing_loads[1, :, 0] = 1e3
 
 prob = Problem()
 prob.model = Group()
@@ -76,9 +76,10 @@ prob.model.add_subsystem('objective',
     promotes=['*'],
 )
 
-prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, scaler=1e2)
+prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, upper=0.1, scaler=1e3) #1e2)
 prob.model.add_objective('structural_weight', scaler=1e0)
 prob.model.add_constraint('wing_ks', upper=0.)
+# prob.model.add_constraint('wing_vonmises', upper=0.)
 # prob.model.add_objective('obj', scaler=1e-4)
 # prob.model.add_constraint('structural_volume', upper=0.1)
 
@@ -100,6 +101,7 @@ prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 if 0:
     prob.run_model()
     prob.check_partials(compact_print=True)
+    # print(np.linalg.norm(prob['wing_vonmises'] - prob['wing_vonmises_old']))
     exit()
 
 print(prob['structural_volume'])
@@ -111,7 +113,7 @@ print(prob['wing_tube_thickness'])
 print(prob['wing_disp'])
 
 
-if 0:
+if 1:
     import matplotlib.pyplot as plt
     for i in range(num_nodes):
         x = prob['wing_fea_mesh'][i, :]
@@ -123,3 +125,5 @@ if 0:
         plt.subplot(num_nodes, 3, 3*i + 3)
         plt.plot(x, prob['wing_disp'][i, :, 1])
     plt.show()
+
+# prob.check_partials(compact_print=True)
