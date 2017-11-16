@@ -26,6 +26,8 @@ class StaticDVComp(ExplicitComponent):
         cols = np.outer(np.ones(num_nodes, int), np.arange(num_points)).flatten()
         self.declare_partials(out_name, in_name, val=1., rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         meta = self.metadata
         num_nodes = meta['num_nodes']

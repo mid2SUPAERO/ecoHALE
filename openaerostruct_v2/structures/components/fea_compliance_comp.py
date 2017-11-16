@@ -37,6 +37,8 @@ class FEAComplianceComp(ExplicitComponent):
             self.declare_partials('compliance', forces_name, rows=rows, cols=cols)
             self.declare_partials('compliance', states_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

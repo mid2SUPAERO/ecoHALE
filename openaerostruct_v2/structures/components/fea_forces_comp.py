@@ -32,6 +32,8 @@ class FEAForcesComp(ExplicitComponent):
                 size, num_points_z * 6, num_nodes)
             self.declare_partials(forces_name, loads_name, val=1., rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']

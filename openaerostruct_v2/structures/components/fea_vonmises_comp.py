@@ -52,7 +52,7 @@ class FEAVonmisesComp(ExplicitComponent):
             cols = np.einsum('ij,k->ijk', length_indices, np.ones(2, int)).flatten()
             self.declare_partials(vonmises_name, length_name, rows=rows, cols=cols)
 
-            self.set_check_partial_options(local_disp_name, step=1e-8)
+        self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']

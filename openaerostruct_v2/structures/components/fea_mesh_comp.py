@@ -50,6 +50,8 @@ class FEAMeshComp(ExplicitComponent):
                 in_name = '{}_{}'.format(lifting_surface_name, name)
                 self.declare_partials(mesh_name, in_name, val=vals_dict[name], rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

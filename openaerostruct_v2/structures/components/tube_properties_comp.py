@@ -39,6 +39,8 @@ class TubePropertiesComp(ExplicitComponent):
                         num_points_z - 1, num_points_z - 1, num_nodes)
                     self.declare_partials(out_name, in_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

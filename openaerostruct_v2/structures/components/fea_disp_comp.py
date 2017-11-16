@@ -32,6 +32,8 @@ class FEADispComp(ExplicitComponent):
                 num_points_z * 6, size, num_nodes)
             self.declare_partials(disp_name, states_name, val=1., rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']

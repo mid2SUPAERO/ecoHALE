@@ -44,7 +44,7 @@ class FEAGlobalStiffComp(ExplicitComponent):
                 size ** 2, (num_points_z - 1) * 12 * 12, num_nodes)
             self.declare_partials(global_name, local_name, val=1., rows=rows, cols=cols)
 
-            self.set_check_partial_options(local_name, step=1e0)
+        self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']

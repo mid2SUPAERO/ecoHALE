@@ -91,7 +91,7 @@ def compute_norm(array):
     array : ndarray[..., 3]
         Array we are taking the norm of in the last axis.
     """
-    return np.einsum('...,k->...k', np.linalg.norm(array, axis=-1), np.ones(3))
+    return np.einsum('...,k->...k', np.sum(array ** 2, axis=-1) ** 0.5, np.ones(3))
 
 def compute_norm_deriv(array, deriv_array):
     """

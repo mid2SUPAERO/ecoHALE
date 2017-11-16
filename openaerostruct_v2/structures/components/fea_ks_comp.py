@@ -31,6 +31,8 @@ class FEAKSComp(ExplicitComponent):
             cols = get_array_indices(num_nodes, num_points_z - 1, 2).flatten()
             self.declare_partials(ks_name, vonmises_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

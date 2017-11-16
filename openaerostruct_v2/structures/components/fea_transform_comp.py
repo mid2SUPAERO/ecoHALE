@@ -48,6 +48,8 @@ class FEATransformComp(ExplicitComponent):
             ref_axis[lifting_surface_name] = np.einsum('ij,k->ijk',
                 np.ones((num_nodes, num_points_z - 1)), np.array([1., 0., 0.]))
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']

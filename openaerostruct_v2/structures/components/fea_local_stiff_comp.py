@@ -66,6 +66,8 @@ class FEALocalStiffComp(ExplicitComponent):
             in_name = '{}_element_{}'.format(lifting_surface_name, 'L')
             self.declare_partials(local_name, in_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

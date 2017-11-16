@@ -48,6 +48,8 @@ class FEALocalDispComp(ExplicitComponent):
             cols = cols.flatten()
             self.declare_partials(local_disp_name, disp_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
@@ -60,7 +62,7 @@ class FEALocalDispComp(ExplicitComponent):
             local_disp_name = '{}_local_disp'.format(lifting_surface_name)
 
             transform = inputs[transform_name]
-            disp = np.empty((num_nodes, num_points_z - 1, 12, 12))
+            disp = np.empty((num_nodes, num_points_z - 1, 12, 12), dtype=inputs[disp_name].dtype)
             disp[:, :, :, :6] = np.einsum('ijl,k->ijkl', inputs[disp_name][:, :-1, :], np.ones((12)))
             disp[:, :, :, 6:] = np.einsum('ijl,k->ijkl', inputs[disp_name][:, 1: , :], np.ones((12)))
 

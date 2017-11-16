@@ -35,6 +35,8 @@ class FEAVolumeComp(ExplicitComponent):
             self.declare_partials('structural_volume', A_name, rows=rows, cols=cols)
             self.declare_partials('structural_volume', L_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

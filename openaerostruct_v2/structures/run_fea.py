@@ -14,7 +14,7 @@ from openaerostruct_v2.structures.fea_postprocess_group import FEAPostprocessGro
 num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 30
+num_points_z_half = 4 #30
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
@@ -76,7 +76,7 @@ prob.model.add_subsystem('objective',
     promotes=['*'],
 )
 
-prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, upper=0.1, scaler=1e3) #1e2)
+prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, upper=0.1, scaler=1e3)
 prob.model.add_objective('structural_weight', scaler=1e0)
 prob.model.add_constraint('wing_ks', upper=0.)
 # prob.model.add_constraint('wing_vonmises', upper=0.)
@@ -92,13 +92,13 @@ prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
 prob.driver.add_recorder(SqliteRecorder('fea.hst'))
 prob.driver.recording_options['includes'] = ['*']
 
-prob.setup()
+prob.setup(force_alloc_complex=True)
 
 # view_model(prob)
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-if 0:
+if 1:
     prob.run_model()
     prob.check_partials(compact_print=True)
     # print(np.linalg.norm(prob['wing_vonmises'] - prob['wing_vonmises_old']))

@@ -41,8 +41,7 @@ class FEALocalStiffTransformedComp(ExplicitComponent):
             self.declare_partials(out_name, transform_name, rows=rows, cols=cols)
             self.declare_partials(out_name, in_name, rows=rows, cols=cols)
 
-            self.set_check_partial_options(transform_name, step=1e-5)
-            self.set_check_partial_options(in_name, step=1e0)
+        self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']

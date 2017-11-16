@@ -57,7 +57,7 @@ class FEALocalStiffPermutedComp(ExplicitComponent):
                 (num_points_z - 1) * 12 * 12, (num_points_z - 1) * 12 * 12, num_nodes)
             self.declare_partials(out_name, in_name, val=data, rows=rows, cols=cols)
 
-            self.set_check_partial_options(in_name, step=1e0)
+        self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']

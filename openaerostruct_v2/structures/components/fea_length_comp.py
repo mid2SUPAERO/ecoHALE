@@ -38,6 +38,8 @@ class FEALengthComp(ExplicitComponent):
                 num_points_z - 1, num_points_z * 3, num_nodes)
             self.declare_partials(length_name, mesh_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
@@ -49,7 +51,7 @@ class FEALengthComp(ExplicitComponent):
 
             vec = inputs[mesh_name][:, 1:, :] - inputs[mesh_name][:, :-1, :]
 
-            outputs[length_name] = np.linalg.norm(vec, axis=-1)
+            outputs[length_name] = np.sum(vec ** 2, axis=-1) ** 0.5
 
     def compute_partials(self, inputs, partials):
         num_nodes = self.metadata['num_nodes']
