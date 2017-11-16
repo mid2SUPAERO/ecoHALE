@@ -9,7 +9,6 @@ from openaerostruct_v2.structures.components.fea_compliance_comp import FEACompl
 from openaerostruct_v2.structures.components.fea_local_disp_comp import FEALocalDispComp
 from openaerostruct_v2.structures.components.fea_vonmises_comp import FEAVonmisesComp
 from openaerostruct_v2.structures.components.fea_ks_comp import FEAKSComp
-from openaerostruct_v2.structures.components.fea_vonmises_old_comp import FEAVonmisesOldComp
 
 
 class FEAPostprocessGroup(Group):
@@ -39,6 +38,3 @@ class FEAPostprocessGroup(Group):
 
         comp = FEAKSComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('fea_ks_comp', comp, promotes=['*'])
-
-        # comp = FEAVonmisesOldComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        # self.add_subsystem('fea_vonmises_old_comp', comp, promotes=['*'])
