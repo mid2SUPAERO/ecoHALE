@@ -190,8 +190,8 @@ class FEAVonmisesComp(ExplicitComponent):
 
             # ---------------------
 
-            deriv_sxx0 = E * (u1x - u0x) / length + E / length * tmp
-            deriv_sxx1 = E * (u0x - u1x) / length + E / length * tmp
+            deriv_sxx0 = E / length * tmp
+            deriv_sxx1 = E / length * tmp
             deriv_sxt = G * (r1x - r0x) / length
             deriv_vm0 = 0.5 / np.sqrt(sxx0 ** 2 + 3 * sxt ** 2) * (2 * sxx0 * deriv_sxx0 + 6 * sxt * deriv_sxt)
             deriv_vm1 = 0.5 / np.sqrt(sxx1 ** 2 + 3 * sxt ** 2) * (2 * sxx1 * deriv_sxx1 + 6 * sxt * deriv_sxt)
@@ -204,7 +204,7 @@ class FEAVonmisesComp(ExplicitComponent):
 
             deriv_sxx0 = -E * (u1x - u0x) / length ** 2 - E * radius / length ** 2 * tmp
             deriv_sxx1 = -E * (u0x - u1x) / length ** 2 - E * radius / length ** 2 * tmp
-            deriv_sxt = G * radius * (r1x - r0x) / length
+            deriv_sxt = -G * radius * (r1x - r0x) / length ** 2
             deriv_vm0 = 0.5 / np.sqrt(sxx0 ** 2 + 3 * sxt ** 2) * (2 * sxx0 * deriv_sxx0 + 6 * sxt * deriv_sxt)
             deriv_vm1 = 0.5 / np.sqrt(sxx1 ** 2 + 3 * sxt ** 2) * (2 * sxx1 * deriv_sxx1 + 6 * sxt * deriv_sxt)
 
