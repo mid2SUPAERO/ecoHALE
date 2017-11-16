@@ -21,7 +21,7 @@ def compute_finite_vortex(r1, r2):
     den = r1_norm * r2_norm + r1_d_r2
 
     result = num / den / 4 / np.pi
-    result[den == 0] = 0.
+    result[den <= 1e-5] = 0.
     return result
 
 def compute_finite_vortex_deriv1(r1, r2, r1_deriv):
@@ -44,7 +44,7 @@ def compute_finite_vortex_deriv1(r1, r2, r1_deriv):
     # return num / den / 4 / np.pi
 
     result = (num_deriv * den - num * den_deriv) / den ** 2 / 4 / np.pi
-    result[den == 0] = 0.
+    result[den <= 1e-5] = 0.
     return result
 
 def compute_finite_vortex_deriv2(r1, r2, r2_deriv):
@@ -67,7 +67,7 @@ def compute_finite_vortex_deriv2(r1, r2, r2_deriv):
     # return num / den / 4 / np.pi
 
     result = (num_deriv * den - num * den_deriv) / den ** 2 / 4 / np.pi
-    result[den == 0] = 0.
+    result[den <= 1e-5] = 0.
     return result
 
 def compute_semi_infinite_vortex(u, r):

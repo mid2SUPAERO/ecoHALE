@@ -93,15 +93,15 @@ prob.model.add_design_var('wing_twist_dv', lower=-3.*np.pi/180., upper=8.*np.pi/
 prob.model.add_design_var('wing_tube_thickness_dv', lower=0.001, upper=0.19, scaler=1e3)
 prob.model.add_objective('obj')
 prob.model.add_constraint('wing_ks', upper=0.)
-prob.model.add_constraint('C_L', equals=np.linspace(0.4, 0.6, num_nodes))
+prob.model.add_constraint('C_L', equals=np.linspace(0.8, 0.8, num_nodes))
 
 prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SNOPT'
 prob.driver.opt_settings['Major optimality tolerance'] = 3e-7
 prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
 
-# prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
-# prob.driver.recording_options['includes'] = ['*']
+prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
+prob.driver.recording_options['includes'] = ['*']
 
 prob.setup()
 

@@ -131,18 +131,19 @@ def read_AS_hist(filename):
     }
 
     states = {
-        'mesh': 'vlm_preprocess_group.vlm_mesh_comp.wing_undeformed_mesh',
-        'twist': 'inputs_group.wing_twist_bspline_comp.wing_twist',
-        'forces': 'vlm_states2_group.vlm_panel_forces_comp.panel_forces',
         'rho_kg_m3': 'indep_var_comp.rho_kg_m3',
         'v_m_s': 'indep_var_comp.v_m_s',
+        'twist': 'inputs_group.wing_twist_bspline_comp.wing_twist',
         'thickness': 'tube_bspline_group.wing_thickness_bspline_comp.wing_tube_thickness',
         'radius': 'tube_bspline_group.wing_radius_bspline_comp.wing_tube_radius',
+        'forces': 'aerostruct_group.vlm_states2_group.vlm_panel_forces_comp.panel_forces',
+        'mesh': 'aerostruct_group.vlm_states1_group.vlm_displace_meshes_comp.wing_mesh',
+        'disp': 'aerostruct_group.fea_states_group.fea_disp_comp.wing_disp',
         'fea_mesh': 'fea_preprocess_group.fea_mesh_comp.wing_fea_mesh',
+        'vonmises': 'fea_postprocess_group.fea_vonmises_comp.wing_vonmises',
     }
 
     cons = {
-        # 'vonmises': 'fea_postprocess_group.fea_vonmises_comp.wing_vonmises',
     }
 
     objs = {
@@ -173,8 +174,6 @@ def read_AS_hist(filename):
             data[key] = case.constraints[cr_key]
 
         data_all_iters.append(data)
-
-    print(data_all_iters)
 
     return data_all_iters
 

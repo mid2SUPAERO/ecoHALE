@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 
-from openmdao.api import Group, NonlinearBlockGS, LinearBlockGS, ScipyKrylov
+from openmdao.api import Group, NonlinearBlockGS, LinearBlockGS, ScipyKrylov, DenseJacobian, DirectSolver, NewtonSolver
 
 from openaerostruct_v2.aerodynamics.vlm_states1_group import VLMStates1Group
 from openaerostruct_v2.aerodynamics.vlm_states2_group import VLMStates2Group

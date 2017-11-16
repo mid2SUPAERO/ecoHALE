@@ -52,6 +52,8 @@ except:
 
 # TODO change this for mission viz, for now jsut look at the first point
 pt = 0
+# TODO don't hardcode yield stress
+yield_stress = 200e6
 
 #####################
 # User-set parameters
@@ -166,13 +168,11 @@ class Display(object):
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             # TODO change thickness bounds
-            self.ax4.set_ylim([0., 1.])
+            self.ax4.set_ylim([0., .1])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
             self.ax5.cla()
-            # TODO don't hardcode yield stress
-            yield_stress = 200e6
             self.ax5.axhline(yield_stress, c='r', lw=2, ls='--')
 
             self.ax5.locator_params(axis='y',nbins=4)
@@ -193,11 +193,11 @@ class Display(object):
 
             thick_vals = data['thickness'][pt]
             # TODO: check ths out for multiple node case; will need to reformulate since OM flattens constraints
-            vm_vals = data['vonmises'][::2]
+            vm_vals = data['vonmises'][pt] * yield_stress
             self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
             self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
 
-        elif self.show_wing:
+        if self.show_wing:
             mesh = data['mesh'][pt, 0, :, :]
             span = mesh[-1, 2] - mesh[0, 2]
             rel_span = (mesh[:, 2] - mesh[0, 2]) * 2 / span - 1
@@ -237,6 +237,11 @@ class Display(object):
 
         if self.show_tube:
             fea_mesh = data['fea_mesh'][pt, :, :]
+
+            # If aerostructural, show the deformed fea mesh
+            if self.show_wing:
+                fea_mesh = fea_mesh + data['disp'][pt, :, :3]
+
             # Get the array of radii and thickness values for the FEM system
             r0 = data['radius'][pt]
             t0 = data['thickness'][pt]
@@ -413,27 +418,6 @@ class Display(object):
         lab_font.grid(row=0, column=0, sticky=Tk.S)
 
         self.draw_slider()
-
-        if self.show_wing and self.show_tube:
-            # checkbox to show deformed mesh
-            self.show_def_mesh = Tk.IntVar()
-            c1 = Tk.Checkbutton(
-                self.options_frame,
-                text="Show deformed mesh",
-                variable=self.show_def_mesh,
-                command=self.update_graphs,
-                font=font)
-            c1.grid(row=0, column=2, padx=5, sticky=Tk.W)
-
-            # checkbox to exaggerate deformed mesh
-            self.ex_def = Tk.IntVar()
-            self.c2 = Tk.Checkbutton(
-                self.options_frame,
-                text="Exaggerate deformations",
-                variable=self.ex_def,
-                command=self.update_graphs,
-                font=font)
-            self.c2.grid(row=0, column=3, padx=5, sticky=Tk.W)
 
         # Option to automatically refresh history file
         # especially useful for currently running optimizations
