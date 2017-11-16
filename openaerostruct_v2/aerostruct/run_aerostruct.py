@@ -30,8 +30,8 @@ lifting_surfaces = [
         'sec_z_bspline': (num_points_z_half, 2),
         'chord_bspline': (2, 2),
         'thickness_bspline': (6, 3),
-        'thickness' : 0.1,
-        'radius' : 1.,
+        'thickness' : 0.05,
+        'radius' : 0.1,
         'distribution': 'sine',
         'section_origin': 0.25,
         'spar_location': 0.35,
@@ -43,7 +43,7 @@ lifting_surfaces = [
 ]
 
 vlm_scaler = 1e2
-fea_scaler = 1e12
+fea_scaler = 1e6
 
 prob = Problem()
 prob.model = Group()
