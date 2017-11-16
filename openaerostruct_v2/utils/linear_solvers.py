@@ -4,7 +4,7 @@ import scipy.sparse.linalg
 
 class OASLinearSolver(object):
 
-    def __init__(self, krylov_solver_name=None, maxiter=10, tol=1e-15):
+    def __init__(self, krylov_solver_name=None, maxiter=3, tol=1e-15):
         if krylov_solver_name == None:
             self.krylov_solver = None
         elif krylov_solver_name == 'cg':

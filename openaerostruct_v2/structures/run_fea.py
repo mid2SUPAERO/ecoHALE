@@ -14,7 +14,7 @@ from openaerostruct_v2.structures.fea_postprocess_group import FEAPostprocessGro
 num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 4 #30
+num_points_z_half = 30
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
@@ -92,13 +92,15 @@ prob.driver.opt_settings['Major feasibility tolerance'] = 2e-7
 prob.driver.add_recorder(SqliteRecorder('fea.hst'))
 prob.driver.recording_options['includes'] = ['*']
 
-prob.setup(force_alloc_complex=True)
+prob.setup()
 
 # view_model(prob)
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-if 1:
+if 0:
+    prob.setup(force_alloc_complex=True)
+    prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
     prob.run_model()
     prob.check_partials(compact_print=True)
     # print(np.linalg.norm(prob['wing_vonmises'] - prob['wing_vonmises_old']))

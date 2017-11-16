@@ -19,7 +19,7 @@ from openaerostruct_v2.aerostruct.aerostruct_group import AerostructGroup
 num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 3 #15
+num_points_z_half = 15
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
@@ -100,11 +100,13 @@ prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
 # prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
 # prob.driver.recording_options['includes'] = ['*']
 
-prob.setup(force_alloc_complex=True)
+prob.setup()
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-if 1:
+if 0:
+    prob.setup(force_alloc_complex=True)
+    prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
     prob.run_model()
     prob.check_partials(compact_print=True)
     exit()
