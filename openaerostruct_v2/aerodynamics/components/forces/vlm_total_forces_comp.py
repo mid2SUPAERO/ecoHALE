@@ -47,6 +47,8 @@ class VLMTotalForcesComp(ExplicitComponent):
             1, system_size * 3, num_nodes)
         self.declare_partials('drag', 'panel_forces_rotated', val=1., rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         outputs['lift'] = np.sum(inputs['panel_forces_rotated'][:, :, 1], axis=1)
         outputs['drag'] = np.sum(inputs['panel_forces_rotated'][:, :, 0], axis=1)

@@ -47,6 +47,8 @@ class VLMNormalsComp(ExplicitComponent):
                 num_points_x * num_points_z * 3, num_nodes)
             self.declare_partials(normals_name, mesh_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

@@ -52,6 +52,8 @@ class VLMEvalVectorsComp(ExplicitComponent):
                 num_eval_points * 3, num_nodes)
             self.declare_partials(vectors_name, eval_name, val= 1., rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
         eval_name = self.metadata['eval_name']

@@ -82,14 +82,16 @@ class VLMMtxRHSComp(ExplicitComponent):
 
             ind_1 += num
 
-        self.mtx_n_n_3 = np.zeros((num_nodes, system_size, system_size, 3))
-        self.normals_n_3 = np.zeros((num_nodes, system_size, 3))
+        self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         system_size = self.system_size
+
+        self.mtx_n_n_3 = np.zeros((num_nodes, system_size, system_size, 3), dtype=inputs['inflow_velocities_t'].dtype)
+        self.normals_n_3 = np.zeros((num_nodes, system_size, 3), dtype=inputs['inflow_velocities_t'].dtype)
 
         ind_1 = 0
         ind_2 = 0

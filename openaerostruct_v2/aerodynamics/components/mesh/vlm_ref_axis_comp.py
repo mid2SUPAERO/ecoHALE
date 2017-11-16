@@ -44,6 +44,8 @@ class VLMRefAxisComp(ExplicitComponent):
             data, rows, cols = tile_sparse_jac(1., out_indices[:, 2], in_indices, *args)
             self.declare_partials(out_name, z_name, val=data, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']

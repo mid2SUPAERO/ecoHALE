@@ -52,6 +52,8 @@ class VLMMeshCPComp(ExplicitComponent):
 
             ind1 += (num_points_x - 1) * (num_points_z - 1) * 3
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']

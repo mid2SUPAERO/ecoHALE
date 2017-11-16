@@ -16,7 +16,7 @@ from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2
 num_nodes = 1
 
 num_points_x = 2
-num_points_z_half = 30
+num_points_z_half = 3 #30
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
@@ -81,13 +81,14 @@ prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
 prob.driver.add_recorder(SqliteRecorder('aero.hst'))
 prob.driver.recording_options['includes'] = ['*']
 
-prob.setup()
+prob.setup(force_alloc_complex=True)
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
 # prob.run_model()
 
-if 0:
+if 1:
+    prob.run_model()
     prob.check_partials(compact_print=True)
     exit()
 

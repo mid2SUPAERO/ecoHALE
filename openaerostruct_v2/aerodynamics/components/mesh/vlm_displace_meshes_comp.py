@@ -55,6 +55,8 @@ class VLMDisplaceMeshesComp(ExplicitComponent):
             self.declare_partials(mesh_name, mesh_displacement,
                 rows=rows, cols=cols, val=1.)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
 

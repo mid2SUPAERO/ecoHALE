@@ -101,6 +101,8 @@ class VLMPanelCoeffsComp(ExplicitComponent):
 
             ind1 += num
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']

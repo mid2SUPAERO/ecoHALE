@@ -75,6 +75,8 @@ class VLMPanelForcesComp(ExplicitComponent):
             system_size * 3, system_size * 3, num_nodes)
         self.declare_partials('panel_forces', 'bound_vecs', rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         velocities_name = '{}_velocities'.format('force_pts')
 

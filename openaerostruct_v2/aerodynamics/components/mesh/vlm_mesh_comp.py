@@ -91,6 +91,8 @@ class VLMMeshComp(ExplicitComponent):
                 in_name = '{}_{}'.format(lifting_surface_name, 'sec_z')
                 self.declare_partials(sec_areas_name, in_name, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lifting_surfaces = self.metadata['lifting_surfaces']
         vortex_mesh = self.metadata['vortex_mesh']

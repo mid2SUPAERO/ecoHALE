@@ -54,6 +54,8 @@ class VLMRotatePanelForcesComp(ExplicitComponent):
             system_size * 3, system_size * 3, num_nodes)
         self.declare_partials('panel_forces_rotated', 'panel_forces', rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
 
@@ -64,7 +66,7 @@ class VLMRotatePanelForcesComp(ExplicitComponent):
 
         ones = np.ones(system_size)
 
-        rotation = np.zeros((num_nodes, system_size, 3, 3))
+        rotation = np.zeros((num_nodes, system_size, 3, 3), dtype=inputs['alpha_rad'].dtype)
         rotation[:, :, 0, 0] = np.outer( np.cos(alpha_rad), ones)
         rotation[:, :, 0, 1] = np.outer( np.sin(alpha_rad), ones)
         rotation[:, :, 1, 0] = np.outer(-np.sin(alpha_rad), ones)

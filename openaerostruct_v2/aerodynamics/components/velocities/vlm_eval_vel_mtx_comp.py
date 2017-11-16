@@ -147,7 +147,7 @@ class VLMEvalVelMtxComp(ExplicitComponent):
                 num_eval_points * num_points_x * num_points_z * 3, num_nodes)
             self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
 
-            self.set_check_partial_options(vectors_name, step=1e-10)
+        self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']

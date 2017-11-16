@@ -68,6 +68,8 @@ class VLMHorseshoeCirculationsComp(ExplicitComponent):
 
         self.declare_partials('horseshoe_circulations', 'circulations', val=data, rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
 

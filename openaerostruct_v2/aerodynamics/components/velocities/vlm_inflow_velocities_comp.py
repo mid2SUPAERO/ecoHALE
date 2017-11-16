@@ -48,6 +48,8 @@ class VLMInflowVelocitiesComp(ExplicitComponent):
         _, rows, cols = tile_sparse_jac(1., rows, cols, 3 * system_size, 3 * system_size, num_nodes)
         self.declare_partials(inflow_name, ext_name, val=1., rows=rows, cols=cols)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         num_nodes = self.metadata['num_nodes']
         suffix = self.metadata['suffix']

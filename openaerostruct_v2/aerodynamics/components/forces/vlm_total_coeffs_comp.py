@@ -39,6 +39,8 @@ class VLMTotalCoeffsComp(ExplicitComponent):
         self.declare_partials('C_D', 'wing_area_m2', rows=arange, cols=arange)
         self.declare_partials('C_D', 'drag', rows=arange, cols=arange)
 
+        self.set_check_partial_options('*', method='cs')
+
     def compute(self, inputs, outputs):
         lift = inputs['lift']
         drag = inputs['drag']
