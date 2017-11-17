@@ -30,9 +30,8 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        velocities_name = '{}_velocities'.format(eval_name)
+        velocities_name = '{}_eval_velocities'.format(eval_name)
 
-        self.add_input('inflow_velocities_f', shape=(num_nodes, system_size, 3))
         self.add_input('circulations', shape=(num_nodes, system_size))
         self.add_output(velocities_name, shape=(num_nodes, num_eval_points, 3))
 
@@ -46,12 +45,6 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
         _, rows, cols = tile_sparse_jac(1., rows, cols,
             num_eval_points * 3, system_size, num_nodes)
         self.declare_partials(velocities_name, 'circulations', rows=rows, cols=cols)
-
-        rows = np.arange(3 * num_eval_points)
-        cols = np.arange(3 * num_eval_points)
-        _, rows, cols = tile_sparse_jac(1., rows, cols,
-            num_eval_points * 3, system_size * 3, num_nodes)
-        self.declare_partials(velocities_name, 'inflow_velocities_f', val=1., rows=rows, cols=cols)
 
         ind_1 = 0
         ind_2 = 0
@@ -88,9 +81,9 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
 
         system_size = self.system_size
 
-        velocities_name = '{}_velocities'.format(eval_name)
+        velocities_name = '{}_eval_velocities'.format(eval_name)
 
-        outputs[velocities_name] = inputs['inflow_velocities_f']
+        outputs[velocities_name] = 0.
 
         ind_1 = 0
         ind_2 = 0
@@ -118,7 +111,7 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
 
         system_size = self.system_size
 
-        velocities_name = '{}_velocities'.format(eval_name)
+        velocities_name = '{}_eval_velocities'.format(eval_name)
 
         dv_dcirc = partials[velocities_name, 'circulations'].reshape(
             (num_nodes, num_eval_points, system_size, 3))

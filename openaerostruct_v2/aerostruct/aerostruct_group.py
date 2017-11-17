@@ -55,13 +55,3 @@ class AerostructGroup(Group):
         self.nonlinear_solver = NonlinearBlockGS(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10)
         self.linear_solver = ScipyKrylov(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10)
         self.linear_solver.precon = LinearBlockGS(iprint=-1, maxiter=1)
-
-    # def _solve_linear(self, vec_names, mode, rel_systems):
-    #     if mode == 'fwd':
-    #         for vec_name in vec_names:
-    #             self._vectors['output'][vec_name].set_const(0.)
-    #     elif mode == 'rev':
-    #         for vec_name in vec_names:
-    #             self._vectors['residual'][vec_name].set_const(0.)
-    #
-    #     return super(AerostructGroup, self)._solve_linear(vec_names, mode, rel_systems)
