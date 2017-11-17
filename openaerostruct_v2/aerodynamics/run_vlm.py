@@ -8,6 +8,7 @@ from openaerostruct_v2.geometry.inputs_group import InputsGroup
 from openaerostruct_v2.aerodynamics.vlm_preprocess_group import VLMPreprocessGroup
 from openaerostruct_v2.aerodynamics.vlm_states1_group import VLMStates1Group
 from openaerostruct_v2.aerodynamics.vlm_states2_group import VLMStates2Group
+from openaerostruct_v2.aerodynamics.vlm_states3_group import VLMStates3Group
 from openaerostruct_v2.aerodynamics.vlm_postprocess_group import VLMPostprocessGroup
 
 from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
@@ -59,6 +60,10 @@ prob.model.add_subsystem('vlm_states1_group',
 )
 prob.model.add_subsystem('vlm_states2_group',
     VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vlm_scaler=vlm_scaler),
+    promotes=['*'],
+)
+prob.model.add_subsystem('vlm_states3_group',
+    VLMStates3Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
     promotes=['*'],
 )
 prob.model.add_subsystem('vlm_postprocess_group',

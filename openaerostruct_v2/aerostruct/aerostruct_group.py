@@ -5,6 +5,7 @@ from openmdao.api import Group, NonlinearBlockGS, LinearBlockGS, ScipyKrylov, De
 
 from openaerostruct_v2.aerodynamics.vlm_states1_group import VLMStates1Group
 from openaerostruct_v2.aerodynamics.vlm_states2_group import VLMStates2Group
+from openaerostruct_v2.aerodynamics.vlm_states3_group import VLMStates3Group
 
 from openaerostruct_v2.structures.fea_states_group import FEAStatesGroup
 
@@ -34,6 +35,10 @@ class AerostructGroup(Group):
             VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vlm_scaler=vlm_scaler),
             promotes=['*'],
         )
+        self.add_subsystem('vlm_states3_group',
+            VLMStates3Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+            promotes=['*'],
+        )
         self.add_subsystem('load_transfer_group',
             LoadTransferGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
@@ -47,8 +52,8 @@ class AerostructGroup(Group):
             promotes=['*'],
         )
 
-        self.nonlinear_solver = NonlinearBlockGS(iprint=2, maxiter=40, atol=1e-2, rtol=1e-6)
-        self.linear_solver = ScipyKrylov(iprint=2, maxiter=20, atol=1e-15, rtol=1e-15)
+        self.nonlinear_solver = NonlinearBlockGS(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10)
+        self.linear_solver = ScipyKrylov(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10)
         self.linear_solver.precon = LinearBlockGS(iprint=-1, maxiter=1)
 
     # def _solve_linear(self, vec_names, mode, rel_systems):

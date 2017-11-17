@@ -12,9 +12,6 @@ from openaerostruct_v2.aerodynamics.components.circulations.vlm_mtx_rhs_comp imp
 from openaerostruct_v2.aerodynamics.components.circulations.vlm_circulations_comp import VLMCirculationsComp
 from openaerostruct_v2.aerodynamics.components.circulations.vlm_horseshoe_circulations_comp import VLMHorseshoeCirculationsComp
 
-from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_forces_comp import VLMPanelForcesComp
-from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_forces_surf_comp import VLMPanelForcesSurfComp
-
 
 class VLMStates2Group(Group):
 
@@ -72,9 +69,3 @@ class VLMStates2Group(Group):
         comp = VLMEvalVelocitiesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
             eval_name='force_pts', num_eval_points=num_force_points)
         self.add_subsystem('vlm_force_eval_velocities_comp', comp, promotes=['*'])
-
-        comp = VLMPanelForcesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_panel_forces_comp', comp, promotes=['*'])
-
-        comp = VLMPanelForcesSurfComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_panel_forces_surf_comp', comp, promotes=['*'])
