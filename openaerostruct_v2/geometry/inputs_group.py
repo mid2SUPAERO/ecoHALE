@@ -12,14 +12,19 @@ class InputsGroup(Group):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('exclude_dv', types=list, default=[])
+        self.metadata.declare('exclude_cp', types=list, default=[])
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+        exclude_dv = self.metadata['exclude_dv']
+        exclude_cp = self.metadata['exclude_cp']
 
         default_bspline = (2, 2)
 
         comp = IndepVarComp()
+        comp.add_output('dummy_var')
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             chord = lifting_surface_data.get('chord', None)
             twist = lifting_surface_data.get('twist', None)
@@ -33,28 +38,33 @@ class InputsGroup(Group):
             sec_y_ncp, sec_y_order = lifting_surface_data.get('sec_y_bspline', default_bspline)
             sec_z_ncp, sec_z_order = lifting_surface_data.get('sec_z_bspline', default_bspline)
 
-            name = '{}_{}_dv'.format(lifting_surface_name, 'chord')
-            comp.add_output(name, val=chord, shape=2 * chord_ncp - 1)
+            if 'chord' not in exclude_dv:
+                name = '{}_{}_dv'.format(lifting_surface_name, 'chord')
+                comp.add_output(name, val=chord, shape=2 * chord_ncp - 1)
 
-            name = '{}_{}_dv'.format(lifting_surface_name, 'twist')
-            comp.add_output(name, val=twist, shape=2 * twist_ncp - 1)
+            if 'twist' not in exclude_dv:
+                name = '{}_{}_dv'.format(lifting_surface_name, 'twist')
+                comp.add_output(name, val=twist, shape=2 * twist_ncp - 1)
 
-            sec_x = np.zeros(2 * sec_x_ncp - 1)
-            sec_x[sec_x_ncp - 1:] = np.linspace(0., sweep_x, sec_x_ncp)
-            sec_x[:sec_x_ncp][::-1] = np.linspace(0., sweep_x, sec_x_ncp)
-            name = '{}_{}_dv'.format(lifting_surface_name, 'sec_x')
-            comp.add_output(name, val=sec_x, shape=2 * sec_x_ncp - 1)
+            if 'sec_x' not in exclude_dv:
+                sec_x = np.zeros(2 * sec_x_ncp - 1)
+                sec_x[sec_x_ncp - 1:] = np.linspace(0., sweep_x, sec_x_ncp)
+                sec_x[:sec_x_ncp][::-1] = np.linspace(0., sweep_x, sec_x_ncp)
+                name = '{}_{}_dv'.format(lifting_surface_name, 'sec_x')
+                comp.add_output(name, val=sec_x, shape=2 * sec_x_ncp - 1)
 
-            sec_y = np.zeros(2 * sec_y_ncp - 1)
-            sec_y[sec_y_ncp - 1:] = np.linspace(0., dihedral_y, sec_y_ncp)
-            sec_y[:sec_y_ncp][::-1] = np.linspace(0., dihedral_y, sec_y_ncp)
-            name = '{}_{}_dv'.format(lifting_surface_name, 'sec_y')
-            comp.add_output(name, val=sec_y, shape=2 * sec_y_ncp - 1)
+            if 'sec_y' not in exclude_dv:
+                sec_y = np.zeros(2 * sec_y_ncp - 1)
+                sec_y[sec_y_ncp - 1:] = np.linspace(0., dihedral_y, sec_y_ncp)
+                sec_y[:sec_y_ncp][::-1] = np.linspace(0., dihedral_y, sec_y_ncp)
+                name = '{}_{}_dv'.format(lifting_surface_name, 'sec_y')
+                comp.add_output(name, val=sec_y, shape=2 * sec_y_ncp - 1)
 
-            sec_z = np.zeros(2 * sec_z_ncp - 1)
-            sec_z = span * np.linspace(-1., 1., 2 * sec_z_ncp - 1)
-            name = '{}_{}_dv'.format(lifting_surface_name, 'sec_z')
-            comp.add_output(name, val=sec_z, shape=2 * sec_z_ncp - 1)
+            if 'sec_z' not in exclude_dv:
+                sec_z = np.zeros(2 * sec_z_ncp - 1)
+                sec_z = span * np.linspace(-1., 1., 2 * sec_z_ncp - 1)
+                name = '{}_{}_dv'.format(lifting_surface_name, 'sec_z')
+                comp.add_output(name, val=sec_z, shape=2 * sec_z_ncp - 1)
 
         self.add_subsystem('indep_var_comp', comp, promotes=['*'])
 
@@ -72,8 +82,9 @@ class InputsGroup(Group):
                     in_name=in_name,
                     out_name=out_name,
                 )
-                self.add_subsystem('{}_{}_static_dv_comp'.format(lifting_surface_name, name), comp,
-                    promotes=['*'])
+                if name not in exclude_cp:
+                    self.add_subsystem('{}_{}_static_dv_comp'.format(lifting_surface_name, name), comp,
+                        promotes=['*'])
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
