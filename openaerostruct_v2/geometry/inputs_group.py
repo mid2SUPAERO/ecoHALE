@@ -4,7 +4,7 @@ import numpy as np
 from openmdao.api import Group, IndepVarComp
 
 from openaerostruct_v2.common.bspline_comp import BsplinesComp
-from openaerostruct_v2.common.static_dv_comp import StaticDVComp
+from openaerostruct_v2.common.array_expansion_comp import ArrayExpansionComp
 
 
 class InputsGroup(Group):
@@ -76,14 +76,14 @@ class InputsGroup(Group):
 
                 in_name = '{}_{}_dv'.format(lifting_surface_name, name)
                 out_name = '{}_{}_cp'.format(lifting_surface_name, name)
-                comp = StaticDVComp(
-                    num_nodes=num_nodes,
-                    num_points=num_control_points,
+                comp = ArrayExpansionComp(
+                    shape=(num_nodes, num_control_points),
+                    expand_indices=[0],
                     in_name=in_name,
                     out_name=out_name,
                 )
                 if name not in exclude_cp:
-                    self.add_subsystem('{}_{}_static_dv_comp'.format(lifting_surface_name, name), comp,
+                    self.add_subsystem('{}_{}_expand_cp_comp'.format(lifting_surface_name, name), comp,
                         promotes=['*'])
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
