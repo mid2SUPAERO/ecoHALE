@@ -6,31 +6,33 @@ from openmdao.api import Group, IndepVarComp
 from openaerostruct_v2.common.bspline_comp import BsplinesComp
 from openaerostruct_v2.common.array_expansion_comp import ArrayExpansionComp
 
+from openaerostruct_v2.utils.misc_utils import expand_array
+
 
 class InputsGroup(Group):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('exclude_dv', types=list, default=[])
-        self.metadata.declare('exclude_cp', types=list, default=[])
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
-        exclude_dv = self.metadata['exclude_dv']
-        exclude_cp = self.metadata['exclude_cp']
 
         default_bspline = (2, 2)
 
-        comp = IndepVarComp()
-        comp.add_output('dummy_var')
+        initial_vals = {}
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
+            num_points_x = lifting_surface_data['num_points_x']
+            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
             chord = lifting_surface_data.get('chord', None)
             twist = lifting_surface_data.get('twist', None)
             sweep_x = lifting_surface_data.get('sweep_x', None)
             dihedral_y = lifting_surface_data.get('dihedral_y', None)
             span = lifting_surface_data.get('span', None)
+            airfoil_x = lifting_surface_data.get('airfoil_x', None)
+            airfoil_y = lifting_surface_data.get('airfoil_y', None)
 
             chord_ncp, chord_order = lifting_surface_data.get('chord_bspline', default_bspline)
             twist_ncp, twist_order = lifting_surface_data.get('twist_bspline', default_bspline)
@@ -38,33 +40,68 @@ class InputsGroup(Group):
             sec_y_ncp, sec_y_order = lifting_surface_data.get('sec_y_bspline', default_bspline)
             sec_z_ncp, sec_z_order = lifting_surface_data.get('sec_z_bspline', default_bspline)
 
-            if 'chord' not in exclude_dv:
-                name = '{}_{}_dv'.format(lifting_surface_name, 'chord')
-                comp.add_output(name, val=chord, shape=2 * chord_ncp - 1)
+            if chord is not None:
+                initial_vals[lifting_surface_name, 'chord'] = chord * np.ones(2 * chord_ncp - 1)
+            else:
+                initial_vals[lifting_surface_name, 'chord'] = None
 
-            if 'twist' not in exclude_dv:
-                name = '{}_{}_dv'.format(lifting_surface_name, 'twist')
-                comp.add_output(name, val=twist, shape=2 * twist_ncp - 1)
+            if twist is not None:
+                initial_vals[lifting_surface_name, 'twist'] = twist * np.ones(2 * twist_ncp - 1)
+            else:
+                initial_vals[lifting_surface_name, 'twist'] = None
 
-            if 'sec_x' not in exclude_dv:
+            if sweep_x is not None:
                 sec_x = np.zeros(2 * sec_x_ncp - 1)
                 sec_x[sec_x_ncp - 1:] = np.linspace(0., sweep_x, sec_x_ncp)
                 sec_x[:sec_x_ncp][::-1] = np.linspace(0., sweep_x, sec_x_ncp)
-                name = '{}_{}_dv'.format(lifting_surface_name, 'sec_x')
-                comp.add_output(name, val=sec_x, shape=2 * sec_x_ncp - 1)
+                initial_vals[lifting_surface_name, 'sec_x'] = sec_x
+            else:
+                initial_vals[lifting_surface_name, 'sec_x'] = None
 
-            if 'sec_y' not in exclude_dv:
+            if dihedral_y is not None:
                 sec_y = np.zeros(2 * sec_y_ncp - 1)
                 sec_y[sec_y_ncp - 1:] = np.linspace(0., dihedral_y, sec_y_ncp)
                 sec_y[:sec_y_ncp][::-1] = np.linspace(0., dihedral_y, sec_y_ncp)
-                name = '{}_{}_dv'.format(lifting_surface_name, 'sec_y')
-                comp.add_output(name, val=sec_y, shape=2 * sec_y_ncp - 1)
+                initial_vals[lifting_surface_name, 'sec_y'] = sec_y
+            else:
+                initial_vals[lifting_surface_name, 'sec_y'] = None
 
-            if 'sec_z' not in exclude_dv:
+            if span is not None:
                 sec_z = np.zeros(2 * sec_z_ncp - 1)
                 sec_z = span * np.linspace(-1., 1., 2 * sec_z_ncp - 1)
-                name = '{}_{}_dv'.format(lifting_surface_name, 'sec_z')
-                comp.add_output(name, val=sec_z, shape=2 * sec_z_ncp - 1)
+                initial_vals[lifting_surface_name, 'sec_z'] = sec_z
+            else:
+                initial_vals[lifting_surface_name, 'sec_z'] = None
+
+            if airfoil_x is not None:
+                airfoil_x = expand_array(airfoil_x, (num_nodes, num_points_x, num_points_z), [0, 2])
+                initial_vals[lifting_surface_name, 'airfoil_x'] = airfoil_x
+            else:
+                initial_vals[lifting_surface_name, 'airfoil_x'] = None
+
+            if airfoil_y is not None:
+                airfoil_y = expand_array(airfoil_y, (num_nodes, num_points_x, num_points_z), [0, 2])
+                initial_vals[lifting_surface_name, 'airfoil_y'] = airfoil_y
+            else:
+                initial_vals[lifting_surface_name, 'airfoil_y'] = None
+
+        comp = IndepVarComp()
+        comp.add_output('dummy_var')
+        for lifting_surface_name, lifting_surface_data in lifting_surfaces:
+            num_points_x = lifting_surface_data['num_points_x']
+            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            for name in ['chord', 'twist', 'sec_x', 'sec_y', 'sec_z']:
+                val = initial_vals[lifting_surface_name, name]
+                if val is not None:
+                    name = '{}_{}_dv'.format(lifting_surface_name, name)
+                    comp.add_output(name, val=val)
+
+            for name in ['airfoil_x', 'airfoil_y']:
+                val = initial_vals[lifting_surface_name, name]
+                if val is not None:
+                    name = '{}_{}'.format(lifting_surface_name, name)
+                    comp.add_output(name, val=val)
 
         self.add_subsystem('indep_var_comp', comp, promotes=['*'])
 
@@ -82,7 +119,9 @@ class InputsGroup(Group):
                     in_name=in_name,
                     out_name=out_name,
                 )
-                if name not in exclude_cp:
+
+                val = initial_vals[lifting_surface_name, name]
+                if val is not None:
                     self.add_subsystem('{}_{}_expand_cp_comp'.format(lifting_surface_name, name), comp,
                         promotes=['*'])
 

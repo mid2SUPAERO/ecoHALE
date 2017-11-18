@@ -85,7 +85,7 @@ def read_aero_hist(filename):
     states = {
         'mesh': 'vlm_preprocess_group.vlm_mesh_comp.wing_undeformed_mesh',
         'twist': 'inputs_group.wing_twist_bspline_comp.wing_twist',
-        'forces': 'vlm_states2_group.vlm_panel_forces_comp.panel_forces',
+        'forces': 'vlm_states3_group.vlm_panel_forces_comp.panel_forces',
         'rho_kg_m3': 'indep_var_comp.rho_kg_m3',
         'v_m_s': 'indep_var_comp.v_m_s',
     }

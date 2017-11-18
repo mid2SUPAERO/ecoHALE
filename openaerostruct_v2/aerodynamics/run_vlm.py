@@ -14,21 +14,26 @@ from openaerostruct_v2.aerodynamics.vlm_postprocess_group import VLMPostprocessG
 from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
 
 
-check_derivs = False
+check_derivs = 0
 
 num_nodes = 1 if not check_derivs else 2
 
-num_points_x = 2
+num_points_x = 3
 num_points_z_half = 30 if not check_derivs else 2
 num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
         'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
-        'airfoil': np.zeros(num_points_x),
-        'chord': 1., 'twist': 0. * np.pi / 180., 'sweep_x': 0., 'dihedral_y': 0., 'span': 5,
-        'twist_bspline': (11, 3),
-        'sec_z_bspline': (num_points_z_half, 2),
+        'airfoil_x': np.linspace(0., 1., num_points_x),
+        'airfoil_y': np.zeros(num_points_x),
+        'chord': 1.,
         'chord_bspline': (2, 2),
+        'twist': 0. * np.pi / 180.,
+        'twist_bspline': (11, 3),
+        'sweep_x': 0.,
+        'dihedral_y': 0.,
+        'span': 5,
+        'sec_z_bspline': (num_points_z_half, 2),
         'thickness_bspline': (10, 3),
         'thickness' : .1,
         'radius' : 1.,
@@ -101,15 +106,18 @@ if check_derivs:
     prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
     prob.run_model()
     prob.check_partials(compact_print=True)
+    print(prob['wing_mesh'][0, :, 0, 0])
+    print(prob['wing_mesh'][0, :, 0, 1])
     exit()
 
 prob.run_driver()
 
 print('alpha', prob['alpha_rad'])
+print(prob['C_L'])
 
 if 1:
     for i in range(num_nodes):
-        C_L = prob['wing_sec_C_L'].reshape((num_nodes, num_points_x - 1, num_points_z - 1))[i, 0, :] \
+        C_L = prob['wing_sec_C_L'].reshape((num_nodes, num_points_z - 1))[i, :] \
             * 0.5 * (prob['wing_chord'][i, 1:] + prob['wing_chord'][i, :-1])
         sec_z = 0.5 * (prob['wing_sec_z'][i, 1:] + prob['wing_sec_z'][i, :-1])
         elliptical = C_L[num_points_z_half - 1] * np.sqrt(np.abs(1 - (sec_z / sec_z[-1]) ** 2))

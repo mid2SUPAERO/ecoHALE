@@ -43,8 +43,9 @@ class VLMFreestreamVelComp(ExplicitComponent):
         num_nodes = self.metadata['num_nodes']
         size = self.metadata['size']
 
-        alpha_rad = inputs['alpha_rad']
-        v_m_s = inputs['v_m_s']
+        ones = np.ones(size)
+        alpha_rad = np.outer(inputs['alpha_rad'], ones)
+        v_m_s = np.outer(inputs['v_m_s'], ones)
 
         derivs = partials['freestream_vel', 'v_m_s'].reshape((num_nodes, size, 3))
         derivs[:, :, 0] = np.cos(alpha_rad)
