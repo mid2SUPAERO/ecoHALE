@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import Group
 
-from openaerostruct_v2.common.general_sum_comp import GeneralSumComp
+from openaerostruct_v2.common.linear_comb_comp import LinearCombComp
 
 from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_forces_comp import VLMPanelForcesComp
 from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_forces_surf_comp import VLMPanelForcesSurfComp
@@ -27,7 +27,7 @@ class VLMStates3Group(Group):
 
         in_names = ['force_pts_eval_velocities', 'freestream_vel', 'vlm_ext_velocities']
         out_name = 'force_pts_velocities'
-        comp = GeneralSumComp(shape=(num_nodes, size, 3), in_names=in_names, out_name=out_name)
+        comp = LinearCombComp(shape=(num_nodes, size, 3), in_names=in_names, out_name=out_name)
         self.add_subsystem('vlm_force_pt_vel_comp', comp, promotes=['*'])
 
         comp = VLMPanelForcesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)

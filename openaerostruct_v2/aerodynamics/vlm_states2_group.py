@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import Group
 
-from openaerostruct_v2.common.general_sum_comp import GeneralSumComp
+from openaerostruct_v2.common.linear_comb_comp import LinearCombComp
 
 from openaerostruct_v2.aerodynamics.components.velocities.vlm_eval_vectors_comp import VLMEvalVectorsComp
 from openaerostruct_v2.aerodynamics.components.velocities.vlm_eval_vel_mtx_comp import VLMEvalVelMtxComp
@@ -38,7 +38,7 @@ class VLMStates2Group(Group):
 
         in_names = ['freestream_vel', 'vlm_ext_velocities']
         out_name = 'inflow_velocities'
-        comp = GeneralSumComp(shape=(num_nodes, num_force_points, 3), in_names=in_names, out_name=out_name)
+        comp = LinearCombComp(shape=(num_nodes, num_force_points, 3), in_names=in_names, out_name=out_name)
         self.add_subsystem('vlm_inflow_velocities_comp', comp, promotes=['*'])
 
         comp = VLMEvalVectorsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces,
