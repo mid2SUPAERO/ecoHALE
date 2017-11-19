@@ -40,4 +40,5 @@ class ProductComp(ExplicitComponent):
         in_name2 = self.metadata['in_name2']
         out_name = self.metadata['out_name']
 
-        outputs[out_name] = inputs[in_name1] * inputs[in_name2]
+        partials[out_name, in_name1] = inputs[in_name2]
+        partials[out_name, in_name2] = inputs[in_name1]
