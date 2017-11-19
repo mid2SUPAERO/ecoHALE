@@ -37,7 +37,7 @@ lifting_surfaces = [
         'spar_location': 0.35,
         'E': 70.e9,
         'G': 29.e9,
-        'sigma_y': 200e6, #200e6,
+        'sigma_y': 200e6,
         'rho': 2700,
     })
 ]
