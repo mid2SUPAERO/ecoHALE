@@ -19,7 +19,8 @@ num_points_z = 2 * num_points_z_half - 1
 lifting_surfaces = [
     ('wing', {
         'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
-        'airfoil': np.zeros(num_points_x),
+        'airfoil_x': np.linspace(0., 1., num_points_x),
+        'airfoil_y': np.zeros(num_points_x),
         'chord': 1., 'twist': 0. * np.pi / 180., 'sweep_x': 0., 'dihedral_y': 0., 'span': 5,
         'twist_bspline': (2, 2),
         'sec_z_bspline': (2, 2),
