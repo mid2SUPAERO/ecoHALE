@@ -25,6 +25,8 @@ def read_hist(filename):
         show_wing = True
         show_tube = True
     except:
+        import traceback
+        traceback.print_exc()
         pass
 
     return data_all_iters, show_wing, show_tube
@@ -136,7 +138,7 @@ def read_AS_hist(filename):
         'twist': 'inputs_group.wing_twist_bspline_comp.wing_twist',
         'thickness': 'tube_bspline_group.wing_thickness_bspline_comp.wing_tube_thickness',
         'radius': 'tube_bspline_group.wing_radius_bspline_comp.wing_tube_radius',
-        'forces': 'aerostruct_group.vlm_states2_group.vlm_panel_forces_comp.panel_forces',
+        'forces': 'aerostruct_group.vlm_states3_group.vlm_panel_forces_comp.panel_forces',
         'mesh': 'aerostruct_group.vlm_states1_group.vlm_displace_meshes_comp.wing_mesh',
         'disp': 'aerostruct_group.fea_states_group.fea_disp_comp.wing_disp',
         'fea_mesh': 'fea_preprocess_group.fea_mesh_comp.wing_fea_mesh',

@@ -50,8 +50,6 @@ except:
     print("Correct plotting modules not available; please consult import list")
     print()
 
-# TODO change this for mission viz, for now jsut look at the first point
-pt = 0
 # TODO don't hardcode yield stress
 yield_stress = 200e6
 
@@ -61,8 +59,11 @@ yield_stress = 200e6
 
 db_name = sys.argv[1]
 
+# TODO change this for mission viz, for now jsut look at the first point
+pt_list = [0]
+
 try:
-    zoom_scale = sys.argv[2]
+    zoom_scale = sys.argv[3]
 except:
     zoom_scale = 2.8
 
@@ -114,32 +115,39 @@ class Display(object):
         self.num_iters = len(self.data_all_iters)
 
         if self.show_wing:
+
             for data in self.data_all_iters:
-                m_vals = data['mesh'][pt]
-                cvec = m_vals[0, :, :] - m_vals[-1, :, :]
-                chords = np.sqrt(np.sum(cvec**2, axis=1))
-                chords = 0.5 * (chords[1:] + chords[:-1])
-                a = data['alpha_rad']
-                cosa = np.cos(a)
-                sina = np.sin(a)
+                data['lift'] = []
+                data['lift_ell'] = []
 
-                widths = m_vals[0, 1:, 2] - m_vals[0, :-1, 2]
+                for pt in pt_list:
+                    data['mesh'] = data['mesh'] + np.array([-.3, 0., 0.])
+                    data['fea_mesh'] = data['fea_mesh'] + np.array([-.3, 0., 0.])
+                    m_vals = data['mesh'][pt]
+                    cvec = m_vals[0, :, :] - m_vals[-1, :, :]
+                    chords = np.sqrt(np.sum(cvec**2, axis=1))
+                    chords = 0.5 * (chords[1:] + chords[:-1])
+                    a = data['alpha_rad']
+                    cosa = np.cos(a)
+                    sina = np.sin(a)
 
-                forces = data['forces'][pt]
-                rho_kg_m3 = data['rho_kg_m3'][pt]
-                v_m_s = data['v_m_s'][pt]
+                    widths = m_vals[0, 1:, 2] - m_vals[0, :-1, 2]
 
-                lift = forces[:, 1] / widths/0.5/rho_kg_m3/v_m_s**2
+                    forces = data['forces'][pt]
+                    rho_kg_m3 = data['rho_kg_m3'][pt]
+                    v_m_s = data['v_m_s'][pt]
 
-                span = (m_vals[0, :, 2] / (m_vals[0, -1, 2] - m_vals[0, 0, 2]))
-                span = span - (span[0] + .5)
+                    lift = forces[:, 1] / widths/0.5/rho_kg_m3/v_m_s**2
 
-                lift_area = np.sum(lift * (span[1:] - span[:-1]))
+                    span = (m_vals[0, :, 2] / (m_vals[0, -1, 2] - m_vals[0, 0, 2]))
+                    span = span - (span[0] + .5)
 
-                lift_ell = 4 * lift_area / np.pi * np.sqrt(1 - (2*span)**2)
+                    lift_area = np.sum(lift * (span[1:] - span[:-1]))
 
-                data['lift'] = lift
-                data['lift_ell'] = lift_ell
+                    lift_ell = 4 * lift_area / np.pi * np.sqrt(1 - (2*span)**2)
+
+                    data['lift'].append(lift)
+                    data['lift_ell'].append(lift_ell)
 
 
     def plot_sides(self):
@@ -149,7 +157,7 @@ class Display(object):
             self.ax2.cla()
             self.ax2.locator_params(axis='y',nbins=5)
             self.ax2.locator_params(axis='x',nbins=3)
-            self.ax2.set_ylim([-10., 10.])
+            self.ax2.set_ylim([-10., 11.])
             self.ax2.set_xlim([-1, 1])
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
@@ -158,7 +166,7 @@ class Display(object):
                 transform=self.ax3.transAxes, color='g')
             self.ax3.locator_params(axis='y',nbins=4)
             self.ax3.locator_params(axis='x',nbins=3)
-            self.ax3.set_ylim([0, .5])
+            self.ax3.set_ylim([0, .25])
             self.ax3.set_xlim([-1, 1])
             self.ax3.set_ylabel('lift', rotation="horizontal", ha="right")
 
@@ -168,7 +176,7 @@ class Display(object):
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             # TODO change thickness bounds
-            self.ax4.set_ylim([0., .1])
+            self.ax4.set_ylim([0., .01])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
@@ -186,30 +194,34 @@ class Display(object):
         data = self.data_all_iters[self.curr_pos]
 
         if self.show_tube:
-            fea_mesh = data['fea_mesh'][pt, :, :]
-            span = fea_mesh[-1, 2] - fea_mesh[0, 2]
-            rel_span = (fea_mesh[:, 2] - fea_mesh[0, 2]) * 2 / span - 1
-            span_diff = ((fea_mesh[:-1, 2] + fea_mesh[1:, 2]) / 2 - fea_mesh[0, 2]) * 2 / span - 1
+            for pt in pt_list:
+                fea_mesh = data['fea_mesh'][pt, :, :]
+                span = fea_mesh[-1, 2] - fea_mesh[0, 2]
+                rel_span = (fea_mesh[:, 2] - fea_mesh[0, 2]) * 2 / span - 1
+                span_diff = ((fea_mesh[:-1, 2] + fea_mesh[1:, 2]) / 2 - fea_mesh[0, 2]) * 2 / span - 1
 
-            thick_vals = data['thickness'][pt]
-            # TODO: check ths out for multiple node case; will need to reformulate since OM flattens constraints
-            vm_vals = data['vonmises'][pt] * yield_stress
-            self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
-            self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
+                thick_vals = data['thickness'][pt]
+                # TODO: check ths out for multiple node case; will need to reformulate since OM flattens constraints
+                vm_vals = data['vonmises'][pt] * yield_stress
+                if pt==0:
+                    self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
+                self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
 
         if self.show_wing:
-            mesh = data['mesh'][pt, 0, :, :]
-            span = mesh[-1, 2] - mesh[0, 2]
-            rel_span = (mesh[:, 2] - mesh[0, 2]) * 2 / span - 1
-            span_diff = ((mesh[:-1, 2] + mesh[1:, 2]) / 2 - mesh[0, 2]) * 2 / span - 1
+            for pt in pt_list:
+                mesh = data['mesh'][pt, 0, :, :]
+                span = mesh[-1, 2] - mesh[0, 2]
+                rel_span = (mesh[:, 2] - mesh[0, 2]) * 2 / span - 1
+                span_diff = ((mesh[:-1, 2] + mesh[1:, 2]) / 2 - mesh[0, 2]) * 2 / span - 1
 
-            twist = data['twist'][pt] * 180. / np.pi
-            lift = data['lift']
-            lift_ell = data['lift_ell']
+                twist = data['twist'][pt] * 180. / np.pi
+                lift = data['lift'][pt]
+                lift_ell = data['lift_ell'][pt]
 
-            self.ax2.plot(rel_span, twist, lw=2, c='b')
-            self.ax3.plot(rel_span, lift_ell, '--', lw=2, c='g')
-            self.ax3.plot(span_diff, lift, lw=2, c='b')
+                if pt==0:
+                    self.ax2.plot(rel_span, twist, lw=2, c='b')
+                self.ax3.plot(rel_span, lift_ell, '--', lw=2, c='g')
+                self.ax3.plot(span_diff, lift, lw=2, c='b')
 
     def plot_wing(self):
 
@@ -221,6 +233,8 @@ class Display(object):
         data = self.data_all_iters[self.curr_pos]
 
         self.ax.set_axis_off()
+
+        pt = pt_list[0]
 
         if self.show_wing:
 
