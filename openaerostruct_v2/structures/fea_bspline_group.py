@@ -19,8 +19,7 @@ class FEABsplineGroup(Group):
 
         default_bspline = (2, 2)
 
-        comp = IndepVarComp()
-        comp.add_output('fea_dummy_var')
+        initial_vals = {}
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             thickness = lifting_surface_data.get('thickness', None)
             radius = lifting_surface_data.get('radius', None)
@@ -28,11 +27,25 @@ class FEABsplineGroup(Group):
             thickness_ncp, thickness_order = lifting_surface_data.get('thickness_bspline', default_bspline)
             radius_ncp, radius_order = lifting_surface_data.get('radius_bspline', default_bspline)
 
-            name = '{}_tube_{}_dv'.format(lifting_surface_name, 'thickness')
-            comp.add_output(name, val=thickness, shape=2 * thickness_ncp - 1)
+            if thickness is not None:
+                initial_vals[lifting_surface_name, 'thickness'] = thickness * np.ones(2 * thickness_ncp - 1)
+            else:
+                initial_vals[lifting_surface_name, 'thickness'] = None
 
-            name = '{}_tube_{}_dv'.format(lifting_surface_name, 'radius')
-            comp.add_output(name, val=radius, shape=2 * radius_ncp - 1)
+            if radius is not None:
+                initial_vals[lifting_surface_name, 'radius'] = radius * np.ones(2 * radius_ncp - 1)
+            else:
+                initial_vals[lifting_surface_name, 'radius'] = None
+
+        comp = IndepVarComp()
+        comp.add_output('fea_dummy_var')
+        for lifting_surface_name, lifting_surface_data in lifting_surfaces:
+
+            for name in ['thickness', 'radius']:
+                val = initial_vals[lifting_surface_name, name]
+                if val is not None:
+                    name = '{}_tube_{}_dv'.format(lifting_surface_name, name)
+                    comp.add_output(name, val=val)
 
         self.add_subsystem('indep_var_comp', comp, promotes=['*'])
 
@@ -50,8 +63,11 @@ class FEABsplineGroup(Group):
                     in_name=in_name,
                     out_name=out_name,
                 )
-                self.add_subsystem('{}_{}_expand_cp_comp'.format(lifting_surface_name, name), comp,
-                    promotes=['*'])
+
+                val = initial_vals[lifting_surface_name, name]
+                if val is not None:
+                    self.add_subsystem('{}_{}_expand_cp_comp'.format(lifting_surface_name, name), comp,
+                        promotes=['*'])
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
