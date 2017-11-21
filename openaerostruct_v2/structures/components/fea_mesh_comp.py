@@ -26,7 +26,7 @@ class FEAMeshComp(ExplicitComponent):
                 in_name = '{}_{}'.format(lifting_surface_name, name)
                 self.add_input(in_name, shape=(num_nodes, num_points_z))
 
-            self.add_output(mesh_name, shape=(num_nodes, num_points_z, 3))
+            self.add_output(mesh_name, shape=(num_nodes, num_points_z, 3), val=np.random.rand(num_nodes, num_points_z, 3))
 
             vals_dict = {
                 'chord': 1.0,
