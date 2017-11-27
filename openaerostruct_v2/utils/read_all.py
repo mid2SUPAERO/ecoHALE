@@ -129,27 +129,30 @@ def read_aero_hist(filename):
 def read_AS_hist(filename):
 
     dvs = {
-        'alpha_rad': 'indep_var_comp.alpha_rad'
+
     }
 
     states = {
-        'rho_kg_m3': 'indep_var_comp.rho_kg_m3',
-        'v_m_s': 'indep_var_comp.v_m_s',
-        'twist': 'inputs_group.wing_twist_bspline_comp.wing_twist',
-        'thickness': 'tube_bspline_group.wing_thickness_bspline_comp.wing_tube_thickness',
-        'radius': 'tube_bspline_group.wing_radius_bspline_comp.wing_tube_radius',
-        'forces': 'aerostruct_group.vlm_states3_group.vlm_panel_forces_comp.panel_forces',
-        'mesh': 'aerostruct_group.vlm_states1_group.vlm_displace_meshes_comp.wing_mesh',
-        'disp': 'aerostruct_group.fea_states_group.fea_disp_comp.wing_disp',
-        'fea_mesh': 'fea_preprocess_group.fea_mesh_comp.wing_fea_mesh',
-        'vonmises': 'fea_postprocess_group.fea_vonmises_comp.wing_vonmises',
+        'alpha_rad': 'mission_group.sys_coupled_analysis.oas_solver_comp.alpha_rad',
+        'rho_kg_m3': 'mission_group.atmos.density_comp.rho_kg_m3',
+        'v_m_s': 'mission_group.atmos.speed_comp.v_m_s',
+        'twist': 'mission_group.inputs_group.wing_twist_bspline_comp.wing_twist',
+        'thickness': 'mission_group.tube_bspline_group.wing_thickness_bspline_comp.wing_tube_thickness',
+        'radius': 'mission_group.tube_bspline_group.wing_radius_bspline_comp.wing_tube_radius',
+        'forces': 'mission_group.sys_coupled_analysis.oas_group.aerostruct_group.vlm_states3_group.vlm_panel_forces_comp.panel_forces',
+        'mesh':  'mission_group.sys_coupled_analysis.oas_group.aerostruct_group.vlm_states1_group.vlm_displace_meshes_comp.wing_mesh',
+        'disp': 'mission_group.sys_coupled_analysis.oas_group.aerostruct_group.fea_states_group.fea_disp_comp.wing_disp',
+        'fea_mesh':  'mission_group.sys_coupled_analysis.oas_group.fea_preprocess_group.fea_mesh_comp.wing_fea_mesh',
+        'vonmises':  'mission_group.sys_coupled_analysis.oas_group.fea_postprocess_group.fea_vonmises_comp.wing_vonmises',
+        'h_km': 'mission_group.bsplines.comp_h.h_km',
+        'x_1e3_km': 'mission_group.bsplines.comp_x.x_1e3_km',
     }
 
     cons = {
     }
 
     objs = {
-        # 'fuelburn': 'objective.obj',
+        'obj': 'mission_group.functionals.objective_comp.objective'
     }
 
     data_all_iters = []
