@@ -232,10 +232,10 @@ class Display(object):
                 lift_ell = data['lift_ell'][pt]
 
                 if pt==0:
-                    self.ax2.plot(rel_span, twist, lw=2, c='b')
                     self.ax3.plot(rel_span, lift_ell, '--', lw=2, c='g')
+                self.ax2.plot(rel_span, twist, lw=2, c=cm.viridis(i/len(self.pt_list)))
                 self.ax3.plot(span_diff, lift, lw=2, c=cm.viridis(i/len(self.pt_list)))
-                self.ax3.set_ylim([0., 1.8])
+                self.ax3.set_ylim([0., 2.])
 
         self.ax6.plot(data['x_1e3_km'], data['h_km'], c='b')
 
