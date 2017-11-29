@@ -6,7 +6,7 @@ from openmdao.api import ExplicitComponent
 from openaerostruct_v2.utils.misc_utils import get_array_indices, tile_sparse_jac
 
 
-rho = 20
+rho = 100
 
 class FEAKSComp(ExplicitComponent):
 

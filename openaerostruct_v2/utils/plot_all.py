@@ -60,12 +60,12 @@ yield_stress = 200e6
 db_name = sys.argv[1]
 
 # TODO change this for mission viz, for now jsut look at the first point
-pt_list = [0]
+center = np.array([40., 5., 0.])
 
 try:
     zoom_scale = sys.argv[3]
 except:
-    zoom_scale = 2.8
+    zoom_scale = 2.
 
 class Display(object):
     def __init__(self, db_name):
@@ -83,8 +83,8 @@ class Display(object):
         toolbar = NavigationToolbar2TkAgg(self.canvas, self.root)
         toolbar.update()
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-        self.ax = plt.subplot2grid((4, 8), (0, 0), rowspan=4,
-                                   colspan=4, projection='3d')
+        self.ax = plt.subplot2grid((10, 10), (0, 0), rowspan=10,
+                                   colspan=5, projection='3d')
 
         self.num_iters = 0
         self.db_name = db_name
@@ -97,16 +97,17 @@ class Display(object):
         self.load_db()
 
         if self.show_wing and not self.show_tube:
-            self.ax2 = plt.subplot2grid((4, 8), (0, 4), rowspan=2, colspan=4)
-            self.ax3 = plt.subplot2grid((4, 8), (2, 4), rowspan=2, colspan=4)
+            self.ax2 = plt.subplot2grid((10, 10), (0, 5), rowspan=5, colspan=5)
+            self.ax3 = plt.subplot2grid((10, 10), (5, 5), rowspan=5, colspan=5)
         if self.show_tube and not self.show_wing:
-            self.ax4 = plt.subplot2grid((4, 8), (0, 4), rowspan=2, colspan=4)
-            self.ax5 = plt.subplot2grid((4, 8), (2, 4), rowspan=2, colspan=4)
+            self.ax4 = plt.subplot2grid((10, 10), (0, 5), rowspan=5, colspan=5)
+            self.ax5 = plt.subplot2grid((10, 10), (5, 5), rowspan=5, colspan=5)
         if self.show_wing and self.show_tube:
-            self.ax2 = plt.subplot2grid((4, 8), (0, 4), colspan=4)
-            self.ax3 = plt.subplot2grid((4, 8), (1, 4), colspan=4)
-            self.ax4 = plt.subplot2grid((4, 8), (2, 4), colspan=4)
-            self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
+            self.ax2 = plt.subplot2grid((10, 10), (0, 5), rowspan=2, colspan=5)
+            self.ax3 = plt.subplot2grid((10, 10), (2, 5), rowspan=2, colspan=5)
+            self.ax4 = plt.subplot2grid((10, 10), (4, 5), rowspan=2, colspan=5)
+            self.ax5 = plt.subplot2grid((10, 10), (6, 5), rowspan=2, colspan=5)
+            self.ax6 = plt.subplot2grid((10, 10), (8, 5), rowspan=2, colspan=5)
 
     def load_db(self):
 
@@ -116,13 +117,15 @@ class Display(object):
 
         if self.show_wing:
 
+            data = self.data_all_iters[0]
+            num_nodes = data['mesh'].shape[0]
+            self.pt_list = range(num_nodes)
+
             for data in self.data_all_iters:
                 data['lift'] = []
                 data['lift_ell'] = []
 
-                for pt in pt_list:
-                    data['mesh'] = data['mesh'] + np.array([-.3, 0., 0.])
-                    data['fea_mesh'] = data['fea_mesh'] + np.array([-.3, 0., 0.])
+                for pt in self.pt_list:
                     m_vals = data['mesh'][pt]
                     cvec = m_vals[0, :, :] - m_vals[-1, :, :]
                     chords = np.sqrt(np.sum(cvec**2, axis=1))
@@ -143,11 +146,15 @@ class Display(object):
                     span = span - (span[0] + .5)
 
                     lift_area = np.sum(lift * (span[1:] - span[:-1]))
+                    lift /= lift_area
 
-                    lift_ell = 4 * lift_area / np.pi * np.sqrt(1 - (2*span)**2)
+                    lift_ell = 4  / np.pi * np.sqrt(1 - (2*span)**2)
 
                     data['lift'].append(lift)
                     data['lift_ell'].append(lift_ell)
+
+                data['mesh'] -= center
+                data['fea_mesh'] -= center
 
 
     def plot_sides(self):
@@ -162,7 +169,7 @@ class Display(object):
             self.ax2.set_ylabel('twist', rotation="horizontal", ha="right")
 
             self.ax3.cla()
-            self.ax3.text(0.05, 0.8, 'elliptical',
+            self.ax3.text(0.05, 0.7, 'elliptical',
                 transform=self.ax3.transAxes, color='g')
             self.ax3.locator_params(axis='y',nbins=4)
             self.ax3.locator_params(axis='x',nbins=3)
@@ -176,7 +183,7 @@ class Display(object):
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             # TODO change thickness bounds
-            self.ax4.set_ylim([0., .01])
+            self.ax4.set_ylim([0., .05])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
@@ -191,10 +198,16 @@ class Display(object):
             self.ax5.text(0.075, 1.1, 'failure limit',
                 transform=self.ax5.transAxes, color='r')
 
+        self.ax6.cla()
+        self.ax6.set_ylim([0., 15.])
+        self.ax6.locator_params(axis='y',nbins=4)
+        self.ax6.locator_params(axis='x',nbins=5)
+        self.ax6.set_ylabel('altitude', rotation='horizontal', ha='right')
+
         data = self.data_all_iters[self.curr_pos]
 
         if self.show_tube:
-            for pt in pt_list:
+            for i, pt in enumerate(self.pt_list):
                 fea_mesh = data['fea_mesh'][pt, :, :]
                 span = fea_mesh[-1, 2] - fea_mesh[0, 2]
                 rel_span = (fea_mesh[:, 2] - fea_mesh[0, 2]) * 2 / span - 1
@@ -205,10 +218,10 @@ class Display(object):
                 vm_vals = data['vonmises'][pt] * yield_stress
                 if pt==0:
                     self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
-                self.ax5.plot(span_diff, vm_vals, lw=2, c='b')
+                self.ax5.plot(span_diff, vm_vals, lw=2, c=cm.viridis(i/len(self.pt_list)))
 
         if self.show_wing:
-            for pt in pt_list:
+            for i, pt in enumerate(self.pt_list):
                 mesh = data['mesh'][pt, 0, :, :]
                 span = mesh[-1, 2] - mesh[0, 2]
                 rel_span = (mesh[:, 2] - mesh[0, 2]) * 2 / span - 1
@@ -219,9 +232,12 @@ class Display(object):
                 lift_ell = data['lift_ell'][pt]
 
                 if pt==0:
-                    self.ax2.plot(rel_span, twist, lw=2, c='b')
-                self.ax3.plot(rel_span, lift_ell, '--', lw=2, c='g')
-                self.ax3.plot(span_diff, lift, lw=2, c='b')
+                    self.ax3.plot(rel_span, lift_ell, '--', lw=2, c='g')
+                self.ax2.plot(rel_span, twist, lw=2, c=cm.viridis(i/len(self.pt_list)))
+                self.ax3.plot(span_diff, lift, lw=2, c=cm.viridis(i/len(self.pt_list)))
+                self.ax3.set_ylim([0., 2.])
+
+        self.ax6.plot(data['x_1e3_km'], data['h_km'], c='b')
 
     def plot_wing(self):
 
@@ -234,12 +250,16 @@ class Display(object):
 
         self.ax.set_axis_off()
 
-        pt = pt_list[0]
+        pt = self.pt_list[0]
 
         if self.show_wing:
 
             # TODO: change this to deformed mesh if aerostructural
             mesh = data['mesh'][pt]
+
+            # If aerostructural, show the deformed fea mesh
+            if self.show_tube:
+                mesh = mesh + data['disp'][pt, :, :3]
 
             self.ax.set_axis_off()
 
@@ -252,7 +272,6 @@ class Display(object):
         if self.show_tube:
             fea_mesh = data['fea_mesh'][pt, :, :]
 
-            # If aerostructural, show the deformed fea mesh
             if self.show_wing:
                 fea_mesh = fea_mesh + data['disp'][pt, :, :3]
 
@@ -307,6 +326,12 @@ class Display(object):
                     self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                         facecolors=cm.coolwarm(col), linewidth=0)
 
+        round_to_n = lambda x, n: round(x[0], -int(np.floor(np.log10(abs(x[0])))) + (n - 1))
+        obj_val = round_to_n(data['obj'] * 1e6 / 9.81, 7)
+        self.ax.text2D(.55, .05, 'Fuel burn: {} kg'.format(obj_val),
+        transform=self.ax.transAxes, color='k')
+
+        # TODO: move this elsewhere
         lim = 0.
         if self.show_wing:
             for data in self.data_all_iters:
