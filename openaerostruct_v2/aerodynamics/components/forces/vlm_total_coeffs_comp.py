@@ -35,20 +35,20 @@ class VLMTotalCoeffsComp(ExplicitComponent):
         self.add_input('wing_area_m2', shape=num_nodes)
         self.add_input('lift', shape=num_nodes)
         self.add_input('drag', shape=num_nodes)
-        self.add_output('C_L', shape=num_nodes)
-        self.add_output('C_D', shape=num_nodes)
+        self.add_output('C_L_ind', shape=num_nodes)
+        self.add_output('C_D_ind', shape=num_nodes)
 
         arange = np.arange(num_nodes)
 
-        self.declare_partials('C_L', 'rho_kg_m3', rows=arange, cols=arange)
-        self.declare_partials('C_L', 'v_m_s', rows=arange, cols=arange)
-        self.declare_partials('C_L', 'wing_area_m2', rows=arange, cols=arange)
-        self.declare_partials('C_L', 'lift', rows=arange, cols=arange)
+        self.declare_partials('C_L_ind', 'rho_kg_m3', rows=arange, cols=arange)
+        self.declare_partials('C_L_ind', 'v_m_s', rows=arange, cols=arange)
+        self.declare_partials('C_L_ind', 'wing_area_m2', rows=arange, cols=arange)
+        self.declare_partials('C_L_ind', 'lift', rows=arange, cols=arange)
 
-        self.declare_partials('C_D', 'rho_kg_m3', rows=arange, cols=arange)
-        self.declare_partials('C_D', 'v_m_s', rows=arange, cols=arange)
-        self.declare_partials('C_D', 'wing_area_m2', rows=arange, cols=arange)
-        self.declare_partials('C_D', 'drag', rows=arange, cols=arange)
+        self.declare_partials('C_D_ind', 'rho_kg_m3', rows=arange, cols=arange)
+        self.declare_partials('C_D_ind', 'v_m_s', rows=arange, cols=arange)
+        self.declare_partials('C_D_ind', 'wing_area_m2', rows=arange, cols=arange)
+        self.declare_partials('C_D_ind', 'drag', rows=arange, cols=arange)
 
         self.set_check_partial_options('*', method='cs')
 
@@ -59,8 +59,10 @@ class VLMTotalCoeffsComp(ExplicitComponent):
         v_m_s = inputs['v_m_s']
         wing_area_m2 = inputs['wing_area_m2']
 
-        outputs['C_L'] = lift / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) + self.CL0
-        outputs['C_D'] = drag / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) + self.CD0
+        # CD = 20 M - Mcrit
+
+        outputs['C_L_ind'] = lift / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) + self.CL0
+        outputs['C_D_ind'] = drag / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) + self.CD0
 
     def compute_partials(self, inputs, partials):
         lift = inputs['lift']
@@ -69,12 +71,12 @@ class VLMTotalCoeffsComp(ExplicitComponent):
         v_m_s = inputs['v_m_s']
         wing_area_m2 = inputs['wing_area_m2']
 
-        partials['C_L', 'lift'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
-        partials['C_L', 'rho_kg_m3'] = -lift / (0.5 * rho_kg_m3 ** 2 * v_m_s ** 2 * wing_area_m2)
-        partials['C_L', 'v_m_s'] = -2 * lift / (0.5 * rho_kg_m3 * v_m_s ** 3 * wing_area_m2)
-        partials['C_L', 'wing_area_m2'] = -lift / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2 ** 2)
+        partials['C_L_ind', 'lift'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
+        partials['C_L_ind', 'rho_kg_m3'] = -lift / (0.5 * rho_kg_m3 ** 2 * v_m_s ** 2 * wing_area_m2)
+        partials['C_L_ind', 'v_m_s'] = -2 * lift / (0.5 * rho_kg_m3 * v_m_s ** 3 * wing_area_m2)
+        partials['C_L_ind', 'wing_area_m2'] = -lift / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2 ** 2)
 
-        partials['C_D', 'drag'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
-        partials['C_D', 'rho_kg_m3'] = -drag / (0.5 * rho_kg_m3 ** 2 * v_m_s ** 2 * wing_area_m2)
-        partials['C_D', 'v_m_s'] = -2 * drag / (0.5 * rho_kg_m3 * v_m_s ** 3 * wing_area_m2)
-        partials['C_D', 'wing_area_m2'] = -drag / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2 ** 2)
+        partials['C_D_ind', 'drag'] = 1. / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
+        partials['C_D_ind', 'rho_kg_m3'] = -drag / (0.5 * rho_kg_m3 ** 2 * v_m_s ** 2 * wing_area_m2)
+        partials['C_D_ind', 'v_m_s'] = -2 * drag / (0.5 * rho_kg_m3 * v_m_s ** 3 * wing_area_m2)
+        partials['C_D_ind', 'wing_area_m2'] = -drag / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2 ** 2)

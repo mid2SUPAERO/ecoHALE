@@ -7,6 +7,7 @@ from openaerostruct_v2.aerodynamics.components.forces.vlm_panel_coeffs_comp impo
 from openaerostruct_v2.aerodynamics.components.forces.vlm_rotate_panel_forces_comp import VLMRotatePanelForcesComp
 from openaerostruct_v2.aerodynamics.components.forces.vlm_total_forces_comp import VLMTotalForcesComp
 from openaerostruct_v2.aerodynamics.components.forces.vlm_total_coeffs_comp import VLMTotalCoeffsComp
+from openaerostruct_v2.aerodynamics.components.forces.vlm_modify_coeffs_comp import VLMModifyCoeffsComp
 
 
 class VLMPostprocessGroup(Group):
@@ -30,3 +31,6 @@ class VLMPostprocessGroup(Group):
 
         comp = VLMTotalCoeffsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_total_coeffs_comp', comp, promotes=['*'])
+
+        comp = VLMModifyCoeffsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_modify_coeffs_comp', comp, promotes=['*'])

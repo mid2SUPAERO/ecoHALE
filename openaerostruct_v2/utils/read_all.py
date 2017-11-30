@@ -7,6 +7,7 @@ def read_hist(filename):
 
     show_wing = False
     show_tube = False
+    show_mission = False
 
     try:
         data_all_iters = read_struct_hist(filename)
@@ -29,7 +30,17 @@ def read_hist(filename):
         traceback.print_exc()
         pass
 
-    return data_all_iters, show_wing, show_tube
+    try:
+        data_all_iters = read_AS_msision_hist(filename)
+        show_wing = True
+        show_tube = True
+        show_mission = True
+    except:
+        import traceback
+        traceback.print_exc()
+        pass
+
+    return data_all_iters, show_wing, show_tube, show_mission
 
 
 def read_struct_hist(filename):
@@ -127,6 +138,32 @@ def read_aero_hist(filename):
     return data_all_iters
 
 def read_AS_hist(filename):
+
+    dvs = {
+        'alpha_rad': 'indep_var_comp.alpha_rad'
+    }
+
+    states = {
+        'rho_kg_m3': 'indep_var_comp.rho_kg_m3',
+        'v_m_s': 'indep_var_comp.v_m_s',
+        'twist': 'inputs_group.wing_twist_bspline_comp.wing_twist',
+        'thickness': 'tube_bspline_group.wing_thickness_bspline_comp.wing_tube_thickness',
+        'radius': 'tube_bspline_group.wing_radius_bspline_comp.wing_tube_radius',
+        'forces': 'aerostruct_group.vlm_states3_group.vlm_panel_forces_comp.panel_forces',
+        'mesh': 'aerostruct_group.vlm_states1_group.vlm_displace_meshes_comp.wing_mesh',
+        'disp': 'aerostruct_group.fea_states_group.fea_disp_comp.wing_disp',
+        'fea_mesh': 'fea_preprocess_group.fea_mesh_comp.wing_fea_mesh',
+        'vonmises': 'fea_postprocess_group.fea_vonmises_comp.wing_vonmises',
+    }
+
+    cons = {
+    }
+
+    objs = {
+        # 'fuelburn': 'objective.obj',
+    }
+
+def read_AS_msision_hist(filename):
 
     dvs = {
 

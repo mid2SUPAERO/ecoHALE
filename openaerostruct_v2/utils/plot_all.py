@@ -88,8 +88,9 @@ class Display(object):
 
         self.num_iters = 0
         self.db_name = db_name
-        self.show_wing = True
-        self.show_tube = True
+        self.show_wing = False
+        self.show_tube = False
+        self.show_mission = False
         self.curr_pos = 0
         self.old_n = 0
         self.aerostruct = False
@@ -107,11 +108,12 @@ class Display(object):
             self.ax3 = plt.subplot2grid((10, 10), (2, 5), rowspan=2, colspan=5)
             self.ax4 = plt.subplot2grid((10, 10), (4, 5), rowspan=2, colspan=5)
             self.ax5 = plt.subplot2grid((10, 10), (6, 5), rowspan=2, colspan=5)
+        if self.show_mission:
             self.ax6 = plt.subplot2grid((10, 10), (8, 5), rowspan=2, colspan=5)
 
     def load_db(self):
 
-        self.data_all_iters, self.show_wing, self.show_tube = read_hist(self.db_name)
+        self.data_all_iters, self.show_wing, self.show_tube, self.show_mission = read_hist(self.db_name)
 
         self.num_iters = len(self.data_all_iters)
 
@@ -198,11 +200,12 @@ class Display(object):
             self.ax5.text(0.075, 1.1, 'failure limit',
                 transform=self.ax5.transAxes, color='r')
 
-        self.ax6.cla()
-        self.ax6.set_ylim([0., 15.])
-        self.ax6.locator_params(axis='y',nbins=4)
-        self.ax6.locator_params(axis='x',nbins=5)
-        self.ax6.set_ylabel('altitude', rotation='horizontal', ha='right')
+        if self.show_mission:
+            self.ax6.cla()
+            self.ax6.set_ylim([0., 15.])
+            self.ax6.locator_params(axis='y',nbins=4)
+            self.ax6.locator_params(axis='x',nbins=5)
+            self.ax6.set_ylabel('altitude', rotation='horizontal', ha='right')
 
         data = self.data_all_iters[self.curr_pos]
 
@@ -237,7 +240,8 @@ class Display(object):
                 self.ax3.plot(span_diff, lift, lw=2, c=cm.viridis(i/len(self.pt_list)))
                 self.ax3.set_ylim([0., 2.])
 
-        self.ax6.plot(data['x_1e3_km'], data['h_km'], c='b')
+        if self.show_mission:
+            self.ax6.plot(data['x_1e3_km'], data['h_km'], c='b')
 
     def plot_wing(self):
 
