@@ -84,3 +84,16 @@ class VLMCirculationsComp(ImplicitComponent):
         else:
             for i in range(num_nodes):
                 d_residuals['circulations'][i, :] = lu_solve(self.lu[i], d_outputs['circulations'][i, :], trans=1)
+
+    def solve_multi_linear(self, d_outputs, d_residuals, mode):
+        num_nodes = self.metadata['num_nodes']
+        ncol = d_outputs['circulations'].shape[-1]
+
+        if mode == 'fwd':
+            for i in range(num_nodes):
+                for j in range(ncol):
+                    d_outputs['circulations'][i, :, j] = lu_solve(self.lu[i], d_residuals['circulations'][i, :, j], trans=0)
+        else:
+            for i in range(num_nodes):
+                for j in range(ncol):
+                    d_residuals['circulations'][i, :, j] = lu_solve(self.lu[i], d_outputs['circulations'][i, :, j], trans=1)
