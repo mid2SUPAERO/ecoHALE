@@ -3,8 +3,8 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-factor2 = 0.017
-factor4 = 0.12
+factor2 = 0.01
+factor4 = 0.1
 cl_factor = 1.15
 
 # factor2 = 0.04
