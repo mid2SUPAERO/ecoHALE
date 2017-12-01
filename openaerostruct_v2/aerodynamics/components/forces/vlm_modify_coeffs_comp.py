@@ -3,7 +3,13 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-factor = 0.018
+factor2 = 0.017
+factor4 = 0.12
+cl_factor = 1.15
+
+# factor2 = 0.04
+# factor4 = 0.
+# cl_factor = 1.15
 
 class VLMModifyCoeffsComp(ExplicitComponent):
     """
@@ -33,11 +39,11 @@ class VLMModifyCoeffsComp(ExplicitComponent):
         self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
-        outputs['C_L'] = inputs['C_L_ind']
-        outputs['C_D'] = inputs['C_D_ind'] + factor * inputs['C_L_ind'] ** 2
+        outputs['C_L'] = inputs['C_L_ind'] * cl_factor
+        outputs['C_D'] = inputs['C_D_ind'] + factor2 * inputs['C_L_ind'] ** 2 + factor4 * inputs['C_L_ind'] ** 4
 
     def compute_partials(self, inputs, partials):
         partials['C_L', 'C_D_ind'] = 0.
-        partials['C_D', 'C_L_ind'] = 2 * factor * inputs['C_L_ind']
-        partials['C_L', 'C_L_ind'] = 1.
+        partials['C_D', 'C_L_ind'] = 4 * factor4 * inputs['C_L_ind'] ** 3 + 2 * factor2 * inputs['C_L_ind']
+        partials['C_L', 'C_L_ind'] = 1. * cl_factor
         partials['C_D', 'C_D_ind'] = 1.
