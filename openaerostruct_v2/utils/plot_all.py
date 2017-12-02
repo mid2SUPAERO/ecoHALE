@@ -186,7 +186,7 @@ class Display(object):
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             # TODO change thickness bounds
-            self.ax4.set_ylim([0., .5])
+            self.ax4.set_ylim([0., .2])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
