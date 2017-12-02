@@ -13,16 +13,12 @@ def read_hist(filename):
         data_all_iters = read_struct_hist(filename)
         show_tube = True
     except:
-        import traceback
-        traceback.print_exc()
         pass
 
     try:
         data_all_iters = read_aero_hist(filename)
         show_wing = True
     except:
-        import traceback
-        traceback.print_exc()
         pass
 
     try:
@@ -164,8 +160,35 @@ def read_AS_hist(filename):
     }
 
     objs = {
-        # 'fuelburn': 'objective.obj',
+        'obj': 'objective.obj',
     }
+
+    data_all_iters = []
+
+    cr = CaseReader(filename)
+
+    case_keys = cr.driver_cases.list_cases()
+    for case_key in case_keys:
+
+        case = cr.driver_cases.get_case(case_key)
+
+        data = {}
+
+        for key, cr_key in iteritems(dvs):
+            data[key] = case.desvars[cr_key]
+
+        for key, cr_key in iteritems(states):
+            data[key] = case.sysincludes[cr_key]
+
+        for key, cr_key in iteritems(objs):
+            data[key] = case.objectives[cr_key]
+
+        for key, cr_key in iteritems(cons):
+            data[key] = case.constraints[cr_key]
+
+        data_all_iters.append(data)
+
+    return data_all_iters
 
 def read_AS_mission_hist(filename):
 
