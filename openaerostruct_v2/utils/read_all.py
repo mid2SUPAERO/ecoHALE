@@ -13,12 +13,16 @@ def read_hist(filename):
         data_all_iters = read_struct_hist(filename)
         show_tube = True
     except:
+        import traceback
+        traceback.print_exc()
         pass
 
     try:
         data_all_iters = read_aero_hist(filename)
         show_wing = True
     except:
+        import traceback
+        traceback.print_exc()
         pass
 
     try:
@@ -31,7 +35,7 @@ def read_hist(filename):
         pass
 
     try:
-        data_all_iters = read_AS_msision_hist(filename)
+        data_all_iters = read_AS_mission_hist(filename)
         show_wing = True
         show_tube = True
         show_mission = True
@@ -163,7 +167,7 @@ def read_AS_hist(filename):
         # 'fuelburn': 'objective.obj',
     }
 
-def read_AS_msision_hist(filename):
+def read_AS_mission_hist(filename):
 
     dvs = {
 
@@ -183,6 +187,8 @@ def read_AS_msision_hist(filename):
         'vonmises':  'mission_group.sys_coupled_analysis.oas_group.fea_postprocess_group.fea_vonmises_comp.wing_vonmises',
         'h_km': 'mission_group.bsplines.comp_h.h_km',
         'x_1e3_km': 'mission_group.bsplines.comp_x.x_1e3_km',
+        'C_L': 'mission_group.sys_coupled_analysis.oas_group.vlm_postprocess_group.vlm_modify_coeffs_comp.C_L',
+        'C_D': 'mission_group.sys_coupled_analysis.oas_group.vlm_postprocess_group.vlm_modify_coeffs_comp.C_D',
     }
 
     cons = {

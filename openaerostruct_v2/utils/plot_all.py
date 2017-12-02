@@ -181,6 +181,7 @@ class Display(object):
 
         if self.show_tube:
 
+            # thickness plot!
             self.ax4.cla()
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
@@ -188,6 +189,14 @@ class Display(object):
             self.ax4.set_ylim([0., .05])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
+
+            # CL plot!
+            # self.ax4.cla()
+            # self.ax4.locator_params(axis='y',nbins=4)
+            # self.ax4.locator_params(axis='x',nbins=3)
+            # # TODO change thickness bounds
+            # self.ax4.set_ylim([0., .9])
+            # self.ax4.set_ylabel('CL', rotation="horizontal", ha="right")
 
             self.ax5.cla()
             self.ax5.axhline(yield_stress, c='r', lw=2, ls='--')
@@ -221,6 +230,7 @@ class Display(object):
                 vm_vals = data['vonmises'][pt] * yield_stress
                 if pt==0:
                     self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
+
                 self.ax5.plot(span_diff, vm_vals, lw=2, c=cm.viridis(i/len(self.pt_list)))
 
         if self.show_wing:
@@ -241,6 +251,7 @@ class Display(object):
                 self.ax3.set_ylim([0., 2.])
 
         if self.show_mission:
+            # self.ax4.plot(data['x_1e3_km'], data['C_L'], c='b')
             self.ax6.plot(data['x_1e3_km'], data['h_km'], c='b')
 
     def plot_wing(self):
