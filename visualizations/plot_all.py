@@ -103,8 +103,6 @@ class Display(object):
     def load_db(self):
         self.db = SqliteCaseReader(self.db_name)
         cases = self.db.system_cases.list_cases()
-        print(cases)
-        print(cases[0])
         c0 = self.db.system_cases.get_case(-1)
         print(dir(c0))
         print(c0.inputs)

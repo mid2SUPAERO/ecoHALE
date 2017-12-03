@@ -229,7 +229,6 @@ class Display(object):
                 # TODO: check ths out for multiple node case; will need to reformulate since OM flattens constraints
                 vm_vals = data['vonmises'][pt] * yield_stress
                 if pt==0:
-                    print(thick_vals)
                     self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
 
                 self.ax5.plot(span_diff, vm_vals, lw=2, c=cm.viridis(i/len(self.pt_list)))

@@ -140,7 +140,8 @@ def read_aero_hist(filename):
 def read_AS_hist(filename):
 
     dvs = {
-        'alpha_rad': 'indep_var_comp.alpha_rad'
+        'alpha_rad': 'indep_var_comp.alpha_rad',
+        'thickness_dv': 'tube_bspline_group.indep_var_comp.wing_tube_thickness_dv',
     }
 
     states = {
@@ -160,7 +161,7 @@ def read_AS_hist(filename):
     }
 
     objs = {
-        'obj': 'objective.obj',
+        'obj': 'objective.fuelburn',
     }
 
     data_all_iters = []
@@ -176,6 +177,8 @@ def read_AS_hist(filename):
 
         for key, cr_key in iteritems(dvs):
             data[key] = case.desvars[cr_key]
+            if key=='thickness_dv':
+                print(data[key])
 
         for key, cr_key in iteritems(states):
             data[key] = case.sysincludes[cr_key]
