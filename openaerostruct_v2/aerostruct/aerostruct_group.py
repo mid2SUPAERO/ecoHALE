@@ -52,6 +52,6 @@ class AerostructGroup(Group):
             promotes=['*'],
         )
 
-        self.nonlinear_solver = NonlinearBlockGS(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10)
+        self.nonlinear_solver = NonlinearBlockGS(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10, use_aitken=True)
         self.linear_solver = ScipyKrylov(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10)
         self.linear_solver.precon = LinearBlockGS(iprint=-1, maxiter=1)

@@ -229,6 +229,7 @@ class Display(object):
                 # TODO: check ths out for multiple node case; will need to reformulate since OM flattens constraints
                 vm_vals = data['vonmises'][pt] * yield_stress
                 if pt==0:
+                    # self.ax4.plot(data['x_1e3_km'], data['C_L'], c='b')
                     self.ax4.plot(span_diff, thick_vals, lw=2, c='b')
 
                 self.ax5.plot(span_diff, vm_vals, lw=2, c=cm.viridis(i/len(self.pt_list)))
@@ -251,7 +252,8 @@ class Display(object):
                 self.ax3.set_ylim([0., 2.])
 
         if self.show_mission:
-            # self.ax4.plot(data['x_1e3_km'], data['C_L'], c='b')
+            # print(data['h_km_cp'])
+            # print(data['h_km'])
             self.ax6.plot(data['x_1e3_km'], data['h_km'], c='b')
 
     def plot_wing(self):

@@ -56,6 +56,8 @@ class TubePropertiesComp(ExplicitComponent):
             r1 = inputs[radius_name] - inputs[thickness_name]
             r2 = inputs[radius_name]
 
+            print('thickness:', inputs[thickness_name])
+
             outputs[A_name] = np.pi * (r2 ** 2 - r1 ** 2)
             outputs[Iy_name] = np.pi * (r2 ** 4 - r1 ** 4) / 4.
             outputs[Iz_name] = np.pi * (r2 ** 4 - r1 ** 4) / 4.

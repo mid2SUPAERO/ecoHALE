@@ -8,33 +8,15 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 
 
 g = 9.81
-W0 = (0.1381 * g - .150) * 1e6 + 300 * 80 * g
+# W0 = (0.1381 * g - .350) * 1e6 + 300 * 80 * g
+W0 = 0.4 * 3e5 * g
 a = 295.4
-R = 7000. * 1.852 * 1e3
+# R = 7000. * 1.852 * 1e3
+R = 11.165e6
 M = .84
-CT = 9.80665 * 17.e-6
 
 
 class ASLiftEqualsWeightComp(ExplicitComponent):
-    """
-    Lift = weight constraint.
-    Note that we add information from each lifting surface.
-    Parameters
-    ----------
-    L : float
-        Total lift for the lifting surface.
-    structural_weight : float
-        Total weight of the structural spar.
-    fuelburn : float
-        Computed fuel burn in kg based on the Breguet range equation.
-    Returns
-    -------
-    L_equals_W : float
-        Equality constraint for lift = total weight. L_equals_W = 0 for the constraint to be satisfied.
-    total_weight : float
-        Total weight of the entire aircraft, including W0, all structural weights,
-        and fuel.
-    """
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
@@ -69,7 +51,7 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
         outputs['L_equals_W'] = (lift - tot_weight) / tot_weight
-        print(outputs['L_equals_W'])
+        print('L, W: ', lift/1e6, tot_weight/1e6)
 
     def compute_partials(self, inputs, partials):
         rho_kg_m3 = inputs['rho_kg_m3']

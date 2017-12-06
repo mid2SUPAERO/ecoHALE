@@ -8,11 +8,13 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 
 
 g = 9.81
-W0 = (0.1381 * g - .150) * 1e6 + 300 * 80 * g
+# W0 = (0.1381 * g - .350) * 1e6 + 300 * 80 * g
+W0 = 0.4 * 3e5 * g
 a = 295.4
-R = 7000. * 1.852 * 1e3
+# R = 7000. * 1.852 * 1e3
+R = 11.165e6
 M = .84
-CT = 9.80665 * 17.e-6
+CT = g * 17.e-6
 
 class ASFuelburnComp(ExplicitComponent):
 
@@ -46,7 +48,7 @@ class ASFuelburnComp(ExplicitComponent):
 
         # Convert fuelburn from N to kg
         outputs['fuelburn'] = fuelburn / g
-        print(outputs['fuelburn'])
+        print('fb:', outputs['fuelburn'])
 
     def compute_partials(self, inputs, partials):
 

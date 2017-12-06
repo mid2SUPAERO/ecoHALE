@@ -2,7 +2,7 @@ from __future__ import print_function
 import numpy as np
 from scipy.linalg import lu_factor, lu_solve
 
-from openmdao.api import ImplicitComponent
+from openmdao.api import ImplicitComponent, AnalysisError
 
 from openaerostruct_v2.utils.misc_utils import tile_sparse_jac
 
@@ -59,7 +59,10 @@ class VLMCirculationsComp(ImplicitComponent):
         num_nodes = self.metadata['num_nodes']
 
         for i in range(num_nodes):
-            self.lu[i] = lu_factor(inputs['mtx'][i, :, :])
+            try:
+                self.lu[i] = lu_factor(inputs['mtx'][i, :, :])
+            except ValueError:
+                raise AnalysisError
 
             outputs['circulations'][i, :] = lu_solve(self.lu[i], inputs['rhs'][i, :])
 
@@ -69,7 +72,10 @@ class VLMCirculationsComp(ImplicitComponent):
         system_size = self.system_size
 
         for i in range(num_nodes):
-            self.lu[i] = lu_factor(inputs['mtx'][i, :, :])
+            try:
+                self.lu[i] = lu_factor(inputs['mtx'][i, :, :])
+            except ValueError:
+                raise AnalysisError
 
         partials['circulations', 'circulations'] = inputs['mtx'].flatten()
         partials['circulations', 'mtx'] = \
@@ -80,7 +86,13 @@ class VLMCirculationsComp(ImplicitComponent):
 
         if mode == 'fwd':
             for i in range(num_nodes):
-                d_outputs['circulations'][i, :] = lu_solve(self.lu[i], d_residuals['circulations'][i, :], trans=0)
+                try:
+                    d_outputs['circulations'][i, :] = lu_solve(self.lu[i], d_residuals['circulations'][i, :], trans=0)
+                except ValueError:
+                    raise AnalysisError
         else:
             for i in range(num_nodes):
-                d_residuals['circulations'][i, :] = lu_solve(self.lu[i], d_outputs['circulations'][i, :], trans=1)
+                try:
+                    d_residuals['circulations'][i, :] = lu_solve(self.lu[i], d_outputs['circulations'][i, :], trans=1)
+                except ValueError:
+                    raise AnalysisError

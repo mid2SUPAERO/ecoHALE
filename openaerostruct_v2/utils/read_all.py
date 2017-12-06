@@ -161,7 +161,7 @@ def read_AS_hist(filename):
     }
 
     objs = {
-        'obj': 'objective.fuelburn',
+        'obj': 'objective.obj',
     }
 
     data_all_iters = []
@@ -177,8 +177,6 @@ def read_AS_hist(filename):
 
         for key, cr_key in iteritems(dvs):
             data[key] = case.desvars[cr_key]
-            if key=='thickness_dv':
-                print(data[key])
 
         for key, cr_key in iteritems(states):
             data[key] = case.sysincludes[cr_key]
@@ -196,7 +194,7 @@ def read_AS_hist(filename):
 def read_AS_mission_hist(filename):
 
     dvs = {
-
+        # 'h_km_cp': 'mission_group.inputs_comp.h_km_cp',
     }
 
     states = {
