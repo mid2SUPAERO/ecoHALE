@@ -11,7 +11,7 @@ and viscous drag.
 from __future__ import division, print_function
 import numpy as np
 
-from openmdao.api import Component, Group
+from openmdao.api import Component, Group, AnalysisError
 from scipy.linalg import lu_factor, lu_solve
 
 def view_mat(mat):
@@ -969,6 +969,9 @@ class AeroCirculations(Component):
         self.rhs_cache = None
 
     def solve_nonlinear(self, params, unknowns, resids):
+        if np.any(np.isnan(params['AIC'])) or np.any(np.isinf(params['AIC'])):
+            raise AnalysisError
+
         # lu factorization for use with solve_linear
         self.lup = lu_factor(params['AIC'])
 

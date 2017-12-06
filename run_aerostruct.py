@@ -67,9 +67,7 @@ if __name__ == "__main__":
                  'CD0' : 0.015,
                  'symmetry' : True,
                  'num_twist_cp' : 3,
-                 'num_thickness_cp' : 3,
-                 'twist_cp' : np.array([2., 5., -2.]),
-                 'x_shear_cp' : np.array([1., 4., 5.])}
+                 'num_thickness_cp' : 3}
 
     # Add the specified wing surface to the problem
     OAS_prob.add_surface(surf_dict)
