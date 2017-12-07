@@ -226,6 +226,7 @@ class Display(object):
                 span_diff = ((fea_mesh[:-1, 2] + fea_mesh[1:, 2]) / 2 - fea_mesh[0, 2]) * 2 / span - 1
 
                 thick_vals = data['thickness'][pt]
+                print(thick_vals)
                 # TODO: check ths out for multiple node case; will need to reformulate since OM flattens constraints
                 vm_vals = data['vonmises'][pt] * yield_stress
                 if pt==0:
