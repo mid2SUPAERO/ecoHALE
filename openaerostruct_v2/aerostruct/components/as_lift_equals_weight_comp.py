@@ -8,11 +8,11 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 
 
 g = 9.81
-# W0 = (0.1381 * g - .350) * 1e6 + 300 * 80 * g
-W0 = 0.4 * 3e5 * g
+W0 = (0.1381 * g - .350) * 1e6 + 300 * 80 * g
+# W0 = 0.4 * 3e5 * g
 a = 295.4
-# R = 7000. * 1.852 * 1e3
-R = 11.165e6
+R = 7000. * 1.852 * 1e3
+# R = 11.165e6
 M = .84
 
 

@@ -141,7 +141,8 @@ def read_AS_hist(filename):
 
     dvs = {
         'alpha_rad': 'indep_var_comp.alpha_rad',
-        'thickness_dv': 'tube_bspline_group.indep_var_comp.wing_tube_thickness_dv',
+        # 'thickness_dv': 'tube_bspline_group.indep_var_comp.wing_tube_thickness_dv',
+        'twist_dv': 'inputs_group.indep_var_comp.wing_twist_dv',
     }
 
     states = {

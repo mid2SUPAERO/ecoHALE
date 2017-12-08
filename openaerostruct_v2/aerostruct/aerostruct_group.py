@@ -47,10 +47,10 @@ class AerostructGroup(Group):
             FEAStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, fea_scaler=fea_scaler),
             promotes=['*'],
         )
-        # self.add_subsystem('disp_transfer_group',
-        #     DispTransferGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
-        #     promotes=['*'],
-        # )
+        self.add_subsystem('disp_transfer_group',
+            DispTransferGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+            promotes=['*'],
+        )
 
         self.nonlinear_solver = NonlinearBlockGS(iprint=2, maxiter=20, atol=1e-10, rtol=1e-10, use_aitken=True)
         self.linear_solver = ScipyKrylov(iprint=2, maxiter=50, atol=1e-12, rtol=1e-12)
