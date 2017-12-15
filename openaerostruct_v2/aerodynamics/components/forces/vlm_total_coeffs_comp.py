@@ -18,17 +18,6 @@ class VLMTotalCoeffsComp(ExplicitComponent):
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
-        try:
-            self.CD0 = lifting_surfaces[0][1]['CD0']
-        except:
-            self.CD0 = 0.
-        print('CD0: {}'.format(self.CD0))
-
-        try:
-            self.CL0 = lifting_surfaces[0][1]['CL0']
-        except:
-            self.CL0 = 0.
-        print('CL0: {}'.format(self.CL0))
 
         self.add_input('rho_kg_m3', shape=num_nodes)
         self.add_input('v_m_s', shape=num_nodes)
@@ -59,10 +48,8 @@ class VLMTotalCoeffsComp(ExplicitComponent):
         v_m_s = inputs['v_m_s']
         wing_area_m2 = inputs['wing_area_m2']
 
-        # CD = 20 M - Mcrit
-
-        outputs['C_L_ind'] = lift / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) + self.CL0
-        outputs['C_D_ind'] = drag / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) + self.CD0
+        outputs['C_L_ind'] = lift / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
+        outputs['C_D_ind'] = drag / (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2)
 
     def compute_partials(self, inputs, partials):
         lift = inputs['lift']

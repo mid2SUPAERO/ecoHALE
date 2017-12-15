@@ -8,13 +8,6 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 
 
 g = 9.81
-W0 = (0.1381 * g - .350) * 1e6 + 300 * 80 * g
-# W0 = 0.4 * 3e5 * g
-a = 295.4
-R = 7000. * 1.852 * 1e3
-# R = 11.165e6
-M = .84
-
 
 class ASLiftEqualsWeightComp(ExplicitComponent):
 
@@ -25,6 +18,23 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
     def setup(self):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
+
+        if 'W0' in lifting_surfaces[0][1].keys():
+            self.W0 = lifting_surfaces[0][1]['W0']
+        else:
+            self.W0 = 0.
+        if 'a' in lifting_surfaces[0][1].keys():
+            self.a = lifting_surfaces[0][1]['a']
+        else:
+            self.a = 0.
+        if 'R' in lifting_surfaces[0][1].keys():
+            self.R = lifting_surfaces[0][1]['R']
+        else:
+            self.R = 0.
+        if 'M' in lifting_surfaces[0][1].keys():
+            self.M = lifting_surfaces[0][1]['M']
+        else:
+            self.M = 0.
 
         self.add_input('fuelburn', shape=num_nodes)
         self.add_input('C_L', shape=num_nodes)
@@ -40,6 +50,10 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
         self.declare_partials('*', '*', rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
+        W0 = self.W0
+        a = self.a
+        R = self.R
+        M = self.M
 
         rho_kg_m3 = inputs['rho_kg_m3']
         v_m_s = inputs['v_m_s']
@@ -51,9 +65,13 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
         outputs['L_equals_W'] = (lift - tot_weight) / tot_weight
-        print('L, W: ', lift/1e6, tot_weight/1e6)
 
     def compute_partials(self, inputs, partials):
+        W0 = self.W0
+        a = self.a
+        R = self.R
+        M = self.M
+
         rho_kg_m3 = inputs['rho_kg_m3']
         v_m_s = inputs['v_m_s']
         wing_area_m2 = inputs['wing_area_m2']

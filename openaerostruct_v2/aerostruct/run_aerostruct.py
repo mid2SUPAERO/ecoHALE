@@ -17,6 +17,7 @@ from openaerostruct_v2.aerostruct.aerostruct_group import AerostructGroup
 
 
 num_nodes = 1
+g = 9.81
 
 num_points_x = 2
 num_points_z_half = 15
@@ -40,6 +41,14 @@ lifting_surfaces = [
         'G': 29.e9,
         'sigma_y': 200e6,
         'rho': 2700,
+        'factor2' : 0.119,
+        'factor4' : -0.064,
+        'cl_factor' : 1.05,
+        'W0' : (0.1381 * g - .350) * 1e6 + 300 * 80 * g,
+        'a' : 295.4,
+        'R' : 7000. * 1.852 * 1e3,
+        'M' : .84,
+        'CT' : g * 17.e-6,
     })
 ]
 
@@ -108,17 +117,16 @@ prob.setup()
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-if 0:
+if 1:
     prob.setup(force_alloc_complex=True)
     prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
     prob.run_model()
-    prob.check_partials(compact_print=True)
+    print(prob['obj'])
+    # prob.check_partials(compact_print=True)
     exit()
 
 prob.run_driver()
 
-print(prob['wing_twist_dv'])
-print(prob['wing_tube_thickness_dv'])
 
 # print(prob['circulations'])
 # print(prob['wing_disp'])

@@ -65,7 +65,7 @@ center = np.array([40., 5., 0.])
 try:
     zoom_scale = sys.argv[3]
 except:
-    zoom_scale = 2.
+    zoom_scale = 1.5
 
 class Display(object):
     def __init__(self, db_name):
@@ -186,7 +186,7 @@ class Display(object):
             self.ax4.locator_params(axis='y',nbins=4)
             self.ax4.locator_params(axis='x',nbins=3)
             # TODO change thickness bounds
-            self.ax4.set_ylim([0., .2])
+            self.ax4.set_ylim([0., .015])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
 
@@ -262,6 +262,8 @@ class Display(object):
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
+        el = 0
+        az = 0
 
         data = self.data_all_iters[self.curr_pos]
 
@@ -290,7 +292,7 @@ class Display(object):
             fea_mesh = data['fea_mesh'][pt, :, :]
 
             if self.show_wing:
-                fea_mesh = fea_mesh + data['disp'][pt, :, :3]
+                fea_mesh = fea_mesh + data['disp'][pt, :, :3] * 2
 
             # Get the array of radii and thickness values for the FEM system
             r0 = data['radius'][pt]
