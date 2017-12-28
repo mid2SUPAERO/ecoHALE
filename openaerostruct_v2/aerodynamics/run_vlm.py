@@ -14,7 +14,9 @@ from openaerostruct_v2.aerodynamics.vlm_postprocess_group import VLMPostprocessG
 from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
 
 
-check_derivs = 0
+mode = 0
+
+check_derivs = mode == 0
 
 num_nodes = 1 if not check_derivs else 2
 
@@ -26,6 +28,7 @@ lifting_surfaces = [
         'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
         'airfoil_x': np.linspace(0., 1., num_points_x),
         'airfoil_y': np.zeros(num_points_x),
+        'C_l_max': 1.3,
         'mac': 0.7,
         'chord': 1.,
         'chord_bspline': (2, 2),
@@ -94,30 +97,46 @@ prob.driver.options['optimizer'] = 'SNOPT'
 prob.driver.opt_settings['Major optimality tolerance'] = 3e-7
 prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
 
-prob.driver.add_recorder(SqliteRecorder('aero.hst'))
-prob.driver.recording_options['includes'] = ['*']
+if mode == 2:
+    prob.driver.add_recorder(SqliteRecorder('aero.hst'))
+    prob.driver.recording_options['includes'] = ['*']
 
 prob.setup()
 
 prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
-# prob.run_model()
+if mode == -1:
+    view_model(prob)
+    exit()
 
-if check_derivs:
+elif mode == 0:
     prob.setup(force_alloc_complex=True)
     prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
     prob.run_model()
     prob.check_partials(compact_print=True)
-    print(prob['wing_mesh'][0, :, 0, 0])
-    print(prob['wing_mesh'][0, :, 0, 1])
     exit()
+elif mode == 2:
+    prob.run_driver()
+elif mode == 1:
+    print('alpha', prob['alpha_rad'])
+    print(prob['C_L'])
 
-prob.run_driver()
+    num = 50
+    x = np.zeros(num)
+    y = np.zeros(num)
+    for i, alpha in enumerate(np.linspace(-3, 20, num)):
+        prob['alpha_rad'] = alpha * np.pi / 180.
+        prob.run_model()
+        x[i] = alpha
+        y[i] = prob['C_L']
+        # print(np.max(prob['wing_sec_C_L']))
+        # print(np.max(prob['wing_sec_C_L_capped']))
+        # print(np.min(prob['sec_C_L_factor']))
+        print(np.max(prob['panel_forces_rotated_capped'][0, :, 1]))
+    plt.plot(x, y)
+    plt.show()
 
-print('alpha', prob['alpha_rad'])
-print(prob['C_L'])
-
-if 1:
+if 0:
     for i in range(num_nodes):
         C_L = prob['wing_sec_C_L'].reshape((num_nodes, num_points_z - 1))[i, :] \
             * 0.5 * (prob['wing_chord'][i, 1:] + prob['wing_chord'][i, :-1])
@@ -132,7 +151,7 @@ if 1:
     plt.plot(prob['wing_sec_z'][i, :], prob['wing_twist'][i, :], 'ko-')
     plt.show()
 
-if 1:
+if 0:
     mesh = prob['wing_mesh'][0]
     vortex_mesh = prob['wing_vortex_mesh'][0]
     collocation_points = prob['coll_pts'][0]
