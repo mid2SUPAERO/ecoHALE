@@ -14,7 +14,7 @@ from openaerostruct_v2.aerodynamics.vlm_postprocess_group import VLMPostprocessG
 from openaerostruct_v2.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
 
 
-mode = 0
+mode = 1
 
 check_derivs = mode == 0
 
@@ -28,7 +28,6 @@ lifting_surfaces = [
         'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
         'airfoil_x': np.linspace(0., 1., num_points_x),
         'airfoil_y': np.zeros(num_points_x),
-        'C_l_max': 1.3,
         'mac': 0.7,
         'chord': 1.,
         'chord_bspline': (2, 2),
@@ -57,6 +56,7 @@ indep_var_comp.add_output('v_m_s', shape=num_nodes, val=200.)
 indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
 indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
 indep_var_comp.add_output('Re_1e6', shape=num_nodes, val=2.)
+indep_var_comp.add_output('C_l_max', shape=num_nodes, val=1.5)
 prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
 inputs_group = InputsGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
