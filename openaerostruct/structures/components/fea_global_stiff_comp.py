@@ -1,0 +1,79 @@
+from __future__ import print_function
+import numpy as np
+
+from openmdao.api import ExplicitComponent
+
+from openaerostruct.utils.vector_algebra import add_ones_axis
+from openaerostruct.utils.vector_algebra import compute_norm, compute_norm_deriv
+from openaerostruct.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
+from openaerostruct.utils.misc_utils import get_array_indices, tile_sparse_jac
+
+
+class FEAGlobalStiffComp(ExplicitComponent):
+
+    def initialize(self):
+        self.metadata.declare('num_nodes', types=int)
+        self.metadata.declare('lifting_surfaces', types=list)
+        self.metadata.declare('fea_scaler', types=float)
+
+    def setup(self):
+        num_nodes = self.metadata['num_nodes']
+        lifting_surfaces = self.metadata['lifting_surfaces']
+        fea_scaler = self.metadata['fea_scaler']
+
+        for lifting_surface_name, lifting_surface_data in lifting_surfaces:
+            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            size = 6 * num_points_z + 6
+
+            local_name = '{}_local_stiff_transformed'.format(lifting_surface_name)
+            global_name = '{}_global_stiff'.format(lifting_surface_name)
+
+            self.add_input(local_name, shape=(num_nodes, num_points_z - 1, 12, 12))
+            self.add_output(global_name, shape=(num_nodes, size, size))
+
+            arange = np.arange(num_points_z - 1)
+
+            rows = np.empty((num_points_z - 1, 12, 12), int)
+            for i in range(12):
+                for j in range(12):
+                    mtx_i = 6 * arange + i
+                    mtx_j = 6 * arange + j
+                    rows[:, i, j] = size * mtx_i + mtx_j
+            rows = rows.flatten()
+            cols = np.arange(144 * (num_points_z - 1))
+            _, rows, cols = tile_sparse_jac(1., rows, cols,
+                size ** 2, (num_points_z - 1) * 12 * 12, num_nodes)
+            self.declare_partials(global_name, local_name, val=1. / fea_scaler, rows=rows, cols=cols)
+
+        self.set_check_partial_options('*', method='cs')
+
+    def compute(self, inputs, outputs):
+        lifting_surfaces = self.metadata['lifting_surfaces']
+        fea_scaler = self.metadata['fea_scaler']
+
+        for lifting_surface_name, lifting_surface_data in lifting_surfaces:
+            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            size = 6 * num_points_z + 6
+
+            local_name = '{}_local_stiff_transformed'.format(lifting_surface_name)
+            global_name = '{}_global_stiff'.format(lifting_surface_name)
+
+            arange = np.arange(num_points_z - 1)
+
+            outputs[global_name] = 0.
+            for i in range(12):
+                for j in range(12):
+                    outputs[global_name][:, 6 * arange + i, 6 * arange + j] += inputs[local_name][:, :, i, j]
+
+            mid_node_index = lifting_surface_data['num_points_z_half'] - 1
+            index = 6 * mid_node_index
+            num_dofs = 6 * num_points_z
+
+            arange = np.arange(6)
+
+            outputs[global_name][:, index + arange, num_dofs + arange] = fea_scaler
+            outputs[global_name][:, num_dofs + arange, index + arange] = fea_scaler
+
+            outputs[global_name] /= fea_scaler
