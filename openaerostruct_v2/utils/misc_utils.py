@@ -74,3 +74,22 @@ def get_airfoils(lifting_surfaces, vortex_mesh):
         airfoils[lifting_surface_name] = (airfoil_x, airfoil_y)
 
     return airfoils
+
+def get_parallel_ownership_range(iproc, nproc, global_size):
+    local_sizes = np.zeros(nproc, int)
+
+    ind_proc = 0
+    for ind_size in range(global_size):
+        local_sizes[ind_proc] += 1
+        ind_proc += 1
+        if ind_proc == nproc:
+            ind_proc = 0
+
+    return np.sum(local_sizes[:iproc]), np.sum(local_sizes[:iproc+1])
+
+if __name__ == '__main__':
+    nproc = 3
+    global_size = 7
+
+    for iproc in range(nproc):
+        print(get_parallel_ownership_range(iproc, nproc, global_size))

@@ -8,6 +8,9 @@ from openaerostruct_v2.utils.vector_algebra import compute_cross, compute_cross_
 from openaerostruct_v2.utils.misc_utils import get_array_indices, tile_sparse_jac
 
 
+panel_forces_name = 'panel_forces_rotated'
+panel_forces_name = 'panel_forces_rotated_capped'
+
 class VLMTotalForcesComp(ExplicitComponent):
     """
     Total lift and drag.
@@ -31,7 +34,7 @@ class VLMTotalForcesComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('panel_forces_rotated', shape=(num_nodes, system_size, 3))
+        self.add_input(panel_forces_name, shape=(num_nodes, system_size, 3))
         self.add_output('lift', shape=num_nodes)
         self.add_output('drag', shape=num_nodes)
 
@@ -39,16 +42,16 @@ class VLMTotalForcesComp(ExplicitComponent):
         cols = np.arange(3 * system_size).reshape((system_size, 3))[:, 1]
         _, rows, cols = tile_sparse_jac(1., rows, cols,
             1, system_size * 3, num_nodes)
-        self.declare_partials('lift', 'panel_forces_rotated', val=1., rows=rows, cols=cols)
+        self.declare_partials('lift', panel_forces_name, val=1., rows=rows, cols=cols)
 
         rows = np.zeros(system_size, int)
         cols = np.arange(3 * system_size).reshape((system_size, 3))[:, 0]
         _, rows, cols = tile_sparse_jac(1., rows, cols,
             1, system_size * 3, num_nodes)
-        self.declare_partials('drag', 'panel_forces_rotated', val=1., rows=rows, cols=cols)
+        self.declare_partials('drag', panel_forces_name, val=1., rows=rows, cols=cols)
 
         self.set_check_partial_options('*', method='cs')
 
     def compute(self, inputs, outputs):
-        outputs['lift'] = np.sum(inputs['panel_forces_rotated'][:, :, 1], axis=1)
-        outputs['drag'] = np.sum(inputs['panel_forces_rotated'][:, :, 0], axis=1)
+        outputs['lift'] = np.sum(inputs[panel_forces_name][:, :, 1], axis=1)
+        outputs['drag'] = np.sum(inputs[panel_forces_name][:, :, 0], axis=1)

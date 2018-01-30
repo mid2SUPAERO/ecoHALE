@@ -133,3 +133,31 @@ class FEAStatesComp(ImplicitComponent):
                     # d_residuals[states_name][i, :] = lu_solve(lu, d_outputs[states_name][i, :], trans=1)
                     solver = self.solvers[lifting_surface_name, i]
                     d_residuals[states_name][i, :] = solver.solve(d_outputs[states_name][i, :], mode='rev')
+
+    def solve_multi_linear(self, d_outputs, d_residuals, mode):
+        num_nodes = self.metadata['num_nodes']
+        lifting_surfaces = self.metadata['lifting_surfaces']
+
+        for lifting_surface_name, lifting_surface_data in lifting_surfaces:
+            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+
+            forces_name = '{}_forces'.format(lifting_surface_name)
+            mtx_name = '{}_global_stiff'.format(lifting_surface_name)
+            states_name = '{}_states'.format(lifting_surface_name)
+
+            ncol = d_outputs[states_name].shape[-1]
+
+            if mode == 'fwd':
+                for i in range(num_nodes):
+                    for j in range(ncol):
+                        # lu = self.lu[lifting_surface_name, i]
+                        # d_outputs[states_name][i, :] = lu_solve(lu, d_residuals[states_name][i, :], trans=0)
+                        solver = self.solvers[lifting_surface_name, i]
+                        d_outputs[states_name][i, :, j] = solver.solve(d_residuals[states_name][i, :, j], mode='fwd')
+            else:
+                for i in range(num_nodes):
+                    for j in range(ncol):
+                        # lu = self.lu[lifting_surface_name, i]
+                        # d_residuals[states_name][i, :] = lu_solve(lu, d_outputs[states_name][i, :], trans=1)
+                        solver = self.solvers[lifting_surface_name, i]
+                        d_residuals[states_name][i, :, j] = solver.solve(d_outputs[states_name][i, :, j], mode='rev')
