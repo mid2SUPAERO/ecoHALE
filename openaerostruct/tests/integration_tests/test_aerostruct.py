@@ -8,7 +8,7 @@ from six import iteritems
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from openmdao.api import Problem, Group, IndepVarComp, pyOptSparseDriver, view_model, ExecComp, SqliteRecorder
+from openmdao.api import Problem, Group, IndepVarComp, ScipyOptimizeDriver, view_model, ExecComp, SqliteRecorder
 
 from openaerostruct.geometry.inputs_group import InputsGroup
 from openaerostruct.structures.fea_bspline_group import FEABsplineGroup
@@ -20,47 +20,14 @@ from openaerostruct.structures.fea_preprocess_group import FEAPreprocessGroup
 from openaerostruct.structures.fea_postprocess_group import FEAPostprocessGroup
 
 from openaerostruct.aerostruct.aerostruct_group import AerostructGroup
+from openaerostruct.tests.utils import get_default_lifting_surfaces
 
+num_nodes = 1
 
 class TestAerostruct(unittest.TestCase):
 
-    def test_aerostruct(self):
-
-        num_nodes = 1
-        g = 9.81
-
-        num_points_x = 2
-        num_points_z_half = 15
-        num_points_z = 2 * num_points_z_half - 1
-        lifting_surfaces = [
-            ('wing', {
-                'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
-                'airfoil_x': np.linspace(0., 1., num_points_x),
-                'airfoil_y': np.zeros(num_points_x),
-                'chord': 1., 'twist': 0. * np.pi / 180., 'sweep_x': 0., 'dihedral_y': 0., 'span': 5,
-                'twist_bspline': (6, 2),
-                'sec_z_bspline': (num_points_z_half, 2),
-                'chord_bspline': (2, 2),
-                'thickness_bspline': (6, 3),
-                'thickness' : 0.05,
-                'radius' : 0.1,
-                'distribution': 'sine',
-                'section_origin': 0.25,
-                'spar_location': 0.35,
-                'E': 70.e9,
-                'G': 29.e9,
-                'sigma_y': 200e6,
-                'rho': 2700,
-                'factor2' : 0.119,
-                'factor4' : -0.064,
-                'cl_factor' : 1.05,
-                'W0' : (0.1381 * g - .350) * 1e6 + 300 * 80 * g,
-                'a' : 295.4,
-                'R' : 7000. * 1.852 * 1e3,
-                'M' : .84,
-                'CT' : g * 17.e-6,
-            })
-        ]
+    def setup_aerostruct(self):
+        lifting_surfaces = get_default_lifting_surfaces()
 
         vlm_scaler = 1e2
         fea_scaler = 1e6
@@ -115,10 +82,9 @@ class TestAerostruct(unittest.TestCase):
         prob.model.add_constraint('wing_ks', upper=0.)
         prob.model.add_constraint('C_L', equals=np.linspace(0.8, 0.8, num_nodes))
 
-        prob.driver = pyOptSparseDriver()
-        prob.driver.options['optimizer'] = 'SNOPT'
-        prob.driver.opt_settings['Major optimality tolerance'] = 3e-7
-        prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
+        prob.driver = ScipyOptimizeDriver()
+        prob.driver.opt_settings['Major optimality tolerance'] = 1e-7
+        prob.driver.opt_settings['Major feasibility tolerance'] = 1e-7
 
         prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
         prob.driver.recording_options['includes'] = ['*']
@@ -126,7 +92,17 @@ class TestAerostruct(unittest.TestCase):
         prob.setup()
 
         prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
+
+        return prob
+
+    def test_aerostruct(self):
+
+        prob = self.setup_aerostruct()
+
         prob.run_model()
         print(prob['obj'])
 
         assert_almost_equal(prob['obj'], 6261.66102481)
+
+if __name__ == "__main__":
+    unittest.main()
