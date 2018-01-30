@@ -151,7 +151,7 @@ if 0:
     plt.plot(prob['wing_sec_z'][i, :], prob['wing_twist'][i, :], 'ko-')
     plt.show()
 
-if 0:
+if 1:
     mesh = prob['wing_mesh'][0]
     vortex_mesh = prob['wing_vortex_mesh'][0]
     collocation_points = prob['coll_pts'][0]
@@ -164,11 +164,11 @@ if 0:
 
     # plt.subplot(2, 1, 1)
     ax = fig.gca()
-    plot_mesh_2d(ax, vortex_mesh, 2, 0, color='b')
-    plot_mesh_2d(ax, mesh, 2, 0, color='k')
-    scatter_2d(ax, collocation_points, 2, 0, color='b', markersize=3)
-    scatter_2d(ax, force_points, 2, 0, color='r', markersize=3)
-    arrow_2d(ax, force_points, 0.5 * bound_vecs, 2, 0, color='grey')
+    plot_mesh_2d(ax, vortex_mesh, 2, 0, 'b')
+    plot_mesh_2d(ax, mesh, 2, 0, 'k')
+    scatter_2d(ax, collocation_points, 2, 0, 'b')
+    scatter_2d(ax, force_points, 2, 0, 'r')
+    arrow_2d(ax, force_points, 0.5 * bound_vecs, 2, 0)
     plt.axis('equal')
     plt.xlabel('z')
     plt.ylabel('x')
