@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from openmdao.api import Problem, IndepVarComp, pyOptSparseDriver, view_model, Group, ExecComp, SqliteRecorder
+from openmdao.api import Problem, IndepVarComp, ScipyOptimizeDriver, view_model, Group, ExecComp, SqliteRecorder
 
 from openaerostruct.geometry.inputs_group import InputsGroup
 from openaerostruct.aerodynamics.vlm_preprocess_group import VLMPreprocessGroup
@@ -73,7 +73,7 @@ class TestAero(unittest.TestCase):
         prob.model.add_objective('obj')
         prob.model.add_constraint('C_L', equals=np.linspace(0.4, 0.6, num_nodes))
 
-        prob.driver = pyOptSparseDriver()
+        prob.driver = ScipyOptimizeDriver()
         prob.driver.options['optimizer'] = 'SNOPT'
         prob.driver.opt_settings['Major optimality tolerance'] = 3e-7
         prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
