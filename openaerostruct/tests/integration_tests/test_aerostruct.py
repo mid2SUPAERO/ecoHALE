@@ -84,8 +84,8 @@ class TestAerostruct(unittest.TestCase):
         prob.model.add_constraint('C_L', equals=np.linspace(0.8, 0.8, num_nodes))
 
         prob.driver = ScipyOptimizeDriver()
-        prob.driver.opt_settings['Major optimality tolerance'] = 1e-7
-        prob.driver.opt_settings['Major feasibility tolerance'] = 1e-7
+        prob.driver.opt_settings['Major optimality tolerance'] = 1e-9
+        prob.driver.opt_settings['Major feasibility tolerance'] = 1e-9
 
         # prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
         # prob.driver.recording_options['includes'] = ['*']
@@ -104,7 +104,7 @@ class TestAerostruct(unittest.TestCase):
     def test_aerostruct_optimization(self):
         prob = self.setup_aerostruct()
         prob.run_driver()
-        assert_almost_equal(prob['obj'], 497.2697698)
+        assert_almost_equal(prob['obj'], 497.2697619)
 
     def test_aerostruct_derivs(self):
         prob = self.setup_aerostruct()

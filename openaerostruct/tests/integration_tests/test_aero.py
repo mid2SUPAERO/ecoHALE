@@ -7,9 +7,7 @@ from openmdao.api import Problem, IndepVarComp, ScipyOptimizeDriver, view_model,
 
 from openaerostruct.geometry.inputs_group import InputsGroup
 from openaerostruct.aerodynamics.vlm_preprocess_group import VLMPreprocessGroup
-from openaerostruct.aerodynamics.vlm_states1_group import VLMStates1Group
-from openaerostruct.aerodynamics.vlm_states2_group import VLMStates2Group
-from openaerostruct.aerodynamics.vlm_states3_group import VLMStates3Group
+from openaerostruct.aerodynamics.vlm_states_group import VLMStatesGroup
 from openaerostruct.aerodynamics.vlm_postprocess_group import VLMPostprocessGroup
 
 from openaerostruct.tests.utils import get_default_lifting_surfaces
@@ -47,16 +45,8 @@ class TestAero(unittest.TestCase):
             VLMPreprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
             promotes=['*'],
         )
-        prob.model.add_subsystem('vlm_states1_group',
-            VLMStates1Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
-            promotes=['*'],
-        )
-        prob.model.add_subsystem('vlm_states2_group',
-            VLMStates2Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vlm_scaler=vlm_scaler),
-            promotes=['*'],
-        )
-        prob.model.add_subsystem('vlm_states3_group',
-            VLMStates3Group(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+        prob.model.add_subsystem('vlm_states_group',
+            VLMStatesGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vlm_scaler=vlm_scaler),
             promotes=['*'],
         )
         prob.model.add_subsystem('vlm_postprocess_group',
@@ -74,9 +64,9 @@ class TestAero(unittest.TestCase):
         prob.model.add_constraint('C_L', equals=np.linspace(0.4, 0.6, num_nodes))
 
         prob.driver = ScipyOptimizeDriver()
-        prob.driver.options['optimizer'] = 'SNOPT'
-        prob.driver.opt_settings['Major optimality tolerance'] = 3e-7
-        prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
+        prob.driver.options['optimizer'] = 'SLSQP'
+        prob.driver.opt_settings['Major optimality tolerance'] = 1e-12
+        prob.driver.opt_settings['Major feasibility tolerance'] = 1e-12
 
         if mode == 2:
             prob.driver.add_recorder(SqliteRecorder('aero.hst'))
@@ -98,7 +88,7 @@ class TestAero(unittest.TestCase):
 
         prob = self.setup_aero()
         prob.run_driver()
-        assert_almost_equal(prob['obj'],  0.0048467)
+        assert_almost_equal(prob['obj'],  0.0048556)
 
 if __name__ == "__main__":
     unittest.main()
