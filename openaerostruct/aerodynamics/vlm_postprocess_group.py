@@ -9,6 +9,7 @@ from openaerostruct.aerodynamics.components.forces.vlm_panel_coeffs_factor_comp 
 from openaerostruct.aerodynamics.components.forces.vlm_rotate_panel_forces_comp import VLMRotatePanelForcesComp
 from openaerostruct.aerodynamics.components.forces.vlm_total_forces_comp import VLMTotalForcesComp
 from openaerostruct.aerodynamics.components.forces.vlm_total_coeffs_comp import VLMTotalCoeffsComp
+from openaerostruct.aerodynamics.components.forces.vlm_modify_coeffs_comp import VLMModifyCoeffsComp
 from openaerostruct.common.product_comp import ProductComp
 
 
