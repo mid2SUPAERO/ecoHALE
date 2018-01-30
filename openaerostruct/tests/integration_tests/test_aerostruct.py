@@ -9,6 +9,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal
 
 from openmdao.api import Problem, Group, IndepVarComp, ScipyOptimizeDriver, view_model, ExecComp, SqliteRecorder
+from openmdao.utils.assert_utils import assert_check_partials
 
 from openaerostruct.geometry.inputs_group import InputsGroup
 from openaerostruct.structures.fea_bspline_group import FEABsplineGroup
@@ -89,27 +90,27 @@ class TestAerostruct(unittest.TestCase):
         # prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
         # prob.driver.recording_options['includes'] = ['*']
 
-        prob.setup()
+        prob.setup(force_alloc_complex=True)
 
         prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
         return prob
 
     def test_aerostruct_analysis(self):
-
         prob = self.setup_aerostruct()
-
         prob.run_model()
-
         assert_almost_equal(prob['obj'], 6260.8695796)
 
     def test_aerostruct_optimization(self):
-
         prob = self.setup_aerostruct()
-
         prob.run_driver()
-
         assert_almost_equal(prob['obj'], 497.2697698)
+
+    def test_aerostruct_derivs(self):
+        prob = self.setup_aerostruct()
+        prob.run_model()
+        data = prob.check_partials(compact_print=True)
+        assert_check_partials(data, atol=1e-5, rtol=1e-5)
 
 if __name__ == "__main__":
     unittest.main()
