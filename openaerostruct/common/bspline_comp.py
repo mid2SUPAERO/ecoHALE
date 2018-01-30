@@ -7,7 +7,7 @@ from openaerostruct.utils.bsplines import get_bspline_mtx
 from openaerostruct.utils.misc_utils import tile_sparse_jac
 
 
-class BsplinesComp(ExplicitComponent):
+class BsplineComp(ExplicitComponent):
 
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)

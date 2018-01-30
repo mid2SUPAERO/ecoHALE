@@ -11,7 +11,7 @@ class VLMMtxRHSComp(ExplicitComponent):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('vlm_scaler', types=float)
+        self.metadata.declare('vlm_scaler', types=float, default=1e2)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']

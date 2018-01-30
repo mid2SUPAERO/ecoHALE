@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import Group, IndepVarComp
 
-from openaerostruct.common.bspline_comp import BsplinesComp
+from openaerostruct.common.bspline_comp import BsplineComp
 from openaerostruct.common.array_expansion_comp import ArrayExpansionComp
 
 from openaerostruct.utils.misc_utils import expand_array
@@ -135,7 +135,7 @@ class InputsGroup(Group):
 
                 in_name = '{}_{}_cp'.format(lifting_surface_name, name)
                 out_name = '{}_{}'.format(lifting_surface_name, name)
-                comp = BsplinesComp(
+                comp = BsplineComp(
                     num_nodes=num_nodes,
                     num_control_points=num_control_points,
                     num_points=num_points_z,

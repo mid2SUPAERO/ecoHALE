@@ -26,7 +26,7 @@ g = 9.81
 
 def get_default_lifting_surfaces():
     num_points_x = 2
-    num_points_z_half = 15
+    num_points_z_half = 2
     num_points_z = 2 * num_points_z_half - 1
     lifting_surfaces = [
         ('wing', {
@@ -59,3 +59,18 @@ def get_default_lifting_surfaces():
     ]
 
     return lifting_surfaces
+
+
+def run_test(obj, comp, decimal=3):
+    prob = Problem()
+    prob.model.add_subsystem('comp', comp)
+    prob.setup(force_alloc_complex=True)
+
+    prob.run_model()
+    check = prob.check_partials(compact_print=True)
+    for key, subjac in iteritems(check[list(check.keys())[0]]):
+        if subjac['magnitude'].fd > 1e-6:
+            assert_almost_equal(
+                subjac['rel error'].forward, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
+            assert_almost_equal(
+                subjac['rel error'].reverse, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)

@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import Group, IndepVarComp
 
-from openaerostruct.common.bspline_comp import BsplinesComp
+from openaerostruct.common.bspline_comp import BsplineComp
 from openaerostruct.common.array_expansion_comp import ArrayExpansionComp
 
 
@@ -81,7 +81,7 @@ class FEABsplineGroup(Group):
 
                 in_name = '{}_tube_{}_cp'.format(lifting_surface_name, name)
                 out_name = '{}_tube_{}'.format(lifting_surface_name, name)
-                comp = BsplinesComp(
+                comp = BsplineComp(
                     num_nodes=num_nodes,
                     num_control_points=num_control_points,
                     num_points=num_points_z - 1,

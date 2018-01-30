@@ -18,8 +18,8 @@ class AerostructGroup(Group):
     def initialize(self):
         self.metadata.declare('num_nodes', types=int)
         self.metadata.declare('lifting_surfaces', types=list)
-        self.metadata.declare('vlm_scaler', types=float)
-        self.metadata.declare('fea_scaler', types=float)
+        self.metadata.declare('vlm_scaler', types=float, default=1e2)
+        self.metadata.declare('fea_scaler', types=float, default=1e6)
 
     def setup(self):
         num_nodes = self.metadata['num_nodes']

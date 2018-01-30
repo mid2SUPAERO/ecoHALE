@@ -102,7 +102,7 @@ class TestAerostruct(unittest.TestCase):
         prob.run_model()
         print(prob['obj'])
 
-        assert_almost_equal(prob['obj'], 6261.66102481)
+        assert_almost_equal(prob['obj'], 6260.8695796)
 
 if __name__ == "__main__":
     unittest.main()
