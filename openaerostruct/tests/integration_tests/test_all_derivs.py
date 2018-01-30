@@ -35,8 +35,8 @@ skip_comps = ['fea_length_comp', 'fea_vonmises_comp']
 lifting_surfaces = get_default_lifting_surfaces()
 
 class Test(unittest.TestCase):
-    def test(self):
 
+    def test(self):
         for key, data in iteritems(results):
             if '_comp' in key:
                 file_comp_name = key.split('.')[-1]

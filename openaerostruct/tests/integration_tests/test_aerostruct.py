@@ -86,8 +86,8 @@ class TestAerostruct(unittest.TestCase):
         prob.driver.opt_settings['Major optimality tolerance'] = 1e-7
         prob.driver.opt_settings['Major feasibility tolerance'] = 1e-7
 
-        prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
-        prob.driver.recording_options['includes'] = ['*']
+        # prob.driver.add_recorder(SqliteRecorder('aerostruct.hst'))
+        # prob.driver.recording_options['includes'] = ['*']
 
         prob.setup()
 
@@ -95,14 +95,21 @@ class TestAerostruct(unittest.TestCase):
 
         return prob
 
-    def test_aerostruct(self):
+    def test_aerostruct_analysis(self):
 
         prob = self.setup_aerostruct()
 
         prob.run_model()
-        print(prob['obj'])
 
         assert_almost_equal(prob['obj'], 6260.8695796)
+
+    def test_aerostruct_optimization(self):
+
+        prob = self.setup_aerostruct()
+
+        prob.run_driver()
+
+        assert_almost_equal(prob['obj'], 497.2697698)
 
 if __name__ == "__main__":
     unittest.main()
