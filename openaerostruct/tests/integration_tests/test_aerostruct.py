@@ -104,7 +104,7 @@ class TestAerostruct(unittest.TestCase):
     def test_aerostruct_optimization(self):
         prob = self.setup_aerostruct()
         prob.run_driver()
-        assert_almost_equal(prob['obj'], 497.2697619)
+        assert_almost_equal(prob['obj'], 497.2697619, decimal=4)
 
     def test_aerostruct_derivs(self):
         prob = self.setup_aerostruct()
