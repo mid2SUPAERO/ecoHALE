@@ -82,6 +82,11 @@ class VLMPanelCoeffsFactorComp(ExplicitComponent):
                 inputs[sec_C_L_capped_name] / inputs[sec_C_L_name], np.ones(num_points_x - 1),
             ).reshape((num_nodes, (num_points_x - 1) * (num_points_z - 1)))
 
+            # When inputs[sec_C_L_name] == 0, we get infs and nans in the outputs here.
+            # This happens when alpha_rad = 0.
+            # We set all infs to 1. here if that is the case.
+            outputs[sec_C_L_factor_name][outputs[sec_C_L_factor_name] == -np.inf] = 1.
+
             ind1 += (num_points_x - 1) * (num_points_z - 1)
 
     def compute_partials(self, inputs, partials):
@@ -107,6 +112,7 @@ class VLMPanelCoeffsFactorComp(ExplicitComponent):
             derivs[:, :, :, 1] = np.einsum('ik,j->ijk',
                 -inputs[sec_C_L_capped_name] / inputs[sec_C_L_name] ** 2, np.ones(num_points_x - 1),
             )
+            derivs[derivs == np.inf] = 0.
 
             derivs = partials[sec_C_L_factor_name, sec_C_L_capped_name].reshape(
                 (num_nodes, num_points_x - 1, num_points_z - 1, 3)
@@ -115,5 +121,6 @@ class VLMPanelCoeffsFactorComp(ExplicitComponent):
             derivs[:, :, :, 1] = np.einsum('ik,j->ijk',
                 1. / inputs[sec_C_L_name], np.ones(num_points_x - 1),
             )
+            derivs[derivs == np.inf] = 0.
 
             ind1 += (num_points_x - 1) * (num_points_z - 1)
