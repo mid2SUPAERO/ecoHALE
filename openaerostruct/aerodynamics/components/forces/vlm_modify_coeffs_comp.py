@@ -61,6 +61,10 @@ class VLMModifyCoeffsComp(ExplicitComponent):
 
         outputs['C_L'] = CL * self.cl_factor
         outputs['C_D'] = CD + self.factor2 * (CL - .2) ** 2 + self.factor4 * CL ** 4
+        print('oas coeffs')
+        print(outputs['C_L'])
+        print(outputs['C_D'])
+        print()
 
     def compute_partials(self, inputs, partials):
         CL = inputs['C_L_ind'] + self.CL0

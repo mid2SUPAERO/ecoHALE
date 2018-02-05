@@ -25,7 +25,7 @@ from openaerostruct.tests.utils import get_default_lifting_surfaces
 
 num_nodes = 1
 
-def setup_aerostruct(self):
+def setup_aerostruct():
     lifting_surfaces = get_default_lifting_surfaces()
 
     vlm_scaler = 1e2
@@ -98,17 +98,17 @@ class TestAerostruct(unittest.TestCase):
 
 
     def test_aerostruct_analysis(self):
-        prob = self.setup_aerostruct()
+        prob = setup_aerostruct()
         prob.run_model()
         assert_almost_equal(prob['obj'], 6260.8695796)
 
     def test_aerostruct_optimization(self):
-        prob = self.setup_aerostruct()
+        prob = setup_aerostruct()
         prob.run_driver()
         assert_almost_equal(prob['obj'], 497.2697619, decimal=4)
 
     def test_aerostruct_derivs(self):
-        prob = self.setup_aerostruct()
+        prob = setup_aerostruct()
         prob.run_model()
         data = prob.check_partials(compact_print=True)
         assert_check_partials(data, atol=1e-5, rtol=1e-5)
