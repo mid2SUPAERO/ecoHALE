@@ -35,22 +35,22 @@ class VLMPostprocessGroup(Group):
         comp = VLMRotatePanelForcesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_rotate_panel_forces_comp', comp, promotes=['*'])
 
-        # {}_sec_C_L, {}_sec_C_D
-        comp = VLMPanelCoeffsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_panel_coeffs_comp', comp, promotes=['*'])
+        # # {}_sec_C_L, {}_sec_C_D
+        # comp = VLMPanelCoeffsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        # self.add_subsystem('vlm_panel_coeffs_comp', comp, promotes=['*'])
 
-        # {}_sec_C_L_capped
-        comp = VLMPanelCoeffsCappedComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_panel_coeffs_capped_comp', comp, promotes=['*'])
-
-        # sec_C_L_factor
-        comp = VLMPanelCoeffsFactorComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('vlm_panel_coeffs_factor_comp', comp, promotes=['*'])
-
-        # panel_forces_rotated_capped
-        comp = ProductComp(shape=(num_nodes, system_size, 3),
-            in_name1='panel_forces_rotated', in_name2='sec_C_L_factor', out_name='panel_forces_rotated_capped')
-        self.add_subsystem('vlm_panel_forces_rotated_capped_comp', comp, promotes=['*'])
+        # # {}_sec_C_L_capped
+        # comp = VLMPanelCoeffsCappedComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        # self.add_subsystem('vlm_panel_coeffs_capped_comp', comp, promotes=['*'])
+        #
+        # # sec_C_L_factor
+        # comp = VLMPanelCoeffsFactorComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        # self.add_subsystem('vlm_panel_coeffs_factor_comp', comp, promotes=['*'])
+        #
+        # # panel_forces_rotated_capped
+        # comp = ProductComp(shape=(num_nodes, system_size, 3),
+        #     in_name1='panel_forces_rotated', in_name2='sec_C_L_factor', out_name='panel_forces_rotated_capped')
+        # self.add_subsystem('vlm_panel_forces_rotated_capped_comp', comp, promotes=['*'])
 
         # lift, drag (depends on panel_forces_rotated or panel_forces_rotated_capped)
         comp = VLMTotalForcesComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)

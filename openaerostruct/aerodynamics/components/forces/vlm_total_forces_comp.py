@@ -9,7 +9,6 @@ from openaerostruct.utils.misc_utils import get_array_indices, tile_sparse_jac
 
 
 panel_forces_name = 'panel_forces_rotated'
-panel_forces_name = 'panel_forces_rotated_capped'
 
 class VLMTotalForcesComp(ExplicitComponent):
     """
