@@ -15,7 +15,7 @@ Here are some common issues and possible solutions for them.
 
 - After running an optimization case, always check to see if your constraints are satisfied. pyOptSparse prints out this information automatically, but if you're using Scipy's optimizer, you may need to manually print the constraints.
 
-- Check out http://openmdao.readthedocs.io/en/latest/usr-guide/tutorials/recording.html#the-casereader for more info about how to access the saved data in the outputted `.db` file.
+- Check out http://openmdao.readthedocs.io/en/1.7.3/usr-guide/tutorials/recording.html#the-casereader for more info about how to access the saved data in the outputted `.db` file.
 
 MDO Course Homework Tips
 ========================
