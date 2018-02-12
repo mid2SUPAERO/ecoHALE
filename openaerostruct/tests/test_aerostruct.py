@@ -25,7 +25,6 @@ from openaerostruct.tests.utils import get_default_lifting_surfaces
 from openaerostruct.common.lifting_surface import LiftingSurface
 
 
-
 def setup_aerostruct():
 
     num_nodes = 1
@@ -34,22 +33,22 @@ def setup_aerostruct():
     num_points_z = 2 * num_points_z_half - 1
     g = 9.81
 
-    lifting_surface = LiftingSurface('wing')
+    wing = LiftingSurface('wing')
 
-    lifting_surface.initialize_mesh(num_points_x, num_points_z_half, airfoil_x=np.linspace(0., 1., num_points_x), airfoil_y=np.zeros(num_points_x))
-    lifting_surface.set_mesh_parameters(distribution='sine', section_origin=.25)
-    lifting_surface.set_structural_properties(E=70.e9, G=29.e9, spar_location=0.35, sigma_y=200e6, rho=2700)
-    lifting_surface.set_aero_properties(factor2=.119, factor4=-0.064, cl_factor=1.05)
+    wing.initialize_mesh(num_points_x, num_points_z_half, airfoil_x=np.linspace(0., 1., num_points_x), airfoil_y=np.zeros(num_points_x))
+    wing.set_mesh_parameters(distribution='sine', section_origin=.25)
+    wing.set_structural_properties(E=70.e9, G=29.e9, spar_location=0.35, sigma_y=200e6, rho=2700)
+    wing.set_aero_properties(factor2=.119, factor4=-0.064, cl_factor=1.05)
 
-    lifting_surface.set_chord(1.)
-    lifting_surface.set_twist(0.)
-    lifting_surface.set_sweep(0.)
-    lifting_surface.set_dihedral(0.)
-    lifting_surface.set_span(5.)
-    lifting_surface.set_thickness(0.05)
-    lifting_surface.set_radius(0.1)
+    wing.set_chord(1.)
+    wing.set_twist(0.)
+    wing.set_sweep(0.)
+    wing.set_dihedral(0.)
+    wing.set_span(5.)
+    wing.set_thickness(0.05)
+    wing.set_radius(0.1)
 
-    lifting_surfaces = [('wing', lifting_surface)]
+    lifting_surfaces = [('wing', wing)]
 
 
     vlm_scaler = 1e2
@@ -126,10 +125,10 @@ class TestAerostruct(unittest.TestCase):
         prob.run_model()
         assert_almost_equal(prob['obj'], 6260.8834617)
 
-    # def test_aerostruct_optimization(self):
-    #     prob = setup_aerostruct()
-    #     prob.run_driver()
-    #     assert_almost_equal(prob['obj'], 491.7589, decimal=4)
+    def test_aerostruct_optimization(self):
+        prob = setup_aerostruct()
+        prob.run_driver()
+        assert_almost_equal(prob['obj'], 491.7589, decimal=4)
 
     def test_aerostruct_derivs(self):
         prob = setup_aerostruct()

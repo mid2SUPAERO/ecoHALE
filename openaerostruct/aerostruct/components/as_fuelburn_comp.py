@@ -19,26 +19,11 @@ class ASFuelburnComp(ExplicitComponent):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
-        if 'W0' in lifting_surfaces[0][1].keys():
-            self.W0 = lifting_surfaces[0][1]['W0']
-        else:
-            self.W0 = 0.
-        if 'a' in lifting_surfaces[0][1].keys():
-            self.a = lifting_surfaces[0][1]['a']
-        else:
-            self.a = 0.
-        if 'R' in lifting_surfaces[0][1].keys():
-            self.R = lifting_surfaces[0][1]['R']
-        else:
-            self.R = 0.
-        if 'M' in lifting_surfaces[0][1].keys():
-            self.M = lifting_surfaces[0][1]['M']
-        else:
-            self.M = 0.
-        if 'CT' in lifting_surfaces[0][1].keys():
-            self.CT = lifting_surfaces[0][1]['CT']
-        else:
-            self.CT = 0.
+        self.add_input('W0', shape=num_nodes)
+        self.add_input('a', shape=num_nodes)
+        self.add_input('R', shape=num_nodes)
+        self.add_input('M', shape=num_nodes)
+        self.add_input('CT', shape=num_nodes)
 
         self.add_input('C_L', shape=num_nodes)
         self.add_input('C_D', shape=num_nodes)
@@ -50,11 +35,11 @@ class ASFuelburnComp(ExplicitComponent):
         self.declare_partials('*', '*', rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
-        W0 = self.W0
-        a = self.a
-        R = self.R
-        M = self.M
-        CT = self.CT
+        W0 = inputs['W0']
+        a = inputs['a']
+        R = inputs['R']
+        M = inputs['M']
+        CT = inputs['CT']
 
         # Loop through the surfaces and add up the structural weights
         # to get the total structural weight.
@@ -70,11 +55,11 @@ class ASFuelburnComp(ExplicitComponent):
         print('fb:', outputs['fuelburn'])
 
     def compute_partials(self, inputs, partials):
-        W0 = self.W0
-        a = self.a
-        R = self.R
-        M = self.M
-        CT = self.CT
+        W0 = inputs['W0']
+        a = inputs['a']
+        R = inputs['R']
+        M = inputs['M']
+        CT = inputs['CT']
 
         Ws = inputs['structural_weight']
 
@@ -98,10 +83,10 @@ class ASFuelburnComp(ExplicitComponent):
 
         partials['fuelburn', 'C_L'] = dfb_dCL / g
         partials['fuelburn', 'C_D'] = dfb_dCD / g
-        # partials['fuelburn', 'CT'] = dfb_dCT / g
-        # partials['fuelburn', 'a'] = dfb_da / g
-        # partials['fuelburn', 'R'] = dfb_dR / g
-        # partials['fuelburn', 'M'] = dfb_dM / g
-        # partials['fuelburn', 'W0'] = dfb_dW
+        partials['fuelburn', 'CT'] = dfb_dCT / g
+        partials['fuelburn', 'a'] = dfb_da / g
+        partials['fuelburn', 'R'] = dfb_dR / g
+        partials['fuelburn', 'M'] = dfb_dM / g
+        partials['fuelburn', 'W0'] = dfb_dW / g
 
         partials['fuelburn', 'structural_weight'] = dfb_dW / g

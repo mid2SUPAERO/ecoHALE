@@ -19,22 +19,7 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
-        if 'W0' in lifting_surfaces[0][1].keys():
-            self.W0 = lifting_surfaces[0][1]['W0']
-        else:
-            self.W0 = 0.
-        if 'a' in lifting_surfaces[0][1].keys():
-            self.a = lifting_surfaces[0][1]['a']
-        else:
-            self.a = 0.
-        if 'R' in lifting_surfaces[0][1].keys():
-            self.R = lifting_surfaces[0][1]['R']
-        else:
-            self.R = 0.
-        if 'M' in lifting_surfaces[0][1].keys():
-            self.M = lifting_surfaces[0][1]['M']
-        else:
-            self.M = 0.
+        self.add_input('W0', shape=num_nodes)
 
         self.add_input('fuelburn', shape=num_nodes)
         self.add_input('C_L', shape=num_nodes)
@@ -50,10 +35,7 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
         self.declare_partials('*', '*', rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
-        W0 = self.W0
-        a = self.a
-        R = self.R
-        M = self.M
+        W0 = inputs['W0']
 
         rho_kg_m3 = inputs['rho_kg_m3']
         v_m_s = inputs['v_m_s']
@@ -67,10 +49,7 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
         outputs['L_equals_W'] = (lift - tot_weight) / tot_weight
 
     def compute_partials(self, inputs, partials):
-        W0 = self.W0
-        a = self.a
-        R = self.R
-        M = self.M
+        W0 = inputs['W0']
 
         rho_kg_m3 = inputs['rho_kg_m3']
         v_m_s = inputs['v_m_s']
@@ -87,3 +66,4 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
         partials['L_equals_W', 'v_m_s'] = rho_kg_m3 * v_m_s * wing_area_m2 * CL / tot_weight
         partials['L_equals_W', 'fuelburn'] = -g * lift / tot_weight**2
         partials['L_equals_W', 'structural_weight'] = -lift / tot_weight**2
+        partials['L_equals_W', 'W0'] = -lift / tot_weight**2
