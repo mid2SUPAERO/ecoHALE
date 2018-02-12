@@ -62,6 +62,9 @@ def setup_aerostruct():
     indep_var_comp.add_output('v_m_s', shape=num_nodes, val=200.)
     indep_var_comp.add_output('alpha_rad', shape=num_nodes, val=3. * np.pi / 180.)
     indep_var_comp.add_output('rho_kg_m3', shape=num_nodes, val=1.225)
+    indep_var_comp.add_output('mu_Pa_s', shape=num_nodes, val=14.36e-6)
+    indep_var_comp.add_output('reference_area', shape=num_nodes, val=7.5)
+
     prob.model.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
 
     inputs_group = InputsGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)

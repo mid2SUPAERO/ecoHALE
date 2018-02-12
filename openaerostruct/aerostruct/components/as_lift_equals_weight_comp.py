@@ -26,7 +26,7 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
 
         self.add_input('rho_kg_m3', shape=num_nodes)
         self.add_input('v_m_s', shape=num_nodes)
-        self.add_input('wing_area_m2', shape=num_nodes)
+        self.add_input('reference_area', shape=num_nodes)
         self.add_input('structural_weight', shape=num_nodes)
 
         self.add_output('L_equals_W', shape=num_nodes)
@@ -39,11 +39,11 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
 
         rho_kg_m3 = inputs['rho_kg_m3']
         v_m_s = inputs['v_m_s']
-        wing_area_m2 = inputs['wing_area_m2']
+        reference_area = inputs['reference_area']
         CL = inputs['C_L']
         structural_weight = inputs['structural_weight']
 
-        lift = (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) * CL
+        lift = (0.5 * rho_kg_m3 * v_m_s ** 2 * reference_area) * CL
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
         outputs['L_equals_W'] = (lift - tot_weight) / tot_weight
@@ -53,17 +53,17 @@ class ASLiftEqualsWeightComp(ExplicitComponent):
 
         rho_kg_m3 = inputs['rho_kg_m3']
         v_m_s = inputs['v_m_s']
-        wing_area_m2 = inputs['wing_area_m2']
+        reference_area = inputs['reference_area']
         CL = inputs['C_L']
         structural_weight = inputs['structural_weight']
 
-        lift = (0.5 * rho_kg_m3 * v_m_s ** 2 * wing_area_m2) * CL
+        lift = (0.5 * rho_kg_m3 * v_m_s ** 2 * reference_area) * CL
         tot_weight = structural_weight + inputs['fuelburn'] * g + W0
 
-        partials['L_equals_W', 'C_L'] = .5 * rho_kg_m3 * v_m_s**2 * wing_area_m2 / tot_weight
-        partials['L_equals_W', 'wing_area_m2'] = .5 * rho_kg_m3 * v_m_s**2 * CL / tot_weight
-        partials['L_equals_W', 'rho_kg_m3'] = .5 * CL * v_m_s**2 * wing_area_m2 / tot_weight
-        partials['L_equals_W', 'v_m_s'] = rho_kg_m3 * v_m_s * wing_area_m2 * CL / tot_weight
+        partials['L_equals_W', 'C_L'] = .5 * rho_kg_m3 * v_m_s**2 * reference_area / tot_weight
+        partials['L_equals_W', 'reference_area'] = .5 * rho_kg_m3 * v_m_s**2 * CL / tot_weight
+        partials['L_equals_W', 'rho_kg_m3'] = .5 * CL * v_m_s**2 * reference_area / tot_weight
+        partials['L_equals_W', 'v_m_s'] = rho_kg_m3 * v_m_s * reference_area * CL / tot_weight
         partials['L_equals_W', 'fuelburn'] = -g * lift / tot_weight**2
         partials['L_equals_W', 'structural_weight'] = -lift / tot_weight**2
         partials['L_equals_W', 'W0'] = -lift / tot_weight**2
