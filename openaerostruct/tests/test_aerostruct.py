@@ -21,6 +21,7 @@ from openaerostruct.structures.fea_preprocess_group import FEAPreprocessGroup
 from openaerostruct.structures.fea_postprocess_group import FEAPostprocessGroup
 
 from openaerostruct.aerostruct.aerostruct_group import AerostructGroup
+from openaerostruct.aerostruct.aerostruct_postprocess_group import AerostructPostprocessGroup
 from openaerostruct.tests.utils import get_default_lifting_surfaces
 from openaerostruct.common.lifting_surface import LiftingSurface
 
@@ -91,6 +92,10 @@ def setup_aerostruct():
         FEAPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
         promotes=['*'],
     )
+    prob.model.add_subsystem('as_postprocess_group',
+        AerostructPostprocessGroup(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces),
+        promotes=['*'],
+    )
 
     prob.model.add_subsystem('objective',
         ExecComp('obj=10000 * sum(C_D) + structural_weight', C_D=np.zeros(num_nodes)),
@@ -124,6 +129,7 @@ class TestAerostruct(unittest.TestCase):
         prob = setup_aerostruct()
         prob.run_model()
         assert_almost_equal(prob['obj'], 6260.8834617)
+        assert_almost_equal(prob['fuelburn'], 4.0645386)
 
     def test_aerostruct_optimization(self):
         prob = setup_aerostruct()

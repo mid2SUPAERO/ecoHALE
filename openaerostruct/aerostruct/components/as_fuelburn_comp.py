@@ -20,10 +20,10 @@ class ASFuelburnComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         self.add_input('W0', shape=num_nodes)
-        self.add_input('a', shape=num_nodes)
-        self.add_input('R', shape=num_nodes)
-        self.add_input('M', shape=num_nodes)
-        self.add_input('CT', shape=num_nodes)
+        self.add_input('a_m_s', shape=num_nodes)
+        self.add_input('design_range_m', shape=num_nodes)
+        self.add_input('Mach', shape=num_nodes)
+        self.add_input('SFC', shape=num_nodes)
 
         self.add_input('C_L', shape=num_nodes)
         self.add_input('C_D', shape=num_nodes)
@@ -36,57 +36,54 @@ class ASFuelburnComp(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         W0 = inputs['W0']
-        a = inputs['a']
-        R = inputs['R']
-        M = inputs['M']
-        CT = inputs['CT']
+        a_m_s = inputs['a_m_s']
+        design_range_m = inputs['design_range_m']
+        Mach = inputs['Mach']
+        SFC = inputs['SFC']
 
-        # Loop through the surfaces and add up the structural weights
-        # to get the total structural weight.
         Ws = inputs['structural_weight']
 
         CL = inputs['C_L']
         CD = inputs['C_D']
 
-        fuelburn = (W0 + Ws) * (np.exp(R * CT / a / M * CD / CL) - 1)
+        fuelburn = (W0 + Ws) * (np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) - 1)
 
         # Convert fuelburn from N to kg
         outputs['fuelburn'] = fuelburn / g
-        print('fb:', outputs['fuelburn'])
 
     def compute_partials(self, inputs, partials):
         W0 = inputs['W0']
-        a = inputs['a']
-        R = inputs['R']
-        M = inputs['M']
-        CT = inputs['CT']
+        a_m_s = inputs['a_m_s']
+        design_range_m = inputs['design_range_m']
+        Mach = inputs['Mach']
+        SFC = inputs['SFC']
 
         Ws = inputs['structural_weight']
 
         CL = inputs['C_L']
         CD = inputs['C_D']
 
-        dfb_dCL = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
-            * R * CT / a / M * CD / CL ** 2
-        dfb_dCD = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
-            * R * CT / a / M / CL
-        dfb_dCT = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
-            * R / a / M / CL * CD
-        dfb_dR = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
-            / a / M / CL * CD * CT
-        dfb_da = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
-            * R * CT / a**2 / M * CD / CL
-        dfb_dM = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
-            * R * CT / a / M**2 * CD / CL
+        dfb_dCL = -(W0 + Ws) * np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) \
+            * design_range_m * SFC / a_m_s / Mach * CD / CL ** 2
+        dfb_dCD = (W0 + Ws) * np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) \
+            * design_range_m * SFC / a_m_s / Mach / CL
+        dfb_dSFC = (W0 + Ws) * np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) \
+            * design_range_m / a_m_s / Mach / CL * CD
+        dfb_dR = (W0 + Ws) * np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) \
+            / a_m_s / Mach / CL * CD * SFC
+        dfb_da = -(W0 + Ws) * np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) \
+            * design_range_m * SFC / a_m_s**2 / Mach * CD / CL
+        dfb_dM = -(W0 + Ws) * np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) \
+            * design_range_m * SFC / a_m_s / Mach**2 * CD / CL
 
-        dfb_dW = np.exp(R * CT / a / M * CD / CL) - 1
+        dfb_dW = np.exp(design_range_m * SFC / a_m_s / Mach * CD / CL) - 1
 
         partials['fuelburn', 'C_L'] = dfb_dCL / g
         partials['fuelburn', 'C_D'] = dfb_dCD / g
-        partials['fuelburn', 'CT'] = dfb_dCT / g
-        partials['fuelburn', 'a'] = dfb_da / g
-        partials['fuelburn', 'R'] = dfb_dR / g
-        partials['fuelburn', 'M'] = dfb_dM / g
+        partials['fuelburn', 'SFC'] = dfb_dSFC / g
+        partials['fuelburn', 'a_m_s'] = dfb_da / g
+        partials['fuelburn', 'design_range_m'] = dfb_dR / g
+        partials['fuelburn', 'Mach'] = dfb_dM / g
         partials['fuelburn', 'W0'] = dfb_dW / g
 
         partials['fuelburn', 'structural_weight'] = dfb_dW / g

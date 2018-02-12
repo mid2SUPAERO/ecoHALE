@@ -24,7 +24,8 @@ def import_submodules(package, recursive=True):
             if recursive and is_pkg:
                 results.update(import_submodules(full_name))
         except:
-            print(full_name, 'not found')
+            pass
+            # print(full_name, 'not found')
     return results
 
 import openaerostruct
