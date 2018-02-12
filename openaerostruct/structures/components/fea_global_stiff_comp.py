@@ -22,7 +22,7 @@ class FEAGlobalStiffComp(ExplicitComponent):
         fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             size = 6 * num_points_z + 6
 
@@ -53,7 +53,7 @@ class FEAGlobalStiffComp(ExplicitComponent):
         fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             size = 6 * num_points_z + 6
 
@@ -67,7 +67,7 @@ class FEAGlobalStiffComp(ExplicitComponent):
                 for j in range(12):
                     outputs[global_name][:, 6 * arange + i, 6 * arange + j] += inputs[local_name][:, :, i, j]
 
-            mid_node_index = lifting_surface_data['num_points_z_half'] - 1
+            mid_node_index = lifting_surface_data.num_points_z_half - 1
             index = 6 * mid_node_index
             num_dofs = 6 * num_points_z
 

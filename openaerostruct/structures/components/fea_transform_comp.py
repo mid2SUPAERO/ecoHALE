@@ -22,7 +22,7 @@ class FEATransformComp(ExplicitComponent):
         self.ref_axis = ref_axis = {}
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
             transform_name = '{}_transform'.format(lifting_surface_name)
@@ -57,7 +57,7 @@ class FEATransformComp(ExplicitComponent):
         ref_axis = self.ref_axis
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
             transform_name = '{}_transform'.format(lifting_surface_name)
@@ -87,7 +87,7 @@ class FEATransformComp(ExplicitComponent):
         ref_axis = self.ref_axis
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             mesh_name = '{}_fea_mesh'.format(lifting_surface_name)
             transform_name = '{}_transform'.format(lifting_surface_name)

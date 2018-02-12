@@ -19,7 +19,7 @@ class FEAKSComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             vonmises_name = '{}_vonmises'.format(lifting_surface_name)
             ks_name = '{}_ks'.format(lifting_surface_name)
@@ -37,7 +37,7 @@ class FEAKSComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             vonmises_name = '{}_vonmises'.format(lifting_surface_name)
             ks_name = '{}_ks'.format(lifting_surface_name)
@@ -52,7 +52,7 @@ class FEAKSComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             vonmises_name = '{}_vonmises'.format(lifting_surface_name)
             ks_name = '{}_ks'.format(lifting_surface_name)

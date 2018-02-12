@@ -11,6 +11,7 @@ from openaerostruct.aerodynamics.vlm_states_group import VLMStatesGroup
 from openaerostruct.aerodynamics.vlm_postprocess_group import VLMPostprocessGroup
 
 from openaerostruct.tests.utils import get_default_lifting_surfaces
+from openaerostruct.common.lifting_surface import LiftingSurface
 
 
 class TestAero(unittest.TestCase):
@@ -23,7 +24,57 @@ class TestAero(unittest.TestCase):
 
         num_nodes = 1 if not check_derivs else 2
 
-        lifting_surfaces = get_default_lifting_surfaces()
+        num_points_x = 2
+        num_points_z_half = 2
+        num_points_z = 2 * num_points_z_half - 1
+        g = 9.81
+        lifting_surfaces = [
+            ('wing', {
+                'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
+                'airfoil_x': np.linspace(0., 1., num_points_x),
+                'airfoil_y': np.zeros(num_points_x),
+                'chord': 1., 'twist': 0. * np.pi / 180., 'sweep_x': 0., 'dihedral_y': 0., 'span': 5,
+                'twist_bspline': (6, 2),
+                'sec_z_bspline': (num_points_z_half, 2),
+                'chord_bspline': (2, 2),
+                'thickness_bspline': (6, 3),
+                'thickness' : 0.05,
+                'radius' : 0.1,
+                'distribution': 'sine',
+                'section_origin': 0.25,
+                'spar_location': 0.35,
+                'E': 70.e9,
+                'G': 29.e9,
+                'sigma_y': 200e6,
+                'rho': 2700,
+                'factor2' : 0.119,
+                'factor4' : -0.064,
+                'cl_factor' : 1.05,
+                'W0' : (0.1381 * g - .350) * 1e6 + 300 * 80 * g,
+                'a' : 295.4,
+                'R' : 7000. * 1.852 * 1e3,
+                'M' : .84,
+                'CT' : g * 17.e-6,
+            })
+        ]
+
+        lifting_surface = LiftingSurface('wing')
+
+        lifting_surface.initialize_mesh(num_points_x, num_points_z_half, airfoil_x=np.linspace(0., 1., num_points_x), airfoil_y=np.zeros(num_points_x))
+        lifting_surface.set_mesh_parameters(distribution='sine', section_origin=.25)
+        lifting_surface.set_structural_properties(E=70.e9, G=29.e9, spar_location=0.35, sigma_y=200e6, rho=2700)
+        lifting_surface.set_aero_properties(factor2=.119, factor4=-0.064, cl_factor=1.05)
+
+        lifting_surface.set_chord(1.)
+        lifting_surface.set_twist(0.)
+        lifting_surface.set_sweep(0.)
+        lifting_surface.set_dihedral(0.)
+        lifting_surface.set_span(5.)
+        lifting_surface.set_thickness(0.05)
+        lifting_surface.set_radius(0.1)
+
+
+        lifting_surfaces = [('wing', lifting_surface)]
 
         vlm_scaler = 1e0
 

@@ -23,22 +23,22 @@ class InputsGroup(Group):
 
         initial_vals = {}
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
-            chord = lifting_surface_data.get('chord', None)
-            twist = lifting_surface_data.get('twist', None)
-            sweep_x = lifting_surface_data.get('sweep_x', None)
-            dihedral_y = lifting_surface_data.get('dihedral_y', None)
-            span = lifting_surface_data.get('span', None)
-            airfoil_x = lifting_surface_data.get('airfoil_x', None)
-            airfoil_y = lifting_surface_data.get('airfoil_y', None)
+            chord = lifting_surface_data.chord
+            twist = lifting_surface_data.twist
+            sweep_x = lifting_surface_data.sweep_x
+            dihedral_y = lifting_surface_data.dihedral_y
+            span = lifting_surface_data.span
+            airfoil_x = lifting_surface_data.airfoil_x
+            airfoil_y = lifting_surface_data.airfoil_y
 
-            chord_ncp, chord_order = lifting_surface_data.get('chord_bspline', default_bspline)
-            twist_ncp, twist_order = lifting_surface_data.get('twist_bspline', default_bspline)
-            sec_x_ncp, sec_x_order = lifting_surface_data.get('sec_x_bspline', default_bspline)
-            sec_y_ncp, sec_y_order = lifting_surface_data.get('sec_y_bspline', default_bspline)
-            sec_z_ncp, sec_z_order = lifting_surface_data.get('sec_z_bspline', default_bspline)
+            chord_ncp, chord_order = lifting_surface_data.bsplines['chord_bspline']
+            twist_ncp, twist_order = lifting_surface_data.bsplines['twist_bspline']
+            sec_x_ncp, sec_x_order = lifting_surface_data.bsplines['sec_x_bspline']
+            sec_y_ncp, sec_y_order = lifting_surface_data.bsplines['sec_y_bspline']
+            sec_z_ncp, sec_z_order = lifting_surface_data.bsplines['sec_z_bspline']
 
             if chord is not None:
                 initial_vals[lifting_surface_name, 'chord'] = chord * np.ones(2 * chord_ncp - 1)
@@ -105,7 +105,7 @@ class InputsGroup(Group):
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             for name in ['chord', 'twist', 'sec_x', 'sec_y', 'sec_z']:
-                ncp, bspline_order = lifting_surface_data.get(
+                ncp, bspline_order = lifting_surface_data.bsplines.get(
                     '{}_bspline'.format(name), default_bspline)
                 num_control_points = 2 * ncp - 1
 
@@ -124,12 +124,12 @@ class InputsGroup(Group):
                         promotes=['*'])
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
-            distribution = lifting_surface_data['distribution']
+            distribution = lifting_surface_data.distribution
 
             for name in ['chord', 'twist', 'sec_x', 'sec_y', 'sec_z']:
-                ncp, bspline_order = lifting_surface_data.get(
+                ncp, bspline_order = lifting_surface_data.bsplines.get(
                     '{}_bspline'.format(name), default_bspline)
                 num_control_points = 2 * ncp - 1
 

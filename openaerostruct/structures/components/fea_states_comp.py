@@ -19,7 +19,7 @@ class FEAStatesComp(ImplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             size = 6 * num_points_z + 6
 
@@ -90,7 +90,7 @@ class FEAStatesComp(ImplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             size = 6 * num_points_z + 6
 
@@ -115,7 +115,7 @@ class FEAStatesComp(ImplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             forces_name = '{}_forces'.format(lifting_surface_name)
             mtx_name = '{}_global_stiff'.format(lifting_surface_name)
@@ -139,7 +139,7 @@ class FEAStatesComp(ImplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             forces_name = '{}_forces'.format(lifting_surface_name)
             mtx_name = '{}_global_stiff'.format(lifting_surface_name)

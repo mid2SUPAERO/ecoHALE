@@ -24,8 +24,8 @@ class VLMEvalVectorsComp(ExplicitComponent):
         self.declare_partials('*', '*', dependent=False)
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             mesh_name = '{}_vortex_mesh'.format(lifting_surface_name)
             vectors_name = '{}_{}_vectors'.format(lifting_surface_name, eval_name)
@@ -60,8 +60,8 @@ class VLMEvalVectorsComp(ExplicitComponent):
         num_eval_points = self.metadata['num_eval_points']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             mesh_name = '{}_vortex_mesh'.format(lifting_surface_name)
             vectors_name = '{}_{}_vectors'.format(lifting_surface_name, eval_name)

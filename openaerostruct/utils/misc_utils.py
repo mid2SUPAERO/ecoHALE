@@ -59,13 +59,13 @@ def get_airfoils(lifting_surfaces, vortex_mesh):
     airfoils = {}
 
     for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-        num_points_x = lifting_surface_data['num_points_x']
-        num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+        num_points_x = lifting_surface_data.num_points_x
+        num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
-        section_origin = lifting_surface_data['section_origin']
+        section_origin = lifting_surface_data.section_origin
 
         airfoil_x = np.linspace(0., 1., num_points_x) - section_origin
-        airfoil_y = np.array(lifting_surface_data['airfoil_y'])
+        airfoil_y = np.array(lifting_surface_data.airfoil_y)
 
         if vortex_mesh:
             airfoil_x[:-1] = 0.75 * airfoil_x[:-1] + 0.25 * airfoil_x[1:]

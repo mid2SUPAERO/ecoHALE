@@ -23,8 +23,8 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
         system_size = 0
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             system_size += (num_points_x - 1) * (num_points_z - 1)
 
@@ -49,8 +49,8 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
             num = (num_points_x - 1) * (num_points_z - 1)
 
             ind_2 += num
@@ -88,8 +88,8 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
             num = (num_points_x - 1) * (num_points_z - 1)
 
             ind_2 += num
@@ -119,8 +119,8 @@ class VLMEvalVelocitiesComp(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
             num = (num_points_x - 1) * (num_points_z - 1)
 
             ind_2 += num

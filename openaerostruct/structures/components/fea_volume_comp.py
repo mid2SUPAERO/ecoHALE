@@ -19,7 +19,7 @@ class FEAVolumeComp(ExplicitComponent):
         self.add_output('structural_volume', shape=num_nodes)
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             A_name = '{}_element_{}'.format(lifting_surface_name, 'A')
             L_name = '{}_element_{}'.format(lifting_surface_name, 'L')

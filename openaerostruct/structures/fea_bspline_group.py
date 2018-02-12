@@ -21,11 +21,11 @@ class FEABsplineGroup(Group):
 
         initial_vals = {}
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            thickness = lifting_surface_data.get('thickness', None)
-            radius = lifting_surface_data.get('radius', None)
+            thickness = lifting_surface_data.thickness
+            radius = lifting_surface_data.radius
 
-            thickness_ncp, thickness_order = lifting_surface_data.get('thickness_bspline', default_bspline)
-            radius_ncp, radius_order = lifting_surface_data.get('radius_bspline', default_bspline)
+            thickness_ncp, thickness_order = lifting_surface_data.bsplines['thickness_bspline']
+            radius_ncp, radius_order = lifting_surface_data.bsplines['radius_bspline']
 
             if thickness is not None:
                 initial_vals[lifting_surface_name, 'thickness'] = thickness * np.ones(2 * thickness_ncp - 1)
@@ -51,7 +51,7 @@ class FEABsplineGroup(Group):
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
             for name in ['thickness', 'radius']:
-                ncp, bspline_order = lifting_surface_data.get(
+                ncp, bspline_order = lifting_surface_data.bsplines.get(
                     '{}_bspline'.format(name), default_bspline)
                 num_control_points = 2 * ncp - 1
 
@@ -70,12 +70,12 @@ class FEABsplineGroup(Group):
                         promotes=['*'])
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
-            distribution = lifting_surface_data['distribution']
+            distribution = lifting_surface_data.distribution
 
             for name in ['thickness', 'radius']:
-                ncp, bspline_order = lifting_surface_data.get(
+                ncp, bspline_order = lifting_surface_data.bsplines.get(
                     '{}_bspline'.format(name), default_bspline)
                 num_control_points = 2 * ncp - 1
 

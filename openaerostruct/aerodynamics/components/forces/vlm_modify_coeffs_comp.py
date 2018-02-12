@@ -16,30 +16,11 @@ class VLMModifyCoeffsComp(ExplicitComponent):
         num_nodes = self.metadata['num_nodes']
         lifting_surfaces = self.metadata['lifting_surfaces']
 
-        if 'CD0' in lifting_surfaces[0][1].keys():
-            self.CD0 = lifting_surfaces[0][1]['CD0']
-        else:
-            self.CD0 = 0.
-
-        if 'CL0' in lifting_surfaces[0][1].keys():
-            self.CL0 = lifting_surfaces[0][1]['CL0']
-        else:
-            self.CL0 = 0.
-
-        if 'factor2' in lifting_surfaces[0][1].keys():
-            self.factor2 = lifting_surfaces[0][1]['factor2']
-        else:
-            self.factor2 = 0.
-
-        if 'factor4' in lifting_surfaces[0][1].keys():
-            self.factor4 = lifting_surfaces[0][1]['factor4']
-        else:
-            self.factor4 = 0.
-
-        if 'cl_factor' in lifting_surfaces[0][1].keys():
-            self.cl_factor = lifting_surfaces[0][1]['cl_factor']
-        else:
-            self.cl_factor = 1.
+        self.CD0 = lifting_surfaces[0][1].CD0
+        self.CL0 = lifting_surfaces[0][1].CL0
+        self.factor2 = lifting_surfaces[0][1].factor2
+        self.factor4 = lifting_surfaces[0][1].factor4
+        self.cl_factor = lifting_surfaces[0][1].cl_factor
 
         self.add_input('C_L_ind', shape=num_nodes)
         self.add_input('C_D_ind', shape=num_nodes)
@@ -61,6 +42,10 @@ class VLMModifyCoeffsComp(ExplicitComponent):
 
         outputs['C_L'] = CL * self.cl_factor
         outputs['C_D'] = CD + self.factor2 * (CL - .2) ** 2 + self.factor4 * CL ** 4
+        # print('oas coeffs')
+        # print(outputs['C_L'])
+        # print(outputs['C_D'])
+        # print()
 
     def compute_partials(self, inputs, partials):
         CL = inputs['C_L_ind'] + self.CL0

@@ -19,8 +19,8 @@ class VLMMeshComp(ExplicitComponent):
         vortex_mesh = self.metadata['vortex_mesh']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             for name in ['chord', 'twist', 'sec_x', 'sec_y', 'sec_z']:
                 in_name = '{}_{}'.format(lifting_surface_name, name)
@@ -109,10 +109,10 @@ class VLMMeshComp(ExplicitComponent):
         vortex_mesh = self.metadata['vortex_mesh']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
-            section_origin = lifting_surface_data['section_origin']
+            section_origin = lifting_surface_data.section_origin
 
             if vortex_mesh:
                 mesh_name = '{}_undeformed_vortex_mesh'.format(lifting_surface_name)
@@ -158,10 +158,10 @@ class VLMMeshComp(ExplicitComponent):
         vortex_mesh = self.metadata['vortex_mesh']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
-            section_origin = lifting_surface_data['section_origin']
+            section_origin = lifting_surface_data.section_origin
 
             if vortex_mesh:
                 mesh_name = '{}_undeformed_vortex_mesh'.format(lifting_surface_name)

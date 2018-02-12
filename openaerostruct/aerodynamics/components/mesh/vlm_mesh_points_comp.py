@@ -22,8 +22,8 @@ class VLMMeshPointsComp(ExplicitComponent):
         num_eval_points = 0
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             num_eval_points += (num_points_x - 1) * (num_points_z - 1)
 
@@ -36,8 +36,8 @@ class VLMMeshPointsComp(ExplicitComponent):
         ind_eval_points_1 = 0
         ind_eval_points_2 = 0
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             ind_eval_points_2 += (num_points_x - 1) * (num_points_z - 1)
 
@@ -107,8 +107,8 @@ class VLMMeshPointsComp(ExplicitComponent):
         ind_eval_points_1 = 0
         ind_eval_points_2 = 0
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             ind_eval_points_2 += (num_points_x - 1) * (num_points_z - 1)
 

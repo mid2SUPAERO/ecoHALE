@@ -19,7 +19,7 @@ class FEAForcesComp(ExplicitComponent):
         fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             size = 6 * num_points_z + 6
 
@@ -45,7 +45,7 @@ class FEAForcesComp(ExplicitComponent):
         fea_scaler = self.metadata['fea_scaler']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             loads_name = '{}_loads'.format(lifting_surface_name)
             ext_loads_name = '{}_ext_loads'.format(lifting_surface_name)

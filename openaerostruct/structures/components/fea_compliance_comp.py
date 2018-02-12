@@ -19,7 +19,7 @@ class FEAComplianceComp(ExplicitComponent):
         self.add_output('compliance', shape=num_nodes)
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             size = 6 * num_points_z + 6
 

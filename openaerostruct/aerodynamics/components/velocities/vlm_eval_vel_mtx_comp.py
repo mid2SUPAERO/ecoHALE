@@ -114,8 +114,8 @@ class VLMEvalVelMtxComp(ExplicitComponent):
         num_eval_points = self.metadata['num_eval_points']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             vectors_name = '{}_{}_vectors'.format(lifting_surface_name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(lifting_surface_name, eval_name)
@@ -156,8 +156,8 @@ class VLMEvalVelMtxComp(ExplicitComponent):
         num_eval_points = self.metadata['num_eval_points']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             vectors_name = '{}_{}_vectors'.format(lifting_surface_name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(lifting_surface_name, eval_name)
@@ -203,8 +203,8 @@ class VLMEvalVelMtxComp(ExplicitComponent):
         num_eval_points = self.metadata['num_eval_points']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             vectors_name = '{}_{}_vectors'.format(lifting_surface_name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(lifting_surface_name, eval_name)

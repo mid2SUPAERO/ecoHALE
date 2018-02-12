@@ -19,8 +19,8 @@ class VLMDisplaceMeshesComp(ExplicitComponent):
         self.airfoils = airfoils = {}
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             undeformed_vortex_mesh_name = '{}_undeformed_vortex_mesh'.format(lifting_surface_name)
             undeformed_mesh_name = '{}_undeformed_mesh'.format(lifting_surface_name)
@@ -61,8 +61,8 @@ class VLMDisplaceMeshesComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             undeformed_vortex_mesh_name = '{}_undeformed_vortex_mesh'.format(lifting_surface_name)
             undeformed_mesh_name = '{}_undeformed_mesh'.format(lifting_surface_name)

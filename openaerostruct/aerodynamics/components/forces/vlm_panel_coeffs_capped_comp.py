@@ -26,8 +26,8 @@ class VLMPanelCoeffsCappedComp(ExplicitComponent):
         self.add_input('C_l_max', shape=num_nodes, val=1.)
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             sec_C_L_name = '{}_sec_C_L'.format(lifting_surface_name)
             sec_C_L_capped_name = '{}_sec_C_L_capped'.format(lifting_surface_name)
@@ -48,8 +48,8 @@ class VLMPanelCoeffsCappedComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             C_l_max = np.outer(inputs['C_l_max'], np.ones(num_points_z - 1))
 
@@ -66,8 +66,8 @@ class VLMPanelCoeffsCappedComp(ExplicitComponent):
         lifting_surfaces = self.metadata['lifting_surfaces']
 
         for lifting_surface_name, lifting_surface_data in lifting_surfaces:
-            num_points_x = lifting_surface_data['num_points_x']
-            num_points_z = 2 * lifting_surface_data['num_points_z_half'] - 1
+            num_points_x = lifting_surface_data.num_points_x
+            num_points_z = 2 * lifting_surface_data.num_points_z_half - 1
 
             C_l_max = np.outer(inputs['C_l_max'], np.ones(num_points_z - 1))
 
