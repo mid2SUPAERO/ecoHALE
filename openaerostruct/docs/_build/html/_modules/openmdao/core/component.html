@@ -1,0 +1,1003 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>openmdao.core.component &#8212; OpenMDAO 2.1.0 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.1.0 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/OpenMDAO_Favicon.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenMDAO 2.1.0 Alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/OpenMDAO_Logo.png" alt="Logo"/>
+            </a></p>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_srcdocs/index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for openmdao.core.component</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Define the Component class.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">product</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="k">import</span> <span class="n">string_types</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">itervalues</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="k">import</span> <span class="n">issparse</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">Iterable</span>
+
+<span class="kn">from</span> <span class="nn">openmdao.approximation_schemes.complex_step</span> <span class="k">import</span> <span class="n">ComplexStep</span>
+<span class="kn">from</span> <span class="nn">openmdao.approximation_schemes.finite_difference</span> <span class="k">import</span> <span class="n">FiniteDifference</span>
+<span class="kn">from</span> <span class="nn">openmdao.core.system</span> <span class="k">import</span> <span class="n">System</span>
+<span class="kn">from</span> <span class="nn">openmdao.jacobians.assembled_jacobian</span> <span class="k">import</span> <span class="n">SUBJAC_META_DEFAULTS</span>
+<span class="kn">from</span> <span class="nn">openmdao.utils.units</span> <span class="k">import</span> <span class="n">valid_units</span>
+<span class="kn">from</span> <span class="nn">openmdao.utils.general_utils</span> <span class="k">import</span> <span class="n">format_as_float_or_array</span><span class="p">,</span> <span class="n">ensure_compatible</span><span class="p">,</span> \
+    <span class="n">warn_deprecation</span><span class="p">,</span> <span class="n">ContainsAll</span><span class="p">,</span> <span class="n">find_matches</span>
+<span class="kn">from</span> <span class="nn">openmdao.utils.name_maps</span> <span class="k">import</span> <span class="n">rel_key2abs_key</span><span class="p">,</span> <span class="n">abs_key2rel_key</span>
+
+
+<span class="k">class</span> <span class="nc">Component</span><span class="p">(</span><span class="n">System</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base Component class; not to be directly instantiated.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matrix_free : Bool</span>
+<span class="sd">        This is set to True if the component overrides the appropriate function with a user-defined</span>
+<span class="sd">        matrix vector product with the Jacobian.</span>
+<span class="sd">    distributed : bool</span>
+<span class="sd">        This is True if the component has variables that are distributed across multiple</span>
+<span class="sd">        processes.</span>
+<span class="sd">    _approx_schemes : OrderedDict</span>
+<span class="sd">        A mapping of approximation types to the associated ApproximationScheme.</span>
+<span class="sd">    _var_rel2data_io : dict</span>
+<span class="sd">        Dictionary mapping relative names to dicts with keys (prom, rel, my_idx, type_, metadata).</span>
+<span class="sd">        This is only needed while adding inputs and outputs. During setup, these are used to</span>
+<span class="sd">        build the dictionaries of metadata.</span>
+<span class="sd">    _static_var_rel2data_io : dict</span>
+<span class="sd">        Static version of above - stores data for variables added outside of setup.</span>
+<span class="sd">    _var_rel_names : {&#39;input&#39;: [str, ...], &#39;output&#39;: [str, ...]}</span>
+<span class="sd">        List of relative names of owned variables existing on current proc.</span>
+<span class="sd">        This is only needed while adding inputs and outputs. During setup, these are used to</span>
+<span class="sd">        determine the list of absolute names.</span>
+<span class="sd">    _static_var_rel_names : dict</span>
+<span class="sd">        Static version of above - stores names of variables added outside of setup.</span>
+<span class="sd">    _declared_partials : list</span>
+<span class="sd">        Cached storage of user-declared partials.</span>
+<span class="sd">    _approximated_partials : list</span>
+<span class="sd">        Cached storage of user-declared approximations.</span>
+<span class="sd">    _declared_partial_checks : list</span>
+<span class="sd">        Cached storage of user-declared check partial options.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize all attributes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        **kwargs : dict of keyword arguments</span>
+<span class="sd">            available here and in all descendants of this system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># put these here to prevent them from possibly overriding values set</span>
+        <span class="c1"># by the user in initialize().</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matrix_free</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distributed</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">Component</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_approx_schemes</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel_names</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;input&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;output&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel2data_io</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_static_var_rel_names</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;input&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;output&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_static_var_rel2data_io</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_declared_partials</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_approximated_partials</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_declared_partial_checks</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Declare inputs and outputs.</span>
+
+<span class="sd">        Available attributes:</span>
+<span class="sd">            name</span>
+<span class="sd">            pathname</span>
+<span class="sd">            comm</span>
+<span class="sd">            metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_setup_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call setup in components and count variables, total and by var_set.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        recurse : bool</span>
+<span class="sd">            Whether to call this method in subsystems.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Component</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_setup_vars</span><span class="p">()</span>
+        <span class="n">num_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_var</span>
+        <span class="n">num_var_byset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_var_byset</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel2data_io</span>
+
+        <span class="k">for</span> <span class="n">vec_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lin_rel_vec_name_list</span><span class="p">:</span>
+            <span class="n">num_var</span><span class="p">[</span><span class="n">vec_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">num_var_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="c1"># Compute num_var</span>
+            <span class="k">for</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">]:</span>
+                <span class="n">relnames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_relevant_names</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span>
+                <span class="n">num_var</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">relnames</span><span class="p">)</span>
+
+                <span class="n">num_var_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span> <span class="o">=</span> <span class="n">vbyset</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="c1"># Compute num_var_byset</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">relnames</span><span class="p">:</span>
+                    <span class="n">set_name</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]][</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;var_set&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">set_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vbyset</span><span class="p">:</span>
+                        <span class="n">vbyset</span><span class="p">[</span><span class="n">set_name</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">vbyset</span><span class="p">[</span><span class="n">set_name</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_var</span><span class="p">[</span><span class="s1">&#39;nonlinear&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_var</span><span class="p">[</span><span class="s1">&#39;linear&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_var_byset</span><span class="p">[</span><span class="s1">&#39;nonlinear&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_var_byset</span><span class="p">[</span><span class="s1">&#39;linear&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_setup_var_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the list of abs var names, abs/prom name maps, and metadata dictionaries.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        recurse : bool</span>
+<span class="sd">            Whether to call this method in subsystems.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Component</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_setup_var_data</span><span class="p">()</span>
+        <span class="n">allprocs_abs_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_abs_names</span>
+        <span class="n">abs_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_abs_names</span>
+        <span class="n">allprocs_prom2abs_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_prom2abs_list</span>
+        <span class="n">abs2prom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_abs2prom</span>
+        <span class="n">allprocs_abs2meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_abs2meta</span>
+        <span class="n">abs2meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_abs2meta</span>
+
+        <span class="c1"># Compute the prefix for turning rel/prom names into abs names</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pathname</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pathname</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="c1"># the following metadata will be accessible for vars on all procs</span>
+        <span class="n">global_meta_names</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;input&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span> <span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="s1">&#39;var_set&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;output&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span> <span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="s1">&#39;var_set&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;ref&#39;</span><span class="p">,</span> <span class="s1">&#39;ref0&#39;</span><span class="p">,</span> <span class="s1">&#39;res_ref&#39;</span><span class="p">,</span> <span class="s1">&#39;distributed&#39;</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">prom_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel_names</span><span class="p">[</span><span class="n">type_</span><span class="p">]:</span>
+                <span class="n">abs_name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">prom_name</span>
+                <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel2data_io</span><span class="p">[</span><span class="n">prom_name</span><span class="p">][</span><span class="s1">&#39;metadata&#39;</span><span class="p">]</span>
+
+                <span class="c1"># Compute allprocs_abs_names, abs_names</span>
+                <span class="n">allprocs_abs_names</span><span class="p">[</span><span class="n">type_</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abs_name</span><span class="p">)</span>
+                <span class="n">abs_names</span><span class="p">[</span><span class="n">type_</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abs_name</span><span class="p">)</span>
+
+                <span class="c1"># Compute allprocs_prom2abs_list, abs2prom</span>
+                <span class="n">allprocs_prom2abs_list</span><span class="p">[</span><span class="n">type_</span><span class="p">][</span><span class="n">prom_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">abs_name</span><span class="p">]</span>
+                <span class="n">abs2prom</span><span class="p">[</span><span class="n">type_</span><span class="p">][</span><span class="n">abs_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">prom_name</span>
+
+                <span class="c1"># Compute allprocs_abs2meta</span>
+                <span class="n">allprocs_abs2meta</span><span class="p">[</span><span class="n">type_</span><span class="p">][</span><span class="n">abs_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">meta_name</span><span class="p">:</span> <span class="n">metadata</span><span class="p">[</span><span class="n">meta_name</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">meta_name</span> <span class="ow">in</span> <span class="n">global_meta_names</span><span class="p">[</span><span class="n">type_</span><span class="p">]</span>
+                <span class="p">}</span>
+
+                <span class="c1"># Compute abs2meta</span>
+                <span class="n">abs2meta</span><span class="p">[</span><span class="n">type_</span><span class="p">][</span><span class="n">abs_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata</span>
+
+    <span class="k">def</span> <span class="nf">_setup_var_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the arrays of local variable sizes for all variables/procs on this system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        recurse : bool</span>
+<span class="sd">            Whether to call this method in subsystems.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Component</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_setup_var_sizes</span><span class="p">()</span>
+
+        <span class="n">iproc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">rank</span>
+        <span class="n">nproc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">relevant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relevant</span>
+        <span class="n">vec_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lin_rel_vec_name_list</span>
+
+        <span class="n">sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes</span>
+        <span class="n">sizes_byset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes_byset</span>
+
+        <span class="c1"># Initialize empty arrays</span>
+        <span class="k">for</span> <span class="n">vec_name</span> <span class="ow">in</span> <span class="n">vec_names</span><span class="p">:</span>
+            <span class="n">sizes</span><span class="p">[</span><span class="n">vec_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">sizes_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">for</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">):</span>
+                <span class="n">sizes</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nproc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_var</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]),</span> <span class="nb">int</span><span class="p">)</span>
+
+                <span class="n">sizes_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">set_name</span><span class="p">,</span> <span class="n">nvars</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_var_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]):</span>
+                    <span class="n">sizes_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">][</span><span class="n">set_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nproc</span><span class="p">,</span> <span class="n">nvars</span><span class="p">),</span> <span class="nb">int</span><span class="p">)</span>
+
+            <span class="c1"># Compute _var_sizes and _var_sizes_byset</span>
+            <span class="k">for</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">):</span>
+                <span class="n">sz</span> <span class="o">=</span> <span class="n">sizes</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span>
+                <span class="n">sz_byset</span> <span class="o">=</span> <span class="n">sizes_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span>
+                <span class="n">abs2meta_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_abs2meta</span><span class="p">[</span><span class="n">type_</span><span class="p">]</span>
+                <span class="n">allprocs_abs2idx_byset_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_abs2idx_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">abs_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_relevant_names</span><span class="p">[</span><span class="n">vec_name</span><span class="p">][</span><span class="n">type_</span><span class="p">]):</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="n">abs2meta_t</span><span class="p">[</span><span class="n">abs_name</span><span class="p">]</span>
+                    <span class="n">set_name</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;var_set&#39;</span><span class="p">]</span>
+                    <span class="n">size</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span>
+                    <span class="n">idx_byset</span> <span class="o">=</span> <span class="n">allprocs_abs2idx_byset_t</span><span class="p">[</span><span class="n">abs_name</span><span class="p">]</span>
+
+                    <span class="n">sz</span><span class="p">[</span><span class="n">iproc</span><span class="p">,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
+                    <span class="n">sz_byset</span><span class="p">[</span><span class="n">set_name</span><span class="p">][</span><span class="n">iproc</span><span class="p">,</span> <span class="n">idx_byset</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">vec_name</span> <span class="ow">in</span> <span class="n">vec_names</span><span class="p">:</span>
+                <span class="n">sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes</span><span class="p">[</span><span class="n">vec_name</span><span class="p">]</span>
+                <span class="n">sizes_byset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes_byset</span><span class="p">[</span><span class="n">vec_name</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">Allgather</span><span class="p">(</span><span class="n">sizes</span><span class="p">[</span><span class="n">type_</span><span class="p">][</span><span class="n">iproc</span><span class="p">,</span> <span class="p">:],</span> <span class="n">sizes</span><span class="p">[</span><span class="n">type_</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">set_name</span><span class="p">,</span> <span class="n">sbyset</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">sizes_byset</span><span class="p">[</span><span class="n">type_</span><span class="p">]):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">Allgather</span><span class="p">(</span><span class="n">sbyset</span><span class="p">[</span><span class="n">iproc</span><span class="p">,</span> <span class="p">:],</span> <span class="n">sbyset</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes</span><span class="p">[</span><span class="s1">&#39;nonlinear&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes</span><span class="p">[</span><span class="s1">&#39;linear&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes_byset</span><span class="p">[</span><span class="s1">&#39;nonlinear&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_sizes_byset</span><span class="p">[</span><span class="s1">&#39;linear&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_global_shapes</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_setup_partials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process all partials and approximations that the user declared.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        recurse : bool</span>
+<span class="sd">            Whether to call this method in subsystems.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Component</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_setup_partials</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">dependent</span><span class="p">,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_declared_partials</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_declare_partials</span><span class="p">(</span><span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">dependent</span><span class="o">=</span><span class="n">dependent</span><span class="p">,</span> <span class="n">rows</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">kwargs</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_approximated_partials</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_approx_partials</span><span class="p">(</span><span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">src_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flat_src_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">var_set</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add an input variable to the component.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name of the variable in this component&#39;s namespace.</span>
+<span class="sd">        val : float or list or tuple or ndarray or Iterable</span>
+<span class="sd">            The initial value of the variable being added in user-defined units.</span>
+<span class="sd">            Default is 1.0.</span>
+<span class="sd">        shape : int or tuple or list or None</span>
+<span class="sd">            Shape of this variable, only required if src_indices not provided and</span>
+<span class="sd">            val is not an array. Default is None.</span>
+<span class="sd">        src_indices : int or list of ints or tuple of ints or int ndarray or Iterable or None</span>
+<span class="sd">            The global indices of the source variable to transfer data from.</span>
+<span class="sd">            A value of None implies this input depends on all entries of source.</span>
+<span class="sd">            Default is None. The shapes of the target and src_indices must match,</span>
+<span class="sd">            and form of the entries within is determined by the value of &#39;flat_src_indices&#39;.</span>
+<span class="sd">        flat_src_indices : bool</span>
+<span class="sd">            If True, each entry of src_indices is assumed to be an index into the</span>
+<span class="sd">            flattened source.  Otherwise each entry must be a tuple or list of size equal</span>
+<span class="sd">            to the number of dimensions of the source.</span>
+<span class="sd">        units : str or None</span>
+<span class="sd">            Units in which this input variable will be provided to the component</span>
+<span class="sd">            during execution. Default is None, which means it is unitless.</span>
+<span class="sd">        desc : str</span>
+<span class="sd">            description of the variable</span>
+<span class="sd">        var_set : hashable object</span>
+<span class="sd">            For advanced users only. ID or color for this variable, relevant for</span>
+<span class="sd">            reconfigurability. Default is 0.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            metadata for added variable</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="o">==</span> <span class="s1">&#39;unitless&#39;</span><span class="p">:</span>
+            <span class="n">warn_deprecation</span><span class="p">(</span><span class="s2">&quot;Input &#39;</span><span class="si">%s</span><span class="s2">&#39; has units=&#39;unitless&#39; but &#39;unitless&#39; &quot;</span>
+                             <span class="s2">&quot;has been deprecated. Use &quot;</span>
+                             <span class="s2">&quot;units=None instead.  Note that connecting a &quot;</span>
+                             <span class="s2">&quot;unitless variable to one with units is no longer &quot;</span>
+                             <span class="s2">&quot;an error, but will issue a warning instead.&quot;</span> <span class="o">%</span>
+                             <span class="n">name</span><span class="p">)</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># First, type check all arguments</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The name argument should be a string&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The val argument should be a float, list, tuple, ndarray or Iterable&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The shape argument should be an int, tuple, or list but &quot;</span>
+                            <span class="s2">&quot;a &#39;</span><span class="si">%s</span><span class="s2">&#39; was given&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">src_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src_indices</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span>
+                                                                    <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The src_indices argument should be an int, list, &#39;</span>
+                            <span class="s1">&#39;tuple, ndarray or Iterable&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The units argument should be a str or None&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Check that units are valid</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">valid_units</span><span class="p">(</span><span class="n">units</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The units &#39;</span><span class="si">%s</span><span class="s2">&#39; are invalid&quot;</span> <span class="o">%</span> <span class="n">units</span><span class="p">)</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># value, shape: based on args, making sure they are compatible</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">],</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ensure_compatible</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">src_indices</span><span class="p">)</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">])</span>
+
+        <span class="c1"># src_indices: None or ndarray</span>
+        <span class="k">if</span> <span class="n">src_indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;src_indices&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;src_indices&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">src_indices</span><span class="p">)</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;flat_src_indices&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">flat_src_indices</span>
+
+        <span class="c1"># units: taken as is</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">units</span>
+
+        <span class="c1"># desc: taken as is</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">desc</span>
+
+        <span class="c1"># var_set: taken as is</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;var_set&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_set</span>
+
+        <span class="c1"># We may not know the pathname yet, so we have to use name for now, instead of abs_name.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_mode</span><span class="p">:</span>
+            <span class="n">var_rel2data_io</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_var_rel2data_io</span>
+            <span class="n">var_rel_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_var_rel_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">var_rel2data_io</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel2data_io</span>
+            <span class="n">var_rel_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel_names</span>
+
+        <span class="c1"># Disallow dupes</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">var_rel2data_io</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Variable name &#39;</span><span class="si">{}</span><span class="s2">&#39; already exists.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">var_rel2data_io</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;prom&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;rel&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;my_idx&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_rel_names</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">:</span> <span class="n">metadata</span><span class="p">}</span>
+        <span class="n">var_rel_names</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">metadata</span>
+
+    <span class="k">def</span> <span class="nf">add_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">res_units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="n">lower</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">ref0</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">res_ref</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">var_set</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add an output variable to the component.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name of the variable in this component&#39;s namespace.</span>
+<span class="sd">        val : float or list or tuple or ndarray</span>
+<span class="sd">            The initial value of the variable being added in user-defined units. Default is 1.0.</span>
+<span class="sd">        shape : int or tuple or list or None</span>
+<span class="sd">            Shape of this variable, only required if val is not an array.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        units : str or None</span>
+<span class="sd">            Units in which the output variables will be provided to the component during execution.</span>
+<span class="sd">            Default is None, which means it has no units.</span>
+<span class="sd">        res_units : str or None</span>
+<span class="sd">            Units in which the residuals of this output will be given to the user when requested.</span>
+<span class="sd">            Default is None, which means it has no units.</span>
+<span class="sd">        desc : str</span>
+<span class="sd">            description of the variable.</span>
+<span class="sd">        lower : float or list or tuple or ndarray or Iterable or None</span>
+<span class="sd">            lower bound(s) in user-defined units. It can be (1) a float, (2) an array_like</span>
+<span class="sd">            consistent with the shape arg (if given), or (3) an array_like matching the shape of</span>
+<span class="sd">            val, if val is array_like. A value of None means this output has no lower bound.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        upper : float or list or tuple or ndarray or or Iterable None</span>
+<span class="sd">            upper bound(s) in user-defined units. It can be (1) a float, (2) an array_like</span>
+<span class="sd">            consistent with the shape arg (if given), or (3) an array_like matching the shape of</span>
+<span class="sd">            val, if val is array_like. A value of None means this output has no upper bound.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        ref : float or ndarray</span>
+<span class="sd">            Scaling parameter. The value in the user-defined units of this output variable when</span>
+<span class="sd">            the scaled value is 1. Default is 1.</span>
+<span class="sd">        ref0 : float or ndarray</span>
+<span class="sd">            Scaling parameter. The value in the user-defined units of this output variable when</span>
+<span class="sd">            the scaled value is 0. Default is 0.</span>
+<span class="sd">        res_ref : float or ndarray</span>
+<span class="sd">            Scaling parameter. The value in the user-defined res_units of this output&#39;s residual</span>
+<span class="sd">            when the scaled value is 1. Default is 1.</span>
+<span class="sd">        var_set : hashable object</span>
+<span class="sd">            For advanced users only. ID or color for this variable, relevant for reconfigurability.</span>
+<span class="sd">            Default is 0.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            metadata for added variable</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="o">==</span> <span class="s1">&#39;unitless&#39;</span><span class="p">:</span>
+            <span class="n">warn_deprecation</span><span class="p">(</span><span class="s2">&quot;Output &#39;</span><span class="si">%s</span><span class="s2">&#39; has units=&#39;unitless&#39; but &#39;unitless&#39; &quot;</span>
+                             <span class="s2">&quot;has been deprecated. Use &quot;</span>
+                             <span class="s2">&quot;units=None instead.  Note that connecting a &quot;</span>
+                             <span class="s2">&quot;unitless variable to one with units is no longer &quot;</span>
+                             <span class="s2">&quot;an error, but will issue a warning instead.&quot;</span> <span class="o">%</span>
+                             <span class="n">name</span><span class="p">)</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># First, type check all arguments</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The name argument should be a string&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The val argument should be a float, list, tuple, or ndarray&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The ref argument should be a float, list, tuple, or ndarray&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">ref0</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The ref0 argument should be a float, list, tuple, or ndarray&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">res_ref</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The res_ref argument should be a float, list, tuple, or ndarray&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The shape argument should be an int, tuple, or list but &quot;</span>
+                            <span class="s2">&quot;a &#39;</span><span class="si">%s</span><span class="s2">&#39; was given&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The units argument should be a str or None&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">res_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">res_units</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The res_units argument should be a str or None&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Check that units are valid</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">valid_units</span><span class="p">(</span><span class="n">units</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The units &#39;</span><span class="si">%s</span><span class="s2">&#39; are invalid&quot;</span> <span class="o">%</span> <span class="n">units</span><span class="p">)</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># value, shape: based on args, making sure they are compatible</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">],</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ensure_compatible</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">])</span>
+
+        <span class="c1"># units, res_units: taken as is</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">units</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;res_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_units</span>
+
+        <span class="c1"># desc: taken as is</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">desc</span>
+
+        <span class="k">if</span> <span class="n">lower</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lower</span> <span class="o">=</span> <span class="n">ensure_compatible</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">upper</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">upper</span> <span class="o">=</span> <span class="n">ensure_compatible</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">upper</span><span class="p">,</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;lower&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lower</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;upper&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">upper</span>
+
+        <span class="c1"># All refs: check the shape if necessary</span>
+        <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">item_name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">ref</span><span class="p">,</span> <span class="n">ref0</span><span class="p">,</span> <span class="n">res_ref</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;ref&#39;</span><span class="p">,</span> <span class="s1">&#39;ref0&#39;</span><span class="p">,</span> <span class="s1">&#39;res_ref&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The </span><span class="si">%s</span><span class="s1"> argument has the wrong shape&#39;</span> <span class="o">%</span> <span class="n">item_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">ref</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_output_scaling</span> <span class="o">|=</span> <span class="n">ref</span> <span class="o">!=</span> <span class="mf">1.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_output_scaling</span> <span class="o">|=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">ref</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">ref0</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_output_scaling</span> <span class="o">|=</span> <span class="n">ref0</span> <span class="o">!=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_output_scaling</span> <span class="o">|=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">ref0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">res_ref</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_resid_scaling</span> <span class="o">|=</span> <span class="n">res_ref</span> <span class="o">!=</span> <span class="mf">1.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_resid_scaling</span> <span class="o">|=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">res_ref</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">format_as_float_or_array</span><span class="p">(</span><span class="s1">&#39;ref&#39;</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ref0</span> <span class="o">=</span> <span class="n">format_as_float_or_array</span><span class="p">(</span><span class="s1">&#39;ref0&#39;</span><span class="p">,</span> <span class="n">ref0</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">res_ref</span> <span class="o">=</span> <span class="n">format_as_float_or_array</span><span class="p">(</span><span class="s1">&#39;res_ref&#39;</span><span class="p">,</span> <span class="n">res_ref</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># ref, ref0, res_ref: taken as is</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;ref&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;ref0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref0</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;res_ref&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_ref</span>
+
+        <span class="c1"># var_set: taken as is</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;var_set&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_set</span>
+
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;distributed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distributed</span>
+
+        <span class="c1"># We may not know the pathname yet, so we have to use name for now, instead of abs_name.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_mode</span><span class="p">:</span>
+            <span class="n">var_rel2data_io</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_var_rel2data_io</span>
+            <span class="n">var_rel_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_var_rel_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">var_rel2data_io</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel2data_io</span>
+            <span class="n">var_rel_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_rel_names</span>
+
+        <span class="c1"># Disallow dupes</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">var_rel2data_io</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Variable name &#39;</span><span class="si">{}</span><span class="s2">&#39; already exists.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">var_rel2data_io</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;prom&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;rel&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;my_idx&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_rel_names</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">:</span> <span class="n">metadata</span><span class="p">}</span>
+        <span class="n">var_rel_names</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">metadata</span>
+
+    <span class="k">def</span> <span class="nf">_approx_partials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;fd&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inform the framework that the specified derivatives are to be approximated.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        of : str or list of str</span>
+<span class="sd">            The name of the residual(s) that derivatives are being computed for.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        wrt : str or list of str</span>
+<span class="sd">            The name of the variables that derivatives are taken with respect to.</span>
+<span class="sd">            This can contain the name of any input or output variable.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        method : str</span>
+<span class="sd">            The type of approximation that should be used. Valid options include:</span>
+<span class="sd">                - &#39;fd&#39;: Finite Difference</span>
+<span class="sd">        **kwargs : dict</span>
+<span class="sd">            Keyword arguments for controlling the behavior of the approximation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pattern_matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_partial_matches</span><span class="p">(</span><span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">of_bundle</span><span class="p">,</span> <span class="n">wrt_bundle</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">pattern_matches</span><span class="p">):</span>
+            <span class="n">of_pattern</span><span class="p">,</span> <span class="n">of_matches</span> <span class="o">=</span> <span class="n">of_bundle</span>
+            <span class="n">wrt_pattern</span><span class="p">,</span> <span class="n">wrt_matches</span> <span class="o">=</span> <span class="n">wrt_bundle</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">of_matches</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No matches were found for of=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">of_pattern</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">wrt_matches</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No matches were found for wrt=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wrt_pattern</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">rel_key</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="n">of_matches</span><span class="p">,</span> <span class="n">wrt_matches</span><span class="p">):</span>
+                <span class="n">meta_changes</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="n">method</span><span class="p">,</span>
+                <span class="p">}</span>
+                <span class="n">abs_key</span> <span class="o">=</span> <span class="n">rel_key2abs_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel_key</span><span class="p">)</span>
+                <span class="n">meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subjacs_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">abs_key</span><span class="p">,</span> <span class="n">SUBJAC_META_DEFAULTS</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+                <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">meta_changes</span><span class="p">)</span>
+                <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_subjacs_info</span><span class="p">[</span><span class="n">abs_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span>
+
+    <span class="k">def</span> <span class="nf">declare_partials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">dependent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rows</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">method</span><span class="o">=</span><span class="s1">&#39;exact&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Declare information about this component&#39;s subjacobians.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        of : str or list of str</span>
+<span class="sd">            The name of the residual(s) that derivatives are being computed for.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        wrt : str or list of str</span>
+<span class="sd">            The name of the variables that derivatives are taken with respect to.</span>
+<span class="sd">            This can contain the name of any input or output variable.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        dependent : bool(True)</span>
+<span class="sd">            If False, specifies no dependence between the output(s) and the</span>
+<span class="sd">            input(s). This is only necessary in the case of a sparse global</span>
+<span class="sd">            jacobian, because if &#39;dependent=False&#39; is not specified and</span>
+<span class="sd">            declare_partials is not called for a given pair, then a dense</span>
+<span class="sd">            matrix of zeros will be allocated in the sparse global jacobian</span>
+<span class="sd">            for that pair.  In the case of a dense global jacobian it doesn&#39;t</span>
+<span class="sd">            matter because the space for a dense subjac will always be</span>
+<span class="sd">            allocated for every pair.</span>
+<span class="sd">        rows : ndarray of int or None</span>
+<span class="sd">            Row indices for each nonzero entry.  For sparse subjacobians only.</span>
+<span class="sd">        cols : ndarray of int or None</span>
+<span class="sd">            Column indices for each nonzero entry.  For sparse subjacobians only.</span>
+<span class="sd">        val : float or ndarray of float or scipy.sparse</span>
+<span class="sd">            Value of subjacobian.  If rows and cols are not None, this will</span>
+<span class="sd">            contain the values found at each (row, col) location in the subjac.</span>
+<span class="sd">        method : str</span>
+<span class="sd">            The type of approximation that should be used. Valid options include:</span>
+<span class="sd">            &#39;fd&#39;: Finite Difference, &#39;cs&#39;: Complex Step, &#39;exact&#39;: use the component</span>
+<span class="sd">            defined analytic derivatives. Default is &#39;exact&#39;.</span>
+<span class="sd">        **kwargs : dict</span>
+<span class="sd">            Keyword arguments for controlling the behavior of the approximation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">supported_methods</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;fd&#39;</span><span class="p">:</span> <span class="n">FiniteDifference</span><span class="p">,</span>
+                             <span class="s1">&#39;cs&#39;</span><span class="p">:</span> <span class="n">ComplexStep</span><span class="p">,</span>
+                             <span class="s1">&#39;exact&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">supported_methods</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Method &quot;</span><span class="si">{}</span><span class="s1">&quot; is not supported, method must be one of </span><span class="si">{}</span><span class="s1">&#39;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">supported_methods</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+        <span class="c1"># Analytic Derivative for this jacobian pair</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;exact&#39;</span><span class="p">:</span>
+
+            <span class="c1"># If only one of rows/cols is specified</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">rows</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="o">^</span> <span class="p">(</span><span class="n">cols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;If one of rows/cols is specified, then both must be specified&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_declared_partials</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">dependent</span><span class="p">,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+
+        <span class="c1"># Approximation of the derivative, former API call approx_partials.</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_approx_schemes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_approx_schemes</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="n">supported_methods</span><span class="p">[</span><span class="n">method</span><span class="p">]()</span>
+
+            <span class="c1"># If rows/cols is specified</span>
+            <span class="k">if</span> <span class="n">rows</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">cols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Sparse FD specification not supported yet.&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Need to declare the Jacobian element too.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_declared_partials</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_approximated_partials</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">set_check_partial_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;fd&#39;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step_calc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set options that will be used for checking partial derivatives.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        wrt : str or list of str</span>
+<span class="sd">            The name or names of the variables that derivatives are taken with respect to.</span>
+<span class="sd">            This can contain the name of any input or output variable.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        method : str</span>
+<span class="sd">            Method for check: &quot;fd&quot; for finite difference, &quot;cs&quot; for complex step.</span>
+<span class="sd">        form : str</span>
+<span class="sd">            Finite difference form for check, can be &quot;forward&quot;, &quot;central&quot;, or &quot;backward&quot;. Leave</span>
+<span class="sd">            undeclared to keep unchanged from previous or default value.</span>
+<span class="sd">        step : float</span>
+<span class="sd">            Step size for finite difference check. Leave undeclared to keep unchanged from previous</span>
+<span class="sd">            or default value.</span>
+<span class="sd">        step_calc : str</span>
+<span class="sd">            Type of step calculation for check, can be &quot;abs&quot; for absolute (default) or &quot;rel&quot; for</span>
+<span class="sd">            relative.  Leave undeclared to keep unchanged from previous or default value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">supported_methods</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;fd&#39;</span><span class="p">,</span> <span class="s1">&#39;cs&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">supported_methods</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Method &quot;</span><span class="si">{}</span><span class="s1">&quot; is not supported, method must be one of </span><span class="si">{}</span><span class="s1">&#39;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">supported_methods</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+        <span class="n">wrt_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">wrt</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="n">string_types</span><span class="p">)</span> <span class="k">else</span> <span class="n">wrt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_declared_partial_checks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">wrt_list</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">step_calc</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_get_check_partial_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return dictionary of partial options with pattern matches processed.</span>
+
+<span class="sd">        This is called by check_partials.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict(wrt : (options))</span>
+<span class="sd">            Dictionary keyed by name with tuples of options (method, form, step, step_calc)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">opts</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">outs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_prom2abs_list</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_prom2abs_list</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">wrt_list</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">step_calc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_declared_partial_checks</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">wrt_list</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">find_matches</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">outs</span> <span class="o">+</span> <span class="n">ins</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">:</span>
+                        <span class="n">opt</span> <span class="o">=</span> <span class="n">opts</span><span class="p">[</span><span class="n">match</span><span class="p">]</span>
+
+                        <span class="c1"># New assignments take precedence</span>
+                        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="s1">&#39;step_calc&#39;</span><span class="p">],</span>
+                                               <span class="p">[</span><span class="n">method</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">step_calc</span><span class="p">]):</span>
+                            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">opt</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">opts</span><span class="p">[</span><span class="n">match</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="n">method</span><span class="p">,</span>
+                                       <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+                                       <span class="s1">&#39;step&#39;</span><span class="p">:</span> <span class="n">step</span><span class="p">,</span>
+                                       <span class="s1">&#39;step_calc&#39;</span><span class="p">:</span> <span class="n">step_calc</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">opts</span>
+
+    <span class="k">def</span> <span class="nf">_declare_partials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span> <span class="n">dependent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rows</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Store subjacobian metadata for later use.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        of : str or list of str</span>
+<span class="sd">            The name of the residual(s) that derivatives are being computed for.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        wrt : str or list of str</span>
+<span class="sd">            The name of the variables that derivatives are taken with respect to.</span>
+<span class="sd">            This can contain the name of any input or output variable.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        dependent : bool(True)</span>
+<span class="sd">            If False, specifies no dependence between the output(s) and the</span>
+<span class="sd">            input(s). This is only necessary in the case of a sparse global</span>
+<span class="sd">            jacobian, because if &#39;dependent=False&#39; is not specified and</span>
+<span class="sd">            declare_partials is not called for a given pair, then a dense</span>
+<span class="sd">            matrix of zeros will be allocated in the sparse global jacobian</span>
+<span class="sd">            for that pair.  In the case of a dense global jacobian it doesn&#39;t</span>
+<span class="sd">            matter because the space for a dense subjac will always be</span>
+<span class="sd">            allocated for every pair.</span>
+<span class="sd">        rows : ndarray of int or None</span>
+<span class="sd">            Row indices for each nonzero entry.  For sparse subjacobians only.</span>
+<span class="sd">        cols : ndarray of int or None</span>
+<span class="sd">            Column indices for each nonzero entry.  For sparse subjacobians only.</span>
+<span class="sd">        val : float or ndarray of float or scipy.sparse</span>
+<span class="sd">            Value of subjacobian.  If rows and cols are not None, this will</span>
+<span class="sd">            contain the values found at each (row, col) location in the subjac.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">issparse</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="c1"># np.promote_types  will choose the smallest dtype that can contain both arguments</span>
+            <span class="n">safe_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">promote_types</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">safe_dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">rows</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">rows</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">cols</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;rows and cols must have the same shape,&#39;</span>
+                                 <span class="s1">&#39; rows: </span><span class="si">{}</span><span class="s1">, cols: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rows</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">cols</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">val</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="ow">and</span> <span class="n">rows</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;If rows and cols are specified, val must be a scalar or have the &#39;</span>
+                                 <span class="s1">&#39;same shape, val: </span><span class="si">{}</span><span class="s1">, rows/cols: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">rows</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="n">pattern_matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_partial_matches</span><span class="p">(</span><span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">)</span>
+
+        <span class="n">multiple_items</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">of_bundle</span><span class="p">,</span> <span class="n">wrt_bundle</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">pattern_matches</span><span class="p">):</span>
+            <span class="n">of_pattern</span><span class="p">,</span> <span class="n">of_matches</span> <span class="o">=</span> <span class="n">of_bundle</span>
+            <span class="n">wrt_pattern</span><span class="p">,</span> <span class="n">wrt_matches</span> <span class="o">=</span> <span class="n">wrt_bundle</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">of_matches</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No matches were found for of=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">of_pattern</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">wrt_matches</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No matches were found for wrt=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wrt_pattern</span><span class="p">))</span>
+
+            <span class="n">make_copies</span> <span class="o">=</span> <span class="p">(</span><span class="n">multiple_items</span>
+                           <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">of_matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+                           <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">wrt_matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># Setting this to true means that future loop iterations (i.e. if there are multiple</span>
+            <span class="c1"># items in either of or wrt) will make copies.</span>
+            <span class="n">multiple_items</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">for</span> <span class="n">rel_key</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="n">of_matches</span><span class="p">,</span> <span class="n">wrt_matches</span><span class="p">):</span>
+                <span class="n">meta_changes</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+                    <span class="s1">&#39;cols&#39;</span><span class="p">:</span> <span class="n">cols</span><span class="p">,</span>
+                    <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">if</span> <span class="n">make_copies</span> <span class="k">else</span> <span class="n">val</span><span class="p">,</span>
+                    <span class="s1">&#39;dependent&#39;</span><span class="p">:</span> <span class="n">dependent</span>
+                <span class="p">}</span>
+                <span class="n">abs_key</span> <span class="o">=</span> <span class="n">rel_key2abs_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel_key</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">abs_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subjacs_info</span><span class="p">:</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subjacs_info</span><span class="p">[</span><span class="n">abs_key</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="n">SUBJAC_META_DEFAULTS</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">meta_changes</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_check_partials_meta</span><span class="p">(</span><span class="n">abs_key</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_subjacs_info</span><span class="p">[</span><span class="n">abs_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span>
+
+    <span class="k">def</span> <span class="nf">_find_partial_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find all partial derivative matches from of and wrt.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        of : str or list of str</span>
+<span class="sd">            The relative name of the residual(s) that derivatives are being computed for.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+<span class="sd">        wrt : str or list of str</span>
+<span class="sd">            The relative name of the variables that derivatives are taken with respect to.</span>
+<span class="sd">            This can contain the name of any input or output variable.</span>
+<span class="sd">            May also contain a glob pattern.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple(list, list)</span>
+<span class="sd">            Pair of lists containing pattern matches (if any). Returns (of_matches, wrt_matches)</span>
+<span class="sd">            where of_matches is a list of tuples (pattern, matches) and wrt_matches is a list of</span>
+<span class="sd">            tuples (pattern, output_matches, input_matches).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">of_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">of</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">of</span><span class="p">,</span> <span class="n">string_types</span><span class="p">)</span> <span class="k">else</span> <span class="n">of</span>
+        <span class="n">wrt_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">wrt</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="n">string_types</span><span class="p">)</span> <span class="k">else</span> <span class="n">wrt</span>
+        <span class="n">outs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_prom2abs_list</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">])</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_allprocs_prom2abs_list</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">])</span>
+
+        <span class="n">of_pattern_matches</span> <span class="o">=</span> <span class="p">[(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">find_matches</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">outs</span><span class="p">))</span> <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">of_list</span><span class="p">]</span>
+        <span class="n">wrt_pattern_matches</span> <span class="o">=</span> <span class="p">[(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">find_matches</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">outs</span> <span class="o">+</span> <span class="n">ins</span><span class="p">))</span> <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">wrt_list</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">of_pattern_matches</span><span class="p">,</span> <span class="n">wrt_pattern_matches</span>
+
+    <span class="k">def</span> <span class="nf">_check_partials_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abs_key</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check a given partial derivative and metadata for the correct shapes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        abs_key : tuple(str, str)</span>
+<span class="sd">            The of/wrt pair (given absolute names) defining the partial derivative.</span>
+<span class="sd">        meta : dict</span>
+<span class="sd">            Metadata dictionary from declare_partials.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;dependent&#39;</span><span class="p">]:</span>
+            <span class="n">out_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_abs2meta</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">][</span><span class="n">abs_key</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="s1">&#39;shape&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">abs_key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_abs2meta</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]:</span>
+                <span class="n">in_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_abs2meta</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">][</span><span class="n">abs_key</span><span class="p">[</span><span class="mi">1</span><span class="p">]][</span><span class="s1">&#39;size&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># assume output (or get a KeyError)</span>
+                <span class="n">in_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_abs2meta</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">][</span><span class="n">abs_key</span><span class="p">[</span><span class="mi">1</span><span class="p">]][</span><span class="s1">&#39;size&#39;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">in_size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">rank</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># &#39;inactive&#39; component</span>
+                <span class="k">return</span>
+
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;rows&#39;</span><span class="p">]</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;cols&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">rows</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">rows</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">rows</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span> <span class="o">=</span> <span class="n">abs_key2rel_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abs_key</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: d(</span><span class="si">{}</span><span class="s1">)/d(</span><span class="si">{}</span><span class="s1">): row indices must be non-negative&#39;</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pathname</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">cols</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span> <span class="o">=</span> <span class="n">abs_key2rel_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abs_key</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: d(</span><span class="si">{}</span><span class="s1">)/d(</span><span class="si">{}</span><span class="s1">): col indices must be non-negative&#39;</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pathname</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">rows</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">out_size</span> <span class="ow">or</span> <span class="n">cols</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">in_size</span><span class="p">:</span>
+                    <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span> <span class="o">=</span> <span class="n">abs_key2rel_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abs_key</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: d(</span><span class="si">{}</span><span class="s1">)/d(</span><span class="si">{}</span><span class="s1">): Expected </span><span class="si">{}</span><span class="s1">x</span><span class="si">{}</span><span class="s1"> but declared at least </span><span class="si">{}</span><span class="s1">x</span><span class="si">{}</span><span class="s1">&#39;</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pathname</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span>
+                        <span class="n">out_size</span><span class="p">,</span> <span class="n">in_size</span><span class="p">,</span>
+                        <span class="n">rows</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cols</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+                <span class="n">val_shape</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">shape</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">val_out</span><span class="p">,</span> <span class="n">val_in</span> <span class="o">=</span> <span class="n">val_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">val_out</span><span class="p">,</span> <span class="n">val_in</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">shape</span>
+                <span class="k">if</span> <span class="n">val_out</span> <span class="o">&gt;</span> <span class="n">out_size</span> <span class="ow">or</span> <span class="n">val_in</span> <span class="o">&gt;</span> <span class="n">in_size</span><span class="p">:</span>
+                    <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span> <span class="o">=</span> <span class="n">abs_key2rel_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abs_key</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: d(</span><span class="si">{}</span><span class="s1">)/d(</span><span class="si">{}</span><span class="s1">): Expected </span><span class="si">{}</span><span class="s1">x</span><span class="si">{}</span><span class="s1"> but val is </span><span class="si">{}</span><span class="s1">x</span><span class="si">{}</span><span class="s1">&#39;</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pathname</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">wrt</span><span class="p">,</span>
+                        <span class="n">out_size</span><span class="p">,</span> <span class="n">in_size</span><span class="p">,</span>
+                        <span class="n">val_out</span><span class="p">,</span> <span class="n">val_in</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_set_partials_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set subjacobian info into our jacobian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">jacobian_context</span><span class="p">()</span> <span class="k">as</span> <span class="n">J</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">meta</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subjacs_info</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_check_partials_meta</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+                <span class="n">J</span><span class="o">.</span><span class="n">_set_partials_meta</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+
+                <span class="n">method</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="ow">and</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;dependent&#39;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_approx_schemes</span><span class="p">[</span><span class="n">method</span><span class="p">]</span><span class="o">.</span><span class="n">add_approximation</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">approx</span> <span class="ow">in</span> <span class="n">itervalues</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_approx_schemes</span><span class="p">):</span>
+            <span class="n">approx</span><span class="o">.</span><span class="n">_init_approximations</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_guess_nonlinear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provide initial guess for states.</span>
+
+<span class="sd">        Does nothing on any non-implicit component.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_clear_iprint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clear out the iprint stack from the solvers.</span>
+
+<span class="sd">        Components don&#39;t have nested solvers, so do nothing to prevent errors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenMDAO 2.1.0 Alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, openmdao.org.
+      Last updated on Feb 09, 2018.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>

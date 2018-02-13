@@ -1,0 +1,166 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>lifting_surface.py &#8212; OpenMDAO 2.1.0 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.1.0 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/OpenMDAO_Favicon.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="linear_comb_comp.py" href="linear_comb_comp.html" />
+    <link rel="prev" title="division_comp.py" href="division_comp.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="linear_comb_comp.html" title="linear_comb_comp.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="division_comp.html" title="division_comp.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenMDAO 2.1.0 Alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Source Docs</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../openaerostruct.common.html" accesskey="U">openaerostruct.common</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/OpenMDAO_Logo.png" alt="Logo"/>
+            </a></p>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-openaerostruct.common.lifting_surface">
+<span id="lifting-surface-py"></span><span id="openaerostruct-common-lifting-surface-py"></span><span id="index-0"></span><h1>lifting_surface.py<a class="headerlink" href="#module-openaerostruct.common.lifting_surface" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface">
+<em class="property">class </em><code class="descclassname">openaerostruct.common.lifting_surface.</code><code class="descname">LiftingSurface</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface.initialize_mesh">
+<code class="descname">initialize_mesh</code><span class="sig-paren">(</span><em>num_points_x</em>, <em>num_points_z_half</em>, <em>airfoil_x</em>, <em>airfoil_y</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface.initialize_mesh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface.initialize_mesh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface.set_aero_properties">
+<code class="descname">set_aero_properties</code><span class="sig-paren">(</span><em>factor2</em>, <em>factor4</em>, <em>cl_factor</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface.set_aero_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface.set_aero_properties" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface.set_mesh">
+<code class="descname">set_mesh</code><span class="sig-paren">(</span><em>mesh</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface.set_mesh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface.set_mesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts external mesh.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface.set_mesh_parameters">
+<code class="descname">set_mesh_parameters</code><span class="sig-paren">(</span><em>chord</em>, <em>twist</em>, <em>sweep_x</em>, <em>dihedral_y</em>, <em>span</em>, <em>distribution</em>, <em>section_origin</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface.set_mesh_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface.set_mesh_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface.set_optimization_discretizations">
+<code class="descname">set_optimization_discretizations</code><span class="sig-paren">(</span><em>twist_bspline</em>, <em>sec_z_bspline</em>, <em>chord_bspline</em>, <em>thickness_bspline</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface.set_optimization_discretizations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface.set_optimization_discretizations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.common.lifting_surface.LiftingSurface.set_structural_properties">
+<code class="descname">set_structural_properties</code><span class="sig-paren">(</span><em>thickness</em>, <em>radius</em>, <em>E</em>, <em>G</em>, <em>spar_location</em>, <em>sigma_y</em>, <em>rho</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/common/lifting_surface.html#LiftingSurface.set_structural_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.common.lifting_surface.LiftingSurface.set_structural_properties" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="linear_comb_comp.html" title="linear_comb_comp.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="division_comp.html" title="division_comp.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenMDAO 2.1.0 Alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Source Docs</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../openaerostruct.common.html" >openaerostruct.common</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, openmdao.org.
+      Last updated on Feb 09, 2018.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
+    </div>
+  </body>
+</html>
