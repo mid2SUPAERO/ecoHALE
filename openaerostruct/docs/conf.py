@@ -125,9 +125,11 @@ author = u'John Jasa, John Hwang'
 # built documents.
 #
 import openaerostruct
-version = openaerostruct.__version__
+# version = openaerostruct.__version__
+version = '2.0.0'
 # The full version, including alpha/beta/rc tags.
-release = openaerostruct.__version__ + ' Alpha'
+# release = openaerostruct.__version__ + ' Alpha'
+release = '2.0.0 Alpha'
 
 # we are only doing the commit number/latest tag choice when we are on Travis.
 if 'TRAVIS_PULL_REQUEST' in os.environ:
