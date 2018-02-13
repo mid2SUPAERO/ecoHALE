@@ -12,7 +12,7 @@ import sphinx
 from sphinx.util.compat import Directive
 from sphinx.writers.html import HTMLTranslator
 
-from openmdao.docs._utils.docutil import get_and_run_test
+from openaerostruct.docs._utils.docutil import get_and_run_test
 
 
 if sys.version_info[0] == 2:

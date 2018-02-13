@@ -9,9 +9,9 @@ import textwrap
 from numpydoc.docscrape import NumpyDocString, Reader
 from mock import Mock
 
-from openmdao.docs.config_params import MOCK_MODULES
-from openmdao.docs._utils.patch import do_monkeypatch
-from openmdao.docs._utils.upload_doc_version import get_doc_version
+from openaerostruct.docs.config_params import MOCK_MODULES
+from openaerostruct.docs._utils.patch import do_monkeypatch
+from openaerostruct.docs._utils.upload_doc_version import get_doc_version
 
 # Only mock the ones that don't import.
 for mod_name in MOCK_MODULES:
