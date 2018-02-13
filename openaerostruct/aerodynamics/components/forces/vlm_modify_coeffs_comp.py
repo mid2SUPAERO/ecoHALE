@@ -24,6 +24,7 @@ class VLMModifyCoeffsComp(ExplicitComponent):
 
         self.add_input('C_L_ind', shape=num_nodes)
         self.add_input('C_D_ind', shape=num_nodes)
+        self.add_input('CDv', shape=num_nodes)
         self.add_output('C_L', shape=num_nodes)
         self.add_output('C_D', shape=num_nodes)
 
@@ -38,7 +39,7 @@ class VLMModifyCoeffsComp(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         CL = inputs['C_L_ind'] + self.CL0
-        CD = inputs['C_D_ind'] + self.CD0
+        CD = inputs['C_D_ind'] + self.CD0 #+ inputs['CDv']
 
         outputs['C_L'] = CL * self.cl_factor
         outputs['C_D'] = CD + self.factor2 * (CL - .2) ** 2 + self.factor4 * CL ** 4

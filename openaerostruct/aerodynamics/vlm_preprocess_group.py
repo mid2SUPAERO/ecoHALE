@@ -6,6 +6,7 @@ from openmdao.api import Group
 from openaerostruct.aerodynamics.components.mesh.vlm_ref_axis_comp import VLMRefAxisComp
 from openaerostruct.aerodynamics.components.mesh.vlm_vortex_airfoil_comp import VLMVortexAirfoilComp
 from openaerostruct.aerodynamics.components.mesh.vlm_mesh_comp import VLMMeshComp
+from openaerostruct.aerodynamics.components.mesh.vlm_widths_sweep_comp import VLMWidthsSweepComp
 
 from openaerostruct.aerodynamics.components.velocities.vlm_freestream_vel_comp import VLMFreestreamVelComp
 
@@ -37,6 +38,9 @@ class VLMPreprocessGroup(Group):
 
         comp = VLMMeshComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces, vortex_mesh=True)
         self.add_subsystem('vlm_vortex_mesh_comp', comp, promotes=['*'])
+
+        comp = VLMWidthsSweepComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('vlm_widths_sweep_comp', comp, promotes=['*'])
 
         comp = VLMFreestreamVelComp(num_nodes=num_nodes, size=size)
         self.add_subsystem('vlm_freestream_vel_comp', comp, promotes=['*'])

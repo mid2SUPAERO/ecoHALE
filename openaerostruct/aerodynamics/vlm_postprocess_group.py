@@ -10,6 +10,7 @@ from openaerostruct.aerodynamics.components.forces.vlm_rotate_panel_forces_comp 
 from openaerostruct.aerodynamics.components.forces.vlm_total_forces_comp import VLMTotalForcesComp
 from openaerostruct.aerodynamics.components.forces.vlm_total_coeffs_comp import VLMTotalCoeffsComp
 from openaerostruct.aerodynamics.components.forces.vlm_modify_coeffs_comp import VLMModifyCoeffsComp
+from openaerostruct.aerodynamics.components.forces.viscous_drag_comp import ViscousDragComp
 from openaerostruct.common.product_comp import ProductComp
 
 
@@ -62,3 +63,6 @@ class VLMPostprocessGroup(Group):
 
         comp = VLMModifyCoeffsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_modify_coeffs_comp', comp, promotes=['*'])
+
+        comp = ViscousDragComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        self.add_subsystem('viscous_drag_comp', comp, promotes=['*'])
