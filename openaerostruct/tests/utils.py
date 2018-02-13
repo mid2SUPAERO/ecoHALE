@@ -58,7 +58,7 @@ def run_test(obj, comp, decimal=3):
     prob.setup(force_alloc_complex=True)
 
     prob.run_model()
-    check = prob.check_partials(compact_print=True, method='cs')
+    check = prob.check_partials(compact_print=True)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
             assert_almost_equal(

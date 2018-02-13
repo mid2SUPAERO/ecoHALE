@@ -49,7 +49,7 @@ class ViscousDragComp(ExplicitComponent):
         self.t_over_c = .12
         self.c_max_t = .25
 
-        self.add_input('mu_Pa_s', shape=num_nodes, val=1e-6)
+        self.add_input('mu_Pa_s', shape=num_nodes, val=1e-4)
         self.add_input('rho_kg_m3', shape=num_nodes, val=.384)
         self.add_input('Mach', shape=num_nodes)
         self.add_input('v_m_s', shape=num_nodes, val=200.)
@@ -78,7 +78,7 @@ class ViscousDragComp(ExplicitComponent):
         self.declare_partials('CDv', 'v_m_s', method='cs')
         self.declare_partials('CDv', 'rho_kg_m3', method='cs')
         self.declare_partials('CDv', 'Mach', method='cs')
-        self.declare_partials('CDv', 'mu_Pa_s', method='cs')
+        self.declare_partials('CDv', 'mu_Pa_s', method='fd')  # some part of these appears to not be complex safe
         self.declare_partials('CDv', 'reference_area', cols=arange, rows=arange)
 
     def compute(self, inputs, outputs):
