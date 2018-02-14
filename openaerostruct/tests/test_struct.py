@@ -97,21 +97,18 @@ class TestStruct(unittest.TestCase):
         prob.driver.opt_settings['Major optimality tolerance'] = 2e-12
         prob.driver.opt_settings['Major feasibility tolerance'] = 2e-12
 
-        prob.driver.add_recorder(SqliteRecorder('fea.hst'))
-        prob.driver.recording_options['includes'] = ['*']
-
         prob.setup()
 
         prob['wing_chord_dv'] = [0.5, 1.0, 0.5]
 
         return prob
 
-    def test_aero_analysis(self):
+    def test_struct_analysis(self):
         prob = self.setup_struct()
         prob.run_model()
         assert_almost_equal(prob['obj'], 16170.5464818)
 
-    def test_aero_optimization(self):
+    def test_struct_optimization(self):
         prob = self.setup_struct()
         prob.run_driver()
         assert_almost_equal(prob['obj'], 384729.7510236)
