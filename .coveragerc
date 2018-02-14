@@ -10,3 +10,4 @@ omit =
     view_geometry.py
     analysis.py
     CRM_definitions.py
+    *docs*
