@@ -133,6 +133,7 @@ class TestAerostruct(unittest.TestCase):
         prob.run_model()
         assert_almost_equal(prob['obj'], 6260.8834617)
         assert_almost_equal(prob['fuelburn'], 4.0645386)
+        assert_almost_equal(prob['L_equals_W'], 8.058407)
 
     def test_aerostruct_optimization(self):
         prob = setup_aerostruct()
