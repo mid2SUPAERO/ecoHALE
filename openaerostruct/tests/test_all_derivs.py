@@ -19,8 +19,11 @@ def import_submodules(package, recursive=True):
     results = {}
     for loader, name, is_pkg in pkgutil.walk_packages(package.__path__):
         full_name = package.__name__ + '.' + name
-        # if '.docs.' in full_name or '.tests.' in full_name:
-        #     continue
+        if '.docs.conf' in full_name:
+            continue
+        if '.docs.' in full_name:
+            print(full_name)
+            continue
         try:
             results[full_name] = importlib.import_module(full_name)
             if recursive and is_pkg:
@@ -93,6 +96,7 @@ class Test(unittest.TestCase):
                     exec_string = 'comp = ' + key + '.' + comp_name + '(shape=(16, 4, 3), in_name="in", out_name="out")'
                 else:
                     exec_string = 'comp = ' + key + '.' + comp_name + '(num_nodes=1, lifting_surfaces=lifting_surfaces)'
+                print(exec_string)
                 exec(exec_string, globals())
 
                 if file_comp_name not in skip_comps:
