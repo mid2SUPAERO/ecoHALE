@@ -61,7 +61,7 @@ if __name__ == "__main__":
                  'wing_type' : 'rect',
                  'CD0' : 0.015,
                  'symmetry' : True,
-                 'num_twist_cp' : 5,
+                 'num_twist_cp' : 2,
                  'num_thickness_cp' : 2}
 
     # Add the specified wing surface to the problem

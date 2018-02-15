@@ -52,11 +52,16 @@ if __name__ == "__main__":
     else:  # perform optimization
         prob_dict.update({'optimize' : True})
 
+    num_y = 11
+    loads = np.zeros(((num_y+1)//2, 6))
+    loads[:, 1] = 1e5
+
     # Instantiate problem and add default surface
     OAS_prob = OASProblem(prob_dict)
     OAS_prob.add_surface({'name' : 'wing',
                           'num_y' : 11,
-                          'symmetry' : True})
+                          'symmetry' : True,
+                          'loads' : loads})
 
     # Single lifting surface
     if not sys.argv[1].endswith('m'):

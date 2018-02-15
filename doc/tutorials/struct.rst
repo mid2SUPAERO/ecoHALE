@@ -8,17 +8,23 @@ The following Python script performs structural optimization to minimize weight 
 .. code-block:: python
 
   from __future__ import division, print_function
+  import numpy as np
   from OpenAeroStruct import OASProblem
 
   # Set problem type
   prob_dict = {'type' : 'struct',
                'optimize' : True}
 
+  num_y = 11
+  loads = np.zeros(((num_y+1)//2, 6))
+  loads[:, 1] = 1e5
+
   # Instantiate problem and add default surface
   OAS_prob = OASProblem(prob_dict)
   OAS_prob.add_surface({'name' : 'wing',
-                        'num_y' : 11,
-                        'symmetry' : True})
+                        'num_y' : num_y,
+                        'symmetry' : True,
+                        'loads' : loads})
 
   # Add design variables, constraint, and objective then setup problem
   OAS_prob.add_desvar('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
@@ -35,13 +41,14 @@ Which should output the optimization results and then these lines:
 
 .. code-block:: console
 
-  Wing structural weight: 666.582239683
+  Wing structural weight: 549.028914401
 
 We will now go through each block of code to explain what is going on within OpenAeroStruct.
 
 .. code-block:: python
 
   from __future__ import print_function
+  import numpy as np
   from OpenAeroStruct import OASProblem
 
 We import the OASProblem class from OpenAeroStruct, which is how we access the methods within OpenAeroStruct.
@@ -59,6 +66,10 @@ Please see :meth:`OASProblem.get_default_prob_dict` within the :doc:`../source/r
 
 .. code-block:: python
 
+  num_y = 11
+  loads = np.zeros(((num_y+1)//2, 6))
+  loads[:, 1] = 1e5
+
   # Instantiate problem and add default surface
   OAS_prob = OASProblem(prob_dict)
   OAS_prob.add_surface({'name' : 'wing',
@@ -68,6 +79,7 @@ Please see :meth:`OASProblem.get_default_prob_dict` within the :doc:`../source/r
 Next, we add a single lifting surface to the problem.
 Even though this is a structures-only problem, we add a lifting surface to define the structure in a manner consistent with the aerostructural case.
 This means that we will create a tubular spar based on the lifting surface's span with its element radii set from the lifting surface's chord amd a provided t/c value.
+We also prescribe a uniform load distribution that acts on the wing in the upwards direction.
 
 In this case, we provide a name and tell OpenAeroStruct to explicitly model only one half of the beam and compute the effects from the other half of the surface.
 This is less computationally expensive than modeling the entire surface.

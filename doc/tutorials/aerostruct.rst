@@ -32,7 +32,7 @@ The following Python script performs aerostructural optimization to minimize fue
 
   # Add design variables, constraint, and objective on the problem
   OAS_prob.add_desvar('alpha', lower=-10., upper=10.)
-  OAS_prob.add_constraint('eq_con', equals=0.)
+  OAS_prob.add_constraint('L_equals_W', equals=0.)
   OAS_prob.add_objective('fuelburn', scaler=1e-4)
 
   # Setup problem and add design variables, constraint, and objective
@@ -51,7 +51,7 @@ Which should output the optimization results and then this line:
 
 .. code-block:: console
 
-  Fuelburn: 69790.2241357
+  Fuelburn: 38681.6142236
 
 
 We will now go through each block of code to explain what is going on within OpenAeroStruct.
@@ -117,7 +117,7 @@ These scalars are simply added to the wing CL and CD to get the total coefficien
 
   OAS_prob.add_constraint('wing_perf.failure', upper=0.)
   OAS_prob.add_constraint('wing_perf.thickness_intersects', upper=0.)
-  OAS_prob.add_constraint('eq_con', equals=0.)
+  OAS_prob.add_constraint('L_equals_W', equals=0.)
   OAS_prob.add_objective('fuelburn', scaler=1e-4)
   OAS_prob.setup()
 
