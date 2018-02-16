@@ -7,7 +7,7 @@ OpenAeroStruct is a lightweight Python tool that performs aerostructural optimiz
 
 Documentation is available [here](http://openaerostruct.readthedocs.io/en/latest/).
 
-Please see the [SMO journal paper](https://link.springer.com/article/10.1007%2Fs00158-018-1912-8) for more information and please cite this article if you use OpenAeroStruct in your research.
+Please see the [SMO journal paper](https://link.springer.com/article/10.1007%2Fs00158-018-1912-8) for more information and please cite this article if you use OpenAeroStruct in your research. Here's an open-access copy of the paper: http://rdcu.be/Gtl1
 
 ![Optimized CRM-type wing with 30 panels](/example.png?raw=true "Example Optimization Result and Visualization")
 
