@@ -700,12 +700,11 @@ class VLMGeometry(Component):
             for j in range(1):
                 l = np.sqrt(dx**2 + dy**2 + dz**2)
                 jac['chords', 'def_mesh'][i, (j*ny+i)*3] += dx / l
-                jac['chords', 'def_mesh'][i, ((j+1)*ny+i)*3] -= dx / l
+                jac['chords', 'def_mesh'][i, ((j+nx-1)*ny+i)*3] -= dx / l
                 jac['chords', 'def_mesh'][i, (j*ny+i)*3 + 1] += dy / l
-                jac['chords', 'def_mesh'][i, ((j+1)*ny+i)*3 + 1] -= dy / l
+                jac['chords', 'def_mesh'][i, ((j+nx-1)*ny+i)*3 + 1] -= dy / l
                 jac['chords', 'def_mesh'][i, (j*ny+i)*3 + 2] += dz / l
-                jac['chords', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] -= dz / l
-
+                jac['chords', 'def_mesh'][i, ((j+nx-1)*ny+i)*3 + 2] -= dz / l
 
         return jac
 
