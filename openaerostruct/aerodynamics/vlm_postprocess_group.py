@@ -64,5 +64,5 @@ class VLMPostprocessGroup(Group):
         comp = VLMModifyCoeffsComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
         self.add_subsystem('vlm_modify_coeffs_comp', comp, promotes=['*'])
 
-        comp = ViscousDragComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
-        self.add_subsystem('viscous_drag_comp', comp, promotes=['*'])
+        # comp = ViscousDragComp(num_nodes=num_nodes, lifting_surfaces=lifting_surfaces)
+        # self.add_subsystem('viscous_drag_comp', comp, promotes=['*'])

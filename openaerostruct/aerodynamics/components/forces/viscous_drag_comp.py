@@ -73,7 +73,7 @@ class ViscousDragComp(ExplicitComponent):
             self.declare_partials('CDv', widths_name, method='fd')
             self.declare_partials('CDv', lengths_name, method='fd')
 
-        self.add_output('CDv', val=0.)
+        self.add_output('CDv', shape=num_nodes, val=0.)
 
         self.declare_partials('CDv', 'v_m_s', method='cs')
         self.declare_partials('CDv', 'rho_kg_m3', method='cs')
@@ -107,7 +107,7 @@ class ViscousDragComp(ExplicitComponent):
 
                 # Take panel chord length to be average of its edge lengths
                 chords = (lengths[:, 1:] + lengths[:, :-1]) / 2.
-                Re_c = re * chords
+                Re_c = np.einsum('i,ij->ij', re, chords)
 
                 cdturb_total = 0.455 / (np.log10(Re_c))**2.58 / \
                     (1.0 + 0.144*Mach**2)**0.65
