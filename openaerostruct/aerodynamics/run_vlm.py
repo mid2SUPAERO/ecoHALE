@@ -13,6 +13,8 @@ from openaerostruct.aerodynamics.vlm_postprocess_group import VLMPostprocessGrou
 
 from openaerostruct.utils.plot_utils import plot_mesh_2d, scatter_2d, arrow_2d
 
+from openaerostruct.common.lifting_surface import LiftingSurface
+
 
 if __name__ == "__main__":
 
@@ -25,28 +27,24 @@ if __name__ == "__main__":
     num_points_x = 3
     num_points_z_half = 30 if not check_derivs else 2
     num_points_z = 2 * num_points_z_half - 1
-    lifting_surfaces = [
-        ('wing', {
-            'num_points_x': num_points_x, 'num_points_z_half': num_points_z_half,
-            'airfoil_x': np.linspace(0., 1., num_points_x),
-            'airfoil_y': np.zeros(num_points_x),
-            'mac': 0.7,
-            'chord': 1.,
-            'chord_bspline': (2, 2),
-            'twist': 0. * np.pi / 180.,
-            'twist_bspline': (11, 3),
-            'sweep_x': 0.,
-            'dihedral_y': 0.,
-            'span': 5,
-            'sec_z_bspline': (num_points_z_half, 2),
-            'thickness_bspline': (10, 3),
-            'thickness' : .1,
-            'radius' : 1.,
-            'distribution': 'sine',
-            'section_origin': 0.25,
-            'spar_location': 0.35,
-        })
-    ]
+    g = 9.81
+
+    wing = LiftingSurface('wing')
+
+    wing.initialize_mesh(num_points_x, num_points_z_half, airfoil_x=np.linspace(0., 1., num_points_x), airfoil_y=np.zeros(num_points_x))
+    wing.set_mesh_parameters(distribution='sine', section_origin=.25)
+    wing.set_structural_properties(E=70.e9, G=29.e9, spar_location=0.35, sigma_y=200e6, rho=2700)
+    wing.set_aero_properties(factor2=.119, factor4=-0.064, cl_factor=1.05)
+
+    wing.set_chord(1.)
+    wing.set_twist(0.)
+    wing.set_sweep(0.)
+    wing.set_dihedral(0.)
+    wing.set_span(5.)
+    wing.set_thickness(0.05)
+    wing.set_radius(0.1)
+
+    lifting_surfaces = [('wing', wing)]
 
     vlm_scaler = 1e0
 
@@ -131,10 +129,6 @@ if __name__ == "__main__":
             prob.run_model()
             x[i] = alpha
             y[i] = prob['C_L']
-            # print(np.max(prob['wing_sec_C_L']))
-            # print(np.max(prob['wing_sec_C_L_capped']))
-            # print(np.min(prob['sec_C_L_factor']))
-            print(np.max(prob['panel_forces_rotated_capped'][0, :, 1]))
         plt.plot(x, y)
         plt.show()
 

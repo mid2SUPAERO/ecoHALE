@@ -68,9 +68,9 @@ class LiftingSurface(object):
         self.sigma_y = sigma_y
         self.rho = rho
 
-    def set_aero_properties(self, factor2, factor4, cl_factor):
-        self.CL0 = 0.
-        self.CD0 = 0.
+    def set_aero_properties(self, factor2, factor4, cl_factor, CL0=0., CD0=0.):
+        self.CL0 = CL0
+        self.CD0 = CD0
 
         self.factor2 = factor2
         self.factor4 = factor4
