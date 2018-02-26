@@ -22,3 +22,7 @@ This is different
 .. code::
 
     python hello_world.py
+
+.. embed-code::
+    openaerostruct.tests.test_aero.TestAero.test_aero_optimization
+    :layout: code, output
