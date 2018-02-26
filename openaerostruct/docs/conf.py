@@ -9,16 +9,15 @@ import textwrap
 from numpydoc.docscrape import NumpyDocString, Reader
 from mock import Mock
 
-from openaerostruct.docs.config_params import MOCK_MODULES
-from openaerostruct.docs._utils.patch import do_monkeypatch
-from openaerostruct.docs._utils.upload_doc_version import get_doc_version
-
-# Only mock the ones that don't import.
-for mod_name in MOCK_MODULES:
-    try:
-        importlib.import_module(mod_name)
-    except ImportError:
-        sys.modules[mod_name]=Mock()
+# from openaerostruct.docs.config_params import MOCK_MODULES
+# from openaerostruct.docs._utils.patch import do_monkeypatch
+#
+# # Only mock the ones that don't import.
+# for mod_name in MOCK_MODULES:
+#     try:
+#         importlib.import_module(mod_name)
+#     except ImportError:
+#         sys.modules[mod_name]=Mock()
 
 # start off running the monkeypatch to keep options/parameters
 # usable in docstring for autodoc.
@@ -27,55 +26,55 @@ for mod_name in MOCK_MODULES:
 master_doc = 'index'
 
 
-def __init__(self, docstring, config={}):
-    """
-    init
-    """
-    docstring = textwrap.dedent(docstring).split('\n')
-
-    self._doc = Reader(docstring)
-    self._parsed_data = {
-        'Signature': '',
-        'Summary': [''],
-        'Extended Summary': [],
-        'Parameters': [],
-        'Options': [],
-        'Returns': [],
-        'Yields': [],
-        'Raises': [],
-        'Warns': [],
-        'Other Parameters': [],
-        'Attributes': [],
-        'Methods': [],
-        'See Also': [],
-        'Notes': [],
-        'Warnings': [],
-        'References': '',
-        'Examples': '',
-        'index': {}
-    }
-
-    try:
-        self._parse()
-    except ParseError as e:
-        e.docstring = orig_docstring
-        raise
-
-    # In creation of docs, remove private Attributes (beginning with '_')
-    # with a crazy list comprehension
-    self._parsed_data["Attributes"][:] = [att for att in self._parsed_data["Attributes"]
-                                          if not att[0].startswith('_')]
-
-NumpyDocString.__init__ = __init__
-
-do_monkeypatch()
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('./_exts'))
+# def __init__(self, docstring, config={}):
+#     """
+#     init
+#     """
+#     docstring = textwrap.dedent(docstring).split('\n')
+#
+#     self._doc = Reader(docstring)
+#     self._parsed_data = {
+#         'Signature': '',
+#         'Summary': [''],
+#         'Extended Summary': [],
+#         'Parameters': [],
+#         'Options': [],
+#         'Returns': [],
+#         'Yields': [],
+#         'Raises': [],
+#         'Warns': [],
+#         'Other Parameters': [],
+#         'Attributes': [],
+#         'Methods': [],
+#         'See Also': [],
+#         'Notes': [],
+#         'Warnings': [],
+#         'References': '',
+#         'Examples': '',
+#         'index': {}
+#     }
+#
+#     try:
+#         self._parse()
+#     except ParseError as e:
+#         e.docstring = orig_docstring
+#         raise
+#
+#     # In creation of docs, remove private Attributes (beginning with '_')
+#     # with a crazy list comprehension
+#     self._parsed_data["Attributes"][:] = [att for att in self._parsed_data["Attributes"]
+#                                           if not att[0].startswith('_')]
+#
+# NumpyDocString.__init__ = __init__
+#
+# do_monkeypatch()
+#
+# # If extensions (or modules to document with autodoc) are in another directory,
+# # add these directories to sys.path here. If the directory is relative to the
+# # documentation root, use os.path.abspath to make it absolute, like shown here.
+# sys.path.insert(0, os.path.abspath('..'))
+# sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('./_exts'))
 
 print('path', sys.path)
 
@@ -96,7 +95,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'numpydoc',
-    'embed_code',
+    # 'embed_code',
     # 'embed_options',
     # 'embed_compare',
     # 'embed_shell_cmd',
@@ -109,7 +108,7 @@ numpydoc_show_class_members = False
 # autodoc_default_flags = ['members']
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+# templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
