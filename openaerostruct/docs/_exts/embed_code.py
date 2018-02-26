@@ -10,7 +10,7 @@ import os
 
 from docutils.parsers.rst.directives import unchanged, images
 
-from openmdao.docs._utils.docutil import get_source_code, remove_docstrings, \
+from openaerostruct.docs._utils.docutil import get_source_code, remove_docstrings, \
     remove_initial_empty_lines, replace_asserts_with_prints, \
     strip_header, dedent, insert_output_start_stop_indicators, run_code, \
     get_skip_output_node, get_interleaved_io_nodes, get_output_block_node, \
@@ -25,7 +25,7 @@ class EmbedCodeDirective(Directive):
      python code to be shown in feature docs.  An example usage would look like this:
 
     .. embed-code::
-        openmdao.test.whatever.method
+        openaerostruct.test.whatever.method
 
     What the above will do is replace the directive and its args with the block of code
     for the class or method desired.
@@ -34,7 +34,7 @@ class EmbedCodeDirective(Directive):
     to the directive to strip the docstrings:
 
     .. embed-code::
-        openmdao.test.whatever.method
+        openaerostruct.test.whatever.method
         :strip-docstrings:
     """
 

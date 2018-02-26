@@ -1,14 +1,14 @@
 # a short sphinx extension to take care of hyperlinking in docstrings
 # where a syntax of <Class> is employed.
-import openmdao
+import openaerostruct
 import pkgutil
 import inspect
 import re
-from openmdao.docs.config_params import IGNORE_LIST
+from openaerostruct.docs.config_params import IGNORE_LIST
 
 # first, we will need a dict that contains full pathnames to every class.
 # we construct that here, once, then use it for lookups in om_process_docstring
-package = openmdao
+package = openaerostruct
 
 om_classes = {}
 for importer, modname, ispkg in pkgutil.walk_packages(path=package.__path__,
@@ -20,7 +20,7 @@ for importer, modname, ispkg in pkgutil.walk_packages(path=package.__path__,
                 continue
             module = importer.find_module(modname).load_module(modname)
             for classname, class_object in inspect.getmembers(module, inspect.isclass):
-                if class_object.__module__.startswith("openmdao"):
+                if class_object.__module__.startswith("openaerostruct"):
                     om_classes[classname] = class_object.__module__ + "." + classname
 
 
@@ -49,7 +49,7 @@ def om_process_docstring(app, what, name, obj, options, lines):
                     justmeth = split_match[1]   # method
                     if justclass in om_classes:
                         classfullpath = om_classes[justclass]
-                        # construct a link  :meth:`class.method <openmdao.core.class.method>`
+                        # construct a link  :meth:`class.method <openaerostruct.core.class.method>`
                         link = ":meth:`" + m + " <" + classfullpath + "." + justmeth + ">`"
                         # replace the <link> text with the constructed line.
                         lines[i] = lines[i].replace(ma, link)
