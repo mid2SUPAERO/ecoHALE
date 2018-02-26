@@ -23,6 +23,9 @@ for mod_name in MOCK_MODULES:
 # start off running the monkeypatch to keep options/parameters
 # usable in docstring for autodoc.
 
+# The master toctree document.
+master_doc = 'index'
+
 
 def __init__(self, docstring, config={}):
     """
@@ -112,9 +115,6 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
-
-# The master toctree document.
-master_doc = 'index'
 
 # General information about the project.
 project = u'OpenAeroStruct'
