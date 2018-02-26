@@ -208,4 +208,4 @@ def setup(app):
     app.add_directive('embed-code', EmbedCodeDirective)
     node_setup(app)
 
-    return {'version': sphinx.__display_version__, 'parallel_read_safe': True}
+    return {'version': sphinx.__display_version__, 'parallel_read_safe': False}
