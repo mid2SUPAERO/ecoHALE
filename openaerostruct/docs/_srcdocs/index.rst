@@ -10,9 +10,9 @@ Source Docs
    :titlesonly:
    :maxdepth: 1
 
-   packages/openaerostruct.examples
    packages/openaerostruct.aerodynamics
    packages/openaerostruct.structures
    packages/openaerostruct.aerostruct
    packages/openaerostruct.geometry
    packages/openaerostruct.common
+   packages/openaerostruct.tests

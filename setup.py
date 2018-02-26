@@ -48,6 +48,7 @@ setup(name='openaerostruct',
         'openaerostruct/examples',
         'openaerostruct/docs',
         'openaerostruct/docs/_utils',
+        'openaerostruct/tests',
     ],
     # TODO: fix this with the correct requires
     install_requires=[],

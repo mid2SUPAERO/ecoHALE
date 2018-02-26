@@ -93,13 +93,12 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'numpydoc',
-    # 'embed_code',
-    # 'embed_options',
-    # 'embed_test',
-    # 'embed_compare',
-    # 'embed_shell_cmd',
-    # 'embed_bibtex',
-    # 'tags'
+    'embed_code',
+    'embed_options',
+    'embed_compare',
+    'embed_shell_cmd',
+    'embed_bibtex',
+    'tags'
 ]
 
 numpydoc_show_class_members = False
@@ -165,7 +164,16 @@ from openaerostruct.docs._utils.generate_sourcedocs import generate_docs
 exclude_patterns = ['_build', '_srcdocs/dev']
 absp = os.path.join('.', '_srcdocs')
 sys.path.insert(0, os.path.abspath(absp))
-generate_docs()
+
+packages = [
+    'aerodynamics',
+    'structures',
+    'aerostruct',
+    'geometry',
+    'common',
+    'tests',
+]
+generate_docs("..", "../..", packages)
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -177,10 +185,10 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-# html_theme = '_theme'
+html_theme = '_theme'
 
 # Add any paths that contain custom themes here, relative to this directory.
-# html_theme_path = ['.']
+html_theme_path = ['.']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.

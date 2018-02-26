@@ -16,15 +16,13 @@ Use :code:`pip` to install openaerostruct locally:
 
 :code:`pip install .`
 
-Hello, World!
-*************
-Here is a really short run file to get you started running your first optimization.
-Copy the code into a file named `hello_world.py` and run it by typing:
+This is different
+*****************
 
 .. code::
 
     python hello_world.py
 
-.. embed-test::
-    openaerostruct.tests.integration_tests.test_aero.TestAero.test_aero_optimization
-    :no-split:
+.. embed-code::
+    openaerostruct.tests.test_aero.TestAero.test_aero_optimization
+    :layout: code, output
