@@ -23,7 +23,7 @@ for mod_name in MOCK_MODULES:
 # usable in docstring for autodoc.
 
 # The master toctree document.
-master_doc = 'index'
+# master_doc = 'index'
 
 
 def __init__(self, docstring, config={}):
@@ -194,7 +194,7 @@ html_sidebars = {
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'openaerostruct', u'OpenAeroStruct Documentation',
-     [author], 1)
-]
+# man_pages = [
+#     (master_doc, 'openaerostruct', u'OpenAeroStruct Documentation',
+#      [author], 1)
+# ]
