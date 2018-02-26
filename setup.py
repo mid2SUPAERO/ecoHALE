@@ -49,6 +49,7 @@ setup(name='openaerostruct',
         'openaerostruct/docs',
         'openaerostruct/docs/_utils',
         'openaerostruct/docs/_exts',
+        'openaerostruct/docs/_theme',
         'openaerostruct/tests',
     ],
     # TODO: fix this with the correct requires
