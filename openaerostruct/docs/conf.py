@@ -94,11 +94,11 @@ extensions = [
     'sphinx.ext.viewcode',
     'numpydoc',
     'embed_code',
-    'embed_options',
-    'embed_compare',
-    'embed_shell_cmd',
-    'embed_bibtex',
-    'tags'
+    # 'embed_options',
+    # 'embed_compare',
+    # 'embed_shell_cmd',
+    # 'embed_bibtex',
+    # 'tags'
 ]
 
 numpydoc_show_class_members = False
