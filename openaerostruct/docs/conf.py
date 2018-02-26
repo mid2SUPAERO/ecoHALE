@@ -49,7 +49,7 @@ def __init__(self, docstring, config={}):
         'Warnings': [],
         'References': '',
         'Examples': '',
-        'index': {}
+        # 'index': {}
     }
 
     try:
