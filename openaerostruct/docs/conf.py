@@ -25,16 +25,6 @@ for mod_name in MOCK_MODULES:
 # The master toctree document.
 # master_doc = 'index'
 
-try:
-    from openmdao.vectors.petsc_vector import PETScVector
-except ImportError:
-    PETScVector = None
-
-from mpi4py import MPI
-from petsc4py import PETSc
-
-print("foobar", PETScVector, MPI.COMM_WORLD.size)
-
 
 def __init__(self, docstring, config={}):
     """
