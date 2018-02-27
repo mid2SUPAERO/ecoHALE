@@ -30,7 +30,10 @@ try:
 except ImportError:
     PETScVector = None
 
-print("foobar", PETScVector)
+from mpi4py import MPI
+from petsc4py import PETSc
+
+print("foobar", PETScVector, MPI.COMM_WORLD.size)
 
 
 def __init__(self, docstring, config={}):
