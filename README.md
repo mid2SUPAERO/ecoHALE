@@ -19,7 +19,9 @@ Next, clone this repository:
 
     git clone https://github.com/mdolab/OpenAeroStruct.git
 
-Lastly, from within the OpenAeroStruct folder, make the Fortran files:
+If you are using MacOS, move the `config-macOS.mk` file to the `config/` folder and rename it to `config.mk` to replace the existing `config.mk` file. The default `config.mk` file works for Ubuntu users. Unfortunately, there is no documented Windows support for the Fortran code.
+
+If you're on Mac or Ubuntu, run this command from within the OpenAeroStruct folder to make the Fortran files:
 
     make
 
