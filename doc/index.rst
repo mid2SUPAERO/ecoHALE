@@ -20,15 +20,16 @@ Next, clone this repository:
 .. code-block:: bash
 
     git clone https://github.com/mdolab/OpenAeroStruct.git
+    
+If you are using MacOS, move the `config-macOS.mk` file to the `config/` folder and rename it to `config.mk` to replace the existing `config.mk` file. The default `config.mk` file works for Ubuntu users. Unfortunately, there is no documented Windows support for the Fortran code.
 
-Lastly, from within the OpenAeroStruct folder, compile the Fortran files:
+If you're on Mac or Ubuntu, run this command from within the OpenAeroStruct folder to make the Fortran files:
 
 .. code-block:: bash
 
     make
 
 Note that the code will run without compiling the Fortran library, but it will run significantly faster when using Fortran.
-The Fortran code has been tested extensively on Linux, partially on MacOS, and not at all on Windows.
 
 We include a script that runs a variety of aerodynamic, structural, and aerostructural tests. To check your installation, run:
 
