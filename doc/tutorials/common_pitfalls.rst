@@ -40,7 +40,7 @@ MDO Course Homework Tips
 
 - The `structural_weight` parameter within the structural discipline is in Newtons, not kg.
 
-- To change the linear and nonlinear solvers for the aerostructural problem, look for the `ln_solver` and `nl_solver` methods within `setup_aerostruct` in `run_classes.py`. See http://openmdao.readthedocs.io/en/latest/srcdocs/packages/openmdao.solvers.html for info on different solvers. Try using Newton and NLGaussSeidel on the coupled system. Check out MDO_Intro_OpenMDAO_OpenAeroStruct.pdf on Canvas for detailed information.
+- To change the linear and nonlinear solvers for the aerostructural problem, look for the `ln_solver` and `nl_solver` methods within `setup_aerostruct` in `run_classes.py`. See http://openmdao.readthedocs.io/en/1.7.3/srcdocs/packages/openmdao.solvers.html for info on different solvers. Try using Newton and NLGaussSeidel on the coupled system. Check out MDO_Intro_OpenMDAO_OpenAeroStruct.pdf on Canvas for detailed information.
 
 .. note::
   Each solver has different default tolerance values. To make a valid comparison between solvers, consistently set the tolerance criteria for each solver. See the OpenMDAO documentation for the specific keywords and defaults.
