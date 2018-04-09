@@ -20,31 +20,57 @@ Here are some common issues and possible solutions for them.
 MDO Course Homework Tips
 ========================
 
-.. note::
-  Make sure to change the default surface and problem dictionaries to use values that are reasonable for your aircraft at the correct flight conditions. All units are SI.
+Miscellaneous
+-------------
 
 - If you are unsure of where a parameter or unknown is within the problem, view the `.html` files that are produced when running a case. You can use the search function to look for specific variables.
 
-.. note::
-  Some of the parameters may be promoted above the component level into the group level. For example, with an aerostructural case you would access the loads through `prob['coupled.wing_loads.loads']`.
+- Some of the parameters may be promoted above the component level into the group level. For example, with an aerostructural case you would access the loads through `prob['coupled.wing_loads.loads']`.
 
 - Download and use the most recent version of the OpenAeroStruct code as there may have been bug fixes for certain issues.
 
 - Make sure all of your Python packages are up-to-date, including (but not limited to) Numpy, Scipy, Matplotlib,
 
-- Use the `thickness_intersects` constraint when varying thickness to maintain a physically possible solution.
-
-- To set up a structural optimization case with a certain array of loads from an aerodynamic analysis, first perform aerostructural analysis and save the outputted loads using `numpy.save()`. Then you can load the saved array using `numpy.load()` and set the loads when you initialize your structural optimization problem.
-
-- To create your own objective function, examine the `FunctionalBreguetRange` component within `functionals.py`. This component computes the fuel burn of the aircraft based on the calculated CL, CD, and structural weight values, along with other provided parameters. You can modify this component to also output a weighted objective between the fuel burn and the weight.
-
-- The `structural_weight` parameter within the structural discipline is in Newtons, not kg.
-
-- To change the linear and nonlinear solvers for the aerostructural problem, look for the `ln_solver` and `nl_solver` methods within `setup_aerostruct` in `run_classes.py`. See http://openmdao.readthedocs.io/en/1.7.3/srcdocs/packages/openmdao.solvers.html for info on different solvers. Try using Newton and NLGaussSeidel on the coupled system. Check out MDO_Intro_OpenMDAO_OpenAeroStruct.pdf on Canvas for detailed information.
-
-.. note::
-  Each solver has different default tolerance values. To make a valid comparison between solvers, consistently set the tolerance criteria for each solver. See the OpenMDAO documentation for the specific keywords and defaults.
+Problem 6.1
+-----------
+- Define your aircraft using the surface and problem dictionaries, as shown in the example run scripts. In your run script, make sure to use values that are reasonable for your aircraft at the correct flight conditions. The defaults for these can be found in the `run_classes.py` file in the `get_default_prob_dict` and `get_default_surf_dict` methods (these are for a B777-sized wing). All units are SI.
 
 - If you change an option or parameter in either the surface or problem dictionary and the results do not seem to change, check to make sure that you put the option in the correct dictionary. For example, you set the optimizer in the problem dictionary and set the CD0 in the surface dictionary.
 
+- Consult `Aircraft Design: A Conceptual Approach` by Daniel Raymer for more details about how to estimate some aircraft parameters.
+
+- For the weights of the fuselage and other components: section 15.2.
+
+- For CD0 estimate of fuselage and tail surfaces sections 12.5.3 and 12.5.4.
+
+Problem 6.2
+-----------
+- Make sure you choose a realistic cruise CL value based on your aircraft.
+
+Problem 6.3
+-----------
+- The `structural_weight` parameter within the structural discipline is in Newtons, not kg.
+
+- Use the `thickness_intersects` constraint when varying thickness to maintain a physically possible solution.
+
+Problem 6.4
+-----------
+- To change the linear and nonlinear solvers for the aerostructural problem, look for the `ln_solver` and `nl_solver` methods within `setup_aerostruct` in `run_classes.py`. See http://openmdao.readthedocs.io/en/1.7.3/srcdocs/packages/openmdao.solvers.html for info on different solvers. Try using Newton and NLGaussSeidel on the coupled system. Check out MDO_Intro_OpenMDAO_OpenAeroStruct.pdf on Canvas for detailed information.
+
+- Each solver has different default tolerance values. To make a valid comparison between solvers, consistently set the tolerance criteria for each solver. See the OpenMDAO documentation for the specific keywords and defaults.
+
+Problem 6.5
+-----------
+- MDF is the default mode of optimization in OpenAeroStruct, so you do not need to modify anything to solve the problem using MDF.
+
+- To create your own objective function, examine the `FunctionalBreguetRange` component within `functionals.py`. This component computes the fuel burn of the aircraft based on the calculated CL, CD, and structural weight values, along with other provided parameters. You can modify this component to also output a weighted objective between the fuel burn and the weight.
+
 - See the MDO course notes for an explanation of the process for sequential optimization. The correct design variables, constraints, and objective functions are detailed there.
+
+Problem 6.6
+-----------
+- To set up a structural optimization case with a certain array of loads from an aerodynamic analysis, first perform aerostructural analysis and save the outputted loads using `numpy.save()`. Then you can load the saved array using `numpy.load()` and set the loads when you initialize your structural optimization problem.
+
+- To get the loads or displacements from an aerodynamic or structural optimization respectively, run an aerostructural analysis at that design point to perform the transfer, then input these loads or displacements into the next analysis.
+
+- Set these values for the loads or displacements in the `surf_dict` that you are using for your problem.
