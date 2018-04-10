@@ -73,6 +73,8 @@ Problem 6.5
 
 - To create your own objective function, examine the `FunctionalBreguetRange` component within `functionals.py`. This component computes the fuel burn of the aircraft based on the calculated CL, CD, and structural weight values, along with other provided parameters. You can modify this component to also output a weighted objective between the fuel burn and the weight.
 
+- The `FunctionalBreguetRange` component within `functionals.py` also already has the `weighted_obj` calculation inside the function. To use this objective instead, change the objective in your run script to `weighted_obj` and specify a `beta` value in the `prob_dict`. Through this method, you don't have to create your own objective function.
+
 - See the MDO course notes for an explanation of the process for sequential optimization. The correct design variables, constraints, and objective functions are detailed there.
 
 Problem 6.6
