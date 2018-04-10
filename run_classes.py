@@ -220,7 +220,8 @@ class OASProblem(object):
                     'sweep' : 0.,           # wing sweep angle in degrees
                                             # positive sweeps back
                     'taper' : 1.,           # taper ratio; 1. is uniform chord
-                    'S_ref' : None,         # [m^2] area of the lifting surface
+                    'S_ref' : None,         # [m^2] area of the lifting surface,
+                                            # optional, needed only for planform optimization
 
                     # B-spline Geometric Variables. The number of control points
                     # for each of these variables can be specified in surf_dict
