@@ -37,15 +37,23 @@ Problem 6.1
 
 - If you change an option or parameter in either the surface or problem dictionary and the results do not seem to change, check to make sure that you put the option in the correct dictionary. For example, you set the optimizer in the problem dictionary and set the CD0 in the surface dictionary.
 
+- To define your own wing shape using OpenAeroStruct, use `wing_type : 'rect'` and then modify the wing using the geometric design variables.
+
+- The `S_ref` variable in `surf_dict` only needs to be defined in some special cases, like aero-only planform optimization. Generally do not specify an `S_ref` value.
+
+- You discretize your mesh using however many nodes you want. In general, `num_x = 2` and `num_y = 7` is a good starting point. You rarely need to increase `num_x` because the number of chordwise panels should not greatly influence the analysis results.
+
 - Consult `Aircraft Design: A Conceptual Approach` by Daniel Raymer for more details about how to estimate some aircraft parameters.
 
 - For the weights of the fuselage and other components: section 15.2.
 
-- For CD0 estimate of fuselage and tail surfaces sections 12.5.3 and 12.5.4.
+- For CD0 estimate of fuselage and tail surfaces: sections 12.5.3 and 12.5.4.
 
 Problem 6.2
 -----------
 - Make sure you choose a realistic cruise CL value based on your aircraft.
+
+- The computed drag for the wing includes the lift-induced drag and a viscous drag estimation from empirical formulas. Your `CD0` value should include all other drag terms.
 
 Problem 6.3
 -----------
