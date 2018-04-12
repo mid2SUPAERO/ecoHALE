@@ -247,6 +247,9 @@ class OASProblem(object):
                     # obtained from aerodynamic analysis of the surface to get
                     # the total CL and CD.
                     # These CL0 and CD0 values do not vary wrt alpha.
+                    # ** NOTE **: The CD0 value used here is _not_ the CD0 commonly used
+                    # in aircraft design textbooks. The CD0 in OpenAeroStruct is the drag
+                    # at alpha=0, not CL=0.
                     'CL0' : 0.0,            # CL of the surface at alpha=0
                     'CD0' : 0.0,            # CD of the surface at alpha=0
 
