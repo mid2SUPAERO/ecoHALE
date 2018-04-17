@@ -83,4 +83,6 @@ Problem 6.6
 
 - To get the loads or displacements from an aerodynamic or structural optimization respectively, run an aerostructural analysis at that design point to perform the transfer, then input these loads or displacements into the next analysis.
 
+- After running a simulation, the displacements can be found in `OAS_prob.prob['coupled.wing.disp']` and the loads can be found in `OAS_prob.prob['coupled.wing_loads.loads']`. Access these and save them to use in the sequential problem.
+
 - Set these values for the loads or displacements in the `surf_dict` that you are using for your problem.
