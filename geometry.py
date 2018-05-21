@@ -266,7 +266,7 @@ def stretch(mesh, span, symmetry):
         span /= 2.
 
     prev_span = quarter_chord[-1, 1] - quarter_chord[0, 1]
-    s = quarter_chord[:,1] / prev_span
+    s = np.nan_to_num(quarter_chord[:,1] / prev_span)
     mesh[:, :, 1] = s * span
 
 def taper(mesh, taper_ratio, symmetry):

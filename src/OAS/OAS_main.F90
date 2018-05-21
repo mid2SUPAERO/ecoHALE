@@ -22,7 +22,7 @@ contains
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((ny+1)/2)
     real(kind=8) :: rad_theta_x(ny), one, dz_qc(ny-1), dy_qc(ny-1), s(ny), new_span
     real(kind=8) :: dz_qc_l((ny-1)/2), dz_qc_r((ny-1)/2), dy_qc_l((ny-1)/2), dy_qc_r((ny-1)/2)
-    real(kind=8) :: computed_span
+    real(kind=8) :: computed_span, s_new(ny)
     integer :: ny2, ix, iy, ind
 
     p180 = 3.14159265358979323846264338 / 180.
@@ -34,47 +34,50 @@ contains
     te = mesh(nx, :, :)
     quarter_chord = 0.25 * te + 0.75 * le
 
-    if (symmetry) then
-      computed_span = quarter_chord(ny, 2) - quarter_chord(1, 2)
+    computed_span = quarter_chord(ny, 2) - quarter_chord(1, 2)
+    ! Check is computed_span is 0; surface is fully vertical
+    if (.not. (computed_span .eq. 0.0)) then
 
-      do iy=1,ny
-        taper_lins(iy) = (quarter_chord(iy, 2) - quarter_chord(1, 2)) / computed_span * (1 - taper) + taper
-      end do
+      if (symmetry) then
 
-      do iy=1,ny
-        do ix=1,nx
-          do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - quarter_chord(iy, ind)) * taper_lins(iy) + &
-              quarter_chord(iy, ind)
+        do iy=1,ny
+          taper_lins(iy) = (quarter_chord(iy, 2) - quarter_chord(1, 2)) / computed_span * (1 - taper) + taper
+        end do
+
+        do iy=1,ny
+          do ix=1,nx
+            do ind=1,3
+              mesh(ix, iy, ind) = (mesh(ix, iy, ind) - quarter_chord(iy, ind)) * taper_lins(iy) + &
+                quarter_chord(iy, ind)
+            end do
           end do
         end do
-      end do
 
-    else
+      else
 
-      computed_span = quarter_chord(ny, 2) - quarter_chord(1, 2)
-      ny2 = (ny - 1) / 2
+        ny2 = (ny - 1) / 2
 
-      do iy=1,ny2
-        dx(iy) = 1 + quarter_chord(iy, 2) / (computed_span / 2) * taper
-      end do
+        do iy=1,ny2
+          dx(iy) = 1 + quarter_chord(iy, 2) / (computed_span / 2) * taper
+        end do
 
-      do iy=1,ny2
-        dx(iy) = (quarter_chord(iy, 2) - quarter_chord(1, 2)) / (computed_span / 2) * (1 - taper) + taper
-      end do
+        do iy=1,ny2
+          dx(iy) = (quarter_chord(iy, 2) - quarter_chord(1, 2)) / (computed_span / 2) * (1 - taper) + taper
+        end do
 
-      do iy=ny,ny2+1,-1
-        dx(iy) = -(quarter_chord(iy, 2) - quarter_chord(ny, 2)) / (computed_span / 2) * (1 - taper) + taper
-      end do
+        do iy=ny,ny2+1,-1
+          dx(iy) = -(quarter_chord(iy, 2) - quarter_chord(ny, 2)) / (computed_span / 2) * (1 - taper) + taper
+        end do
 
-      do iy=1,ny
-        do ix=1,nx
-          do ind=1,3
-            mesh(ix, iy, ind) = (mesh(ix, iy, ind) - quarter_chord(iy, ind)) * dx(iy) + &
-              quarter_chord(iy, ind)
+        do iy=1,ny
+          do ix=1,nx
+            do ind=1,3
+              mesh(ix, iy, ind) = (mesh(ix, iy, ind) - quarter_chord(iy, ind)) * dx(iy) + &
+                quarter_chord(iy, ind)
+            end do
           end do
         end do
-      end do
+      end if
     end if
 
     ! Scale x
@@ -122,8 +125,16 @@ contains
     end if
 
     s = quarter_chord(:, 2) / (quarter_chord(ny, 2) - quarter_chord(1, 2))
+
+    ! Check is s is nan; surface is fully vertical
+    if (s(1) /= s(1)) then
+      s_new = 0.
+    else
+      s_new = s
+    end if
+
     do ix=1,nx
-      mesh(ix, :, 2) = s * new_span
+      mesh(ix, :, 2) = s_new * new_span
     end do
 
     ! y shear
