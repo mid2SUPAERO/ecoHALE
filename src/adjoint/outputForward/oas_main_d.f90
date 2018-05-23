@@ -45,8 +45,8 @@ contains
 &   /2), dy_qc_r((ny-1)/2)
     real(kind=8) :: dz_qc_ld((ny-1)/2), dz_qc_rd((ny-1)/2), dy_qc_ld((ny&
 &   -1)/2), dy_qc_rd((ny-1)/2)
-    real(kind=8) :: computed_span, s_new(ny)
-    real(kind=8) :: s_newd(ny)
+    real(kind=8) :: computed_span, s_new(ny), add_dist
+    real(kind=8) :: s_newd(ny), add_distd
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic atan
@@ -180,16 +180,20 @@ contains
 &     )/(quarter_chord(ny, 2)-quarter_chord(1, 2))**2
     s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
 ! check is s is nan; surface is fully vertical
-    if (s(1) .ne. s(1)) then
+    if ((s(1) .ne. s(1) .or. s(1) .lt. -1e20) .or. s(1) .gt. 1e20) then
       s_new = 0.
+      add_distd = quarter_chordd(1, 2)
+      add_dist = quarter_chord(1, 2)
       s_newd = 0.0_8
     else
       s_newd = sd
       s_new = s
+      add_dist = 0.
+      add_distd = 0.0_8
     end if
     do ix=1,nx
-      meshd(ix, :, 2) = s_newd*new_span + s_new*new_spand
-      mesh(ix, :, 2) = s_new*new_span
+      meshd(ix, :, 2) = s_newd*new_span + s_new*new_spand + add_distd
+      mesh(ix, :, 2) = s_new*new_span + add_dist
     end do
 ! y shear
     do ix=1,nx
@@ -326,7 +330,7 @@ contains
 &   ), new_span
     real(kind=8) :: dz_qc_l((ny-1)/2), dz_qc_r((ny-1)/2), dy_qc_l((ny-1)&
 &   /2), dy_qc_r((ny-1)/2)
-    real(kind=8) :: computed_span, s_new(ny)
+    real(kind=8) :: computed_span, s_new(ny), add_dist
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic atan
@@ -413,13 +417,15 @@ contains
     if (symmetry) new_span = span/2.
     s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
 ! check is s is nan; surface is fully vertical
-    if (s(1) .ne. s(1)) then
+    if ((s(1) .ne. s(1) .or. s(1) .lt. -1e20) .or. s(1) .gt. 1e20) then
       s_new = 0.
+      add_dist = quarter_chord(1, 2)
     else
       s_new = s
+      add_dist = 0.
     end if
     do ix=1,nx
-      mesh(ix, :, 2) = s_new*new_span
+      mesh(ix, :, 2) = s_new*new_span + add_dist
     end do
 ! y shear
     do ix=1,nx

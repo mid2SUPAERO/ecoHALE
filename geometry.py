@@ -5,8 +5,8 @@ import numpy as np
 from numpy import cos, sin, tan
 
 from openmdao.api import Component
-from .b_spline import get_bspline_mtx
-from .spatialbeam import radii
+from b_spline import get_bspline_mtx
+from spatialbeam import radii
 
 try:
     import OAS_API
@@ -267,7 +267,10 @@ def stretch(mesh, span, symmetry):
 
     prev_span = quarter_chord[-1, 1] - quarter_chord[0, 1]
     s = np.nan_to_num(quarter_chord[:,1] / prev_span)
-    mesh[:, :, 1] = s * span
+    if np.all(s == 0.):
+        mesh[:, :, 1] = s * span + quarter_chord[0, 1]
+    else:
+        mesh[:, :, 1] = s * span
 
 def taper(mesh, taper_ratio, symmetry):
     """ Alter the spanwise chord linearly to produce a tapered wing.

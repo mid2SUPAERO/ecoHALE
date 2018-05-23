@@ -439,13 +439,16 @@ class Display(object):
             span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
 
             if self.show_wing:
-                t_vals = self.twist[self.curr_pos*n_names+j]
-                l_vals = self.lift[self.curr_pos*n_names+j]
-                le_vals = self.lift_ell[self.curr_pos*n_names+j]
+                try:
+                    t_vals = self.twist[self.curr_pos*n_names+j]
+                    l_vals = self.lift[self.curr_pos*n_names+j]
+                    le_vals = self.lift_ell[self.curr_pos*n_names+j]
 
-                self.ax2.plot(rel_span, t_vals, lw=2, c='b')
-                self.ax3.plot(rel_span, le_vals, '--', lw=2, c='g')
-                self.ax3.plot(span_diff, l_vals, lw=2, c='b')
+                    self.ax2.plot(rel_span, t_vals, lw=2, c='b')
+                    self.ax3.plot(rel_span, le_vals, '--', lw=2, c='g')
+                    self.ax3.plot(span_diff, l_vals, lw=2, c='b')
+                except IndexError:
+                    pass
 
             if self.show_tube:
                 thick_vals = self.thickness[self.curr_pos*n_names+j]

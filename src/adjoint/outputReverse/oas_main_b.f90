@@ -46,8 +46,8 @@ contains
 &   /2), dy_qc_r((ny-1)/2)
     real(kind=8) :: dz_qc_lb((ny-1)/2), dz_qc_rb((ny-1)/2), dy_qc_lb((ny&
 &   -1)/2), dy_qc_rb((ny-1)/2)
-    real(kind=8) :: computed_span, s_new(ny)
-    real(kind=8) :: s_newb(ny)
+    real(kind=8) :: computed_span, s_new(ny), add_dist
+    real(kind=8) :: s_newb(ny), add_distb
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic atan
@@ -167,15 +167,17 @@ contains
     end if
     s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
 ! check is s is nan; surface is fully vertical
-    if (s(1) .ne. s(1)) then
+    if ((s(1) .ne. s(1) .or. s(1) .lt. -1e20) .or. s(1) .gt. 1e20) then
       s_new = 0.
+      add_dist = quarter_chord(1, 2)
       call pushcontrol1b(1)
     else
       s_new = s
+      add_dist = 0.
       call pushcontrol1b(0)
     end if
     do ix=1,nx
-      mesh(ix, :, 2) = s_new*new_span
+      mesh(ix, :, 2) = s_new*new_span + add_dist
     end do
 ! y shear
     do ix=1,nx
@@ -384,21 +386,25 @@ contains
     do ix=nx,1,-1
       yshearb = yshearb + meshb(ix, :, 2)
     end do
+    add_distb = 0.0_8
     s_newb = 0.0_8
     new_spanb = 0.0_8
     do ix=nx,1,-1
       s_newb = s_newb + new_span*meshb(ix, :, 2)
       new_spanb = new_spanb + sum(s_new*meshb(ix, :, 2))
+      add_distb = add_distb + sum(meshb(ix, :, 2))
       meshb(ix, :, 2) = 0.0_8
     end do
     call popcontrol1b(branch)
     if (branch .eq. 0) then
       sb = 0.0_8
       sb = s_newb
+      quarter_chordb = 0.0_8
     else
+      quarter_chordb = 0.0_8
+      quarter_chordb(1, 2) = quarter_chordb(1, 2) + add_distb
       sb = 0.0_8
     end if
-    quarter_chordb = 0.0_8
     tempb = sb/(quarter_chord(ny, 2)-quarter_chord(1, 2))
     tempb0 = sum(-(quarter_chord(:, 2)*tempb/(quarter_chord(ny, 2)-&
 &     quarter_chord(1, 2))))
@@ -535,7 +541,7 @@ contains
 &   ), new_span
     real(kind=8) :: dz_qc_l((ny-1)/2), dz_qc_r((ny-1)/2), dy_qc_l((ny-1)&
 &   /2), dy_qc_r((ny-1)/2)
-    real(kind=8) :: computed_span, s_new(ny)
+    real(kind=8) :: computed_span, s_new(ny), add_dist
     integer :: ny2, ix, iy, ind
     intrinsic tan
     intrinsic atan
@@ -623,13 +629,15 @@ contains
     if (symmetry) new_span = span/2.
     s = quarter_chord(:, 2)/(quarter_chord(ny, 2)-quarter_chord(1, 2))
 ! check is s is nan; surface is fully vertical
-    if (s(1) .ne. s(1)) then
+    if ((s(1) .ne. s(1) .or. s(1) .lt. -1e20) .or. s(1) .gt. 1e20) then
       s_new = 0.
+      add_dist = quarter_chord(1, 2)
     else
       s_new = s
+      add_dist = 0.
     end if
     do ix=1,nx
-      mesh(ix, :, 2) = s_new*new_span
+      mesh(ix, :, 2) = s_new*new_span + add_dist
     end do
 ! y shear
     do ix=1,nx

@@ -22,7 +22,7 @@ contains
     real(kind=8) :: row(ny, 3), out(3), taper_lins(ny), taper_lins_sym((ny+1)/2)
     real(kind=8) :: rad_theta_x(ny), one, dz_qc(ny-1), dy_qc(ny-1), s(ny), new_span
     real(kind=8) :: dz_qc_l((ny-1)/2), dz_qc_r((ny-1)/2), dy_qc_l((ny-1)/2), dy_qc_r((ny-1)/2)
-    real(kind=8) :: computed_span, s_new(ny)
+    real(kind=8) :: computed_span, s_new(ny), add_dist
     integer :: ny2, ix, iy, ind
 
     p180 = 3.14159265358979323846264338 / 180.
@@ -127,14 +127,16 @@ contains
     s = quarter_chord(:, 2) / (quarter_chord(ny, 2) - quarter_chord(1, 2))
 
     ! Check is s is nan; surface is fully vertical
-    if (s(1) /= s(1)) then
+    if (s(1) /= s(1) .or. s(1) < -1e20 .or. s(1) > 1e20) then
       s_new = 0.
+      add_dist = quarter_chord(1, 2)
     else
       s_new = s
+      add_dist = 0.
     end if
 
     do ix=1,nx
-      mesh(ix, :, 2) = s_new * new_span
+      mesh(ix, :, 2) = s_new * new_span + add_dist
     end do
 
     ! y shear

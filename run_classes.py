@@ -29,13 +29,13 @@ from six import iteritems
 # =============================================================================
 # OpenAeroStruct modules
 # =============================================================================
-from .geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicConstraint
-from .transfer import TransferDisplacements, TransferLoads
-from .vlm import VLMStates, VLMFunctionals, VLMGeometry
-from .spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, SpatialBeamSetup, radii
-from .materials import MaterialsTube
-from .functionals import TotalPerformance, TotalAeroPerformance, FunctionalBreguetRange, FunctionalEquilibrium
-from .gs_newton import HybridGSNewton
+from geometry import GeometryMesh, Bspline, gen_crm_mesh, gen_rect_mesh, MonotonicConstraint
+from transfer import TransferDisplacements, TransferLoads
+from vlm import VLMStates, VLMFunctionals, VLMGeometry
+from spatialbeam import SpatialBeamStates, SpatialBeamFunctionals, SpatialBeamSetup, radii
+from materials import MaterialsTube
+from functionals import TotalPerformance, TotalAeroPerformance, FunctionalBreguetRange, FunctionalEquilibrium
+from gs_newton import HybridGSNewton
 
 try:
     import OAS_API
