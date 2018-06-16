@@ -20,7 +20,7 @@ import numpy as np
 from os import sys, path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-from OpenAeroStruct import OASProblem
+from run_classes import OASProblem
 
 # Suppress warnings
 import warnings

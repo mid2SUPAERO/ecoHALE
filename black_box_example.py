@@ -5,7 +5,7 @@ from __future__ import print_function
 from os import sys, path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-from OpenAeroStruct import OASProblem
+from run_classes import OASProblem
 from time import time
 import numpy as np
 
@@ -13,7 +13,6 @@ import numpy as np
 prob_dict = {'type' : 'aerostruct',
              'optimize' : False, # Don't optimize, only perform analysis
              'record_db' : True,
-             'W0' : 1000., # OEW of the aircraft without fuel and the structural weight, in kg
              }
 
 # Instantiate problem and add default surface
@@ -26,11 +25,11 @@ surf_dict = {'name' : 'wing',
              'symmetry' : True,
              'num_y' : 7,
              'num_x' : 2,
-             'span' : 10.,
              'num_twist_cp' : 3,
              'num_thickness_cp' : 3,
              'num_chord_cp' : 2,
-             'wing_type' : 'rect',
+             'wing_type' : 'CRM',
+             'CD0' : 0.015,
              'span_cos_spacing' : 0.,
              }
 
@@ -52,15 +51,14 @@ def run_aerostruct(twist_cp, thickness_cp, alpha, root_chord, taper_ratio):
     OAS_prob.prob['wing.chord_cp'] = np.array([taper_ratio, 1.]) * root_chord
     OAS_prob.run()
 
-    print(OAS_prob.prob['wing.mesh'])
     return OAS_prob.prob['fuelburn'], OAS_prob.prob['wing_perf.structural_weight'], OAS_prob.prob['wing_perf.L'], OAS_prob.prob['total_weight'], OAS_prob.prob['wing_perf.failure']
 
 # These would be the inputs to the black box
-alpha = 2.
-twist_cp = np.zeros((3))
-thickness_cp = np.ones((3)) * 0.01
+alpha = 4.
+twist_cp = np.linspace(-5., 5., 3)
+thickness_cp = np.ones((3)) * 0.05
 root_chord = 1.
-taper_ratio = .2
+taper_ratio = 1.
 
 # Actually run the analysis
 fuelburn, structural_weight, lift, total_weight, failure = run_aerostruct(twist_cp, thickness_cp, alpha, root_chord, taper_ratio)
