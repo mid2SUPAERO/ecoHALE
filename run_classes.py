@@ -533,6 +533,7 @@ class OASProblem(object):
         try:  # Use pyOptSparse optimizer if installed
             from openmdao.api import pyOptSparseDriver
             self.prob.driver = pyOptSparseDriver()
+            a
             if self.prob_dict['optimizer'] == 'SNOPT':
                 self.prob.driver.options['optimizer'] = "SNOPT"
                 self.prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
@@ -712,8 +713,8 @@ class OASProblem(object):
         # in OpenMDAO Group() object
 
     	# Add design variables to output dict
-    	for name in self.prob.driver._desvars:
-    	    output[name] = self.get_var(name)
+        for name in self.prob.driver._desvars:
+            output[name] = self.get_var(name)
 
         # Get overall output variables and constraints, return None if not there
         overall_vars = ['fuelburn','CD','CL','L_equals_W','CM','v','rho','cg',
