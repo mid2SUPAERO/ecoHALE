@@ -18,6 +18,8 @@ from __future__ import division, print_function
 import sys
 from time import time
 import numpy as np
+from collections import OrderedDict
+import array
 
 # =============================================================================
 # OpenMDAO modules
@@ -98,9 +100,14 @@ class OASProblem(object):
 
         print('Fortran =', fortran_flag)
 
+        self.bsp_vars = ['chord_cp','thickness_cp','radius_cp','twist_cp','xshear_cp','yshear_cp','zshear_cp']
+
         # Update prob_dict with user-provided values after getting defaults
         self.prob_dict = self.get_default_prob_dict()
         self.prob_dict.update(input_dict)
+
+        # Validate prob_dict variables
+        self.prob_dict = self.validate_input_vars(self.prob_dict)
 
         # Set the airspeed velocity based on the supplied Mach number
         # and speed of sound
@@ -119,6 +126,25 @@ class OASProblem(object):
         self.desvars = {}
         self.constraints = {}
         self.objective = {}
+
+    def get_var(self, name):
+        ''' Get problem variable '''
+        return self.prob[name]
+
+    def set_var(self, name, val):
+        ''' Set problem variable '''
+        vardict = self.validate_input_vars({name: val})
+        name = vardict.keys()[0]
+        self.prob[name] = vardict[name]
+        # self.prob.driver.set_desvar(var, val)
+
+    def __setitem__(self, name, val):
+        ''' Set problem variable '''
+        self.prob[name] = self.set_var(name, val)
+
+    def __getitem__(self, name):
+        ''' Get probem variable '''
+        return self.get_var(name)
 
     def get_default_prob_dict(self):
         """
@@ -276,6 +302,38 @@ class OASProblem(object):
                     }
         return defaults
 
+    def validate_input_vars(self, input_dict):
+        """
+        Converts input values to appropriate variables type. Helpful when calling functions from Matlab.
+        """
+        bsp_vars = self.bsp_vars
+        ary_vars = bsp_vars + ['cg']
+        int_vars = ['num_x', 'num_y', 'print_level'] + ['num_'+var for var in bsp_vars]
+
+        for key, val in iteritems(input_dict):
+
+            # Get var from key if prefixed with surface name
+            var = key.split('.')[-1]
+
+            # If variable requires an array, convert it to a Numpy ndarray
+            if var in ary_vars:
+                if isinstance(val, np.ndarray):
+                    input_dict[key] = val.astype(data_type)
+                elif val is None:
+                    input_dict[key] = None
+                elif isinstance(val, list) or isinstance(val, tuple) or isinstance(val, array.array):
+                    input_dict[key] = np.array(val, dtype=data_type)
+                else:
+                    input_dict[key] = np.array([val], dtype=data_type)
+                # TO DO: Check if length of bsp_var matches existing data, otherwise
+                # return an error
+
+            # If variable requires an integer, convert it to an integer type
+            elif var in int_vars:
+                if not isinstance(val, int) and (val is not None):
+                    input_dict[key] = int(val)
+
+        return input_dict
 
     def add_surface(self, input_dict={}):
         """
@@ -293,6 +351,9 @@ class OASProblem(object):
         # Get defaults and update surface with the user-provided input
         surf_dict = self.get_default_surf_dict()
         surf_dict.update(input_dict)
+
+        # Convert variables to correct types
+        surf_dict = self.validate_input_vars(surf_dict)
 
         # Check to see if the user provides the mesh points. If they do,
         # get the chordwise and spanwise number of points
@@ -569,11 +630,28 @@ class OASProblem(object):
         """
         self.objective[str(*args)] = dict(**kwargs)
 
-    def run(self):
+    def run(self, **kwargs):
         """
         Method to actually run analysis or optimization. Also saves history in
         a .db file and creates an N2 diagram to view the problem hierarchy.
+
+        Can use keyword arguments or dictionary to set design variables at runtime.
+
+        When calling run() from Matlab, set matlab=True to configure output
+        dictionary for Matlab struct conversion
         """
+
+        # Check if we want Matlab struct style output dictionary, remove from kwargs
+        matlab_config = kwargs.pop('matlab',False)
+
+        # Change design variables if user supplies them from remaining keyword
+        # entries or dictionary, validate input
+        # kwargs = self.validate_input_vars(kwargs)
+        geo_vars = ['wing.A','wing.Iy','wing.Iz','wing.J','fuelburn']
+        for name, val in iteritems(kwargs):
+            # print('var=',var,' val=',val)
+            self.set_var(name, val)
+            # self.prob[var] = val
 
         # Have more verbose output about optimization convergence
         if self.prob_dict['print_level']:
@@ -624,6 +702,82 @@ class OASProblem(object):
         # Uncomment this to check the partial derivatives of each component
         # self.prob.check_partial_derivatives(compact_print=True)
 
+        # Return dictionary of output values for easy access
+        if matlab_config:
+            output = {}    # Return standard dict for Matlab output
+        else:
+            output = OrderedDict()
+
+        # Note: could also check in self.root._unknowns_dict and self.root._params_dict
+        # in OpenMDAO Group() object
+
+    	# Add design variables to output dict
+    	for name in self.prob.driver._desvars:
+    	    output[name] = self.get_var(name)
+
+        # Get overall output variables and constraints, return None if not there
+        overall_vars = ['fuelburn','CD','CL','L_equals_W','CM','v','rho','cg',
+                        'weighted_obj','total_weight']
+        for item in overall_vars:
+            try:
+                output[item] = self.get_var(item)
+            except:
+                pass
+
+        var_map = OrderedDict()
+        # get lifting surface specific variables and constraints, return None if not there
+        var_map.update({
+            'mesh' : '<name>.mesh',
+            'thickness' : '<name>.thickness',
+            'twist' : '<name>.twist',
+            'chord' : '<name>.chord'
+        })
+        if self.prob_dict["type"] == 'struct':
+            var_map.update({
+                'structural_weight' : '<name>.structural_weight',
+                'CD' : '<name>.CD',
+                'CL' : '<name>.CL',
+                'failure' : '<name>.failure',
+                'vonmises' : '<name>.vonmises',
+                'thickness_intersects' : '<name>.thickness_intersects',
+                'cg' : '<name>.cg_location',
+            })
+        elif self.prob_dict["type"] in ['aerostruct','aero']:
+            var_map.update({
+                'structural_weight' : '<name>_perf.structural_weight',
+                'CD' : '<name>_perf.CD',
+                'CL' : '<name>_perf.CL',
+                'failure' : '<name>_perf.failure',
+                'vonmises' : '<name>_perf.vonmises',
+                'thickness_intersects' : '<name>_perf.thickness_intersects',
+                'cg' : '<name>_perf.cg_location',
+            })
+
+        # lifting surface coupling variables
+        var_map.update({
+            'loads' : 'coupled.<name>.loads',
+            'def_mesh' : 'coupled.<name>.def_mesh'
+        })
+
+        for surf in self.surfaces:
+            surf_name = surf["name"][:-1]
+            for key, val in iteritems(var_map):
+                try:
+                    var_value = self.prob[val.replace('<name>',surf_name)]
+                    output.update({surf_name+'.'+key : var_value})
+                except:
+                    pass
+
+        # Change output dictionary keys to repalce '.' with '_' so that they
+        # will work in Matlab struct object
+        if matlab_config:
+            output_keys = list(output.keys())
+            for key in output_keys:
+                newkey = key.replace('.','_')
+                val = output.pop(key)
+                output[newkey] = val
+
+        return output
 
     def setup_struct(self):
         """

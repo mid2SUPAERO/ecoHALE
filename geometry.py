@@ -180,6 +180,7 @@ def sweep(mesh, sweep_angle, symmetry):
 
     """
 
+
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
     p180 = np.pi / 180
@@ -218,7 +219,6 @@ def dihedral(mesh, dihedral_angle, symmetry):
         Nodal mesh defining the aerodynamic surface with dihedral angle.
 
     """
-
     num_x, num_y, _ = mesh.shape
     le = mesh[0]
     p180 = np.pi / 180
@@ -458,7 +458,7 @@ class GeometryMesh(Component):
         if self.compute_radius and 'radius_cp' not in self.desvar_names:
             # Get spar radii and interpolate to radius control points.
             # Need to refactor this at some point.
-            unknowns['radius'] = radii(mesh, self.surface['t_over_c'])
+            unknowns['radius'] = radii(self.surface['mesh'], self.surface['t_over_c'])
             self.compute_radius = False
 
         unknowns['mesh'] = mesh
