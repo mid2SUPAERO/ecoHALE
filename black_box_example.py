@@ -5,7 +5,7 @@ from __future__ import print_function
 from os import sys, path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-from run_classes import OASProblem
+from OpenAeroStruct import OASProblem
 from time import time
 import numpy as np
 
