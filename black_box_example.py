@@ -44,11 +44,15 @@ OAS_prob.add_desvar('wing.chord_cp')
 OAS_prob.setup()
 
 # Define a function that calls the already set-up problem
-def run_aerostruct(twist_cp, thickness_cp, alpha, root_chord, taper_ratio):
+def run_aerostruct(twist_cp, thickness_cp, alpha, root_chord, taper_ratio, E):
     OAS_prob.prob['alpha'] = alpha
     OAS_prob.prob['wing.twist_cp'] = twist_cp
     OAS_prob.prob['wing.thickness_cp'] = thickness_cp
     OAS_prob.prob['wing.chord_cp'] = np.array([taper_ratio, 1.]) * root_chord
+
+    # If we modify values in the surface dictionary, we need to run setup again
+    OAS_prob.surfaces[0]['E'] = E
+    OAS_prob.setup()
     OAS_prob.run()
 
     return OAS_prob.prob['fuelburn'], OAS_prob.prob['wing_perf.structural_weight'], OAS_prob.prob['wing_perf.L'], OAS_prob.prob['total_weight'], OAS_prob.prob['wing_perf.failure']
@@ -60,8 +64,16 @@ thickness_cp = np.ones((3)) * 0.05
 root_chord = 1.
 taper_ratio = 1.
 
+# Sample structural values are based on aluminum 7075
+# 'E' : 70.e9,            # [Pa] Young's modulus of the spar
+# 'G' : 30.e9,            # [Pa] shear modulus of the spar
+# 'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
+# 'mrho' : 3.e3,          # [kg/m^3] material density
+# 'fem_origin' : 0.35,    # normalized chordwise location of the spar
+E = np.random.random() * 10.e9 + 70.e9
+
 # Actually run the analysis
-fuelburn, structural_weight, lift, total_weight, failure = run_aerostruct(twist_cp, thickness_cp, alpha, root_chord, taper_ratio)
+fuelburn, structural_weight, lift, total_weight, failure = run_aerostruct(twist_cp, thickness_cp, alpha, root_chord, taper_ratio, E)
 
 print('fuelburn:          {:18.5f} kg'.format(fuelburn))
 print('structural_weight: {:18.5f} N '.format(structural_weight))
