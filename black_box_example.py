@@ -41,24 +41,24 @@ OAS_prob.add_surface(surf_dict)
 OAS_prob.add_desvar('wing.twist_cp')
 OAS_prob.add_desvar('wing.thickness_cp')
 OAS_prob.add_desvar('wing.chord_cp')
-OAS_prob.setup()
 
 # Define a function that calls the already set-up problem
 def run_aerostruct(twist_cp, thickness_cp, alpha, root_chord, taper_ratio, E):
+    # If we modify values in the surface dictionary, we need to run setup again
+    OAS_prob.surfaces[0]['E'] = E
+    OAS_prob.setup()
+
     OAS_prob.prob['alpha'] = alpha
     OAS_prob.prob['wing.twist_cp'] = twist_cp
     OAS_prob.prob['wing.thickness_cp'] = thickness_cp
     OAS_prob.prob['wing.chord_cp'] = np.array([taper_ratio, 1.]) * root_chord
 
-    # If we modify values in the surface dictionary, we need to run setup again
-    OAS_prob.surfaces[0]['E'] = E
-    OAS_prob.setup()
     OAS_prob.run()
 
     return OAS_prob.prob['fuelburn'], OAS_prob.prob['wing_perf.structural_weight'], OAS_prob.prob['wing_perf.L'], OAS_prob.prob['total_weight'], OAS_prob.prob['wing_perf.failure']
 
 # These would be the inputs to the black box
-alpha = 4.
+alpha = 2.
 twist_cp = np.linspace(-5., 5., 3)
 thickness_cp = np.ones((3)) * 0.05
 root_chord = 1.
