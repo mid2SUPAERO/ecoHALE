@@ -80,3 +80,10 @@ print('structural_weight: {:18.5f} N '.format(structural_weight))
 print('lift:              {:18.5f} N'.format(lift))
 print('total_weight:      {:18.5f} N'.format(total_weight))
 print('failure:           {:18.5f}'.format(failure)) # Needs to be <0 to not fail
+print()
+
+inputs = ['wing.twist_cp', 'wing.thickness_cp', 'alpha']
+outputs = ['fuelburn', 'wing_perf.structural_weight', 'wing_perf.L', 'total_weight', 'wing_perf.failure']
+
+derivs = OAS_prob.prob.calc_gradient(inputs, outputs, return_format='dict')
+print(derivs)
