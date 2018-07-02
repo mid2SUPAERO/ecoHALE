@@ -103,9 +103,10 @@ class AssembleK(ExplicitComponent):
         self.S_z = np.zeros((4, 12), dtype=data_type)
         self.S_z[(0, 1, 2, 3), (1, 5, 7, 11)] = 1.
 
+        self.declare_partials('*', '*')
 
         if not fortran_flag:
-            self.declare_partials('*', '*')
+            self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
 

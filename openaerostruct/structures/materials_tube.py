@@ -45,6 +45,8 @@ class MaterialsTube(ExplicitComponent):
 
         self.arange = np.arange((self.ny - 1))
 
+        self.declare_partials('*', '*')
+
     def compute(self, inputs, outputs):
         pi = np.pi
 

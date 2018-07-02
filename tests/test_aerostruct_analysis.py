@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
 
     def test(self):
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 201,
+        mesh_dict = {'num_y' : 5,
                      'num_x' : 2,
                      'wing_type' : 'CRM',
                      'symmetry' : True,
@@ -111,7 +111,6 @@ class Test(unittest.TestCase):
             # Create the aero point group and add it to the model
             AS_point = AerostructPoint(surfaces=surfaces)
 
-            coupled = AS_point.get_subsystem('coupled')
             prob.model.add_subsystem(point_name, AS_point)
 
             # Connect flow properties to the analysis point
@@ -152,8 +151,6 @@ class Test(unittest.TestCase):
         from openmdao.api import view_model
 
         prob.run_model()
-
-        # prob.check_partials(compact_print=True)
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 261452.92692824677, places=2)
         self.assertAlmostEqual(prob['AS_point_0.CM'][1], -0.062063144440326901, places=3)

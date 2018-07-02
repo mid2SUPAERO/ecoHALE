@@ -46,7 +46,7 @@ class CreateRHS(ExplicitComponent):
         forces_loads = np.zeros((n + 6, n))
         forces_loads[:n, :n] = np.eye((n))
 
-        self.declare_partials('forces', 'loads', val=forces_loads)
+        self.declare_partials('forces', 'loads', val=forces_loads, method='fd')
         self.declare_partials('forces', 'element_weights', method='fd')
 
 

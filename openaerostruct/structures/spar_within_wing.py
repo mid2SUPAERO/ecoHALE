@@ -50,9 +50,10 @@ class SparWithinWing(ExplicitComponent):
         self.add_input('radius', val=np.random.random_sample((self.ny-1)), units='m')
         self.add_output('spar_within_wing', val=np.zeros((self.ny-1)), units='m')
 
-        self.declare_partials('spar_within_wing', 'mesh')
+        self.declare_partials('spar_within_wing', 'mesh', method='fd')
 
         self.declare_partials('spar_within_wing', 'radius', val=np.eye(self.ny-1))
+
 
     def compute(self, inputs, outputs):
         mesh = inputs['mesh']

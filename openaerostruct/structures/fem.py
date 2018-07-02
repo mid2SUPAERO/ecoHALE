@@ -43,6 +43,8 @@ class FEM(ImplicitComponent):
         size = self.options['size']
         row_col = np.arange(size, dtype="int")
 
+        self.declare_partials('*', '*')
+
         arange = np.arange(size)
         self.declare_partials('disp_aug', 'forces', val=-1., rows=arange, cols=arange)
 
@@ -115,5 +117,4 @@ class FEM(ImplicitComponent):
             sol_vec, forces_vec = d_residuals, d_outputs
             t = 1
 
-        # print("foobar", forces_vec['disp_aug'])
         sol_vec['disp_aug'] = linalg.lu_solve(self._lup, forces_vec['disp_aug'], trans=t)

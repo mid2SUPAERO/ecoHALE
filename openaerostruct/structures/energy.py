@@ -41,6 +41,8 @@ class Energy(ExplicitComponent):
         self.add_input('loads', val=np.random.random_sample((ny, 6)), units='N')
         self.add_output('energy', val=0., units='N*m')
 
+        self.declare_partials('*', '*')
+
     def compute(self, inputs, outputs):
         outputs['energy'] = np.sum(inputs['disp'] * inputs['loads'])
 

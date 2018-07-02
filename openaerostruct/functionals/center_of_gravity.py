@@ -44,6 +44,9 @@ class CenterOfGravity(ExplicitComponent):
         self.options.declare('surfaces', types=list)
 
     def setup(self):
+        
+        self.declare_partials('*', '*')
+
         for surface in self.options['surfaces']:
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
@@ -61,6 +64,7 @@ class CenterOfGravity(ExplicitComponent):
         self.add_input('empty_cg', val=np.zeros((3)), units='m')
 
         self.add_output('cg', val=np.random.rand(3), units='m')
+
 
     def compute(self, inputs, outputs):
 

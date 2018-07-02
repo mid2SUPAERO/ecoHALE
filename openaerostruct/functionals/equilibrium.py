@@ -55,11 +55,10 @@ class Equilibrium(ExplicitComponent):
         self.add_output('L_equals_W', val=1.)
         self.add_output('total_weight', val=1., units='N')
 
-        for surface in self.options['surfaces']:
-            name = surface['name']
-            self.declare_partials('L_equals_W', name + '_structural_weight', dependent=False)
+        self.declare_partials('*', '*')
+        self.declare_partials('L_equals_W', 'CL', method='fd')
+        self.declare_partials('L_equals_W', 'S_ref_total', method='fd')
 
-        self.declare_partials('*', '*', 'fd')
 
     def compute(self, inputs, outputs):
 

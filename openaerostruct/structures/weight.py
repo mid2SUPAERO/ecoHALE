@@ -45,6 +45,8 @@ class Weight(ExplicitComponent):
         self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')
         self.add_output('cg_location', val=np.random.random_sample((3)), units='m')#, dtype=data_type))
 
+        self.declare_partials('*', '*')
+
         self.declare_partials('cg_location', 'A', method='fd')
         self.declare_partials('cg_location', 'nodes', method='fd')
         self.declare_partials('element_weights', '*', method='fd')

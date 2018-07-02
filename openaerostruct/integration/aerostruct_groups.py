@@ -19,10 +19,11 @@ class Aerostruct(Group):
 
     def initialize(self):
         self.options.declare('surface', types=dict)
-        # self.options.declare('DVGeo')
+        self.options.declare('DVGeo', default=None)
 
     def setup(self):
         surface = self.options['surface']
+        DVGeo = self.options['DVGeo']
 
         geom_promotes = []
 
@@ -34,7 +35,7 @@ class Aerostruct(Group):
             geom_promotes.append('shape')
 
         self.add_subsystem('geometry',
-            Geometry(surface=surface),
+            Geometry(surface=surface, DVGeo=DVGeo),
             promotes_inputs=[],
             promotes_outputs=['mesh', 'radius', 'thickness'] + geom_promotes)
 
@@ -178,7 +179,7 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver = NonlinearBlockGS()
         coupled.nonlinear_solver.options['maxiter'] = 20
 
-        coupled.jacobian = DenseJacobian()
+        # coupled.jacobian = DenseJacobian()
         coupled.linear_solver = DirectSolver()
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)

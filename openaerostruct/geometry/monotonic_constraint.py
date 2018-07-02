@@ -37,6 +37,8 @@ class MonotonicConstraint(ExplicitComponent):
         self.add_input(self.var_name, val=np.random.rand(self.ny))
         self.add_output(self.con_name, val=np.zeros(self.ny-1))
 
+        self.declare_partials('*', '*')
+
     def compute(self, inputs, outputs):
         # Compute the difference between adjacent variable values
         diff = inputs[self.var_name][:-1] - inputs[self.var_name][1:]

@@ -52,9 +52,10 @@ class VonMisesTube(ExplicitComponent):
         self.T = np.zeros((3, 3), dtype=data_type)
         self.x_gl = np.array([1, 0, 0], dtype=data_type)
 
+        self.declare_partials('*', '*')
 
         if not fortran_flag:
-            self.declare_partials('*', '*')
+            self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         radius = inputs['radius']

@@ -52,8 +52,10 @@ class LoadTransfer(ExplicitComponent):
         # The first 3 indices are N and the last 3 are N*m.
         self.add_output('loads', val=np.ones((self.ny, 6)), units='N')
 
+        self.declare_partials('*', '*')
+
         if not fortran_flag:
-            self.declare_partials('*', '*')
+            self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh'].copy()

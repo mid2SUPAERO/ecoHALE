@@ -84,8 +84,10 @@ class AssembleAIC(ExplicitComponent):
         self.mtx = np.zeros((tot_panels, tot_panels),
                                    dtype=data_type)
 
+        self.declare_partials('*', '*')
+
         if not fortran_flag:
-            self.declare_partials('*', '*', form='forward')
+            self.declare_partials('*', '*', method='fd')
 
         for surface in self.surfaces:
             name = surface['name']

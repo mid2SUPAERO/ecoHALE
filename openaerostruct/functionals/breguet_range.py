@@ -55,6 +55,8 @@ class BreguetRange(ExplicitComponent):
 
         self.add_output('fuelburn', val=1., units='kg')
 
+        self.declare_partials('*', '*')
+
     def compute(self, inputs, outputs):
 
         g = 9.80665 * inputs['load_factor']

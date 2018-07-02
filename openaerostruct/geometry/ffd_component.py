@@ -5,6 +5,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 from openaerostruct.structures.utils import radii
+from pygeo import DVGeometry
 
 
 class GeometryMesh(ExplicitComponent):
@@ -30,7 +31,7 @@ class GeometryMesh(ExplicitComponent):
 
     def initialize(self):
         self.options.declare('surface', types=dict)
-        self.options.declare('DVGeo')
+        self.options.declare('DVGeo', types=DVGeometry)
 
     def setup(self):
         self.surface = surface = self.options['surface']
@@ -55,6 +56,8 @@ class GeometryMesh(ExplicitComponent):
         self.add_input('shape', val=np.zeros((self.mx, self.my)), units='m')
 
         self.add_output('mesh', val=surface['mesh'], units='m')
+
+        self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         surface = self.surface

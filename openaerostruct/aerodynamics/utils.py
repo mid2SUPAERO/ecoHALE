@@ -11,7 +11,6 @@ and viscous drag.
 from __future__ import division, print_function
 import numpy as np
 
-from openmdao.api import Group
 from scipy.linalg import lu_factor, lu_solve
 
 try:
@@ -22,7 +21,6 @@ except:
     fortran_flag = False
     data_type = complex
 
-regular = False
 
 
 def norm(vec):
@@ -99,8 +97,8 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     # TODO: check if the float is needed; remove hopefully
     alpha = params['alpha'][0]
     mtx[:, :, :] = 0.0
-    cosa = 1.#np.cos(alpha * np.pi / 180.)
-    sina = 0.#np.sin(alpha * np.pi / 180.)
+    cosa = np.cos(alpha * np.pi / 180.)
+    sina = np.sin(alpha * np.pi / 180.)
     u = np.array([cosa, 0, sina])
 
     i_ = 0
@@ -139,14 +137,8 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
             # midpoints of the bound vortices.
             if skip:
                 # Find the midpoints of the bound points, used in drag computations
-                if regular:
-                    pts = (params[name + '_b_pts'][:, 1:, :] + \
-                        params[name + '_b_pts'][:, :-1, :]) / 2
-                else:
-                    pts = (params[name + '_def_mesh'][1:, 1:, :] + \
-                        params[name + '_def_mesh'][:-1, 1:, :] + \
-                        params[name + '_def_mesh'][:-1, :-1, :] + \
-                        params[name + '_def_mesh'][1:, :-1, :]) / 4
+                pts = (params[name + '_b_pts'][:, 1:, :] + \
+                    params[name + '_b_pts'][:, :-1, :]) / 2
             else:
                 pts = params[name + '_c_pts']
 
@@ -350,28 +342,13 @@ def _assemble_AIC_mtx_d(mtxd, params, d_inputs, surfaces, skip=False):
                 # midpoints of the bound vortices.
                 if skip:
                     # Find the midpoints of the bound points, used in drag computations
-                    if regular:
-                        pts = (params[name + '_b_pts'][:, 1:, :] + \
-                            params[name + '_b_pts'][:, :-1, :]) / 2
-                        if name + '_b_pts' in d_inputs:
-                            ptsd = (d_inputs[name + '_b_pts'][:, 1:, :] + \
-                                d_inputs[name + '_b_pts'][:, :-1, :]) / 2
-
-                        else:
-                            ptsd = np.zeros((nx-1, ny-1, 3))
+                    pts = (params[name + '_b_pts'][:, 1:, :] + \
+                        params[name + '_b_pts'][:, :-1, :]) / 2
+                    if name + '_b_pts' in d_inputs:
+                        ptsd = (d_inputs[name + '_b_pts'][:, 1:, :] + \
+                            d_inputs[name + '_b_pts'][:, :-1, :]) / 2
                     else:
-                        pts = (params[name + '_def_mesh'][1:, 1:, :] + \
-                            params[name + '_def_mesh'][:-1, 1:, :] + \
-                            params[name + '_def_mesh'][:-1, :-1, :] + \
-                            params[name + '_def_mesh'][1:, :-1, :]) / 4
-                        if name + '_def_mesh' in d_inputs:
-                            ptsd = (d_inputs[name + '_def_mesh'][1:, 1:, :] + \
-                                d_inputs[name + '_def_mesh'][:-1, 1:, :] + \
-                                d_inputs[name + '_def_mesh'][1:, :-1, :] + \
-                                d_inputs[name + '_def_mesh'][:-1, :-1, :]) / 4
-
-                        else:
-                            ptsd = np.zeros((nx-1, ny-1, 3))
+                        ptsd = np.zeros((nx-1, ny-1, 3))
                 else:
                     pts = params[name + '_c_pts']
                     if name + '_c_pts' in d_inputs:
@@ -455,14 +432,8 @@ def _assemble_AIC_mtx_b(mtxb, params, d_inputs, surfaces, skip=False):
                 if name_+'_b_pts' in d_inputs:
                     d_inputs[name_ + '_b_pts'] += bptsb.real
                     if skip:
-                        if regular:
-                            d_inputs[name + '_b_pts'][:, 1:, :] += ptsb.real / 2
-                            d_inputs[name + '_b_pts'][:, :-1, :] += ptsb.real / 2
-                        else:
-                            d_inputs[name + '_def_mesh'][1:, 1:, :] += ptsb.real / 4
-                            d_inputs[name + '_def_mesh'][:-1, 1:, :] += ptsb.real / 4
-                            d_inputs[name + '_def_mesh'][1:, :-1, :] += ptsb.real / 4
-                            d_inputs[name + '_def_mesh'][:-1, :-1, :] += ptsb.real / 4
+                        d_inputs[name + '_b_pts'][:, 1:, :] += ptsb.real / 2
+                        d_inputs[name + '_b_pts'][:, :-1, :] += ptsb.real / 2
 
                 if not skip and name + '_c_pts' in d_inputs:
                     d_inputs[name + '_c_pts'] += ptsb.real

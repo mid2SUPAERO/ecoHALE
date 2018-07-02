@@ -66,8 +66,10 @@ class MomentCoefficient(ExplicitComponent):
 
         self.add_output('CM', val=np.ones((3)))
 
+        self.declare_partials('*', '*')
+
         if not fortran_flag:
-            self.declare_partials('*', '*')
+            self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         rho = inputs['rho']

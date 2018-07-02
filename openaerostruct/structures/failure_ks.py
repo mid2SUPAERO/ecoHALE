@@ -57,6 +57,8 @@ class FailureKS(ExplicitComponent):
         self.sigma = surface['yield']
         self.rho = rho
 
+        self.declare_partials('*', '*')
+
     def compute(self, inputs, outputs):
         sigma = self.sigma
         rho = self.rho

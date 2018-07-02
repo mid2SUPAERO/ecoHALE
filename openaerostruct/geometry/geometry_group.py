@@ -10,7 +10,7 @@ class Geometry(Group):
 
     def initialize(self):
         self.options.declare('surface', types=dict)
-        # self.options.declare('DVGeo')
+        self.options.declare('DVGeo', default=None)
 
     def setup(self):
         surface = self.options['surface']
@@ -28,7 +28,7 @@ class Geometry(Group):
                  promotes=['*'])
 
 
-        if 0:#self.options['DVGeo']:
+        if self.options['DVGeo']:
             from openaerostruct.geometry.ffd_component import GeometryMesh
             indep_var_comp.add_output('shape', val=np.zeros((surface['mx'], surface['my'])), units='m')
 

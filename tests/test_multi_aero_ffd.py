@@ -82,7 +82,6 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('M', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('S_ref_total', val=0., units='m**2')
         indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
 
         prob.model.add_subsystem('prob_vars',
@@ -104,7 +103,6 @@ class Test(unittest.TestCase):
             prob.model.connect('M', point_name + '.M')
             prob.model.connect('re', point_name + '.re')
             prob.model.connect('rho', point_name + '.rho')
-            prob.model.connect('S_ref_total', point_name + '.S_ref_total')
             prob.model.connect('cg', point_name + '.cg')
 
             # Connect the parameters within the model for each aero point
@@ -162,9 +160,9 @@ class Test(unittest.TestCase):
         # prob.check_partials(compact_print=True)
 
         self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.45)
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03229832696709703)
+        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03229527496681374)
         self.assertAlmostEqual(prob['aero_point_1.wing_perf.CL'][0], 0.5)
-        self.assertAlmostEqual(prob['aero_point_1.wing_perf.CD'][0], 0.03376839246515341)
+        self.assertAlmostEqual(prob['aero_point_1.wing_perf.CD'][0], 0.033767398588947985)
 
 if __name__ == '__main__':
     unittest.main()

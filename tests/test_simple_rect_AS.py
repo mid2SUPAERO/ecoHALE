@@ -119,7 +119,6 @@ class Test(unittest.TestCase):
             # Create the aero point group and add it to the model
             AS_point = AerostructPoint(surfaces=surfaces)
 
-            coupled = AS_point.get_subsystem('coupled')
             prob.model.add_subsystem(point_name, AS_point)
 
             # Connect flow properties to the analysis point
@@ -188,7 +187,7 @@ class Test(unittest.TestCase):
 
         # prob.model.AS_point_0.coupled.linear_solver = PetscKSP()
 
-        prob.model.AS_point_0.coupled.jacobian = DenseJacobian()
+        # prob.model.AS_point_0.coupled.jacobian = DenseJacobian()
         prob.model.AS_point_0.coupled.linear_solver = DirectSolver()
 
         # Set nonlinear solver properties
