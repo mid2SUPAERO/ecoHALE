@@ -53,10 +53,10 @@ class AssembleAIC(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        self.surfaces = surfaces = self.metadata['surfaces']
+        self.surfaces = surfaces = self.options['surfaces']
 
         tot_panels = 0
         for surface in surfaces:
@@ -85,7 +85,7 @@ class AssembleAIC(ExplicitComponent):
                                    dtype=data_type)
 
         if not fortran_flag:
-            self.approx_partials('*', '*', form='forward')
+            self.declare_partials('*', '*', form='forward')
 
         for surface in self.surfaces:
             name = surface['name']

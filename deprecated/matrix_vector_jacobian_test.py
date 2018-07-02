@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
 
-from openmdao.api import Component, Group, IndepVarComp, Problem, ScipyOptimizer
+from openmdao.api import Group, IndepVarComp, Problem, ScipyOptimizer
 from scipy.linalg import lu_factor, lu_solve
 from openaerostruct.fortran import OAS_API
 

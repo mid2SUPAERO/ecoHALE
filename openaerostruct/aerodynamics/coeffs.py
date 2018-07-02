@@ -36,10 +36,10 @@ class Coeffs(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        self.surface = surface = self.metadata['surface']
+        self.surface = surface = self.options['surface']
 
         self.add_input('S_ref', val=1., units='m**2')
         self.add_input('L', val=1., units='N')
@@ -48,6 +48,8 @@ class Coeffs(ExplicitComponent):
         self.add_input('rho', val=1., units='kg/m**3')
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
+
+        self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         S_ref = inputs['S_ref']

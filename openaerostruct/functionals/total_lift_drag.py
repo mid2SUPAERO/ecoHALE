@@ -35,10 +35,10 @@ class TotalLiftDrag(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             self.add_input(name + '_CL', val=1.)
             self.add_input(name + '_CD', val=1.)
@@ -51,6 +51,7 @@ class TotalLiftDrag(ExplicitComponent):
         self.add_output('CL', val=1.)
         self.add_output('CD', val=1.)
 
+        self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
 
@@ -58,7 +59,7 @@ class TotalLiftDrag(ExplicitComponent):
         # weighted by the individual surface areas
         CL = 0.
         CD = 0.
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             S_ref = inputs[name + '_S_ref']
             CL += inputs[name + '_CL'] * S_ref
@@ -73,7 +74,7 @@ class TotalLiftDrag(ExplicitComponent):
         # weighted by the individual surface areas
         CL = 0.
         CD = 0.
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             S_ref = inputs[name + '_S_ref']
             CL += inputs[name + '_CL'] * S_ref
@@ -84,7 +85,7 @@ class TotalLiftDrag(ExplicitComponent):
         partials['CL', 'S_ref_total'] = -CL / S_ref_total**2
         partials['CD', 'S_ref_total'] = -CD / S_ref_total**2
 
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             S_ref = inputs[name + '_S_ref']
             partials['CL', name + '_CL'] = S_ref / S_ref_total

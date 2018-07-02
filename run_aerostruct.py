@@ -6,7 +6,7 @@ from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizer
 from openmdao.devtools import iprofile# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.api import view_model
 

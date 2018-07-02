@@ -179,10 +179,10 @@ class Display(object):
                 # Add labels to OpenMDAO variables.
                 # Corresponds to constraints, design variables, and objective.
                 try:
-                    db = SqliteDict(histFileName, 'metadata')
+                    db = SqliteDict(histFileName, 'options')
                     self.SaveOpenMDAOData(db)
 
-                except KeyError: # Skip metadata info if not included in OpenMDAO hist file
+                except KeyError: # Skip options info if not included in OpenMDAO hist file
                     pass
 
             else:
@@ -318,7 +318,7 @@ class Display(object):
         """ Examine the OpenMDAO dict and save tags if the variables are
             objectives (o), constraints (c), or design variables (dv). """
 
-        # Loop over each key in the metadata db
+        # Loop over each key in the options db
         for tag in db:
 
             # Only look at variables and unknowns

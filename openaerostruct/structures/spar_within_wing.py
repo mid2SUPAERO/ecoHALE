@@ -38,10 +38,10 @@ class SparWithinWing(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        self.surface = surface = self.metadata['surface']
+        self.surface = surface = self.options['surface']
 
         self.ny = surface['num_y']
         nx = surface['num_x']
@@ -50,7 +50,7 @@ class SparWithinWing(ExplicitComponent):
         self.add_input('radius', val=np.random.random_sample((self.ny-1)), units='m')
         self.add_output('spar_within_wing', val=np.zeros((self.ny-1)), units='m')
 
-        self.approx_partials('spar_within_wing', 'mesh')
+        self.declare_partials('spar_within_wing', 'mesh')
 
         self.declare_partials('spar_within_wing', 'radius', val=np.eye(self.ny-1))
 

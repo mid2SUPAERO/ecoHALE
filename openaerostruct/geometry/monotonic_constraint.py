@@ -22,13 +22,13 @@ class MonotonicConstraint(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('var_name', type_=str)
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('var_name', types=str)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
 
-        self.surface = surface = self.metadata['surface']
-        self.var_name = self.metadata['var_name']
+        self.surface = surface = self.options['surface']
+        self.var_name = self.options['var_name']
         self.con_name = 'monotonic_' + self.var_name
 
         self.symmetry = surface['symmetry']

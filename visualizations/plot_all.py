@@ -135,7 +135,7 @@ class Display(object):
         self.obj = []
         self.cg = []
 
-        meta_db = sqlitedict.SqliteDict(self.db_name, 'metadata')
+        meta_db = sqlitedict.SqliteDict(self.db_name, 'options')
         self.opt = False
         for item in meta_db['Unknowns']:
             if 'is_objective' in meta_db['Unknowns'][item].keys():
@@ -149,7 +149,7 @@ class Display(object):
 
         self.yield_stress_dict = {}
         self.fem_origin_dict = {}
-        for key, value in iteritems(meta_db['system_metadata']):
+        for key, value in iteritems(meta_db['system_options']):
             if 'yield_stress' in key:
                 self.yield_stress_dict.update({key : value})
             if 'fem_origin' in key:
@@ -589,8 +589,8 @@ class Display(object):
 
     def save_video(self):
         FFMpegWriter = manimation.writers['ffmpeg']
-        metadata = dict(title='Movie', artist='Matplotlib')
-        writer = FFMpegWriter(fps=5, metadata=metadata, bitrate=3000)
+        options = dict(title='Movie', artist='Matplotlib')
+        writer = FFMpegWriter(fps=5, options=options, bitrate=3000)
 
         with writer.saving(self.f, "movie.mp4", 100):
             self.curr_pos = 0

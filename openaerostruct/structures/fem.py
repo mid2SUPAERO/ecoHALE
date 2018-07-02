@@ -24,15 +24,15 @@ class FEM(ImplicitComponent):
 
     def initialize(self):
         """
-        Declare metadata.
+        Declare options.
         """
-        self.metadata.declare('size', default=1, type_=int, desc='the size of the linear system')
+        self.options.declare('size', default=1, types=int, desc='the size of the linear system')
 
     def setup(self):
         """
         Matrix and RHS are inputs, solution vector is the output.
         """
-        size = self.metadata['size']
+        size = self.options['size']
 
         self._lup = None
 
@@ -40,7 +40,7 @@ class FEM(ImplicitComponent):
         self.add_input('forces', val=np.ones(size), units='N')
         self.add_output('disp_aug', shape=size, val=.1, units='m')
 
-        size = self.metadata['size']
+        size = self.options['size']
         row_col = np.arange(size, dtype="int")
 
         arange = np.arange(size)
@@ -81,7 +81,7 @@ class FEM(ImplicitComponent):
         Compute the non-constant partial derivatives.
         """
         x = outputs['disp_aug']
-        size = self.metadata['size']
+        size = self.options['size']
 
         dx_dA = np.zeros((size, size**2))
         for i in range(size):

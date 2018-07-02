@@ -8,10 +8,10 @@ from openaerostruct.functionals.total_aero_performance import TotalAeroPerforman
 class AeroPoint(Group):
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        surfaces = self.metadata['surfaces']
+        surfaces = self.options['surfaces']
 
         for surface in surfaces:
             name = surface['name']

@@ -59,10 +59,10 @@ class Forces(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        self.surfaces = surfaces = self.metadata['surfaces']
+        self.surfaces = surfaces = self.options['surfaces']
 
         tot_panels = 0
         for surface in surfaces:
@@ -88,7 +88,7 @@ class Forces(ExplicitComponent):
         self.v = np.zeros((tot_panels, 3), dtype=data_type)
 
         if not fortran_flag:
-            self.approx_partials('*', '*')
+            self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         circ = inputs['circulations']

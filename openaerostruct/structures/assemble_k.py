@@ -39,10 +39,10 @@ class AssembleK(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         self.ny = surface['num_y']
 
@@ -105,7 +105,7 @@ class AssembleK(ExplicitComponent):
 
 
         if not fortran_flag:
-            self.approx_partials('*', '*')
+            self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
 

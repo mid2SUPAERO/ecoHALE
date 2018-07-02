@@ -42,12 +42,12 @@ class FailureKS(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
-        self.metadata.declare('rho', type_=float, default=100.)
+        self.options.declare('surface', types=dict)
+        self.options.declare('rho', types=float, default=100.)
 
     def setup(self):
-        surface = self.metadata['surface']
-        rho = self.metadata['rho']
+        surface = self.options['surface']
+        rho = self.options['rho']
 
         self.ny = surface['num_y']
 

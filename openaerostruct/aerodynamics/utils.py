@@ -11,7 +11,7 @@ and viscous drag.
 from __future__ import division, print_function
 import numpy as np
 
-from openmdao.api import Component, Group
+from openmdao.api import Group
 from scipy.linalg import lu_factor, lu_solve
 
 try:

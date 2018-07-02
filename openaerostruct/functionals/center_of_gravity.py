@@ -41,10 +41,10 @@ class CenterOfGravity(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
             self.add_input(name + '_cg_location', val=np.random.rand(3), units='m')
@@ -73,7 +73,7 @@ class CenterOfGravity(ExplicitComponent):
 
         # Loop through the surfaces and compute the weighted cg location
         # of all structural spars
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             spar_cg += inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
 
@@ -94,7 +94,7 @@ class CenterOfGravity(ExplicitComponent):
 
         # Loop through the surfaces and compute the weighted cg location
         # of all structural spars
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             spar_cg += inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
 
@@ -103,7 +103,7 @@ class CenterOfGravity(ExplicitComponent):
         partials['cg', 'load_factor'] = -((tw - fb * g) * W0_cg / inputs['load_factor'] - (W0_cg + spar_cg) * inputs['fuelburn'] * 9.80665) / (tw - fb * g) ** 2
         partials['cg', 'empty_cg'] = W0 * g / (tw - fb * g)
 
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             partials['cg', name + '_cg_location'] = inputs[name + '_structural_weight'] \
                 / (tw - fb * g)

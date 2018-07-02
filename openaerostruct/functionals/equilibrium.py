@@ -35,10 +35,10 @@ class Equilibrium(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
 
@@ -55,7 +55,7 @@ class Equilibrium(ExplicitComponent):
         self.add_output('L_equals_W', val=1.)
         self.add_output('total_weight', val=1., units='N')
 
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             self.declare_partials('L_equals_W', name + '_structural_weight', dependent=False)
 
@@ -70,7 +70,7 @@ class Equilibrium(ExplicitComponent):
 
         structural_weight = 0.
         symmetry = False
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             structural_weight += inputs[name + '_structural_weight']
             if surface['symmetry']:
@@ -90,7 +90,7 @@ class Equilibrium(ExplicitComponent):
         v = inputs['v']
 
         structural_weight = 0.
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             structural_weight += inputs[name + '_structural_weight']
 
@@ -110,7 +110,7 @@ class Equilibrium(ExplicitComponent):
         partials['L_equals_W', 'rho'] = -.5 * S_ref_tot * v**2 * inputs['CL'] / tot_weight
         partials['L_equals_W', 'v'] = - rho * S_ref_tot * v * inputs['CL'] / tot_weight
 
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             partials['total_weight', name + '_structural_weight'] = 1.0
             partials['L_equals_W', name + '_structural_weight'] = L / tot_weight**2

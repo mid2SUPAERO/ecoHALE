@@ -105,14 +105,14 @@ class Bsplines(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('jac', is_valid=lambda jac: len(jac.shape) == 2)
-        self.metadata.declare('num_cp', type_=int)
-        self.metadata.declare('num_pt', type_=int)
-        self.metadata.declare('in_name', type_=str)
-        self.metadata.declare('out_name', type_=str)
+        self.options.declare('jac', is_valid=lambda jac: len(jac.shape) == 2)
+        self.options.declare('num_cp', types=int)
+        self.options.declare('num_pt', types=int)
+        self.options.declare('in_name', types=str)
+        self.options.declare('out_name', types=str)
 
     def setup(self):
-        meta = self.metadata
+        meta = self.options
 
         meta['jac'] = get_bspline_mtx(meta['num_cp'], meta['num_pt'], order=min(meta['num_cp'], 4))
 
@@ -125,7 +125,7 @@ class Bsplines(ExplicitComponent):
         self.add_input(meta['in_name'], val=np.random.random(meta['num_cp']), units=units)
         self.add_output(meta['out_name'], val=np.random.random(meta['num_pt']), units=units)
 
-        meta = self.metadata
+        meta = self.options
 
         jac = meta['jac'].tocoo()
 
@@ -133,5 +133,5 @@ class Bsplines(ExplicitComponent):
             meta['out_name'], meta['in_name'], val=jac.data, rows=jac.row, cols=jac.col)
 
     def compute(self, inputs, outputs):
-        meta = self.metadata
+        meta = self.options
         outputs[meta['out_name']] = meta['jac'] * inputs[meta['in_name']]

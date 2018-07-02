@@ -5,10 +5,10 @@ from openmdao.api import ExplicitComponent
 class MultiCD(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('n_points', type_=int)
+        self.options.declare('n_points', types=int)
 
     def setup(self):
-        self.n_points = self.metadata['n_points']
+        self.n_points = self.options['n_points']
         for i in range(self.n_points):
             self.add_input(str(i) + '_CD', val=0.)
 
@@ -26,20 +26,20 @@ class MultiCD(ExplicitComponent):
 class GeomMatch(ExplicitComponent):
 
     def initialize(self):
-        self.metadata.declare('n_points', type_=int)
-        self.metadata.declare('mx', type_=int)
-        self.metadata.declare('my', type_=int)
+        self.options.declare('n_points', types=int)
+        self.options.declare('mx', types=int)
+        self.options.declare('my', types=int)
 
     def setup(self):
-        self.n_points = self.metadata['n_points']
-        self.mx = self.metadata['mx']
-        self.my = self.metadata['my']
+        self.n_points = self.options['n_points']
+        self.mx = self.options['mx']
+        self.my = self.options['my']
         for i in range(self.n_points):
             self.add_input(str(i) + '_shape', val=np.zeros((self.mx, self.my)), units='m')
 
         self.add_output('shape_diff', val=np.zeros((self.mx, self.my * (self.n_points - 1))), units='m')
 
-        self.approx_partials('*', '*')
+        self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         shape_0 = inputs['0_shape']

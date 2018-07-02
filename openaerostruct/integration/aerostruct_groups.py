@@ -12,17 +12,17 @@ from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, LinearRunOnce, ExplicitComponent, PetscKSP
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, ExplicitComponent, PetscKSP
 
 
 class Aerostruct(Group):
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
-        # self.metadata.declare('DVGeo')
+        self.options.declare('surface', types=dict)
+        # self.options.declare('DVGeo')
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         geom_promotes = []
 
@@ -51,10 +51,10 @@ class Aerostruct(Group):
 class PreAS(Group):
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
@@ -74,10 +74,10 @@ class PreAS(Group):
 class CoupledPerformance(Group):
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         self.add_subsystem('aero_funcs',
             VLMFunctionals(surface=surface),
@@ -90,10 +90,10 @@ class CoupledPerformance(Group):
 class AerostructPoint(Group):
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        surfaces = self.metadata['surfaces']
+        surfaces = self.options['surfaces']
 
         coupled = Group()
 
@@ -149,9 +149,9 @@ class AerostructPoint(Group):
 
             coupled.add_subsystem(name, coupled_AS_group)
 
-            # TODO: add this info to the metadata
-            # prob.model.add_metadata(surface['name'] + 'yield_stress', surface['yield'])
-            # prob.model.add_metadata(surface['name'] + 'fem_origin', surface['fem_origin'])
+            # TODO: add this info to the options
+            # prob.model.add_options(surface['name'] + 'yield_stress', surface['yield'])
+            # prob.model.add_options(surface['name'] + 'fem_origin', surface['fem_origin'])
 
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.

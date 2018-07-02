@@ -6,7 +6,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, SqliteRecorder
 
 
 class Test(unittest.TestCase):
@@ -67,7 +67,6 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('M', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('S_ref_total', val=0., units='m**2')
         indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
 
         prob.model.add_subsystem('prob_vars',
@@ -98,7 +97,6 @@ class Test(unittest.TestCase):
             prob.model.connect('M', point_name + '.M')
             prob.model.connect('re', point_name + '.re')
             prob.model.connect('rho', point_name + '.rho')
-            prob.model.connect('S_ref_total', point_name + '.S_ref_total')
             prob.model.connect('cg', point_name + '.cg')
 
             # Connect the parameters within the model for each aero point

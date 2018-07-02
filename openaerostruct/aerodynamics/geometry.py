@@ -41,10 +41,10 @@ class VLMGeometry(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        self.surface = surface = self.metadata['surface']
+        self.surface = surface = self.options['surface']
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
@@ -60,10 +60,11 @@ class VLMGeometry(ExplicitComponent):
         self.add_output('normals', val=np.random.random((self.nx-1, self.ny-1, 3)))
         self.add_output('S_ref', val=1., units='m**2')
 
+        self.declare_partials('*', '*')
 
         if not fortran_flag:
-            self.approx_partials('normals', 'def_mesh')
-            self.approx_partials('S_ref', 'def_mesh')
+            self.declare_partials('normals', 'def_mesh', method='fd')
+            self.declare_partials('S_ref', 'def_mesh', method='fd')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']

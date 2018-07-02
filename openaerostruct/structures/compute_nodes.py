@@ -32,10 +32,10 @@ class ComputeNodes(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']

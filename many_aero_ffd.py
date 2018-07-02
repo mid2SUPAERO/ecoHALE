@@ -2,12 +2,12 @@ from __future__ import division, print_function
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.ffd_geometry import Geometry
+from openaerostruct.geometry.ffd_component import GeometryMesh
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizer# TODO, SqliteRecorder, CaseReader, profile
 from openmdao.devtools import iprofile
 from openmdao.api import view_model
 from six import iteritems
@@ -84,7 +84,7 @@ for ny, nx in n:
         # Loop over each surface in the surfaces list
         for surface in surfaces:
 
-            geom_group = Geometry(surface=surface)
+            geom_group = GeometryMesh(surface=surface)
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each

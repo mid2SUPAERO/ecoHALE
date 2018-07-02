@@ -13,10 +13,10 @@ class TotalAeroPerformance(Group):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        surfaces = self.metadata['surfaces']
+        surfaces = self.options['surfaces']
 
         self.add_subsystem('sum_areas',
              SumAreas(surfaces=surfaces),

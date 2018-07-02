@@ -51,10 +51,10 @@ class GeometryMesh(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         ny = surface['num_y']
         self.mesh = surface['mesh']
@@ -108,7 +108,7 @@ class GeometryMesh(ExplicitComponent):
         self.rotate_x = True
 
         if not fortran_flag:
-            self.approx_partials('*', '*')
+            self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         mesh = self.mesh.copy()

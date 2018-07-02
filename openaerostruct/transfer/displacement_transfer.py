@@ -36,10 +36,10 @@ class DisplacementTransfer(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        self.surface = surface = self.metadata['surface']
+        self.surface = surface = self.options['surface']
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
@@ -50,7 +50,7 @@ class DisplacementTransfer(ExplicitComponent):
         self.add_output('def_mesh', val=np.random.rand(self.nx, self.ny, 3), units='m')
 
         if not fortran_flag:
-            self.approx_partials('*', '*')
+            self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         mesh = inputs['mesh']

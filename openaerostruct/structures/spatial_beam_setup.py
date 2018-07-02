@@ -10,10 +10,10 @@ class SpatialBeamSetup(Group):
         stiffness matrix."""
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         self.add_subsystem('nodes',
                  ComputeNodes(surface=surface),

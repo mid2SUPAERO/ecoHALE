@@ -34,10 +34,10 @@ class RadiusComp(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         self.nx, self.ny = surface['num_x'], surface['num_y']
         self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
@@ -46,14 +46,14 @@ class RadiusComp(ExplicitComponent):
         self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
-        outputs['radius'] = radii(inputs['mesh'], self.metadata['surface']['t_over_c'])
+        outputs['radius'] = radii(inputs['mesh'], self.options['surface']['t_over_c'])
 
     def compute_partials(self, inputs, partials):
         """
         Obtain the radii of the FEM element based on local chord.
         """
         mesh = inputs['mesh']
-        t_c = self.metadata['surface']['t_over_c']
+        t_c = self.options['surface']['t_over_c']
         vectors = mesh[-1, :, :] - mesh[0, :, :]
         chords = np.sqrt(np.sum(vectors**2, axis=1))
         mean_chords = 0.5 * chords[:-1] + 0.5 * chords[1:]

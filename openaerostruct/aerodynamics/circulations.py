@@ -24,15 +24,15 @@ class Circulations(ImplicitComponent):
 
     def initialize(self):
         """
-        Declare metadata.
+        Declare options.
         """
-        self.metadata.declare('size', default=1, type_=int, desc='the size of the linear system')
+        self.options.declare('size', default=1, types=int, desc='the size of the linear system')
 
     def setup(self):
         """
         Matrix and RHS are inputs, solution vector is the output.
         """
-        size = self.metadata['size']
+        size = self.options['size']
 
         self._lup = None
 
@@ -40,9 +40,11 @@ class Circulations(ImplicitComponent):
         self.add_input('rhs', val=np.random.rand(size), units='m/s')
         self.add_output('circulations', shape=size, val=.1, units='m**2/s')
 
-        size = self.metadata['size']
+        size = self.options['size']
         row_col = np.arange(size, dtype="int")
 
+        self.declare_partials('*', '*')
+        
         arange = np.arange(size)
         self.declare_partials('circulations', 'rhs', val=-1., rows=arange, cols=arange)
 
@@ -81,7 +83,7 @@ class Circulations(ImplicitComponent):
         Compute the non-constant partial derivatives.
         """
         x = outputs['circulations']
-        size = self.metadata['size']
+        size = self.options['size']
 
         dx_dA = np.zeros((size, size**2))
         for i in range(size):

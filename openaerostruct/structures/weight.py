@@ -31,10 +31,10 @@ class Weight(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        self.surface = surface = self.metadata['surface']
+        self.surface = surface = self.options['surface']
 
         self.ny = surface['num_y']
 

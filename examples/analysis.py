@@ -72,7 +72,6 @@ from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMGeometry, AssembleAIC, AeroCirculations, VLMForces#, VLMLiftDrag, VLMCoeffs, TotalLift, TotalDrag
 from geometry import GeometryMesh#, Bspline, MonotonicConstraint
 from run_classes import OASProblem
-from openmdao.api import Component
 # from functionals import FunctionalBreguetRange, FunctionalEquilibrium
 
 # to disable OpenMDAO warnings which will create an error in Matlab

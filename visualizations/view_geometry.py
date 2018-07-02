@@ -93,7 +93,7 @@ class Display(object):
         self.S_ref = []
         self.obj = []
 
-        meta_db = sqlitedict.SqliteDict(self.db_name, 'metadata')
+        meta_db = sqlitedict.SqliteDict(self.db_name, 'options')
         self.opt = False
         for item in meta_db['Unknowns']:
             if 'is_objective' in meta_db['Unknowns'][item].keys():

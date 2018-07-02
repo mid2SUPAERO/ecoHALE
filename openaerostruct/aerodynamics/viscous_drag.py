@@ -35,11 +35,11 @@ class ViscousDrag(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
-        self.metadata.declare('with_viscous', type_=bool)
+        self.options.declare('surface', types=dict)
+        self.options.declare('with_viscous', types=bool)
 
     def setup(self):
-        self.surface = surface = self.metadata['surface']
+        self.surface = surface = self.options['surface']
         self.with_viscous = surface['with_viscous']
 
         # Percentage of chord with laminar flow
@@ -58,6 +58,8 @@ class ViscousDrag(ExplicitComponent):
         self.add_input('widths', val=np.random.rand((ny-1)), units='m')
         self.add_input('lengths', val=np.random.rand((ny)), units='m')
         self.add_output('CDv', val=0.)
+
+        self.declare_partials('*', '*')
 
         self.declare_partials('CDv', 'M', method='fd')
         self.declare_partials('CDv', 're', method='fd')

@@ -37,10 +37,10 @@ class BreguetRange(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
 
@@ -67,7 +67,7 @@ class BreguetRange(ExplicitComponent):
         # Loop through the surfaces and add up the structural weights
         # to get the total structural weight.
         Ws = 0.
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             Ws += inputs[name + '_structural_weight']
 
@@ -89,7 +89,7 @@ class BreguetRange(ExplicitComponent):
         W0 = inputs['W0'] * g
 
         Ws = 0.
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             Ws += inputs[name + '_structural_weight']
 
@@ -120,7 +120,7 @@ class BreguetRange(ExplicitComponent):
         partials['fuelburn', 'W0'] = dfb_dW
         partials['fuelburn', 'load_factor'] = - Ws * dfb_dW / 9.80665 / inputs['load_factor']**2
 
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             inp_name = name + '_structural_weight'
             partials['fuelburn', inp_name] = dfb_dW / g

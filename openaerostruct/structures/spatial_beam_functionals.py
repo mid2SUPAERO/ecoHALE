@@ -12,10 +12,10 @@ class SpatialBeamFunctionals(Group):
     performance. """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         # Commented out energy for now since we haven't ever used its output
         # self.add_subsystem('energy',

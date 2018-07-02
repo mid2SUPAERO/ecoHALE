@@ -19,10 +19,10 @@ class TotalDrag(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
+        self.options.declare('surface', types=dict)
 
     def setup(self):
-        surface = self.metadata['surface']
+        surface = self.options['surface']
 
         self.add_input('CDi', val=1.)
         self.add_input('CDv', val=1.)

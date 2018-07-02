@@ -7,7 +7,7 @@ from openaerostruct.structures.struct_groups import SpatialBeamAlone
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.geometry_group import Geometry
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer, SqliteRecorder#, CaseReader, profile
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizer, SqliteRecorder#, CaseReader, profile
 from openmdao.api import view_model
 from six import iteritems
 
@@ -66,9 +66,9 @@ for surface in surfaces:
 
 
 
-    # TODO: add this to the metadata
-    # prob.model.add_metadata(surface['name'] + '_yield_stress', surface['yield'])
-    # prob.model.add_metadata(surface['name'] + '_fem_origin', surface['fem_origin'])
+    # TODO: add this to the options
+    # prob.model.add_options(surface['name'] + '_yield_stress', surface['yield'])
+    # prob.model.add_options(surface['name'] + '_fem_origin', surface['fem_origin'])
 
 from openmdao.api import pyOptSparseDriver
 prob.driver = pyOptSparseDriver()
@@ -90,7 +90,7 @@ recorder = SqliteRecorder('struct.db')
 recorder.options['record_desvars'] = True
 # recorder.options['record_responses'] = False
 recorder.options['record_objectives'] = True
-recorder.options['record_metadata'] = True
+recorder.options['record_options'] = True
 prob.driver.add_recorder(recorder)
 
 # Set up the problem

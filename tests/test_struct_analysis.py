@@ -7,7 +7,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.structures.struct_groups import SpatialBeamAlone
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, DenseJacobian, LinearBlockGS, PetscKSP, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizer
 
 
 class Test(unittest.TestCase):

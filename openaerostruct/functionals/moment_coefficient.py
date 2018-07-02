@@ -45,10 +45,10 @@ class MomentCoefficient(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
-        for surface in self.metadata['surfaces']:
+        for surface in self.options['surfaces']:
             name = surface['name']
             ny = surface['num_y']
             nx = surface['num_x']
@@ -67,7 +67,7 @@ class MomentCoefficient(ExplicitComponent):
         self.add_output('CM', val=np.ones((3)))
 
         if not fortran_flag:
-            self.approx_partials('*', '*')
+            self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         rho = inputs['rho']
@@ -78,7 +78,7 @@ class MomentCoefficient(ExplicitComponent):
 
         # Loop through each surface and find its contributions to the moment
         # of the aircraft based on the section forces and their location
-        for j, surface in enumerate(self.metadata['surfaces']):
+        for j, surface in enumerate(self.options['surfaces']):
             name = surface['name']
             nx = surface['num_x']
             ny = surface['num_y']
@@ -152,7 +152,7 @@ class MomentCoefficient(ExplicitComponent):
                 partials['CM', 'rho'][j] = 0.
                 partials['CM', 'v'][j] = 0.
 
-                for i, surface in enumerate(self.metadata['surfaces']):
+                for i, surface in enumerate(self.options['surfaces']):
                     name = surface['name']
                     ny = surface['num_y']
 

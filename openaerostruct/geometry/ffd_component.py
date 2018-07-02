@@ -29,14 +29,14 @@ class GeometryMesh(ExplicitComponent):
     """
 
     def initialize(self):
-        self.metadata.declare('surface', type_=dict)
-        self.metadata.declare('DVGeo')
+        self.options.declare('surface', types=dict)
+        self.options.declare('DVGeo')
 
     def setup(self):
-        self.surface = surface = self.metadata['surface']
+        self.surface = surface = self.options['surface']
         self.mx, self.my = self.surface['mx'], self.surface['my']
 
-        self.DVGeo = self.metadata['DVGeo']
+        self.DVGeo = self.options['DVGeo']
 
         # Associate a 'reference axis' for large-scale manipulation
         self.DVGeo.addRefAxis('wing_axis', xFraction=0.25, alignIndex='i')
