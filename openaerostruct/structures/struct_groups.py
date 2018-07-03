@@ -4,7 +4,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
-from openaerostruct.structures.materials_tube import MaterialsTube
+from openaerostruct.structures.tube_group import TubeGroup
 
 
 class SpatialBeamAlone(Group):
@@ -24,12 +24,12 @@ class SpatialBeamAlone(Group):
         self.add_subsystem('geometry',
             Geometry(surface=surface),
             promotes_inputs=[],
-            promotes_outputs=['mesh', 'radius', 'thickness'] + geom_promotes)
+            promotes_outputs=['mesh'])
 
-        self.add_subsystem('tube',
-            MaterialsTube(surface=surface),
-            promotes_inputs=['thickness', 'radius'],
-            promotes_outputs=['A', 'Iy', 'Iz', 'J'])
+        self.add_subsystem('tube_group',
+            TubeGroup(surface=surface),
+            promotes_inputs=['mesh'],
+            promotes_outputs=['A', 'Iy', 'Iz', 'J', 'thickness', 'radius'] + geom_promotes)
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),

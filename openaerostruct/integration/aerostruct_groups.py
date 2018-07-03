@@ -11,6 +11,7 @@ from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFuncti
 from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
+from openaerostruct.structures.tube_group import TubeGroup
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, ExplicitComponent, PetscKSP
 
@@ -26,9 +27,10 @@ class Aerostruct(Group):
         DVGeo = self.options['DVGeo']
 
         geom_promotes = []
+        tube_promotes = []
 
         if 'thickness_cp' in surface.keys():
-            geom_promotes.append('thickness_cp')
+            tube_promotes.append('thickness_cp')
         if 'twist_cp' in surface.keys():
             geom_promotes.append('twist_cp')
         if 'mx' in surface.keys():
@@ -37,12 +39,12 @@ class Aerostruct(Group):
         self.add_subsystem('geometry',
             Geometry(surface=surface, DVGeo=DVGeo),
             promotes_inputs=[],
-            promotes_outputs=['mesh', 'radius', 'thickness'] + geom_promotes)
+            promotes_outputs=['mesh'] + geom_promotes)
 
-        self.add_subsystem('tube',
-            MaterialsTube(surface=surface),
-            promotes_inputs=['thickness', 'radius'],
-            promotes_outputs=['A', 'Iy', 'Iz', 'J'])
+        self.add_subsystem('tube_group',
+            TubeGroup(surface=surface),
+            promotes_inputs=['mesh'],
+            promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),

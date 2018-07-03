@@ -19,14 +19,14 @@ class Geometry(Group):
         # only for this surface
         ny = surface['mesh'].shape[1]
 
-        # Add independent variables that do not belong to a specific component
-        indep_var_comp = IndepVarComp()
+        if 'twist_cp' in surface.keys() or 'chord_cp' in surface.keys() or 'xshear_cp' in surface.keys() or 'yshear_cp' in surface.keys() or 'zshear_cp' in surface.keys() or self.options['DVGeo']:
+            # Add independent variables that do not belong to a specific component
+            indep_var_comp = IndepVarComp()
 
-        # Add structural components to the surface-specific group
-        self.add_subsystem('indep_vars',
-                 indep_var_comp,
-                 promotes=['*'])
-
+            # Add structural components to the surface-specific group
+            self.add_subsystem('indep_vars',
+                     indep_var_comp,
+                     promotes=['*'])
 
         if self.options['DVGeo']:
             from openaerostruct.geometry.ffd_component import GeometryMesh
@@ -91,17 +91,3 @@ class Geometry(Group):
                 GeometryMesh(surface=surface),
                 promotes_inputs=bsp_inputs,
                 promotes_outputs=['mesh'])
-
-        if 'struct' in surface['type']:
-            self.add_subsystem('radius_comp',
-                RadiusComp(surface=surface),
-                promotes_inputs=['mesh'],
-                promotes_outputs=['radius'])
-
-        if 'thickness_cp' in surface.keys():
-            # Add bspline components for active bspline geometric variables.
-            self.add_subsystem('thickness_bsp', Bsplines(
-                in_name='thickness_cp', out_name='thickness',
-                num_cp=len(surface['thickness_cp']), num_pt=int(ny-1)),
-                promotes_inputs=['thickness_cp'], promotes_outputs=['thickness'])
-            indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'], units='m')
