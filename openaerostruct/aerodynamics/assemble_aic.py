@@ -89,9 +89,9 @@ class AssembleAIC(ExplicitComponent):
         if not fortran_flag:
             self.declare_partials('*', '*', method='fd')
 
-        for surface in self.surfaces:
-            name = surface['name']
-            self.declare_partials('rhs', name + '_def_mesh', dependent=False)
+        # for surface in self.surfaces:
+        #     name = surface['name']
+        #     self.declare_partials('rhs', name + '_def_mesh', dependent=False)
 
     def compute(self, inputs, outputs):
 

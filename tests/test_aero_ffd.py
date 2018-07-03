@@ -129,8 +129,8 @@ class Test(unittest.TestCase):
         from openmdao.api import pyOptSparseDriver
         prob.driver = pyOptSparseDriver()
         prob.driver.options['optimizer'] = "SNOPT"
-        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                    'Major feasibility tolerance': 1.0e-8}
+        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
+                                    'Major feasibility tolerance': 1.0e-6}
 
         # # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('alpha', lower=-15, upper=15)
@@ -140,9 +140,6 @@ class Test(unittest.TestCase):
         prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
         prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 
-        # iprofile.setup()
-        # iprofile.start()
-
         # Set up the problem
         prob.setup()
 
@@ -151,25 +148,9 @@ class Test(unittest.TestCase):
         # prob.run_model()
         prob.run_driver()
 
-        # prob.check_partials(compact_print=True)
-
-        # print("\nWing CL:", prob['aero_point_0.wing_perf.CL'])
-        # print("Wing CD:", prob['aero_point_0.wing_perf.CD'])
-
-
-        # from helper import plot_3d_points
-        #
-        # mesh = prob['aero_point_0.wing.def_mesh']
-        # plot_3d_points(mesh)
-        #
-        # filename = mesh_dict['wing_type'] + '_' + str(mesh_dict['num_x']) + '_' + str(mesh_dict['num_y'])
-        # filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
-        # np.save(filename, mesh)
-
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03398038)
+        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03398038, places=5)
         self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.5)
-        self.assertAlmostEqual(prob['aero_point_0.CM'][1], -0.18379626783513864)
-
+        self.assertAlmostEqual(prob['aero_point_0.CM'][1], -0.18379626783513864, places=3)
 
 
 if __name__ == '__main__':

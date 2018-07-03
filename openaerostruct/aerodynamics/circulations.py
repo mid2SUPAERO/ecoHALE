@@ -44,7 +44,7 @@ class Circulations(ImplicitComponent):
         row_col = np.arange(size, dtype="int")
 
         self.declare_partials('*', '*')
-        
+
         arange = np.arange(size)
         self.declare_partials('circulations', 'rhs', val=-1., rows=arange, cols=arange)
 
