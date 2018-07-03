@@ -47,7 +47,7 @@ install:
   fi
 - pip install coverage
 - pip install coveralls
-- pip install git+git://github.com/OpenMDAO/blue.git
+- pip install git+git://github.com/OpenMDAO/openmdao.git
 
 script:
 - if [ "$FORTRAN" ]; then
