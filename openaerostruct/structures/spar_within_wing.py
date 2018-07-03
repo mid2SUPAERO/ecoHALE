@@ -54,7 +54,6 @@ class SparWithinWing(ExplicitComponent):
 
         self.declare_partials('spar_within_wing', 'radius', val=np.eye(self.ny-1))
 
-
     def compute(self, inputs, outputs):
         mesh = inputs['mesh']
         max_radius = radii(mesh, self.surface['t_over_c'])

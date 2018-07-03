@@ -40,7 +40,7 @@ class RadiusComp(ExplicitComponent):
         surface = self.options['surface']
 
         self.nx, self.ny = surface['num_x'], surface['num_y']
-        self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
+        self.add_input('mesh', val=np.random.random_sample((self.nx, self.ny, 3)), units='m')
         self.add_output('radius', val=np.zeros((self.ny - 1)), units='m')
 
         self.declare_partials('*', '*', method='fd')
@@ -59,7 +59,6 @@ class RadiusComp(ExplicitComponent):
         mean_chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
         radii_output = t_c * mean_chords / 2.
 
-        good = partials['radius', 'mesh'].copy()
         for iy in range(self.ny-1):
             partials['radius', 'mesh'][iy, iy*3:(iy+1)*3] = -vectors[iy, :] / chords[iy] * t_c / 4
             partials['radius', 'mesh'][iy, (iy+1)*3:(iy+2)*3] = -vectors[iy+1, :] / chords[iy+1] * t_c / 4

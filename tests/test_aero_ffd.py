@@ -132,7 +132,7 @@ class Test(unittest.TestCase):
         prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
                                     'Major feasibility tolerance': 1.0e-6}
 
-        # # Setup problem and add design variables, constraint, and objective
+        # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('alpha', lower=-15, upper=15)
         prob.model.add_design_var('wing.shape', lower=-3, upper=2)
 

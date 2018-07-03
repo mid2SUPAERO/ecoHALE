@@ -87,7 +87,7 @@ class Forces(ExplicitComponent):
         self.mtx = np.zeros((tot_panels, tot_panels, 3), dtype=data_type)
         self.v = np.zeros((tot_panels, 3), dtype=data_type)
 
-        self.declare_partials('*', '*', method='fd')
+        self.declare_partials('*', '*')
 
         if not fortran_flag:
             self.declare_partials('*', '*', method='fd')
@@ -156,7 +156,7 @@ class Forces(ExplicitComponent):
             i += num_panels
 
 
-    if 0: #fortran_flag
+    if fortran_flag:
         if 0:
             def compute_jacvec_product(self, inputs, outputs, d_inputs, d_outputs, mode):
                 circ = inputs['circulations']

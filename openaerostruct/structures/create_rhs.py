@@ -11,6 +11,15 @@ except:
     fortran_flag = False
     data_type = complex
 
+def view_mat(mat):
+    """ Helper function used to visually examine matrices. """
+    import matplotlib.pyplot as plt
+    if len(mat.shape) > 2:
+        mat = np.sum(mat, axis=2)
+    im = plt.imshow(mat.real, interpolation='none')
+    plt.colorbar(im, orientation='horizontal')
+    plt.show()
+
 class CreateRHS(ExplicitComponent):
     """
     Compute the right-hand-side of the K * u = f linear system to solve for the displacements.
@@ -38,7 +47,7 @@ class CreateRHS(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('loads', val=np.ones((self.ny, 6)), units='N')# dtype=data_type))
+        self.add_input('loads', val=np.zeros((self.ny, 6)), units='N')# dtype=data_type))
         self.add_input('element_weights', val=np.ones((self.ny-1)), units='N')# dtype=data_type))
         self.add_output('forces', val=np.ones(((self.ny+1)*6)), units='N')# dtype=data_type))
 
@@ -46,12 +55,15 @@ class CreateRHS(ExplicitComponent):
         forces_loads = np.zeros((n + 6, n))
         forces_loads[:n, :n] = np.eye((n))
 
-        self.declare_partials('forces', 'loads', val=forces_loads, method='fd')
-        self.declare_partials('forces', 'element_weights', method='fd')
+        self.declare_partials('forces', 'loads', val=forces_loads)
 
+        rows = np.arange(2, (self.ny-1)*6, 6)
+        rows = np.hstack((rows, rows+6))
+        cols = np.arange(self.ny-1)
+        cols = np.hstack((cols, cols))
+        self.declare_partials('forces', 'element_weights', val=-.5, rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-
         outputs['forces'][:] = 0.
         outputs['forces'][:6*(self.ny-1)][2::6] -= inputs['element_weights'] / 2
         outputs['forces'][:6*self.ny][8::6] -= inputs['element_weights'] / 2

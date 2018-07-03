@@ -103,14 +103,14 @@ class LoadTransfer(ExplicitComponent):
             ny = self.surface['num_y']
             d_loads = np.zeros((ny, 6))
 
+            def_mesh = inputs['def_mesh']
+            sec_forces = inputs['sec_forces']
+
             for j, val in enumerate(np.array(d_loads).flatten()):
                 d_out_b = np.array(d_loads).flatten()
                 d_out_b[:] = 0.
                 d_out_b[j] = 1.
                 d_loads = d_out_b.reshape(d_loads.shape)
-
-                def_mesh = inputs['def_mesh']
-                sec_forces = inputs['sec_forces']
 
                 d_def_mesh, d_sec_forces, _ = OAS_API.oas_api.transferloads_b(def_mesh, sec_forces, self.fem_origin, d_loads)
 

@@ -106,16 +106,16 @@ class DisplacementTransfer(ExplicitComponent):
 
             d_mesh = np.zeros((self.nx, self.ny, 3))
 
+            mesh = inputs['mesh']
+            disp = inputs['disp']
+
+            w = self.surface['fem_origin']
+
             for j, val in enumerate(np.array(d_mesh).flatten()):
                 d_out_b = np.array(d_mesh).flatten()
                 d_out_b[:] = 0.
                 d_out_b[j] = 1.
                 d_mesh = d_out_b.reshape(d_mesh.shape)
-
-                mesh = inputs['mesh']
-                disp = inputs['disp']
-
-                w = self.surface['fem_origin']
 
                 d_mesh, d_disp = OAS_API.oas_api.transferdisplacements_b(mesh, disp, w, d_mesh, d_mesh)
 

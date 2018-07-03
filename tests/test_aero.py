@@ -124,8 +124,6 @@ class Test(unittest.TestCase):
         prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
         prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 
-        prob.model.approx_totals(method='fd')
-
         # Set up the problem
         prob.setup()
 
