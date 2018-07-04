@@ -148,8 +148,6 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
-        from openmdao.api import view_model
-
         prob.run_model()
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 261452.92692824677, places=2)

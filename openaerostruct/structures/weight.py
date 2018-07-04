@@ -43,12 +43,9 @@ class Weight(ExplicitComponent):
         self.add_input('load_factor', val=1.)
         self.add_output('structural_weight', val=0., units='N')
         self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')
-        self.add_output('cg_location', val=np.random.random_sample((3)), units='m')#, dtype=data_type))
 
         self.declare_partials('*', '*')
 
-        self.declare_partials('cg_location', 'A', method='fd')
-        self.declare_partials('cg_location', 'nodes', method='fd')
         self.declare_partials('element_weights', '*', method='fd')
 
     def compute(self, inputs, outputs):
@@ -61,18 +58,12 @@ class Weight(ExplicitComponent):
         weight = np.sum(element_weights)
         volume = np.sum(element_volumes)
 
-        # Calculate the center-of-gravity location of the spar elements only
-        center_of_elements = (nodes[1:, :] + nodes[:-1, :]) / 2.
-        cg_loc = np.sum(center_of_elements.T * element_volumes, axis=1) / volume
-
         # If the tube is symmetric, double the computed weight and set the
         # y-location of the cg to 0, at the symmetry plane
         if self.surface['symmetry']:
             weight *= 2.
-            cg_loc[1] = 0.
 
         outputs['structural_weight'] = weight
-        outputs['cg_location'] = cg_loc
         outputs['element_weights'] = element_weights
 
     def compute_partials(self, inputs, partials):
