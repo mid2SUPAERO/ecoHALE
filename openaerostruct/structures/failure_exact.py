@@ -33,13 +33,18 @@ class FailureExact(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
+        if surface['fem_model_type'] == 'tube':
+            num_failure_criteria = 2
+        elif surface['fem_model_type'] == 'wingbox':
+            num_failure_criteria = 4
+
         self.ny = surface['num_y']
         self.sigma = surface['yield']
 
-        self.add_input('vonmises', val=np.random.random_sample((self.ny-1, 2)), units='N/m**2')
-        self.add_output('failure', val=np.zeros((self.ny-1, 2)))
+        self.add_input('vonmises', val=np.random.random_sample((self.ny-1, num_failure_criteria)), units='N/m**2')
+        self.add_output('failure', val=np.zeros((self.ny-1, num_failure_criteria)))
 
-        self.declare_partials('failure', 'vonmises', val=np.eye(((self.ny-1)*2)) / self.sigma)
+        self.declare_partials('failure', 'vonmises', val=np.eye(((self.ny-1)*num_failure_criteria)) / self.sigma)
 
     def compute(self, inputs, outputs):
         outputs['failure'] = inputs['vonmises'] / self.sigma - 1

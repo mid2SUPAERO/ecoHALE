@@ -49,9 +49,14 @@ class FailureKS(ExplicitComponent):
         surface = self.options['surface']
         rho = self.options['rho']
 
+        if surface['fem_model_type'] == 'tube':
+            num_failure_criteria = 2
+        elif surface['fem_model_type'] == 'wingbox':
+            num_failure_criteria = 4
+
         self.ny = surface['num_y']
 
-        self.add_input('vonmises', val=np.random.random_sample((self.ny-1, 2)), units='N/m**2')
+        self.add_input('vonmises', val=np.random.random_sample((self.ny-1, num_failure_criteria)), units='N/m**2')
         self.add_output('failure', val=0.)
 
         self.sigma = surface['yield']

@@ -28,6 +28,7 @@ class Test(unittest.TestCase):
                     'type' : 'structural',
                     'symmetry' : True,     # if true, model one half of wing
                                             # reflected across the plane y = 0
+                    'fem_model_type' : 'tube',
 
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],

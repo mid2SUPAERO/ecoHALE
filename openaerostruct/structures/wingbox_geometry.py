@@ -2,8 +2,7 @@ from __future__ import division, print_function
 import numpy as np
 
 from openmdao.api import ExplicitComponent
-from .b_spline import get_bspline_mtx
-from .spatialbeam import fem_chords
+from openaerostruct.structures.utils import norm
 
 class WingboxGeometry(ExplicitComponent):
     """
@@ -89,7 +88,7 @@ class WingboxGeometry(ExplicitComponent):
             # This is used to get chord length normal to FEM element.
             # To be clear, this 3D angle sweep measure.
             # This is the projection to the wing orthogonal to the FEM direction.
-            cos_theta_fe_sweep = elem_vec.dot(temp_vec) / norm_func(elem_vec) / norm_func(temp_vec)
+            cos_theta_fe_sweep = elem_vec.dot(temp_vec) / norm(elem_vec) / norm(temp_vec)
             fem_chords[ielem] = fem_chords[ielem] * cos_theta_fe_sweep
 
         outputs['fem_chords'] = fem_chords
@@ -102,7 +101,7 @@ class WingboxGeometry(ExplicitComponent):
             temp_mesh_vectors_0 = mesh_vec_0.copy()
             temp_mesh_vectors_0[2] = 0.
 
-            dot_prod_0 = mesh_vec_0.dot(temp_mesh_vectors_0) / norm_func(mesh_vec_0) / norm_func(temp_mesh_vectors_0)
+            dot_prod_0 = mesh_vec_0.dot(temp_mesh_vectors_0) / norm(mesh_vec_0) / norm(temp_mesh_vectors_0)
 
             if dot_prod_0 > 1.:
                 theta_0 = 0. # to prevent nan in case value for arccos is greater than 1 due to machine precision
@@ -113,7 +112,7 @@ class WingboxGeometry(ExplicitComponent):
             temp_mesh_vectors_1 = mesh_vec_1.copy()
             temp_mesh_vectors_1[2] = 0.
 
-            dot_prod_1 = mesh_vec_1.dot(temp_mesh_vectors_1) / norm_func(mesh_vec_1) / norm_func(temp_mesh_vectors_1)
+            dot_prod_1 = mesh_vec_1.dot(temp_mesh_vectors_1) / norm(mesh_vec_1) / norm(temp_mesh_vectors_1)
 
             if dot_prod_1 > 1.:
                 theta_1 = 0. # to prevent nan in case value for arccos is greater than 1 due to machine precision

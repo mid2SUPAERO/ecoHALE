@@ -34,6 +34,7 @@ def get_default_surfaces():
                  'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                          # thickness
                  'with_viscous' : True,  # if true, compute viscous drag
+                 'fem_model_type' : 'tube',
 
                  # Structural values are based on aluminum 7075
                  'E' : 70.e9,            # [Pa] Young's modulus of the spar

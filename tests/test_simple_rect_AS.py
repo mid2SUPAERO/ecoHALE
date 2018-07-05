@@ -38,6 +38,7 @@ class Test(unittest.TestCase):
                                             # reflected across the plane y = 0
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
+                    'fem_model_type' : 'tube',
 
                     'thickness_cp' : np.array([.075, .075]),
                     'twist_cp' : np.array([-10., 15.]),
