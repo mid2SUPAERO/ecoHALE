@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-class MaterialsTube(ExplicitComponent):
+class SectionPropertiesTube(ExplicitComponent):
     """
     Compute geometric properties for a tube element.
     The thicknesses are added to the interior of the element, so the

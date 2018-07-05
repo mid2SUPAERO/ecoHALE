@@ -4,7 +4,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
-from openaerostruct.structures.materials_tube import MaterialsTube
+from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.radius_comp import RadiusComp
 
@@ -44,6 +44,6 @@ class TubeGroup(Group):
             indep_var_comp.add_output('thickness_cp', val=surface['thickness_cp'], units='m')
 
         self.add_subsystem('tube',
-            MaterialsTube(surface=surface),
+            SectionPropertiesTube(surface=surface),
             promotes_inputs=['thickness', 'radius'],
             promotes_outputs=['A', 'Iy', 'Iz', 'J'])

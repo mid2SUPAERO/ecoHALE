@@ -41,7 +41,7 @@ Current list of function wrappers available:
     assemble_k
     spatial_beam_fem
     spatial_beam_disp
-    materials_tube
+    section_properties_tube
     geometry_mesh
     transfer_displacements
     transfer_loads
@@ -66,7 +66,7 @@ from __future__ import print_function, division
 import numpy as np
 import math
 
-from materials import MaterialsTube
+from materials import SectionPropertiesTube
 from spatialbeam import ComputeNodes, AssembleK, SpatialBeamFEM, SpatialBeamDisp#, SpatialBeamEnergy, SpatialBeamWeight, SpatialBeamVonMisesTube, SpatialBeamFailureKS
 from transfer import TransferDisplacements, TransferLoads
 from vlm import VLMGeometry, AssembleAIC, AeroCirculations, VLMForces#, VLMLiftDrag, VLMCoeffs, TotalLift, TotalDrag
@@ -176,7 +176,7 @@ def setup(prob_dict={}, surfaces=[{}]):
 
     # Add materials properties for the wing surface to the surface dict in OAS_prob
     for idx, surface in enumerate(OAS_prob.surfaces):
-        A, Iy, Iz, J = materials_tube(surface['radius'], surface['thickness'], surface)
+        A, Iy, Iz, J = section_properties_tube(surface['radius'], surface['thickness'], surface)
         OAS_prob.surfaces[idx].update({
             'A': A,
             'Iy': Iy,
@@ -197,7 +197,7 @@ def setup(prob_dict={}, surfaces=[{}]):
 
     # Initialize the OpenAeroStruct components and save them in a component dictionary
     comp_dict = {}
-    comp_dict['MaterialsTube'] = MaterialsTube(surface)
+    comp_dict['SectionPropertiesTube'] = SectionPropertiesTube(surface)
     comp_dict['GeometryMesh'] = GeometryMesh(surface)
     comp_dict['TransferDisplacements'] = TransferDisplacements(surface)
     comp_dict['VLMGeometry'] = VLMGeometry(surface)
@@ -908,7 +908,7 @@ def assemble_k(A, Iy, Iz, J, nodes, loads, comp):
 From materials.py: """
 
 
-def materials_tube(r, thickness, comp):
+def section_properties_tube(r, thickness, comp):
     """ Compute geometric properties for a tube element.
 
     Parameters
@@ -933,7 +933,7 @@ def materials_tube(r, thickness, comp):
     """
     if not isinstance(comp, Component):
         surface = comp
-        comp=MaterialsTube(surface)
+        comp=SectionPropertiesTube(surface)
     # if not r:
     #     r = surface['radius']  # this is already contained in surface dict
     # if not thickness:

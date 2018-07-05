@@ -1,6 +1,6 @@
 import unittest
 
-from openaerostruct.structures.materials_tube import MaterialsTube
+from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
@@ -9,7 +9,7 @@ class Test(unittest.TestCase):
     def test(self):
         surface = get_default_surfaces()[0]
 
-        comp = MaterialsTube(surface=surface)
+        comp = SectionPropertiesTube(surface=surface)
 
         run_test(self, comp)
 

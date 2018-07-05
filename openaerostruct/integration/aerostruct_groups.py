@@ -3,7 +3,7 @@ from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.bsplines import Bsplines
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
-from openaerostruct.structures.materials_tube import MaterialsTube
+from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -12,6 +12,7 @@ from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.structures.tube_group import TubeGroup
+from openaerostruct.structures.wingbox_group import WingboxGroup
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, ExplicitComponent, PetscKSP
 
@@ -41,10 +42,18 @@ class Aerostruct(Group):
             promotes_inputs=[],
             promotes_outputs=['mesh'] + geom_promotes)
 
-        self.add_subsystem('tube_group',
-            TubeGroup(surface=surface),
-            promotes_inputs=['mesh'],
-            promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
+        if surface['fem_model_type'] == 'tube':
+            self.add_subsystem('tube_group',
+                TubeGroup(surface=surface),
+                promotes_inputs=['mesh'],
+                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
+        elif surface['fem_model_type'] == 'wingbox':
+            self.add_subsystem('wingbox_group',
+                WingboxGroup(surface=surface),
+                promotes_inputs=['mesh'],
+                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
+        else:
+            raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
