@@ -5,8 +5,8 @@ from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
 from openaerostruct.structures.section_properties_wingbox import SectionPropertiesWingbox
+from openaerostruct.structures.wingbox_geometry import WingboxGeometry
 from openaerostruct.geometry.bsplines import Bsplines
-from openaerostruct.geometry.radius_comp import RadiusComp
 
 from openmdao.api import IndepVarComp, Group
 
@@ -21,13 +21,14 @@ class WingboxGroup(Group):
         surface = self.options['surface']
         ny = surface['num_y']
 
-        # Add independent variables that do not belong to a specific component
-        indep_var_comp = IndepVarComp()
+        if 'spar_thickness_cp' in surface.keys() or 'skin_thickness_cp' in surface.keys():
+            # Add independent variables that do not belong to a specific component
+            indep_var_comp = IndepVarComp()
 
-        # Add structural components to the surface-specific group
-        self.add_subsystem('indep_vars',
-                 indep_var_comp,
-                 promotes=['*'])
+            # Add structural components to the surface-specific group
+            self.add_subsystem('indep_vars',
+                     indep_var_comp,
+                     promotes=['*'])
 
         if 'spar_thickness_cp' in surface.keys():
             # Add bspline components for active bspline geometric variables.
@@ -48,9 +49,9 @@ class WingboxGroup(Group):
         self.add_subsystem('wingbox_geometry',
             WingboxGeometry(surface=surface),
             promotes_inputs=['mesh'],
-            promotes_outputs=['fem_chords', 'fem_twist', 'streamwise_chords'])
+            promotes_outputs=['fem_chords', 'fem_twists', 'streamwise_chords'])
 
         self.add_subsystem('wingbox',
             SectionPropertiesWingbox(surface=surface),
-            promotes_inputs=['spar_thickness', 'skin_thickness', 'fem_chords', 'fem_twist', 'streamwise_chords'],
-            promotes_outputs=['A', 'Iy', 'Iz', 'J'])
+            promotes_inputs=['spar_thickness', 'skin_thickness', 'fem_chords', 'fem_twists', 'streamwise_chords'],
+            promotes_outputs=['Qz', 'Iz', 'J', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear'])

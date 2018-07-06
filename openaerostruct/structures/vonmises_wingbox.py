@@ -51,13 +51,13 @@ class VonMisesWingbox(ExplicitComponent):
         self.add_input('J', val=np.zeros((self.ny - 1), dtype=complex))
         self.add_input('A_enc', val=np.zeros((self.ny - 1), dtype=complex))
 
-        self.add_input('sparthickness', val=np.zeros((self.ny - 1)), dtype=complex)
-        self.add_input('skinthickness', val=np.zeros((self.ny - 1)), dtype=complex)
+        self.add_input('spar_thickness', val=np.zeros((self.ny - 1), dtype=complex))
+        self.add_input('skin_thickness', val=np.zeros((self.ny - 1), dtype=complex))
 
         self.add_input('htop', val=np.zeros((self.ny - 1), dtype=complex))
         self.add_input('hbottom', val=np.zeros((self.ny - 1), dtype=complex))
         self.add_input('hfront', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('hrear', val=np.zeros((self.ny - 1)), dtype=complex)
+        self.add_input('hrear', val=np.zeros((self.ny - 1), dtype=complex))
 
         self.add_output('vonmises', val=np.zeros((self.ny-1, 4),
                         dtype=complex))
@@ -83,8 +83,8 @@ class VonMisesWingbox(ExplicitComponent):
         hbottom = inputs['hbottom']
         hfront = inputs['hfront']
         hrear = inputs['hrear']
-        sparthickness = inputs['sparthickness']
-        skinthickness = inputs['skinthickness']
+        spar_thickness = inputs['spar_thickness']
+        skin_thickness = inputs['skin_thickness']
         vonmises = outputs['vonmises']
 
         T = self.T
@@ -114,13 +114,13 @@ class VonMisesWingbox(ExplicitComponent):
 
 
             axial_stress = E * (u1x - u0x) / L      # this is stress = modulus * strain; positive is tensile
-            torsion_stress = G * J[ielem] / L * (r1x - r0x) / 2 / sparthickness[ielem] / A_enc[ielem]   # this is Torque / (2 * thickness_min * Area_enclosed)
+            torsion_stress = G * J[ielem] / L * (r1x - r0x) / 2 / spar_thickness[ielem] / A_enc[ielem]   # this is Torque / (2 * thickness_min * Area_enclosed)
             top_bending_stress = E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * htop[ielem] # this is moment * htop / I
             bottom_bending_stress = - E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * hbottom[ielem] # this is moment * htop / I
             front_bending_stress = - E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hfront[ielem] # this is moment * htop / I
             rear_bending_stress = E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hrear[ielem] # this is moment * htop / I
 
-            vertical_shear =  E / (L**3) *(-12 * u0y - 6 * r0z * L + 12 * u1y - 6 * r1z * L ) * Qy[ielem] / (2 * sparthickness[ielem]) # shear due to bending (VQ/It) note: the I used to get V cancels the other I
+            vertical_shear =  E / (L**3) *(-12 * u0y - 6 * r0z * L + 12 * u1y - 6 * r1z * L ) * Qy[ielem] / (2 * spar_thickness[ielem]) # shear due to bending (VQ/It) note: the I used to get V cancels the other I
 
             # print("==========",ielem,"================")
             # print("vertical_shear", vertical_shear)

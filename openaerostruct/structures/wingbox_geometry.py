@@ -40,8 +40,9 @@ class WingboxGeometry(ExplicitComponent):
 
     def setup(self):
         self.surface = self.options['surface']
+        nx, ny = self.surface['num_x'], self.surface['num_y'] 
 
-        self.add_input('mesh', val=self.mesh)
+        self.add_input('mesh', val=np.zeros((nx, ny, 3)))
 
         self.add_output('streamwise_chords', val=np.ones((ny - 1)))
         self.add_output('fem_chords', val=np.ones((ny - 1)))

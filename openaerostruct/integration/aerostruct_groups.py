@@ -28,10 +28,7 @@ class Aerostruct(Group):
         DVGeo = self.options['DVGeo']
 
         geom_promotes = []
-        tube_promotes = []
 
-        if 'thickness_cp' in surface.keys():
-            tube_promotes.append('thickness_cp')
         if 'twist_cp' in surface.keys():
             geom_promotes.append('twist_cp')
         if 'mx' in surface.keys():
@@ -43,15 +40,26 @@ class Aerostruct(Group):
             promotes_outputs=['mesh'] + geom_promotes)
 
         if surface['fem_model_type'] == 'tube':
+            tube_promotes = []
+            if 'thickness_cp' in surface.keys():
+                tube_promotes.append('thickness_cp')
             self.add_subsystem('tube_group',
                 TubeGroup(surface=surface),
                 promotes_inputs=['mesh'],
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
         elif surface['fem_model_type'] == 'wingbox':
+
+            wingbox_promotes = []
+            if 'skin_thickness_cp' in surface.keys() and 'spar_thickness_cp' in surface.keys():
+                wingbox_promotes.append('skin_thickness_cp')
+                wingbox_promotes.append('spar_thickness_cp')
+            elif 'skin_thickness_cp' in surface.keys() or 'spar_thickness_cp' in surface.keys():
+                raise NameError('Please have both skin and spar thickness as design variables, not one or the other.')
+
             self.add_subsystem('wingbox_group',
                 WingboxGroup(surface=surface),
                 promotes_inputs=['mesh'],
-                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
+                promotes_outputs=['Qz', 'Iz', 'J', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
@@ -95,9 +103,18 @@ class CoupledPerformance(Group):
             VLMFunctionals(surface=surface),
             promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'S_ref', 'sec_forces'], promotes_outputs=['CDv', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
 
-        self.add_subsystem('struct_funcs',
-            SpatialBeamFunctionals(surface=surface),
-            promotes_inputs=['thickness', 'radius', 'nodes', 'disp'], promotes_outputs=['thickness_intersects', 'vonmises', 'failure'])
+        if surface['fem_model_type'] == 'tube':
+            self.add_subsystem('struct_funcs',
+                SpatialBeamFunctionals(surface=surface),
+                promotes_inputs=['thickness', 'radius', 'nodes', 'disp'], promotes_outputs=['thickness_intersects', 'vonmises', 'failure'])
+
+        elif surface['fem_model_type'] == 'wingbox':
+            self.add_subsystem('struct_funcs',
+                SpatialBeamFunctionals(surface=surface),
+                promotes_inputs=['Qz', 'Iz', 'J', 'A_enc', 'spar_thickness', 'skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'], promotes_outputs=['vonmises', 'failure'])
+        else:
+            raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
+        
 
 class AerostructPoint(Group):
 

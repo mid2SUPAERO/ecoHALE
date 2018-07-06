@@ -23,12 +23,12 @@ class SpatialBeamFunctionals(Group):
         #          Energy(surface=surface),
         #          promotes=['*'])
 
-        self.add_subsystem('thicknessconstraint',
-                 NonIntersectingThickness(surface=surface),
-                 promotes_inputs=['thickness', 'radius'],
-                 promotes_outputs=['thickness_intersects'])
-
         if surface['fem_model_type'] == 'tube':
+            self.add_subsystem('thicknessconstraint',
+                     NonIntersectingThickness(surface=surface),
+                     promotes_inputs=['thickness', 'radius'],
+                     promotes_outputs=['thickness_intersects'])
+
             self.add_subsystem('vonmises',
                      VonMisesTube(surface=surface),
                      promotes_inputs=['radius', 'nodes', 'disp'],
@@ -36,7 +36,7 @@ class SpatialBeamFunctionals(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('vonmises',
                      VonMisesWingbox(surface=surface),
-                     promotes_inputs=['Qz', 'Iz', 'J', 'A_enc', 'sparthickness', 'skinthickness', 'htop', 'hbottom', 'hfront', 'hrear'],
+                     promotes_inputs=['Qz', 'Iz', 'J', 'A_enc', 'spar_thickness', 'skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
                      promotes_outputs=['vonmises'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
