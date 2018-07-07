@@ -50,7 +50,9 @@ class Test(unittest.TestCase):
                                              # can be 'wetted' or 'projected'
                     'fem_model_type' : 'wingbox',
 
-                    'thickness_cp' : np.array([.1, .2, .3]),
+                    'spar_thickness_cp' : np.array([.1, .2, .3]),
+                    'skin_thickness_cp' : np.array([.1, .2, .3]),
+                    'toverc_cp' : np.array([.1, .1, .1]),
 
                     'twist_cp' : twist_cp,
                     'mesh' : mesh,
@@ -155,7 +157,7 @@ class Test(unittest.TestCase):
 
                 prob.model.connect('load_factor', name + '.load_factor')
 
-                com_name = point_name + '.' + name + '_perf'
+                com_name = point_name + '.' + name + '_perf.'
                 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
 
                 # Connect aerodyamic mesh to coupled group mesh
@@ -163,9 +165,22 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
 
                 # Connect performance calculation variables
-                prob.model.connect(name + '.nodes', com_name + '.nodes')
+                prob.model.connect(name + '.nodes', com_name + 'nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
                 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+
+                # Connect wingbox properties to von Mises stress calcs
+                prob.model.connect(name + '.Qz', com_name + 'Qz')
+                prob.model.connect(name + '.Iz', com_name + 'Iz')
+                prob.model.connect(name + '.J', com_name + 'J')
+                prob.model.connect(name + '.A_enc', com_name + 'A_enc')
+                prob.model.connect(name + '.htop', com_name + 'htop')
+                prob.model.connect(name + '.hbottom', com_name + 'hbottom')
+                prob.model.connect(name + '.hfront', com_name + 'hfront')
+                prob.model.connect(name + '.hrear', com_name + 'hrear')
+                
+                prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
+                prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
 
         try:
             from openmdao.api import pyOptSparseDriver

@@ -31,6 +31,9 @@ class Aerostruct(Group):
 
         if 'twist_cp' in surface.keys():
             geom_promotes.append('twist_cp')
+        if 'toverc_cp' in surface.keys():
+            geom_promotes.append('toverc_cp')
+            geom_promotes.append('toverc')
         if 'mx' in surface.keys():
             geom_promotes.append('shape')
 
@@ -48,18 +51,19 @@ class Aerostruct(Group):
                 promotes_inputs=['mesh'],
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
         elif surface['fem_model_type'] == 'wingbox':
-
             wingbox_promotes = []
             if 'skin_thickness_cp' in surface.keys() and 'spar_thickness_cp' in surface.keys():
                 wingbox_promotes.append('skin_thickness_cp')
                 wingbox_promotes.append('spar_thickness_cp')
+                wingbox_promotes.append('skin_thickness')
+                wingbox_promotes.append('spar_thickness')
             elif 'skin_thickness_cp' in surface.keys() or 'spar_thickness_cp' in surface.keys():
                 raise NameError('Please have both skin and spar thickness as design variables, not one or the other.')
 
             self.add_subsystem('wingbox_group',
                 WingboxGroup(surface=surface),
-                promotes_inputs=['mesh'],
-                promotes_outputs=['Qz', 'Iz', 'J', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
+                promotes_inputs=['mesh', 'toverc'],
+                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
@@ -114,7 +118,7 @@ class CoupledPerformance(Group):
                 promotes_inputs=['Qz', 'Iz', 'J', 'A_enc', 'spar_thickness', 'skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'], promotes_outputs=['vonmises', 'failure'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
-        
+
 
 class AerostructPoint(Group):
 

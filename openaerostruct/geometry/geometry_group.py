@@ -64,9 +64,8 @@ class Geometry(Group):
                 # Add bspline components for active bspline geometric variables.
                 self.add_subsystem('toverc_bsp', Bsplines(
                     in_name='toverc_cp', out_name='toverc',
-                    num_cp=len(surface['toverc_cp']), num_pt=int(ny)),
+                    num_cp=len(surface['toverc_cp']), num_pt=int(ny-1)),
                     promotes_inputs=['toverc_cp'], promotes_outputs=['toverc'])
-                bsp_inputs.append('toverc')
                 indep_var_comp.add_output('toverc_cp', val=surface['toverc_cp'], units='m')
 
             if 'xshear_cp' in surface.keys():
