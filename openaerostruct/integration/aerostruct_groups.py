@@ -210,6 +210,8 @@ class AerostructPoint(Group):
 
         coupled.nonlinear_solver = NonlinearBlockGS()
         coupled.nonlinear_solver.options['maxiter'] = 20
+        coupled.nonlinear_solver.options['atol'] = 5e-6
+        coupled.nonlinear_solver.options['rtol'] = 1e-120
 
         # coupled.jacobian = DenseJacobian()
         coupled.linear_solver = DirectSolver()

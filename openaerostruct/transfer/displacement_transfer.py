@@ -43,7 +43,17 @@ class DisplacementTransfer(ExplicitComponent):
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
-        self.fem_origin = surface['fem_origin']
+
+        if surface['fem_model_type'] == 'tube':
+            self.fem_origin = surface['fem_origin']
+        else:
+            y_upper = surface['data_y_upper']
+            x_upper = surface['data_x_upper']
+            y_lower = surface['data_y_lower']
+
+            self.fem_origin = (x_upper[0]  * (y_upper[0]  - y_lower[0]) +
+                               x_upper[-1] * (y_upper[-1] - y_lower[-1])) / \
+                             ((y_upper[0]  -  y_lower[0]) + (y_upper[-1] - y_lower[-1]))
 
         self.add_input('mesh', val=np.random.rand(self.nx, self.ny, 3), units='m')
         self.add_input('disp', val=np.random.rand(self.ny, 6), units='m')
@@ -59,7 +69,7 @@ class DisplacementTransfer(ExplicitComponent):
         disp = inputs['disp']
 
         # Get the location of the spar within the wing and save as w
-        w = self.surface['fem_origin']
+        w = self.fem_origin
 
         # Run Fortran if possible
         if fortran_flag:
@@ -109,7 +119,7 @@ class DisplacementTransfer(ExplicitComponent):
             mesh = inputs['mesh']
             disp = inputs['disp']
 
-            w = self.surface['fem_origin']
+            w = self.fem_origin
 
             for j, val in enumerate(np.array(d_mesh).flatten()):
                 d_out_b = np.array(d_mesh).flatten()

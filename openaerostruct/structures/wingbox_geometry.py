@@ -40,7 +40,7 @@ class WingboxGeometry(ExplicitComponent):
 
     def setup(self):
         self.surface = self.options['surface']
-        nx, ny = self.surface['num_x'], self.surface['num_y'] 
+        nx, ny = self.surface['num_x'], self.surface['num_y']
 
         self.add_input('mesh', val=np.zeros((nx, ny, 3)))
 
@@ -89,7 +89,7 @@ class WingboxGeometry(ExplicitComponent):
             # This is used to get chord length normal to FEM element.
             # To be clear, this 3D angle sweep measure.
             # This is the projection to the wing orthogonal to the FEM direction.
-            cos_theta_fe_sweep = elem_vec.dot(temp_vec) / norm(elem_vec) / norm(temp_vec)
+            cos_theta_fe_sweep = norm(temp_vec) / norm(elem_vec)
             fem_chords[ielem] = fem_chords[ielem] * cos_theta_fe_sweep
 
         outputs['fem_chords'] = fem_chords
@@ -102,23 +102,23 @@ class WingboxGeometry(ExplicitComponent):
             temp_mesh_vectors_0 = mesh_vec_0.copy()
             temp_mesh_vectors_0[2] = 0.
 
-            dot_prod_0 = mesh_vec_0.dot(temp_mesh_vectors_0) / norm(mesh_vec_0) / norm(temp_mesh_vectors_0)
+            cos_twist_0 = norm(temp_mesh_vectors_0) / norm(mesh_vec_0)
 
-            if dot_prod_0 > 1.:
+            if cos_twist_0 > 1.:
                 theta_0 = 0. # to prevent nan in case value for arccos is greater than 1 due to machine precision
             else:
-                theta_0 = np.arccos(dot_prod_0)
+                theta_0 = np.arccos(cos_twist_0)
 
             mesh_vec_1 = mesh_vectors[ielem + 1]
             temp_mesh_vectors_1 = mesh_vec_1.copy()
             temp_mesh_vectors_1[2] = 0.
 
-            dot_prod_1 = mesh_vec_1.dot(temp_mesh_vectors_1) / norm(mesh_vec_1) / norm(temp_mesh_vectors_1)
+            cos_twist_1 = norm(temp_mesh_vectors_1) / norm(mesh_vec_1)
 
-            if dot_prod_1 > 1.:
+            if cos_twist_1 > 1.:
                 theta_1 = 0. # to prevent nan in case value for arccos is greater than 1 due to machine precision
             else:
-                theta_1 = np.arccos(dot_prod_1)
+                theta_1 = np.arccos(cos_twist_1)
 
             fem_twists[ielem] = (theta_0 + theta_1) / 2 * streamwise_chords[ielem] / fem_chords[ielem]
 

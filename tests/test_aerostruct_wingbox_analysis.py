@@ -32,11 +32,14 @@ class Test(unittest.TestCase):
 
     def test(self):
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 5,
-                     'num_x' : 2,
+        mesh_dict = {'num_y' : 21,
+                     'num_x' : 3,
                      'wing_type' : 'CRM',
                      'symmetry' : True,
-                     'num_twist_cp' : 5}
+                     'num_twist_cp' : 6,
+                     'chord_cos_spacing' : 0,
+                     'span_cos_spacing' : 0,
+                     }
 
         mesh, twist_cp = generate_mesh(mesh_dict)
 
@@ -50,11 +53,11 @@ class Test(unittest.TestCase):
                                              # can be 'wetted' or 'projected'
                     'fem_model_type' : 'wingbox',
 
-                    'spar_thickness_cp' : np.array([.1, .2, .3]),
-                    'skin_thickness_cp' : np.array([.1, .2, .3]),
-                    'toverc_cp' : np.array([.1, .1, .1]),
+                    'spar_thickness_cp' : np.array([0.004, 0.005, 0.005, 0.008, 0.008, 0.01]), # [m]
+                    'skin_thickness_cp' : np.array([0.005, 0.01, 0.015, 0.020, 0.025, 0.026]),
+                    'toverc_cp' : np.array([0.08, 0.08, 0.08, 0.10, 0.10, 0.08]),
 
-                    'twist_cp' : twist_cp,
+                    'twist_cp' : np.array([4., 5., 8., 8., 8., 9.]),
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
                     'num_y' : mesh.shape[1],
@@ -72,23 +75,24 @@ class Test(unittest.TestCase):
                     # the total CL and CD.
                     # These CL0 and CD0 values do not vary wrt alpha.
                     'CL0' : 0.0,            # CL of the surface at alpha=0
-                    'CD0' : 0.015,            # CD of the surface at alpha=0
+                    'CD0' : 0.0078,            # CD of the surface at alpha=0
 
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
-                    'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
+                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
+                    'c_max_t' : .38,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,
 
                     # Structural values are based on aluminum 7075
-                    'E' : 70.e9,            # [Pa] Young's modulus of the spar
-                    'G' : 30.e9,            # [Pa] shear modulus of the spar
-                    'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
-                    'mrho' : 3.e3,          # [kg/m^3] material density
-                    'fem_origin' : 0.35,    # normalized chordwise location of the spar
-                    'wing_weight_ratio' : 2.,
+                    'E' : 73.1e9,              # [Pa] Young's modulus
+                    'G' : (73.1e9/2/1.33),     # [Pa] shear modulus (calculated using E and the Poisson's ratio here)
+                    'yield' : (420.e6 / 1.5),  # [Pa] allowable yield stress
+                    'mrho' : 2.78e3,           # [kg/m^3] material density
+                    'strength_factor_for_upper_skin' : 1.0, # the yield stress is multiplied by this factor for the upper skin
+                    # 'fem_origin' : 0.35,    # normalized chordwise location of the spar
+                    'wing_weight_ratio' : 1.25,
 
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
@@ -101,15 +105,15 @@ class Test(unittest.TestCase):
 
         # Add problem information as an independent variables component
         indep_var_comp = IndepVarComp()
-        indep_var_comp.add_output('v', val=248.136, units='m/s')
-        indep_var_comp.add_output('alpha', val=5.)
-        indep_var_comp.add_output('M', val=0.84)
-        indep_var_comp.add_output('re', val=1.e6, units='1/m')
-        indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
-        indep_var_comp.add_output('R', val=11.165e6, units='m')
-        indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
-        indep_var_comp.add_output('a', val=295.4, units='m/s')
+        indep_var_comp.add_output('v', val=.85 * 295.07, units='m/s')
+        indep_var_comp.add_output('alpha', val=0.)
+        indep_var_comp.add_output('M', val=0.85)
+        indep_var_comp.add_output('re', val=0.348*295.07*.85*1./(1.43*1e-5), units='1/m')
+        indep_var_comp.add_output('rho', val=0.348, units='kg/m**3')
+        indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
+        indep_var_comp.add_output('R', val=14.307e6, units='m')
+        indep_var_comp.add_output('W0', val=(143000 - 2.5*11600 + 34000) + 15000,  units='kg')
+        indep_var_comp.add_output('a', val=295.07, units='m/s')
         indep_var_comp.add_output('load_factor', val=1.)
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 
@@ -178,7 +182,7 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.hbottom', com_name + 'hbottom')
                 prob.model.connect(name + '.hfront', com_name + 'hfront')
                 prob.model.connect(name + '.hrear', com_name + 'hrear')
-                
+
                 prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
                 prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
 
@@ -201,7 +205,11 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 101833.16349698044, places=3)
+        print('fuelburn: ', prob['AS_point_0.fuelburn'][0])
+        print('structural_weight: ', prob['wing.structural_weight'][0])
+
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 97283.0520221, places=3)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 230853.0879710879, places=3)
 
 
 if __name__ == '__main__':

@@ -39,7 +39,17 @@ class ComputeNodes(ExplicitComponent):
 
         self.ny = surface['num_y']
         self.nx = surface['num_x']
-        self.fem_origin = surface['fem_origin']
+
+        if surface['fem_model_type'] == 'tube':
+            self.fem_origin = surface['fem_origin']
+        else:
+            y_upper = surface['data_y_upper']
+            x_upper = surface['data_x_upper']
+            y_lower = surface['data_y_lower']
+
+            self.fem_origin = (x_upper[0]  * (y_upper[0]  - y_lower[0]) +
+                               x_upper[-1] * (y_upper[-1] - y_lower[-1])) / \
+                             ((y_upper[0]  -  y_lower[0]) + (y_upper[-1] - y_lower[-1]))
 
         self.add_input('mesh', val=np.random.random_sample((self.nx, self.ny, 3)), units='m')#, dtype=data_type))
         self.add_output('nodes', val=np.random.random_sample((self.ny, 3)), units='m')#, dtype=data_type))
