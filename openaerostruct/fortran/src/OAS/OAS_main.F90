@@ -337,7 +337,7 @@ contains
       T = T + T_base
 
       do indx=1,nx
-        call matmul2(1, 3, 3, Smesh(indx, ind, :), T, vec)
+        call matmul2(3, 3, 1, T, Smesh(indx, ind, :), vec)
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
       end do
 

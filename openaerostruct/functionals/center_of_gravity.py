@@ -44,7 +44,7 @@ class CenterOfGravity(ExplicitComponent):
         self.options.declare('surfaces', types=list)
 
     def setup(self):
-        
+
         self.declare_partials('*', '*')
 
         for surface in self.options['surfaces']:

@@ -56,7 +56,7 @@ class FailureKS(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('vonmises', val=np.random.random_sample((self.ny-1, num_failure_criteria)), units='N/m**2')
+        self.add_input('vonmises', val=np.zeros((self.ny-1, num_failure_criteria)), units='N/m**2')
         self.add_output('failure', val=0.)
 
         self.sigma = surface['yield']

@@ -199,17 +199,27 @@ class Test(unittest.TestCase):
 
         # Set up the problem
         prob.setup()
-
-        from openmdao.api import view_model
-        view_model(prob)
+        #
+        # from openmdao.api import view_model
+        # view_model(prob)
 
         prob.run_model()
 
+        prob.model.list_outputs(values=True,
+                                implicit=False,
+                                units=True,
+                                shape=True,
+                                bounds=True,
+                                residuals=True,
+                                scaling=True,
+                                hierarchical=False,
+                                print_arrays=True)
+
         print('fuelburn: ', prob['AS_point_0.fuelburn'][0])
-        print('structural_weight: ', prob['wing.structural_weight'][0])
+        print('structural_weight: ', prob['wing.structural_weight'][0]/1.25)
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 97283.0520221, places=3)
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 230853.0879710879, places=3)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0]/1.25, 230853.0879710879, places=3)
 
 
 if __name__ == '__main__':

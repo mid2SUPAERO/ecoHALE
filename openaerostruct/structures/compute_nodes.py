@@ -51,8 +51,8 @@ class ComputeNodes(ExplicitComponent):
                                x_upper[-1] * (y_upper[-1] - y_lower[-1])) / \
                              ((y_upper[0]  -  y_lower[0]) + (y_upper[-1] - y_lower[-1]))
 
-        self.add_input('mesh', val=np.random.random_sample((self.nx, self.ny, 3)), units='m')#, dtype=data_type))
-        self.add_output('nodes', val=np.random.random_sample((self.ny, 3)), units='m')#, dtype=data_type))
+        self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')#, dtype=data_type))
+        self.add_output('nodes', val=np.zeros((self.ny, 3)), units='m')#, dtype=data_type))
 
         w = self.fem_origin
         n = self.ny * 3

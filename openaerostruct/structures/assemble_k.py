@@ -53,7 +53,6 @@ class AssembleK(ExplicitComponent):
         self.add_input('Iz', val=np.random.rand((self.ny - 1)), units='m**4')#, dtype=data_type))
         self.add_input('J', val=np.random.rand((self.ny - 1)), units='m**4')#, dtype=data_type))
         self.add_input('nodes', val=np.random.random_sample((self.ny, 3)), units='m')#, dtype=data_type))
-
         self.add_output('K', val=np.ones((size, size), dtype=data_type), units='N/m')
 
         # Get material properties from the surface dictionary

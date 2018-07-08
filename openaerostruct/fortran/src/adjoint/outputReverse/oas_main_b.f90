@@ -973,8 +973,8 @@ contains
       do indx=nx,1,-1
         vecb = 0.0_8
         vecb = def_meshb(indx, ind, :)
-        call matmul2_b(1, 3, 3, smesh(indx, ind, :), smeshb(indx, ind, :&
-&                ), t, tb, vec, vecb)
+        call matmul2_b(3, 3, 1, t, tb, smesh(indx, ind, :), smeshb(indx&
+&                , ind, :), vec, vecb)
       end do
       sinrb = 0.0_8
       sinrb(1) = sinrb(1) + tb(3, 2)
@@ -1052,7 +1052,7 @@ contains
       t(3, 2) = sinr(1)
       t = t + t_base
       do indx=1,nx
-        call matmul2(1, 3, 3, smesh(indx, ind, :), t, vec)
+        call matmul2(3, 3, 1, t, smesh(indx, ind, :), vec)
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
       end do
       def_mesh(:, ind, 1) = def_mesh(:, ind, 1) + disp(ind, 1)

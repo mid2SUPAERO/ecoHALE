@@ -37,8 +37,8 @@ class Energy(ExplicitComponent):
 
         ny = surface['num_y']
 
-        self.add_input('disp', val=np.random.random_sample((ny, 6)), units='m')
-        self.add_input('loads', val=np.random.random_sample((ny, 6)), units='N')
+        self.add_input('disp', val=np.zeros((ny, 6)), units='m')
+        self.add_input('loads', val=np.zeros((ny, 6)), units='N')
         self.add_output('energy', val=0., units='N*m')
 
         self.declare_partials('*', '*')
