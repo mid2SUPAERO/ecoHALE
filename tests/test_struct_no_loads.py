@@ -91,7 +91,7 @@ class Test(unittest.TestCase):
         prob.run_driver()
 
         self.assertAlmostEqual(prob['wing.structural_weight'][0], 133427.40492929096, places=2)
-        self.assertAlmostEqual(prob['wing.disp'][1, 2], -0.18325314287309113, places=2)
+        self.assertAlmostEqual(prob['wing.disp'][1, 2], 0., places=2)
 
 
 

@@ -151,8 +151,8 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 267617.43725009426, places=2)
-        self.assertAlmostEqual(prob['AS_point_0.CM'][1], -0.06018964113505335, places=3)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 276558.2150236781, places=2)
+        self.assertAlmostEqual(prob['AS_point_0.CM'][1], -0.05778832692641323, places=3)
 
 
 if __name__ == '__main__':
