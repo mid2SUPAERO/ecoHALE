@@ -32,7 +32,7 @@ class Test(unittest.TestCase):
 
     def test(self):
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 21,
+        mesh_dict = {'num_y' : 5,
                      'num_x' : 3,
                      'wing_type' : 'CRM',
                      'symmetry' : True,
@@ -218,8 +218,8 @@ class Test(unittest.TestCase):
         print('fuelburn: ', prob['AS_point_0.fuelburn'][0])
         print('structural_weight: ', prob['wing.structural_weight'][0]/1.25)
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 97283.0520221, places=3)
-        self.assertAlmostEqual(prob['wing.structural_weight'][0]/1.25, 230853.0879710879, places=3)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 116775.0566890688, places=3)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0]/1.25, 235865.31541985113, places=3)
 
 
 if __name__ == '__main__':

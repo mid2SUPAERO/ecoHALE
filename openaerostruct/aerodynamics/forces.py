@@ -100,7 +100,6 @@ class Forces(ExplicitComponent):
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
 
-        # Assemble a different matrix here than the AIC_mtx from above; Note
         # that the collocation points used here are the midpoints of each
         # bound vortex filament, not the collocation points from above
         _assemble_AIC_mtx(self.mtx, inputs, self.surfaces, skip=True)
