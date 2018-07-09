@@ -65,10 +65,10 @@ class AssembleAIC(ExplicitComponent):
             nx = surface['num_x']
             name = surface['name']
 
-            self.add_input(name + '_def_mesh', val=np.ones((nx, ny, 3)), units='m')
-            self.add_input(name + '_b_pts', val=np.ones((nx-1, ny, 3)), units='m')
-            self.add_input(name + '_c_pts', val=np.ones((nx-1, ny-1, 3)), units='m')
-            self.add_input(name + '_normals', val=np.ones((nx-1, ny-1, 3)))
+            self.add_input(name + '_def_mesh', val=np.random.rand(nx, ny, 3), units='m')
+            self.add_input(name + '_b_pts', val=np.random.rand(nx-1, ny, 3), units='m')
+            self.add_input(name + '_c_pts', val=np.random.rand(nx-1, ny-1, 3), units='m')
+            self.add_input(name + '_normals', val=np.random.rand(nx-1, ny-1, 3))
             tot_panels += (nx - 1) * (ny - 1)
 
         self.tot_panels = tot_panels

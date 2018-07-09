@@ -65,8 +65,8 @@ class CreateRHS(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         outputs['forces'][:] = 0.
-        # outputs['forces'][:6*(self.ny-1)][2::6] -= inputs['element_weights'] / 2
-        # outputs['forces'][:6*self.ny][8::6] -= inputs['element_weights'] / 2
+        outputs['forces'][:6*(self.ny-1)][2::6] -= inputs['element_weights'] / 2
+        outputs['forces'][:6*self.ny][8::6] -= inputs['element_weights'] / 2
 
         # Populate the right-hand side of the linear system using the
         # prescribed or computed loads

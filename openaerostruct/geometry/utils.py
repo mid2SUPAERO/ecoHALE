@@ -461,8 +461,8 @@ def gen_crm_mesh(num_x, num_y, span_cos_spacing=0., chord_cos_spacing=0., wing_t
 
     # If this is a jig shape, remove all z-deflection to create a
     # poor person's version of the undeformed CRM.
-    # if 'jig' in wing_type or 'CRM' == wing_type:
-    #     raw_crm_points[:, 3] = 0.
+    if 'jig' in wing_type or 'CRM' == wing_type:
+        raw_crm_points[:, 3] = 0.
 
     # Get the leading edge of the raw crm points
     le = np.vstack((raw_crm_points[:,1],

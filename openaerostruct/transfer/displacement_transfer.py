@@ -101,7 +101,8 @@ class DisplacementTransfer(ExplicitComponent):
                 T[ :2,  :2] += [[cos(rz), -sin(rz)], [ sin(rz), cos(rz)]]
 
                 # Obtain the displacements on the mesh based on the spar response
-                mesh_disp[:, ind, :] += np.dot(T, Smesh[:, ind, :].T).T
+                # mesh_disp[:, ind, :] += np.dot(T, Smesh[:, ind, :].T).T
+                mesh_disp[:, ind, :] += Smesh[:, ind, :].dot(T)
                 mesh_disp[:, ind, 0] += dx
                 mesh_disp[:, ind, 1] += dy
                 mesh_disp[:, ind, 2] += dz
