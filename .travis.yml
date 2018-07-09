@@ -7,7 +7,7 @@ language: generic
 
 env:
 - FORTRAN= PY=2.7
-- FORTRAN= PY=3.4
+- FORTRAN= PY=3.6
 - FORTRAN=1 PY=2.7
 
 addons:
@@ -48,15 +48,16 @@ install:
 - pip install coverage
 - pip install coveralls
 - pip install git+git://github.com/OpenMDAO/openmdao.git
+- pip install --user travis-sphinx
 
 script:
 - if [ "$FORTRAN" ]; then
     cd openaerostruct/fortran; make; cd ../..;
   fi
-- cd ..
-- export PYTHONPATH=$PYTHONPATH:$PWD
-- cd -
+- pip install -e .
 - testflo . --coverage --coverpkg openaerostruct
+- travis-sphinx build --source=openaerostruct/docs --nowarn
 
 after_success:
 - coveralls
+- travis-sphinx deploy --branches=master,wingbox
