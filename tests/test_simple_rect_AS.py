@@ -7,7 +7,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 
 from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizer, LinearRunOnce
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, LinearRunOnce
 
 try:
     from openaerostruct.fortran import OAS_API
@@ -153,16 +153,9 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
                 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizer
-            prob.driver = ScipyOptimizer()
-            prob.driver.options['tol'] = 1e-9
+        from openmdao.api import ScipyOptimizeDriver
+        prob.driver = ScipyOptimizeDriver()
+        prob.driver.options['tol'] = 1e-9
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
@@ -178,38 +171,9 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
-        """
-        # OM: Change the solver settings here ###
-        """
-
-        # Set linear solver properties for the coupled group
-        # prob.model.AS_point_0.coupled.linear_solver = ScipyIterativeSolver()
-        # prob.model.AS_point_0.coupled.linear_solver.precon = LinearRunOnce()
-
-        # prob.model.AS_point_0.coupled.linear_solver = PetscKSP()
-
-        # prob.model.AS_point_0.coupled.jacobian = DenseJacobian()
-        prob.model.AS_point_0.coupled.linear_solver = DirectSolver()
-
-        # Set nonlinear solver properties
-        prob.model.AS_point_0.coupled.nonlinear_solver = NonlinearBlockGS()
-
-        # prob.model.AS_point_0.coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
-
-
-        prob.model.AS_point_0.coupled.nonlinear_solver.options['maxiter'] = 20
-        prob.model.AS_point_0.coupled.nonlinear_solver.options['iprint'] = 2
-
-        # This takes a long, long time to run (~600 secs vs 6 secs without)
-        # prob.model.approx_total_derivs(method='fd', step_calc='rel')
-
-        """
-        ### End change of solver settings ###
-        """
-
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 74449.52826058815, places=3)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 72128.75170161888, places=3)
 
 
 if __name__ == '__main__':
