@@ -209,7 +209,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 74283.180227023186, places=3)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 72491.05138931383, places=3)
 
 
 if __name__ == '__main__':

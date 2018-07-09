@@ -707,8 +707,8 @@ contains
       t(3, 2) = sinr(1)
       t = t + t_base
       do indx=1,nx
-        call matmul2_d(1, 3, 3, smesh(indx, ind, :), smeshd(indx, ind, :&
-&                ), t, td, vec, vecd)
+        call matmul2_d(3, 3, 1, t, td, smesh(indx, ind, :), smeshd(indx&
+&                , ind, :), vec, vecd)
         def_meshd(indx, ind, :) = def_meshd(indx, ind, :) + vecd
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
       end do
@@ -760,7 +760,7 @@ contains
       t(3, 2) = sinr(1)
       t = t + t_base
       do indx=1,nx
-        call matmul2(1, 3, 3, smesh(indx, ind, :), t, vec)
+        call matmul2(3, 3, 1, t, smesh(indx, ind, :), vec)
         def_mesh(indx, ind, :) = def_mesh(indx, ind, :) + vec
       end do
       def_mesh(:, ind, 1) = def_mesh(:, ind, 1) + disp(ind, 1)
