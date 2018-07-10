@@ -101,19 +101,20 @@ class Display(object):
             self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
-        self.db = SqliteCaseReader(self.db_name)
-        cases = self.db.system_cases.list_cases()
-        print(cases)
-        print(cases[0])
-        c0 = self.db.system_cases.get_case(-1)
-        print(dir(c0))
-        print(c0.inputs)
-        print()
-        print(c0.outputs['wing.twist_bsp.twist'])
+        cr = self.case_reader = SqliteCaseReader(self.db_name)
+        cr.load_cases()
+        last_case = cr.driver_cases.get_case(-1)
 
+        # figure out if this is an optimization and what the objective is
+        obj_keys = last_case.get_objectives()
+        if obj_keys: # if its not an empty list
+            self.opt = True
+            self.obj_key = obj_keys.keys[0]
+        else:
+            self.opt = False
 
-        exit()
-        # self.db = sqlitedict.SqliteDict(self.db_name, 'iterations')
+        # for case in cr.get_cases():
+        #     print(dir(case))
 
         self.twist = []
         self.mesh = []
@@ -135,60 +136,60 @@ class Display(object):
         self.obj = []
         self.cg = []
 
-        meta_db = sqlitedict.SqliteDict(self.db_name, 'options')
-        self.opt = False
-        for item in meta_db['Unknowns']:
-            if 'is_objective' in meta_db['Unknowns'][item].keys():
-                self.obj_key = item
-                if major_python_version == 3:
-                    keys_length = sum(1 for _ in self.db.keys())
-                else:
-                    keys_length = len(self.db.keys())
-                if keys_length > 2:
-                    self.opt = True
+        # Using system metadata, pull out options so we know the stress limits and FEM origin
+        # self.yield_stress_dict = {}
+        # self.fem_origin_dict = {}
+        # for key, value in iteritems(meta_db['system_options']):
+        #     if 'yield_stress' in key:
+        #         self.yield_stress_dict.update({key : value})
+        #     if 'fem_origin' in key:
+        #         self.fem_origin_dict.update({key : value})
 
-        self.yield_stress_dict = {}
-        self.fem_origin_dict = {}
-        for key, value in iteritems(meta_db['system_options']):
-            if 'yield_stress' in key:
-                self.yield_stress_dict.update({key : value})
-            if 'fem_origin' in key:
-                self.fem_origin_dict.update({key : value})
+        # Code that looked for derivatives solves in order to pull identify major iterations
+        # deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
+        # deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
 
-        deriv_keys = sqlitedict.SqliteDict(self.db_name, 'derivs').keys()
-        deriv_keys = [int(key.split('|')[-1]) for key in deriv_keys]
+        self.fem_origin_dict = {'wing_fem_origin' : .35}
+        self.yield_stress_dict = {'wing_yield_stress' : 200e6}
 
-        for i, (case_name, case_data) in enumerate(iteritems(self.db)):
 
-            if i == 0:
-                pass
-            elif i not in deriv_keys:
-                if deriv_keys:
-                    continue # don't plot these cases
+        # figure out if twist is a desvar
+        self.twist_included = False
+        for dv_name in last_case.get_desvars():
+            if 'twist' in dv_name:
+                self.twist_included = True
+                break
+
+        # find the names of all surfaces
+        names = []
+        for key in last_case.outputs:
+            # Aerostructural
+            if 'coupled' in key and 'loads' in key:
+                self.aerostruct = True
+                # convoluted way to get the surface name from `<point_name>.coupled.<surf_name>_loads`
+                surf_name = (key.split('.')[2]).split("_")[0]
+                names.append(surf_name)
+
+            # TODO JJ: Fix this for aero and structures cases
+            # # Aero only
+            # elif 'def_mesh' in key and 'coupled' not in key:
+            #     names.append(key.split('.')[1])
+
+            # # Structural only
+            # elif 'disp_aug' in key and 'coupled' not in key:
+            #     names.append(key.split('.')[1])
+
+        self.names = names
+        n_names = len(names)
+
+        # TODO JJ: need better way to handle multipoint
+        pt_name = 'AS_point_0'
+
+        # loop to pull data out of case reader and organize it into arrays
+        for i, case in enumerate(cr.get_cases()):
 
             if self.opt:
-                self.obj.append(case_data['Unknowns'][self.obj_key])
-
-            names = []
-            for key in case_data['Unknowns'].keys():
-
-                # Aerostructural
-                if 'coupled' in key and 'loads' in key:
-                    self.aerostruct = True
-                    names.append(key.split('_')[:-1][0])
-
-                # Aero only
-                elif 'def_mesh' in key and 'coupled' not in key:
-                    names.append(key.split('.')[0])
-
-                # Structural only
-                elif 'disp_aug' in key and 'coupled' not in key:
-                    names.append(key.split('.')[0])
-
-            self.names = names
-            n_names = len(names)
-
-            self.twist_included = False
+                self.obj.append(case.outputs[self.obj_key])
 
             # Loop through each of the surfaces
             for name in names:
@@ -198,29 +199,29 @@ class Display(object):
                 if not self.aerostruct:
 
                     # A mesh exists for all types of cases
-                    self.mesh.append(case_data['Unknowns'][name+'.mesh'])
+                    self.mesh.append(case.outputs[name+'.mesh'])
 
                     try:
-                        self.radius.append(case_data['Unknowns'][name+'.radius'])
-                        self.thickness.append(case_data['Unknowns'][name+'.thickness'])
+                        self.radius.append(case.outputs[name+'.radius'])
+                        self.thickness.append(case.outputs[name+'.thickness'])
                         self.vonmises.append(
-                            np.max(case_data['Unknowns'][name+'.vonmises'], axis=1))
+                            np.max(case.outputs[name+'.vonmises'], axis=1))
                         self.show_tube = True
                     except:
                         self.show_tube = False
                     try:
-                        self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
-                        normals.append(case_data['Unknowns'][name+'.normals'])
-                        widths.append(case_data['Unknowns'][name+'.widths'])
-                        sec_forces.append(case_data['Unknowns']['aero_states.' + name + '_sec_forces'])
-                        self.CL.append(case_data['Unknowns'][name+'_perf.CL1'])
-                        self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
+                        self.def_mesh.append(case.outputs[name+'.def_mesh'])
+                        normals.append(case.outputs[name+'.normals'])
+                        widths.append(case.outputs[name+'.widths'])
+                        sec_forces.append(case.outputs['aero_states.' + name + '_sec_forces'])
+                        self.CL.append(case.outputs[name+'_perf.CL1'])
+                        self.S_ref.append(case.outputs[name+'.S_ref'])
                         self.show_wing = True
 
                         # Not the best solution for now, but this will ensure
-                        # that this plots corectly even if twist isn't a desvar
+                        # that this plots correctly even if twist isn't a desvar
                         try:
-                            self.twist.append(case_data['Unknowns'][name+'.twist'])
+                            self.twist.append(case.outputs[name+'.twist'])
                             self.twist_included = True
                         except:
                             pass
@@ -228,37 +229,43 @@ class Display(object):
                         self.show_wing = False
                 else:
                     self.show_wing, self.show_tube = True, True
-                    short_name = name.split('.')[1:][0]
 
-                    self.mesh.append(case_data['Unknowns'][short_name+'.mesh'])
-                    self.radius.append(case_data['Unknowns'][short_name+'.radius'])
-                    self.thickness.append(case_data['Unknowns'][short_name+'.thickness'])
-                    self.vonmises.append(
-                        np.max(case_data['Unknowns'][short_name+'_perf.vonmises'], axis=1))
-                    self.def_mesh.append(case_data['Unknowns'][name+'.def_mesh'])
-                    normals.append(case_data['Unknowns'][name+'.normals'])
-                    widths.append(case_data['Unknowns'][name+'.widths'])
-                    sec_forces.append(case_data['Unknowns']['coupled.aero_states.' + short_name + '_sec_forces'])
-                    self.CL.append(case_data['Unknowns'][short_name+'_perf.CL1'])
-                    self.S_ref.append(case_data['Unknowns'][name+'.S_ref'])
+                    self.mesh.append(case.outputs[name+'.mesh'])
+                    self.radius.append(case.outputs[name+'.radius'])
+                    self.thickness.append(case.outputs[name+'.thickness'])
+
+                    vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_name, surf_name=name)
+                    self.vonmises.append(np.max(case.outputs[vm_var_name], axis=1))
+
+                    def_mesh_var_name = '{pt_name}.coupled.{surf_name}.def_mesh'.format(pt_name=pt_name, surf_name=name)
+                    self.def_mesh.append(case.outputs[def_mesh_var_name])
+
+                    normals_var_name = '{pt_name}.coupled.{surf_name}.normals'.format(pt_name=pt_name, surf_name=name)
+                    normals.append(case.outputs[normals_var_name])
+
+                    widths_var_name = '{pt_name}.coupled.{surf_name}.widths'.format(pt_name=pt_name, surf_name=name)
+                    widths.append(case.outputs[widths_var_name])
+                    sec_forces.append(case.outputs[pt_name+'.coupled.aero_states.' + name + '_sec_forces'])
+
+                    cl_var_name = '{pt_name}.{surf_name}_perf.CL1'.format(pt_name=pt_name, surf_name=name)
+                    self.CL.append(case.outputs[cl_var_name])
+
+                    S_ref_var_name = '{pt_name}.coupled.{surf_name}.aero_geom.S_ref'.format(pt_name=pt_name, surf_name=name)
+                    self.S_ref.append(case.outputs[S_ref_var_name])
 
                     # Not the best solution for now, but this will ensure
-                    # that this plots corectly even if twist isn't a desvar
-                    try:
-                        self.twist.append(case_data['Unknowns'][short_name+'.twist'])
-                        self.twist_included = True
-                    except:
-                        pass
-
-                if not self.twist_included:
-                    ny = self.mesh[0].shape[1]
-                    self.twist.append(np.zeros(ny))
+                    # that this plots correctly even if twist isn't a desvar
+                    if self.twist_included:
+                        self.twist.append(case.outputs[name+'.geometry.twist'])
+                    else:
+                        ny = self.mesh[0].shape[1]
+                        self.twist.append(np.zeros(ny))
 
             if self.show_wing:
-                alpha.append(case_data['Unknowns']['alpha'] * np.pi / 180.)
-                rho.append(case_data['Unknowns']['rho'])
-                v.append(case_data['Unknowns']['v'])
-                self.cg.append(case_data['Unknowns']['cg'])
+                alpha.append(case.outputs['alpha'] * np.pi / 180.)
+                rho.append(case.outputs['rho'])
+                v.append(case.outputs['v'])
+                self.cg.append(case.outputs['{pt_name}.cg'.format(pt_name=pt_name)])
 
         if self.opt:
             self.num_iters = np.max([int(len(self.mesh) / n_names) - 1, 1])
@@ -578,9 +585,9 @@ class Display(object):
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
 
-        round_to_n = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + (n - 1))
+        # round_to_n = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + (n - 1))
         if self.opt:
-            obj_val = round_to_n(self.obj[self.curr_pos], 7)
+            obj_val = self.obj[self.curr_pos]
             self.ax.text2D(.55, .05, self.obj_key + ': {}'.format(obj_val),
                 transform=self.ax.transAxes, color='k')
 
