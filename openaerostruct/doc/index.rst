@@ -75,12 +75,21 @@ Known Issues
 
 
 Tutorials and Indices
-==================
+======================
 
 .. toctree::
    :maxdepth: 2
 
    tutorials.rst
+
+
+Jubs Testing
+==============
+
+.. toctree::
+    :maxdepth: 2
+
+    embed_test.rst
 
 Check out the module index below to see the internal methods within each file and how they're used.
 
