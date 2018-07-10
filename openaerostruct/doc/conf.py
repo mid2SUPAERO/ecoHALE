@@ -5,12 +5,14 @@ import sys
 import os
 
 import openmdao
-
 openmdao_path = os.path.split(os.path.abspath(openmdao.__file__))[0]
+sys.path.insert(0, os.path.join(openmdao_path, 'docs', '_exts'))
+
+#import openaerostruct
+#openaero_path = os.path.split(os.path.abspath(openaerostruct.__file__))[0]
 
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.join(openmdao_path, 'docs', '_exts'))
 
 # -- General configuration ------------------------------------------------
 
@@ -34,8 +36,6 @@ extensions = ['sphinx.ext.autodoc',
               #'embed_compare',
               #'embed_shell_cmd',
               #'embed_bibtex']
-# start off running the monkeypatch to keep options/parameters
-# usable in docstring for autodoc.
 
 
 # -- General configuration ------------------------------------------------
@@ -46,7 +46,6 @@ needs_sphinx = '1.6.2'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-
 
 numpydoc_show_class_members = False
 
@@ -102,15 +101,12 @@ todo_include_todos = False
 import sphinx_rtd_theme
 
 html_theme = "sphinx_rtd_theme"
-
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-html_theme = '_theme'
-
-# Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ['.']
+html_static_path = ['_static']
+html_context = {
+    'css_files': ['_static/style.css',],
+}
 
 # # The name of an image file (relative to this directory) to place at the top
 # # of the sidebar.
