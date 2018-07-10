@@ -117,8 +117,8 @@ class Test(unittest.TestCase):
             prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                         'Major feasibility tolerance': 1.0e-8}
         except:
-            from openmdao.api import ScipyOptimizer
-            prob.driver = ScipyOptimizer()
+            from openmdao.api import ScipyOptimizeDriver
+            prob.driver = ScipyOptimizeDriver()
 
         # # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)

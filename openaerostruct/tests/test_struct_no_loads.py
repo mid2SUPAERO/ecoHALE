@@ -7,7 +7,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.structures.struct_groups import SpatialBeamAlone
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizer
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
 
 
 class Test(unittest.TestCase):
@@ -72,8 +72,8 @@ class Test(unittest.TestCase):
             prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
                                         'Major feasibility tolerance': 1.0e-8}
         except:
-            from openmdao.api import ScipyOptimizer
-            prob.driver = ScipyOptimizer()
+            from openmdao.api import ScipyOptimizeDriver
+            prob.driver = ScipyOptimizeDriver()
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)

@@ -81,18 +81,6 @@ class BreguetRange(ExplicitComponent):
         # Convert fuelburn from N to kg
         outputs['fuelburn'] = fuelburn / g
 
-        print('===========')
-        print(W0)
-        print(Ws)
-        print(R)
-        print(CT)
-        print(a)
-        print(M)
-        print(CD)
-        print(CL)
-        print('===========')
-
-
     def compute_partials(self, inputs, partials):
 
         g = 9.80665 * inputs['load_factor']
