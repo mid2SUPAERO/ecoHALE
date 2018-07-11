@@ -3,6 +3,9 @@
 # containing dir.
 import sys
 import os
+import importlib
+from numpydoc.docscrape import NumpyDocString, Reader
+from mock import Mock
 
 import openmdao
 openmdao_path = os.path.split(os.path.abspath(openmdao.__file__))[0]
@@ -13,6 +16,23 @@ sys.path.insert(0, os.path.join(openmdao_path, 'docs', '_exts'))
 
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('.'))
+
+
+from openmdao.docs.config_params import MOCK_MODULES
+from openaerostruct.doc._utils.patch import do_monkeypatch
+
+# Only mock the ones that don't import.
+for mod_name in MOCK_MODULES:
+    try:
+        importlib.import_module(mod_name)
+    except ImportError:
+        sys.modules[mod_name]=Mock()
+
+# start off running the monkeypatch to keep options/parameters
+# usable in docstring for autodoc.
+
+do_monkeypatch()
+
 
 # -- General configuration ------------------------------------------------
 
@@ -30,7 +50,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages', #,
               # 'sphinxcontrib.bibtex',
-              #'numpydoc',
+              'numpydoc',
               'embed_code',
               'embed_options']
               #'embed_compare',
@@ -99,10 +119,16 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 import sphinx_rtd_theme
+#
+# html_theme = "sphinx_rtd_theme"
+# html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
-html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+# The theme to use for HTML and HTML Help pages.  See the documentation for
+# a list of builtin themes.
+html_theme = '_theme'
 
+# Add any paths that contain custom themes here, relative to this directory.
+html_theme_path = ['.']
 html_static_path = ['_static']
 html_context = {
     'css_files': ['_static/style.css',],

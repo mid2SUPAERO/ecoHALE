@@ -1,7 +1,7 @@
 .. _Aerostruct:
 
 Aerostructural Optimization
-========================
+===========================
 
 The following Python script performs aerostructural optimization to minimize fuel burn while varying twist, thickness, and alpha subject to L=W, structural failure, and structural intersection constraints.
 
