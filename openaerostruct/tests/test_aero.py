@@ -7,7 +7,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP
-
+from openmdao.utils.assert_utils import assert_rel_error
 
 class Test(unittest.TestCase):
 
@@ -130,10 +130,14 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073)
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.5)
-        self.assertAlmostEqual(prob['aero_point_0.CM'][1], -0.18451822790794759)
+        # self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073)
+        # self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.5)
+        # self.assertAlmostEqual(prob['aero_point_0.CM'][1], -0.18451822790794759)
 
+        tol = 1e-8
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073, tol)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, tol)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.18451822790794759, tol)
 
 
 if __name__ == '__main__':

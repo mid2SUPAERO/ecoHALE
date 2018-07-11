@@ -7,7 +7,9 @@ from openaerostruct.geometry.geometry_group import Geometry
 
 from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, \
+LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, \
+SqliteRecorder
 
 try:
     from openaerostruct.fortran import OAS_API
@@ -164,6 +166,10 @@ class Test(unittest.TestCase):
             prob.driver = ScipyOptimizeDriver()
             prob.driver.options['tol'] = 1e-9
 
+        recorder = SqliteRecorder("cases.sql")
+        prob.driver.add_recorder(recorder)
+        prob.driver.recording_options['record_derivatives'] = True
+
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
         prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
@@ -178,7 +184,12 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
+        # from openmdao.api import view_model
+        # view_model(prob)
+
         prob.run_driver()
+        # prob.run_model()
+
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104400.0251030171, places=3)
 

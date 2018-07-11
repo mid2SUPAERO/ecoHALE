@@ -4,10 +4,10 @@ from six import iteritems
 from numpy.testing import assert_almost_equal
 
 
-def run_test(obj, comp, decimal=3):
+def run_test(obj, comp, decimal=3, complex=False):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
-    prob.setup()
+    prob.setup(force_alloc_complex=complex)
 
     prob.run_model()
     check = prob.check_partials(compact_print=True)
