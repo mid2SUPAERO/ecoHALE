@@ -98,6 +98,12 @@ class GeometryMesh(ExplicitComponent):
             self.add_input('yshear', val=geo_params['yshear'], units='m')
         if 'zshear_cp' in surface.keys():
             self.add_input('zshear', val=geo_params['zshear'], units='m')
+        if 'sweep' in surface.keys():
+            self.add_input('sweep', val=geo_params['sweep'], units='deg')
+        if 'dihedral' in surface.keys():
+            self.add_input('dihedral', val=geo_params['dihedral'], units='deg')
+        if 'taper' in surface.keys():
+            self.add_input('taper', val=geo_params['taper'])
 
         self.add_output('mesh', val=self.mesh, units='m')
 

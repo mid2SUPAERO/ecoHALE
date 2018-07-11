@@ -203,7 +203,7 @@ class Test(unittest.TestCase):
         # filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
         # np.save(filename, mesh)
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 102310.58271266764, places=3)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104675.0989232741, places=3)
 
 
 if __name__ == '__main__':

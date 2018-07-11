@@ -15,12 +15,15 @@ class Test(unittest.TestCase):
     def test(self):
 
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 7,
-                     'wing_type' : 'CRM',
+        mesh_dict = {'num_y' : 5,
+                     'num_x' : 3,
+                     'wing_type' : 'rect',
                      'symmetry' : True,
-                     'num_twist_cp' : 5}
+                     'span_cos_spacing' : 1.,
+                     'span' : 10,
+                     'chord' : 1}
 
-        mesh, twist_cp = generate_mesh(mesh_dict)
+        mesh = generate_mesh(mesh_dict)
 
         surf_dict = {
                     # Wing definition
@@ -41,8 +44,8 @@ class Test(unittest.TestCase):
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     't_over_c' : 0.15,      # maximum airfoil thickness
-                    'thickness_cp' : np.ones((3)) * .1,
-                    'wing_weight_ratio' : 2.,
+                    'thickness_cp' : np.ones((3)) * .0075,
+                    'wing_weight_ratio' : 1.,
 
                     'exact_failure_constraint' : False,
                     }
@@ -52,8 +55,10 @@ class Test(unittest.TestCase):
 
         ny = surf_dict['num_y']
 
+        loads = np.zeros((ny, 6))
+        loads[0, 2] = 1e4
         indep_var_comp = IndepVarComp()
-        indep_var_comp.add_output('loads', val=np.ones((ny, 6)) * 2e5, units='N')
+        indep_var_comp.add_output('loads', val=loads, units='N')
         indep_var_comp.add_output('load_factor', val=1.)
 
         struct_group = SpatialBeamAlone(surface=surf_dict)
@@ -87,10 +92,14 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
-        prob.run_driver()
+        # from openmdao.api import view_model
+        # view_model(prob)
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 697377.8734430908, places=2)
+        prob.run_model()
 
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 988.13495481064024, places=2)
+        self.assertAlmostEqual(prob['wing.disp'][0, 2], 0.696503988153, places=7)
+        np.testing.assert_allclose(prob['wing.disp'][1, :], np.array([-0., 0., 0.39925232, -0.19102602, 0., 0.]))
 
 if __name__ == '__main__':
     unittest.main()

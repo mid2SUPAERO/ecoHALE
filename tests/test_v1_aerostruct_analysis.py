@@ -9,24 +9,17 @@ from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructP
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
-@unittest.skipUnless(fortran_flag, "Fortran is required.")
 class Test(unittest.TestCase):
 
     def test(self):
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 5,
+        mesh_dict = {'num_y' : 13,
                      'num_x' : 2,
                      'wing_type' : 'CRM',
                      'symmetry' : True,
-                     'num_twist_cp' : 5}
+                     'num_twist_cp' : 5,
+                     'span_cos_spacing' : 1.}
 
         mesh, twist_cp = generate_mesh(mesh_dict)
 
@@ -40,7 +33,7 @@ class Test(unittest.TestCase):
                                              # can be 'wetted' or 'projected'
                     'fem_model_type' : 'tube',
 
-                    'thickness_cp' : np.array([.1, .2, .3]),
+                    'thickness_cp' : np.ones(2) * 0.06836728,
 
                     'twist_cp' : twist_cp,
                     'mesh' : mesh,
@@ -59,10 +52,10 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
-                    'with_viscous' : True,
+                    'with_viscous' : False,
 
                     # Structural values are based on aluminum 7075
                     'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -70,7 +63,7 @@ class Test(unittest.TestCase):
                     'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
-                    'wing_weight_ratio' : 2.,
+                    'wing_weight_ratio' : 1.,
 
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
@@ -153,34 +146,19 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
                 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizeDriver
-            prob.driver = ScipyOptimizeDriver()
-            prob.driver.options['tol'] = 1e-9
-
-        # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-        prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-        prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
-        prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
-
-        # Add design variables, constraisnt, and objective on the problem
-        prob.model.add_design_var('alpha', lower=-10., upper=10.)
-        prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
-        prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 
         # Set up the problem
         prob.setup()
 
-        prob.run_driver()
+        # from openmdao.api import view_model
+        # view_model(prob)
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104400.0251030171, places=3)
+        prob.run_model()
+
+        self.assertAlmostEqual(prob['AS_point_0.wing_perf.CL'][0], 0.501212803372, places=5)
+        self.assertAlmostEqual(prob['AS_point_0.wing_perf.failure'][0], -0.434049851068, places=5)
+        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 70365.875285, places=2)
+        self.assertAlmostEqual(prob['AS_point_0.CM'][1], -0.129720748279, places=3)
 
 
 if __name__ == '__main__':

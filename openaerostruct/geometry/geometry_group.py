@@ -95,6 +95,18 @@ class Geometry(Group):
                 bsp_inputs.append('zshear')
                 indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'], units='m')
 
+            if 'sweep' in surface.keys():
+                bsp_inputs.append('sweep')
+                indep_var_comp.add_output('sweep', val=surface['sweep'], units='deg')
+
+            if 'dihedral' in surface.keys():
+                bsp_inputs.append('dihedral')
+                indep_var_comp.add_output('dihedral', val=surface['dihedral'], units='deg')
+
+            if 'taper' in surface.keys():
+                bsp_inputs.append('taper')
+                indep_var_comp.add_output('taper', val=surface['taper'])
+
             self.add_subsystem('mesh',
                 GeometryMesh(surface=surface),
                 promotes_inputs=bsp_inputs,

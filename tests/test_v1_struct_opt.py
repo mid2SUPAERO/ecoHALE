@@ -15,12 +15,15 @@ class Test(unittest.TestCase):
     def test(self):
 
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 7,
-                     'wing_type' : 'CRM',
+        mesh_dict = {'num_y' : 5,
+                     'num_x' : 3,
+                     'wing_type' : 'rect',
                      'symmetry' : True,
-                     'num_twist_cp' : 5}
+                     'span_cos_spacing' : 1.,
+                     'span' : 10,
+                     'chord' : 1}
 
-        mesh, twist_cp = generate_mesh(mesh_dict)
+        mesh = generate_mesh(mesh_dict)
 
         surf_dict = {
                     # Wing definition
@@ -41,8 +44,8 @@ class Test(unittest.TestCase):
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     't_over_c' : 0.15,      # maximum airfoil thickness
-                    'thickness_cp' : np.ones((3)) * .1,
-                    'wing_weight_ratio' : 2.,
+                    'thickness_cp' : np.ones((3)) * .0075,
+                    'wing_weight_ratio' : 1.,
 
                     'exact_failure_constraint' : False,
                     }
@@ -52,8 +55,10 @@ class Test(unittest.TestCase):
 
         ny = surf_dict['num_y']
 
+        loads = np.zeros((ny, 6))
+        loads[0, 2] = 1e4
         indep_var_comp = IndepVarComp()
-        indep_var_comp.add_output('loads', val=np.ones((ny, 6)) * 2e5, units='N')
+        indep_var_comp.add_output('loads', val=loads, units='N')
         indep_var_comp.add_output('load_factor', val=1.)
 
         struct_group = SpatialBeamAlone(surface=surf_dict)
@@ -77,7 +82,7 @@ class Test(unittest.TestCase):
             prob.driver.options['disp'] = True
 
         # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+        prob.model.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
         prob.model.add_constraint('wing.failure', upper=0.)
         prob.model.add_constraint('wing.thickness_intersects', upper=0.)
 
@@ -87,9 +92,12 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
+        # from openmdao.api import view_model
+        # view_model(prob)
+
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 697377.8734430908, places=2)
+        self.assertAlmostEqual(prob['wing.structural_weight'][0], 1144.8503583047038, places=2)
 
 
 if __name__ == '__main__':
