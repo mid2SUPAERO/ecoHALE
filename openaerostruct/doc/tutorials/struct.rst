@@ -55,7 +55,7 @@ Additionally, we import print_function to ensure compatibility between Python 2 
 
 We then create a dictionary containing options for the problem we want to solve.
 We define our problem as struct-only and that we want to perform optimization.
-Please see :meth:`OASProblem.get_default_prob_dict` within the :doc:`../source/run_classes` to see the defaults for the problem options dictionary.
+Please see :meth:`OASProblem.get_default_prob_dict` to see the defaults for the problem options dictionary.
 
 .. code-block:: python
 

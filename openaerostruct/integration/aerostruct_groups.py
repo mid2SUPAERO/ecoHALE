@@ -72,7 +72,7 @@ class Aerostruct(Group):
             promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
             promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
 
-class PreAS(Group):
+class CoupledAS(Group):
 
     def initialize(self):
         self.options.declare('surface', types=dict)
@@ -178,7 +178,7 @@ class AerostructPoint(Group):
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
-            coupled_AS_group = PreAS(surface=surface)
+            coupled_AS_group = CoupledAS(surface=surface)
 
             coupled.add_subsystem(name, coupled_AS_group)
 

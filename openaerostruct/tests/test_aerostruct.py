@@ -32,7 +32,7 @@ class Test(unittest.TestCase):
 
         mesh, twist_cp = generate_mesh(mesh_dict)
 
-        surf_dict = {
+        surface = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
                     'type' : 'aerostruct',
@@ -78,7 +78,7 @@ class Test(unittest.TestCase):
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
 
-        surfaces = [surf_dict]
+        surfaces = [ surface]
 
         # Create the problem and assign the model group
         prob = Problem()
@@ -101,72 +101,42 @@ class Test(unittest.TestCase):
              indep_var_comp,
              promotes=['*'])
 
-        # Loop over each surface in the surfaces list
-        for surface in surfaces:
+        aerostruct_group = Aerostruct(surface=surface)
 
-            # Get the surface name and create a group to contain components
-            # only for this surface
-            name = surface['name']
+        name = 'wing'
 
-            aerostruct_group = Aerostruct(surface=surface)
+        # Add tmp_group to the problem with the name of the surface.
+        prob.model.add_subsystem(name, aerostruct_group,
+            promotes_inputs=['load_factor'])
 
-            # Add tmp_group to the problem with the name of the surface.
-            prob.model.add_subsystem(name, aerostruct_group)
+        point_name = 'AS_point_0'
 
-        # Loop through and add a certain number of aero points
-        for i in range(1):
+        # Create the aero point group and add it to the model
+        AS_point = AerostructPoint(surfaces=surfaces)
 
-            point_name = 'AS_point_{}'.format(i)
-            # Connect the parameters within the model for each aero point
+        prob.model.add_subsystem(point_name, AS_point,
+            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'CT', 'R',
+                'W0', 'a', 'empty_cg', 'load_factor'])
 
-            # Create the aero point group and add it to the model
-            AS_point = AerostructPoint(surfaces=surfaces)
+        com_name = point_name + '.' + name + '_perf'
+        prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
 
-            prob.model.add_subsystem(point_name, AS_point)
+        # Connect aerodyamic mesh to coupled group mesh
+        prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
+        prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
 
-            # Connect flow properties to the analysis point
-            prob.model.connect('v', point_name + '.v')
-            prob.model.connect('alpha', point_name + '.alpha')
-            prob.model.connect('M', point_name + '.M')
-            prob.model.connect('re', point_name + '.re')
-            prob.model.connect('rho', point_name + '.rho')
-            prob.model.connect('CT', point_name + '.CT')
-            prob.model.connect('R', point_name + '.R')
-            prob.model.connect('W0', point_name + '.W0')
-            prob.model.connect('a', point_name + '.a')
-            prob.model.connect('empty_cg', point_name + '.empty_cg')
-            prob.model.connect('load_factor', point_name + '.load_factor')
+        # Connect performance calculation variables
+        prob.model.connect(name + '.radius', com_name + '.radius')
+        prob.model.connect(name + '.thickness', com_name + '.thickness')
+        prob.model.connect(name + '.nodes', com_name + '.nodes')
+        prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
+        prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 
-            for surface in surfaces:
+        from openmdao.api import ScipyOptimizeDriver
+        prob.driver = ScipyOptimizeDriver()
+        prob.driver.options['tol'] = 1e-9
 
-                prob.model.connect('load_factor', name + '.load_factor')
-
-                com_name = point_name + '.' + name + '_perf'
-                prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
-
-                # Connect aerodyamic mesh to coupled group mesh
-                prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
-                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
-
-                # Connect performance calculation variables
-                prob.model.connect(name + '.radius', com_name + '.radius')
-                prob.model.connect(name + '.thickness', com_name + '.thickness')
-                prob.model.connect(name + '.nodes', com_name + '.nodes')
-                prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
-
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizeDriver
-            prob.driver = ScipyOptimizeDriver()
-            prob.driver.options['tol'] = 1e-9
-
-        recorder = SqliteRecorder("cases.sql")
+        recorder = SqliteRecorder("aerostruct.db")
         prob.driver.add_recorder(recorder)
         prob.driver.recording_options['record_derivatives'] = True
 
@@ -184,12 +154,7 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
-        # from openmdao.api import view_model
-        # view_model(prob)
-
         prob.run_driver()
-        # prob.run_model()
-
 
         self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104400.0251030171, places=3)
 

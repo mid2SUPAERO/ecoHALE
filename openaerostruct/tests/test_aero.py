@@ -22,7 +22,7 @@ class Test(unittest.TestCase):
 
         mesh, twist_cp = generate_mesh(mesh_dict)
 
-        surf_dict = {
+        surface = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
                     'type' : 'aero',
@@ -55,7 +55,7 @@ class Test(unittest.TestCase):
                     'with_viscous' : True,  # if true, compute viscous drag
                     }
 
-        surfaces = [surf_dict]
+        surfaces = [surface]
 
         # Create the problem and the model group
         prob = Problem()
@@ -72,53 +72,31 @@ class Test(unittest.TestCase):
             indep_var_comp,
             promotes=['*'])
 
-        # Loop over each surface in the surfaces list
-        for surface in surfaces:
+        geom_group = Geometry(surface=surface)
 
-            geom_group = Geometry(surface=surface)
+        # Add tmp_group to the problem as the name of the surface.
+        # Note that is a group and performance group for each
+        # individual surface.
+        prob.model.add_subsystem(surface['name'], geom_group)
 
-            # Add tmp_group to the problem as the name of the surface.
-            # Note that is a group and performance group for each
-            # individual surface.
-            prob.model.add_subsystem(surface['name'], geom_group)
 
-        # Loop through and add a certain number of aero points
-        for i in range(1):
+        # Create the aero point group and add it to the model
+        aero_group = AeroPoint(surfaces=surfaces)
+        point_name = 'aero_point_0'
+        prob.model.add_subsystem(point_name, aero_group,
+            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'cg'])
 
-            # Create the aero point group and add it to the model
-            aero_group = AeroPoint(surfaces=surfaces)
-            point_name = 'aero_point_{}'.format(i)
-            prob.model.add_subsystem(point_name, aero_group)
+        name = surface['name']
 
-            # Connect flow properties to the analysis point
-            prob.model.connect('v', point_name + '.v')
-            prob.model.connect('alpha', point_name + '.alpha')
-            prob.model.connect('M', point_name + '.M')
-            prob.model.connect('re', point_name + '.re')
-            prob.model.connect('rho', point_name + '.rho')
-            prob.model.connect('cg', point_name + '.cg')
+        # Connect the mesh from the geometry component to the analysis point
+        prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
 
-            # Connect the parameters within the model for each aero point
-            for surface in surfaces:
+        # Perform the connections with the modified names within the
+        # 'aero_states' group.
+        prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
-                name = surface['name']
-
-                # Connect the mesh from the geometry component to the analysis point
-                prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
-
-                # Perform the connections with the modified names within the
-                # 'aero_states' group.
-                prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
-
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizeDriver
-            prob.driver = ScipyOptimizeDriver()
+        from openmdao.api import ScipyOptimizeDriver
+        prob.driver = ScipyOptimizeDriver()
 
         # # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
@@ -130,14 +108,9 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        # self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073)
-        # self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.5)
-        # self.assertAlmostEqual(prob['aero_point_0.CM'][1], -0.18451822790794759)
-
-        tol = 1e-8
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073, tol)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, tol)
-        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.18451822790794759, tol)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073, 1e-8)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-8)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.18451822790794759, 1e-8)
 
 
 if __name__ == '__main__':
