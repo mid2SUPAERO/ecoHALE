@@ -25,7 +25,7 @@ This includes flow conditions such as Reynolds number and angle of attack,
 as well as aircraft info like specific fuel consumption and range.
 Additionally, it contains execution options for the problem, such as
 whether to run analysis or optimization and how to compute derivatives.
-Please see :func:`OASProblem.get_default_prob_dict` within the :doc:`../source/run_classes` to see the defaults for the problem options dictionary.
+Please see :func:`OASProblem.get_default_prob_dict`  to see the defaults for the problem options dictionary.
 
 Here is a sample code block for this step:
 
@@ -60,7 +60,7 @@ portions of pyOptSparse may be difficult to compile correctly on some Windows ma
 ------------------------------
 With your OASProblem instance created, you can now define surfaces and add them to the problem.
 In the simplest case, you can add a single lifting surface that represents the wing of an aircraft.
-Please see :func:`OASProblem.get_default_surf_dict` within the :doc:`../source/run_classes` to see the defaults for the surface options dictionary.
+Please see :func:`OASProblem.get_default_surf_dict` to see the defaults for the surface options dictionary.
 
 There are many options for each surface, and they are loosely organized into the following categories:
 
@@ -175,8 +175,7 @@ Note that the loads from the structural analysis get passed back to the wing mes
 We then use this deformed wing mesh within the VLM analysis to obtain the new aerodynamic properties.
 We iterate until the coupling variables do not change.
 
-You can set the linear and non-linear solvers in the :doc:`../source/run_classes`
-file to see what works best for specific problems.
+You can set the linear and non-linear solvers to see what works best for specific problems.
 
 
 5. Call run() to perform analysis or optimization
@@ -206,7 +205,7 @@ The `.html` file also has a help button (the ? mark) on the far right of the top
 
 You can visualize the lifting surface and structural spar using:
 
-.. code-block:: terminal
+.. code-block:: console
 
   python plot_all.py aerostruct.db
 

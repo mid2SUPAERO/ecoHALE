@@ -1,17 +1,16 @@
 .. OpenAeroStruct documentation master file
 
 OpenAeroStruct Documentation
-==========================================
+============================
 
 OpenAeroStruct is a lightweight tool that performs aerostructural optimization using OpenMDAO.
 It couples a vortex-lattice method (VLM) and a 6 degrees of freedom 3-dimensional spatial beam model to simulate aerodynamic and structural analyses using lifting surfaces.
 These simulations are wrapped with an optimizer using NASA's OpenMDAO framework.
 The analysis and optimization results can be visualized using included tools, producing figures such as this:
 
-.. image:: ../example.png
 
 Installation
------------------
+-------------
 
 To use OpenAeroStruct, you must first install OpenMDAO 1.7.3 by following the instructions here: https://github.com/openmdao/openmdao. If you are unfamiliar with OpenMDAO and wish to modify the internals of OpenAeroStruct, you should examine the OpenMDAO documentation at http://openmdao.readthedocs.io/en/1.7.3/. The tutorials provided with OpenMDAO, especially the Sellar Problem, are helpful to understand the basics of using OpenMDAO to solve an optimization problem. Note that OpenMDAO 1.7.3 is the most recent version that has been tested and confirmed working with OpenAeroStruct.
 
@@ -90,9 +89,6 @@ Jubs Testing
     :maxdepth: 2
 
     embed_test.rst
+    _srcdocs/index.rst
 
-Check out the module index below to see the internal methods within each file and how they're used.
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

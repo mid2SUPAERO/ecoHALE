@@ -1,6 +1,4 @@
 from __future__ import division, print_function
-import numpy as np
-
 from openmdao.api import ExplicitComponent
 
 try:
@@ -16,6 +14,7 @@ class Equilibrium(ExplicitComponent):
     """
     Lift = weight constraint.
     Note that we add information from each lifting surface.
+
     Parameters
     ----------
     L : float
@@ -24,6 +23,7 @@ class Equilibrium(ExplicitComponent):
         Total weight of the structural spar.
     fuelburn : float
         Computed fuel burn in kg based on the Breguet range equation.
+
     Returns
     -------
     L_equals_W : float
@@ -31,7 +31,6 @@ class Equilibrium(ExplicitComponent):
     total_weight : float
         Total weight of the entire aircraft, including W0, all structural weights,
         and fuel.
-
     """
 
     def initialize(self):
