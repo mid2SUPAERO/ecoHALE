@@ -6,8 +6,8 @@ import os
 import importlib
 from mock import Mock
 from openmdao.docs.config_params import MOCK_MODULES
-from openaerostruct.doc._utils.patch import do_monkeypatch
-from openaerostruct.doc._utils.generate_sourcedocs import generate_docs
+from openaerostruct.docs._utils.patch import do_monkeypatch
+from openaerostruct.docs._utils.generate_sourcedocs import generate_docs
 
 import openmdao
 openmdao_path = os.path.split(os.path.abspath(openmdao.__file__))[0]

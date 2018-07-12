@@ -12,12 +12,9 @@
 *.0
 *.o
 *.mod
-doc/_build/
-doc/*.rst
+docs/_build/
+docs/*.rst
 *.a
 *.msg
 src/adjoint/tempReverse/
 src/adjoint/tempForward/
-
-
-!doc/index.rst
