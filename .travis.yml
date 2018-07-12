@@ -7,7 +7,7 @@ language: generic
 
 env:
 - FORTRAN= PY=2.7
-- FORTRAN= PY=3.4
+- FORTRAN= PY=3.6
 - FORTRAN=1 PY=2.7
 
 addons:
@@ -67,4 +67,4 @@ deploy:
   github-token: $GH_TOKEN  # Set in the settings page of your repository, as a secure variable
   keep-history: true
   on:
-    branch: master
+    branch: wingbox
