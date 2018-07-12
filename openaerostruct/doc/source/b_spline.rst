@@ -1,7 +1,7 @@
 b_spline module
 ===============
 
-.. automodule:: b_spline
+.. automodule:: geometry.bsplines
     :members:
     :undoc-members:
     :show-inheritance:

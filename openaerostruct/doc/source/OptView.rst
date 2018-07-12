@@ -1,7 +1,7 @@
 OptView module
 ==============
 
-.. automodule:: OptView
+.. automodule:: visualizations.OptView
     :members:
     :undoc-members:
     :show-inheritance:

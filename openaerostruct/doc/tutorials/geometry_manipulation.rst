@@ -197,7 +197,7 @@ Whereas taper ratio can only vary the chord linearly across the span, the chord 
 .. image:: chord.svg
 
 X Shear
-~~~~~
+~~~~~~~
 
 This design variable changes the x-coordinate at each certain spanwise location, as shown below.
 It can be any arbitrary distribution.
@@ -206,7 +206,7 @@ This is a more general form of the sweep variable.
 .. image:: xshear.svg
 
 Z Shear
-~~~~~
+~~~~~~~
 
 This design variable changes the z-coordinate at each certain spanwise location, as shown below.
 It can be any arbitrary distribution.
@@ -223,7 +223,7 @@ OpenAeroStruct is capable of arbitrary twist distributions.
 .. image:: twist.svg
 
 Thickness
-~~~~~
+~~~~~~~~~
 
 Control the thickness of the structural spar; can have any distribution.
 The thickness is added internally to the tubular spar, so we must impose a non-intersection
@@ -234,7 +234,7 @@ Here we can't reliably see thickness changes, so the color of the spar correspon
 .. image:: thickness.svg
 
 Radius
-~~~~~
+~~~~~~
 
 Control the radius of the structural spar; can have any distribution.
 With an aerostructural case, it would make physical sense to have some limit on the radius such
