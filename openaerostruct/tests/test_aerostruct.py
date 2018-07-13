@@ -1,28 +1,22 @@
 from __future__ import division, print_function
+from openmdao.utils.assert_utils import assert_rel_error
 import unittest
-import numpy as np
 
-from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.geometry_group import Geometry
 
-from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
-
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, \
-LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, \
-SqliteRecorder
-
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
-
-@unittest.skipUnless(fortran_flag, "Fortran is required.")
 class Test(unittest.TestCase):
 
     def test(self):
+        import numpy as np
+
+        from openaerostruct.geometry.utils import generate_mesh
+        from openaerostruct.geometry.geometry_group import Geometry
+
+        from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
+
+        from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, \
+        LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, \
+        SqliteRecorder
+
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 5,
                      'num_x' : 2,
@@ -154,7 +148,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104400.0251030171, places=3)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 104400.0251030171, 1e-8)
 
 
 if __name__ == '__main__':

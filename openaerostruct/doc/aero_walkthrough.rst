@@ -280,4 +280,4 @@ Here you'll use `aero.db` or the filename for where you saved the problem data.
 This will produce a window where you can see how the lifting surface and design variables change with each iteration, as shown below.
 You can monitor the results from your optimization as it progresses by checking the `Automatically refresh` button.
 
-.. image:: tutorials/aero.png
+.. image:: aero.png

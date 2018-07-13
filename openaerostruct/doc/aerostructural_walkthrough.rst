@@ -3,4 +3,6 @@
 Aerostructural Walkthrough
 ==========================
 
-aerostructural walkthrough
+.. embed-code::
+    openaerostruct.tests.test_aerostruct.Test.test
+    :layout: interleave

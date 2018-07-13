@@ -208,17 +208,17 @@ class AerostructPoint(Group):
         # coupled.linear_solver = ScipyIterativeSolver()
         # coupled.linear_solver.precon = LinearRunOnce()
 
-        coupled.nonlinear_solver = NonlinearBlockGS()
-        coupled.nonlinear_solver.options['maxiter'] = 20
+        coupled.nonlinear_solver = NonlinearBlockGS(use_aitken=True)
+        coupled.nonlinear_solver.options['maxiter'] = 50
         coupled.nonlinear_solver.options['atol'] = 5e-6
-        coupled.nonlinear_solver.options['rtol'] = 1e-120
+        coupled.nonlinear_solver.options['rtol'] = 1e-12
 
         # coupled.jacobian = DenseJacobian()
         coupled.linear_solver = DirectSolver()
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nonlinear_solver.options['maxiter'] = 50
-        coupled.nonlinear_solver.options['iprint'] = 2
+        coupled.nonlinear_solver.options['iprint'] = 0
 
         """
         ### End change of solver settings ###
