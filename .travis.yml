@@ -48,6 +48,7 @@ install:
 - pip install coverage
 - pip install coveralls
 - pip install --user travis-sphinx
+- pip install testflo
 - export PATH=$HOME/.local/bin:$PATH
 - pip install git+git://github.com/OpenMDAO/openmdao.git
 
@@ -57,10 +58,10 @@ script:
   fi
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - testflo . --coverage --coverpkg openaerostruct
-- pwd
+- echo $PWD
 
 script:
-- travis-sphinx build --source=docs
+- travis-sphinx build --source=openaerostruct/docs
 
 after_success:
 - coveralls
