@@ -47,6 +47,12 @@ install:
     fi
   fi
 - pip install mpi4py;
+
+- git clone https://github.com/OpenMDAO/pyoptsparse.git;
+- cd pyoptsparse;
+- python setup.py install;
+- cd ..;
+
 - pip install coverage
 - pip install coveralls
 - pip install --user travis-sphinx
@@ -60,7 +66,7 @@ script:
     cd openaerostruct/fortran; make; cd ../..;
   fi
 - export PYTHONPATH=$PYTHONPATH:$PWD
-- testflo . --coverage --coverpkg openaerostruct
+- testflo -n 1 openaerostruct --coverage --coverpkg openaerostruct --cover-omit \*tests/\* --cover-omit \*docs/\*;
 - travis-sphinx build --source=openaerostruct/docs
 
 after_success:
