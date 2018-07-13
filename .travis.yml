@@ -61,7 +61,7 @@ script:
 - testflo . --coverage --coverpkg openaerostruct
 
 script:
-- travis-sphinx build --source=openaerostruct/docs
+- travis-sphinx build --source=openaerostruct/docs --nowarn
 
 after_success:
 - coveralls
