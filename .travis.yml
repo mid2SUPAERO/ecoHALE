@@ -37,7 +37,7 @@ before_install:
 - export PATH=$PATHPREFIX:$PATH
 
 install:
-- conda install --yes python=$PY numpy scipy nose $HDF5 sphinx==1.6.2 mock swig
+- conda install --yes python=$PY numpy scipy nose $HDF5 sphinx mock swig
 - if [ "$OS" = "Linux" ]; then
     if [ "$PY" = "2.7" ]; then
         pip install https://openmdao.org/dists/pyoptsparse-1.0.0-cp27-none-linux_x86_64.whl;
@@ -47,17 +47,30 @@ install:
   fi
 - pip install coverage
 - pip install coveralls
-- pip install git+git://github.com/OpenMDAO/openmdao.git
 - pip install --user travis-sphinx
+- pip install testflo
+- export PATH=$HOME/.local/bin:$PATH
+- pip install git+git://github.com/OpenMDAO/openmdao.git
+- pip install -e .
 
 script:
 - if [ "$FORTRAN" ]; then
     cd openaerostruct/fortran; make; cd ../..;
   fi
-- pip install -e .
+- export PYTHONPATH=$PYTHONPATH:$PWD
 - testflo . --coverage --coverpkg openaerostruct
-- travis-sphinx build --source=openaerostruct/docs --nowarn
+
+script:
+- travis-sphinx build --source=openaerostruct/docs
 
 after_success:
 - coveralls
-- travis-sphinx deploy --branches=master,wingbox
+- travis-sphinx deploy
+
+#deploy:
+#  provider: pages
+#  skip-cleanup: true
+#  github-token: $GH_TOKEN  # Set in the settings page of your repository, as a secure variable
+#  keep-history: true
+#  on:
+#    branch: master

@@ -1,6 +1,8 @@
 import os
-from openmdao.docs.config_params import IGNORE_LIST
 
+IGNORE_LIST = [
+        'docs', 'tests', 'fortran', 'utils'
+    ]
 # this function is used to create the entire directory structure
 # of our source docs, as well as writing out each individual rst file.
 
