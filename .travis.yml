@@ -51,9 +51,9 @@ install:
 - pip install testflo
 - export PATH=$HOME/.local/bin:$PATH
 - pip install git+git://github.com/OpenMDAO/openmdao.git
+- pip install -e .
 
 script:
-- pip install -e .
 - if [ "$FORTRAN" ]; then
     cd openaerostruct/fortran; make; cd ../..;
   fi
