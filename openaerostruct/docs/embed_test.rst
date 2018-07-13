@@ -4,9 +4,6 @@ Foo Bar
 
 This some serious foo bar.
 
-.. embed-code::
-    openaerostruct.tests.test_aero.Test.test
-    :layout: code, output
 
 
 Here's the test of an options table embed:
