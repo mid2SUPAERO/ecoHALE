@@ -4,7 +4,7 @@ from __future__ import division, print_function
 import numpy as np
 
 from openmdao.api import ExplicitComponent
-#from pygeo import DVGeometry
+# from pygeo import DVGeometry
 
 
 class GeometryMesh(ExplicitComponent):
