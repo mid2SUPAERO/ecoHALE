@@ -55,9 +55,7 @@ script:
 - if [ "$FORTRAN" ]; then
     cd openaerostruct/fortran; make; cd ../..;
   fi
-- cd ..
 - export PYTHONPATH=$PYTHONPATH:$PWD
-- cd -
 - testflo . --coverage --coverpkg openaerostruct
 
 script:
