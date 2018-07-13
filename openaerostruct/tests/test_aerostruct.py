@@ -78,8 +78,6 @@ class Test(unittest.TestCase):
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
 
-        surfaces = [ surface]
-
         # Create the problem and assign the model group
         prob = Problem()
 
@@ -112,7 +110,7 @@ class Test(unittest.TestCase):
         point_name = 'AS_point_0'
 
         # Create the aero point group and add it to the model
-        AS_point = AerostructPoint(surfaces=surfaces)
+        AS_point = AerostructPoint(surfaces=[surface])
 
         prob.model.add_subsystem(point_name, AS_point,
             promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'CT', 'R',

@@ -1,4 +1,4 @@
-.. _Geometry Creation and Manipulation:
+.. _Geometry_Creation_and_Manipulation:
 
 ==================================
 Geometry Creation and Manipulation

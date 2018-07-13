@@ -113,9 +113,6 @@ class Display(object):
         else:
             self.opt = False
 
-        # for case in cr.get_cases():
-        #     print(dir(case))
-
         self.twist = []
         self.mesh = []
         self.def_mesh = []
@@ -162,6 +159,7 @@ class Display(object):
 
         # find the names of all surfaces
         names = []
+        pt_names = []
         for key in last_case.outputs:
             # Aerostructural
             if 'coupled' in key and 'loads' in key:
@@ -170,20 +168,24 @@ class Display(object):
                 surf_name = (key.split('.')[2]).split("_")[0]
                 names.append(surf_name)
 
-            # TODO JJ: Fix this for aero and structures cases
-            # # Aero only
-            # elif 'def_mesh' in key and 'coupled' not in key:
-            #     names.append(key.split('.')[1])
+            # Aero only
+            elif 'sec_forces' in key and 'coupled' not in key:
+                surf_name = (key.split('.')[2]).split("_")[0]
+                names.append(surf_name)
 
-            # # Structural only
-            # elif 'disp_aug' in key and 'coupled' not in key:
-            #     names.append(key.split('.')[1])
+            # Structural only
+            elif 'disp_aug' in key and 'coupled' not in key:
+                surf_name = key.split('.')[0]
+                names.append(surf_name)
 
+            if 'CL' in key:
+                pt_names.append(key.split('.')[0])
+
+        if pt_names:
+            self.pt_names = pt_names = list(set(pt_names))
+            pt_name = pt_names[0]
         self.names = names
         n_names = len(names)
-
-        # TODO JJ: need better way to handle multipoint
-        pt_name = 'AS_point_0'
 
         # loop to pull data out of case reader and organize it into arrays
         for i, case in enumerate(cr.get_cases()):
@@ -210,12 +212,12 @@ class Display(object):
                     except:
                         self.show_tube = False
                     try:
-                        self.def_mesh.append(case.outputs[name+'.def_mesh'])
-                        normals.append(case.outputs[name+'.normals'])
-                        widths.append(case.outputs[name+'.widths'])
-                        sec_forces.append(case.outputs['aero_states.' + name + '_sec_forces'])
-                        self.CL.append(case.outputs[name+'_perf.CL1'])
-                        self.S_ref.append(case.outputs[name+'.S_ref'])
+                        self.def_mesh.append(case.outputs[name+'.mesh'])
+                        normals.append(case.outputs[pt_name + '.' + name + '.normals'])
+                        widths.append(case.outputs[pt_name + '.' + name + '.widths'])
+                        sec_forces.append(case.outputs[pt_name + '.aero_states.' + name + '_sec_forces'])
+                        self.CL.append(case.outputs[pt_name + '.' + name + '_perf.CL1'])
+                        self.S_ref.append(case.outputs[pt_name + '.' + name + '.S_ref'])
                         self.show_wing = True
 
                         # Not the best solution for now, but this will ensure
@@ -265,7 +267,10 @@ class Display(object):
                 alpha.append(case.outputs['alpha'] * np.pi / 180.)
                 rho.append(case.outputs['rho'])
                 v.append(case.outputs['v'])
-                self.cg.append(case.outputs['{pt_name}.cg'.format(pt_name=pt_name)])
+                if self.show_tube:
+                    self.cg.append(case.outputs['{pt_name}.cg'.format(pt_name=pt_name)])
+                else:
+                    self.cg.append(case.outputs['cg'])
 
         if self.opt:
             self.num_iters = np.max([int(len(self.mesh) / n_names) - 1, 1])

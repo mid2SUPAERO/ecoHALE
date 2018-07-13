@@ -1,18 +1,20 @@
 from __future__ import division, print_function
+from openmdao.utils.assert_utils import assert_rel_error
 import unittest
-import numpy as np
-
-from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.geometry_group import Geometry
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
-from openaerostruct.structures.struct_groups import SpatialBeamAlone
-
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
 
 
 class Test(unittest.TestCase):
 
     def test(self):
+
+        import numpy as np
+
+        from openaerostruct.geometry.utils import generate_mesh
+        from openaerostruct.geometry.geometry_group import Geometry
+        from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
+        from openaerostruct.structures.struct_groups import SpatialBeamAlone
+
+        from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, SqliteRecorder
 
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 7,
@@ -65,16 +67,13 @@ class Test(unittest.TestCase):
 
         prob.model.add_subsystem(surf_dict['name'], struct_group)
 
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizeDriver
-            prob.driver = ScipyOptimizeDriver()
-            prob.driver.options['disp'] = True
+        from openmdao.api import ScipyOptimizeDriver
+        prob.driver = ScipyOptimizeDriver()
+        prob.driver.options['disp'] = True
+
+        recorder = SqliteRecorder('struct.db')
+        prob.driver.add_recorder(recorder)
+        prob.driver.recording_options['record_derivatives'] = True
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
@@ -89,7 +88,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 697377.8734430908, places=2)
+        assert_rel_error(self, prob['wing.structural_weight'][0], 697377.8734430908, 1e-8)
 
 
 if __name__ == '__main__':
