@@ -57,9 +57,10 @@ script:
   fi
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - testflo . --coverage --coverpkg openaerostruct
+pwd
 
 script:
-- travis-sphinx build --source=openaerostruct/docs
+- travis-sphinx build --source=docs
 
 after_success:
 - coveralls
