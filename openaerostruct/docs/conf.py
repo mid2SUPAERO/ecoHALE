@@ -6,12 +6,18 @@ import os
 import importlib
 from mock import Mock
 from openmdao.docs.config_params import MOCK_MODULES
-from openaerostruct.docs._utils.patch import do_monkeypatch
-from openaerostruct.docs._utils.generate_sourcedocs import generate_docs
+#from openaerostruct.docs._utils.patch import do_monkeypatch
+#from openaerostruct.docs._utils.generate_sourcedocs import generate_docs
+from openmdao.docs._utils.patch import do_monkeypatch
+from openmdao.docs._utils.generate_sourcedocs import generate_docs
 
-import openaerostruct
-openaerostruct_path = os.path.split(os.path.abspath(openaerostruct.__file__))[0]
-sys.path.insert(0, os.path.join(openaerostruct_path, 'docs', '_exts'))
+# import openaerostruct
+# openaerostruct_path = os.path.split(os.path.abspath(openaerostruct.__file__))[0]
+# sys.path.insert(0, os.path.join(openaerostruct_path, 'docs', '_exts'))
+import openmdao
+openmdao_path = os.path.split(os.path.abspath(openmdao.__file__))[0]
+sys.path.insert(0, os.path.join(openmdao_path, 'docs', '_exts'))
+
 
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('.'))

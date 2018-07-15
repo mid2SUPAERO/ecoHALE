@@ -37,7 +37,8 @@ before_install:
 - export PATH=$PATHPREFIX:$PATH
 
 install:
-- conda install --yes python=$PY numpy scipy nose $HDF5 sphinx mock swig
+- conda install --yes python=$PY numpy scipy nose $HDF5 sphinx mock swig pip
+- pip install --upgrade pip;
 - if [ "$OS" = "Linux" ]; then
     if [ "$PY" = "2.7" ]; then
         pip install https://openmdao.org/dists/pyoptsparse-1.0.0-cp27-none-linux_x86_64.whl;
@@ -45,12 +46,24 @@ install:
         pip install https://openmdao.org/dists/pyoptsparse-1.0.0-py3-none-linux_x86_64.whl;
     fi
   fi
+- pip install mpi4py;
+
+- git clone https://github.com/OpenMDAO/pyoptsparse.git;
+- cd pyoptsparse;
+- python setup.py install;
+- cd ..;
+
 - pip install coverage
 - pip install coveralls
 - pip install --user travis-sphinx
 - pip install testflo
 - export PATH=$HOME/.local/bin:$PATH
-- pip install git+git://github.com/OpenMDAO/openmdao.git
+#- pip install git+git://github.com/OpenMDAO/openmdao.git
+- git clone https://github.com/OpenMDAO/openmdao.git
+- cd OpenMDAO;
+- pip install -e .
+- cd ..
+# install openaerostruct itself
 - pip install -e .
 
 script:
@@ -58,19 +71,9 @@ script:
     cd openaerostruct/fortran; make; cd ../..;
   fi
 - export PYTHONPATH=$PYTHONPATH:$PWD
-- testflo . --coverage --coverpkg openaerostruct
-
-script:
-- travis-sphinx build --source=openaerostruct/docs --nowarn
+- testflo -n 1 openaerostruct --coverage --coverpkg openaerostruct --cover-omit \*tests/\* --cover-omit \*docs/\*;
+- travis-sphinx build --source=openaerostruct/docs
 
 after_success:
 - coveralls
 - travis-sphinx deploy
-
-#deploy:
-#  provider: pages
-#  skip-cleanup: true
-#  github-token: $GH_TOKEN  # Set in the settings page of your repository, as a secure variable
-#  keep-history: true
-#  on:
-#    branch: master
