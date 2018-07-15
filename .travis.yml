@@ -60,7 +60,7 @@ install:
 - export PATH=$HOME/.local/bin:$PATH
 #- pip install git+git://github.com/OpenMDAO/openmdao.git
 - git clone https://github.com/OpenMDAO/openmdao.git
-- cd OpenMDAO;
+- cd openmdao;
 - pip install -e .
 - cd ..
 # install openaerostruct itself
