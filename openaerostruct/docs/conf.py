@@ -63,7 +63,7 @@ packages = [
     'transfer',
 ]
 
-generate_docs("..", "../..", packages)
+generate_docs("..", "../..", packages, project_name='openaerostruct')
 
 # -- General configuration ------------------------------------------------
 
