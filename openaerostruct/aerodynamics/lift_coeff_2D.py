@@ -61,6 +61,8 @@ class LiftCoeff2D(ExplicitComponent):
         # Outputs
         self.add_output('Cl', val=np.zeros((self.ny-1)))
 
+        self.declare_partials('*', '*')
+
     def compute(self, inputs, outputs):
 
         # Input parameters
