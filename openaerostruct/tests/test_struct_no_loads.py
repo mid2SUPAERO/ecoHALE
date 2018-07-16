@@ -65,15 +65,8 @@ class Test(unittest.TestCase):
 
         prob.model.add_subsystem(surf_dict['name'], struct_group)
 
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizeDriver
-            prob.driver = ScipyOptimizeDriver()
+        from openmdao.api import ScipyOptimizeDriver
+        prob.driver = ScipyOptimizeDriver()
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)

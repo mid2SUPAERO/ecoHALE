@@ -187,16 +187,9 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
                 prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
 
-        try:
-            from openmdao.api import pyOptSparseDriver
-            prob.driver = pyOptSparseDriver()
-            prob.driver.options['optimizer'] = "SNOPT"
-            prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                        'Major feasibility tolerance': 1.0e-8}
-        except:
-            from openmdao.api import ScipyOptimizeDriver
-            prob.driver = ScipyOptimizeDriver()
-            prob.driver.options['tol'] = 1e-9
+        from openmdao.api import ScipyOptimizeDriver
+        prob.driver = ScipyOptimizeDriver()
+        prob.driver.options['tol'] = 1e-9
 
         # Set up the problem
         prob.setup()
