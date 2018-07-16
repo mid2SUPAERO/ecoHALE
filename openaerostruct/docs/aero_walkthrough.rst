@@ -37,7 +37,7 @@ In general, you'll follow these five steps to set up and run a problem in OpenAe
 4. Set up and run the optimization problem
 
 We'll now investigate these steps individually using an aerodynamic optimization case as an example.
-The full run script for this case is in :ref;_Quick_Example.
+The full run script for this case is in :ref:_Quick_Example.
 
 1. Define your lifting surface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
