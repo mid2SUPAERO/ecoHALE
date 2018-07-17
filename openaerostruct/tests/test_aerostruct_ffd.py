@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from openmdao.utils.assert_utils import assert_rel_error
 import unittest
 import numpy as np
 
@@ -203,7 +204,7 @@ class Test(unittest.TestCase):
         # filename += '_' + str(surf_dict['mx']) + '_' + str(surf_dict['my']) + '.mesh'
         # np.save(filename, mesh)
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 104675.0989232741, places=3)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 104675.0989232741, 1e-5)
 
 
 if __name__ == '__main__':

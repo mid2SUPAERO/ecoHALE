@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from openmdao.utils.assert_utils import assert_rel_error
 import numpy as np
 import unittest
 
@@ -160,10 +161,10 @@ class Test(unittest.TestCase):
 
         # prob.check_partials(compact_print=True)
 
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CL'][0], 0.45)
-        self.assertAlmostEqual(prob['aero_point_0.wing_perf.CD'][0], 0.03229527496681374)
-        self.assertAlmostEqual(prob['aero_point_1.wing_perf.CL'][0], 0.5)
-        self.assertAlmostEqual(prob['aero_point_1.wing_perf.CD'][0], 0.033767398588947985)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.45, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03229527496681374, 1e-6)
+        assert_rel_error(self, prob['aero_point_1.wing_perf.CL'][0], 0.5, 1e-6)
+        assert_rel_error(self, prob['aero_point_1.wing_perf.CD'][0], 0.033767398588947985, 1e-6)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from openmdao.utils.assert_utils import assert_rel_error
 import unittest
 import numpy as np
 
@@ -173,7 +174,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['AS_point_0.fuelburn'][0], 72128.75170161888, places=3)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 72128.75170161888, 1e-5)
 
 
 if __name__ == '__main__':

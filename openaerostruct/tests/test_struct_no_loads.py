@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from openmdao.utils.assert_utils import assert_rel_error
 import unittest
 import numpy as np
 
@@ -83,8 +84,8 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 133427.40492929096, places=2)
-        self.assertAlmostEqual(prob['wing.disp'][1, 2], 0., places=2)
+        assert_rel_error(self, prob['wing.structural_weight'][0], 133427.40492929096, 1e-4)
+        assert_rel_error(self, prob['wing.disp'][1, 2], 0., 1e-4)
 
 
 

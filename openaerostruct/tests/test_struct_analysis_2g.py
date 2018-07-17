@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from openmdao.utils.assert_utils import assert_rel_error
 import unittest
 import numpy as np
 
@@ -70,7 +71,7 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        self.assertAlmostEqual(prob['wing.structural_weight'][0], 2437385.6547349701, places=2)
+        assert_rel_error(self, prob['wing.structural_weight'][0], 2437385.6547349701, 1e-4)
 
 
 if __name__ == '__main__':
