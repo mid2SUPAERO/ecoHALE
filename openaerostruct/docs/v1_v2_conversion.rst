@@ -3,6 +3,11 @@
 OpenAeroStruct v1 to v2 Conversion
 ==================================
 
+There are quite a few differences between OpenAeroStruct v1 and v2, though the underlying analyses remain largely the same.
+In this document, we'll example code using v1 on the left in red and the corresponding code to perform the same computations in v2 on the right in green.
+This can serve as a Rosetta Stone to translate older v1 scripts to run in v2.
+We'll first go through individual sets of commands then present a full example script that performs the same analyses in both versions.
+
 .. content-container ::
 
   .. embed-compare::

@@ -73,11 +73,11 @@ script:
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - testflo -n 1 openaerostruct --coverage --coverpkg openaerostruct --cover-omit \*tests/\* --cover-omit \*docs/\*;
 - if [ "$FORTRAN" ]; then
-    travis-sphinx build --source=openaerostruct/docs
+    travis-sphinx build --source=openaerostruct/docs;
   fi
 
 after_success:
 - if [ "$FORTRAN" ]; then
-    travis-sphinx deploy
+    travis-sphinx deploy;
   fi
 - coveralls
