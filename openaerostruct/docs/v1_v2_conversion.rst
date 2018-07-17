@@ -7,6 +7,8 @@ OpenAeroStruct v1 to v2 Conversion
 
   .. embed-compare::
       openaerostruct.tests.test_v1_aero_opt.Test.test
+      dictionary
+      prob.run_driver()
 
     from __future__ import division, print_function
     from time import time

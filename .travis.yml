@@ -77,7 +77,7 @@ script:
   fi
 
 after_success:
-- coveralls
 - if [ "$FORTRAN" ]; then
     travis-sphinx deploy
   fi
+- coveralls
