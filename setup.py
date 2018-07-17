@@ -22,4 +22,8 @@ setup(name='openaerostruct',
     install_requires=[],
     zip_safe=False,
     # ext_modules=ext,
+    entry_points="""
+    [console_scripts]
+    plot_wing=openaerostruct.utils.plot_wing:disp_plot
+    """
 )

@@ -1,16 +1,12 @@
 """ Script to plot results from aero, struct, or aerostruct optimization.
 
-Usage is
-`python plot_all.py aero.db` for aero only,
-`python plot_all.py struct.db` for struct only,
-`python plot_all.py aerostruct.db` for aerostruct, or
-`python plot_all.py __name__` for user-named database.
+Usage is `plot_wing __name__` for user-named database.
 
 You can select a certain zoom factor for the 3d view by adding a number as a
 last keyword.
 The larger the number, the closer the view. Floats or ints are accepted.
 
-Ex: `python plot_all.py aero.db 1` a wider view than `python plot_all.py aero.db 5`.
+Ex: `plot_wing aero.db 1` a wider view than `plot_wing aero.db 5`.
 
 """
 
@@ -52,15 +48,15 @@ except:
 # User-set parameters
 #####################
 
-db_name = sys.argv[1]
-
-try:
-    zoom_scale = sys.argv[2]
-except:
-    zoom_scale = 2.8
-
 class Display(object):
-    def __init__(self, db_name):
+    def __init__(self, args):
+
+        self.db_name = args[1]
+
+        try:
+            self.zoom_scale = args[2]
+        except:
+            self.zoom_scale = 2.8
 
         self.root = Tk.Tk()
         self.root.wm_title("Viewer")
@@ -79,7 +75,6 @@ class Display(object):
                                    colspan=4, projection='3d')
 
         self.num_iters = 0
-        self.db_name = db_name
         self.show_wing = True
         self.show_tube = True
         self.curr_pos = 0
@@ -586,7 +581,7 @@ class Display(object):
             ma = np.max(self.mesh[self.curr_pos*n_names+j], axis=(0,1,2))
             if ma > lim:
                 lim = ma
-        lim /= float(zoom_scale)
+        lim /= float(self.zoom_scale)
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Major Iteration: {}".format(self.curr_pos))
 
@@ -771,8 +766,8 @@ class Display(object):
 
         self.auto_ref()
 
-def disp_plot(db_name):
-    disp = Display(db_name)
+def disp_plot(args=sys.argv):
+    disp = Display(args)
     disp.draw_GUI()
     plt.tight_layout()
     disp.root.protocol("WM_DELETE_WINDOW", disp.quit)

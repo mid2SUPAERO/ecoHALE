@@ -274,7 +274,7 @@ You can visualize the lifting surface and structural spar using:
 
 .. code-block:: console
 
-  python plot_all.py aero.db
+  plot_wing aero.db
 
 Here you'll use `aero.db` or the filename for where you saved the problem data.
 This will produce a window where you can see how the lifting surface and design variables change with each iteration, as shown below.

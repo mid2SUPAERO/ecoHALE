@@ -4,7 +4,7 @@ omit =
     run_vlm.py
     run_aerostruct.py
     OptView.py
-    plot_all.py
+    plot_wing.py
     gs_newton.py
     test_suite.py
     view_geometry.py

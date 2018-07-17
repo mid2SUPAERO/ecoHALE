@@ -207,7 +207,7 @@ You can visualize the lifting surface and structural spar using:
 
 .. code-block:: console
 
-  python plot_all.py aerostruct.db
+  plot_wing aerostruct.db
 
 Here you'll use `aero.db`, `struct.db`, or `aerostruct.db` depending on what type of problem you ran.
 This will produce a window where you can see how the lifting surface and design variables change with each iteration, as shown below.
@@ -215,11 +215,5 @@ This will produce a window where you can see how the lifting surface and design 
 
 .. image:: plotall.png
 
-You can also use `OptView.py` to see how the design variables, constraints,
-and objective change throughout the optimization.
-You can select what parameters you want to view and plot them in a few different formats.
-
-.. image:: OptView.png
-
-You can monitor the results from your optimization in real-time with both `plot_all.py` and `OptView.py`.
+You can monitor the results from your optimization in real-time with `plot_wing`.
 Simply check the `Automatically refresh` button and the visualization will update with each optimization iteration.

@@ -11,7 +11,7 @@ Here are some common issues and possible solutions for them.
 
 - If you are running optimizations, it may be less computationally expensive to use `force_fd = True` within the problem dictionary.
 
-- Use `plot_all.py` and `OptView.py` often to visualize your results. Make sure your model is set up like you expect.
+- Use `plot_wing` often to visualize your results. Make sure your model is set up like you expect.
 
 - After running an optimization case, always check to see if your constraints are satisfied. pyOptSparse prints out this information automatically, but if you're using Scipy's optimizer, you may need to manually print the constraints.
 

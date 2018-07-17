@@ -147,4 +147,4 @@ We can then visualize the results by running
 
 .. code-block:: bash
 
-  python plot_all.py aerostruct.db
+  plot_wing aerostruct.db
