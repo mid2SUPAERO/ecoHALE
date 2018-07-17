@@ -51,6 +51,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.githubpages',
               'numpydoc',
               'embed_code',
+              'embed_compare',
               'embed_options']
 
 # directories for which to generate sourcedocs

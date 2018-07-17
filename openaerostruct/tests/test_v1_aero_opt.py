@@ -7,7 +7,9 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, \
+    ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, \
+    LinearBlockGS, PetscKSP
 
 
 class Test(unittest.TestCase):
@@ -33,7 +35,6 @@ class Test(unittest.TestCase):
                                             # reflected across the plane y = 0
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
-                    'fem_model_type' : 'tube',
 
                     'twist_cp' : np.zeros(2),
                     'mesh' : mesh,
@@ -110,11 +111,13 @@ class Test(unittest.TestCase):
                 name = surface['name']
 
                 # Connect the mesh from the geometry component to the analysis point
-                prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
+                prob.model.connect(name + '.mesh', point_name + '.' + \
+                    name + '.def_mesh')
 
                 # Perform the connections with the modified names within the
                 # 'aero_states' group.
-                prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
+                prob.model.connect(name + '.mesh', point_name + \
+                    '.aero_states.' + name + '_def_mesh')
 
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
@@ -131,7 +134,8 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.0049392534859265614, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0],\
+            0.0049392534859265614, 1e-6)
 
 
 if __name__ == '__main__':
