@@ -1,6 +1,6 @@
-Install this via:
+Install OpenAeroStruct by cloning this repository and entering the folder it generates.
+Then do:
 
 `pip install -e .`
 
-Also use `make` if you're on a Linux machine.
-If you're on macOS, change `config-macOS.mk` to `config.mk` within `openaerostruct/fortran/config/`.
+Please see the [documentation](https://johnjasa.github.io/OpenAeroStruct/) for more installation details, walkthroughs, and examples.
