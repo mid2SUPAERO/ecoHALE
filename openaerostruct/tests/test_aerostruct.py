@@ -13,9 +13,7 @@ class Test(unittest.TestCase):
 
         from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 
-        from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, \
-        LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, \
-        SqliteRecorder
+        from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
 
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 5,

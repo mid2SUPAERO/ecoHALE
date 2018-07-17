@@ -9,7 +9,7 @@ You should read this page in its entirety to get a feel for how the model is set
 OpenMDAO basics
 ---------------
 
-OpenAeroStruct is a tool written using the OpenMDAO framework.
+OpenAeroStruct is a tool written using the `OpenMDAO <http://openmdao.org/>`_ framework.
 OpenMDAO is an open-source high-performance computing platform for systems analysis and multidisciplinary optimization, written in Python.
 Visit OpenMDAO's `documentation <http://openmdao.org/twodocs/versions/latest/index.html>`_ for information on its capabilities and API.
 
@@ -29,7 +29,7 @@ Here is an extremely quick rundown of the basic terminology within OpenMDAO:
 Intro to the structure of the OpenAeroStruct problem
 ----------------------------------------------------
 
-In general, you'll follow these five steps to set up and run a problem in OpenAeroStruct:
+In general, you'll follow these four steps to set up and run a problem in OpenAeroStruct:
 
 1. Define your lifting surface
 2. Initialize your problem and add flow conditions
@@ -37,7 +37,7 @@ In general, you'll follow these five steps to set up and run a problem in OpenAe
 4. Set up and run the optimization problem
 
 We'll now investigate these steps individually using an aerodynamic optimization case as an example.
-The full run script for this case is in :ref:_Quick_Example.
+The full run script for this case is in :ref:`Quick_Example`.
 
 1. Define your lifting surface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,7 +111,7 @@ There are many options for each surface, and they are loosely organized into the
 2. Initialize your problem and add problem conditions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Next, we need to initialize the OpenMDAO problem, add flow conditions, and add the groups that contain the analysis components.
-In a more complex model, these flow conditions might come from a different OpenMDAO component, but here we hook them up into the model using an independent variable component, or IndepVarComp.
+In a more complex model, these flow conditions might come from a different OpenMDAO component, but here we hook them up into the model using an independent variable component, or `IndepVarComp`.
 Set the values for these parameters that you want to use here.
 We then add this component to the OpenMDAO model.
 
@@ -137,7 +137,7 @@ We then add this component to the OpenMDAO model.
 
 We now need to provide the geometry and analysis groups to the OpenMDAO problem.
 
-We instantiate and add the geometry group, which computes the new mesh shape based on the current values of the design parameters.
+We instantiate and add the `Geometry` group, which computes the new mesh shape based on the current values of the design parameters.
 In an optimization context, the driver will change these values, and the geometry group computes the new mesh to use in the analysis components.
 
 We then add an `AeroPoint` group, which contains the analysis components to compute the aerodynamic performance of the lifting surface.
@@ -175,7 +175,7 @@ These connections allow information about the mesh to flow through the model cor
 3. Add your design variables, constraints, and objective
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. note::
-  This step is only necessary when performing an optimization, not an analysis.
+  This step is only necessary when performing an optimization and is not needed for only analysis.
 
 With the problem and surfaces defined, we can now add a description of the
 optimization problem.

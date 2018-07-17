@@ -5,143 +5,146 @@ Geometry Creation and Manipulation
 ==================================
 
 OpenAeroStruct contains two types of default surfaces: a simple rectangular lifting surface, and a wing modeled after a B777-type aircraft called the Common Research Model (CRM).
-By default, `run_vlm.py` and `run_spatialbeam.py` both use the rectangular surface, while `run_aerostruct.py` uses the CRM surface, though any surface can be used for any type of analysis or optimization.
 
-Using a user-defined mesh
--------------------------
+..
+  By default, `run_vlm.py` and `run_spatialbeam.py` both use the rectangular surface, while `run_aerostruct.py` uses the CRM surface, though any surface can be used for any type of analysis or optimization.
 
-Although there are two default surface types available, any mesh can be supplied to OpenAeroStruct.
-The mesh array must be three-dimensional and of the shape `(num_x, num_y, 3)`, where
-num_x is the number of chordwise nodal points, num_y is the number of spanwise nodal points,
-and the last dimension contains the x, y, z coordinates of the point in space.
+  Using a user-defined mesh
+  -------------------------
 
-Looping through the three-dimensional array, we could print the individual coordinate
-points for each node of the mesh using the following code:
+  Although there are two default surface types available, any mesh can be supplied to OpenAeroStruct.
+  The mesh array must be three-dimensional and of the shape `(num_x, num_y, 3)`, where
+  num_x is the number of chordwise nodal points, num_y is the number of spanwise nodal points,
+  and the last dimension contains the x, y, z coordinates of the point in space.
 
-.. code-block:: python
+  Looping through the three-dimensional array, we could print the individual coordinate
+  points for each node of the mesh using the following code:
 
-  for j in range(num_x):
-      for i in range(num_y):
-          print(mesh[j, i, :])
+  .. code-block:: python
 
-The figure below shows how the nodes are indexed for each dimension corresponding to the above code.
+    for j in range(num_x):
+        for i in range(num_y):
+            print(mesh[j, i, :])
 
-
-.. image:: mesh-diagram.svg
-  :width: 75 %
-  :align: center
+  The figure below shows how the nodes are indexed for each dimension corresponding to the above code.
 
 
-Here is a short example using a user-supplied mesh:
+  .. image:: mesh-diagram.svg
+    :width: 75 %
+    :align: center
 
-.. code-block:: python
 
-  import numpy as np
-  from OpenAeroStruct import OASProblem
+  Here is a short example using a user-supplied mesh:
 
-  # Set problem type
-  prob_dict = {'type' : 'aero',
-               'optimize' : False}
-
-  nx = 2  # number of chordwise nodal points
-  ny2 = 21  # number of spanwise nodal points for the half-span
-  span = 10.
-  root_chord = 1.
-
-  # Initialize the mesh object. Note that the three dimensions of the array
-  # go in order of chordwise, spanwise, then the 3D coordinates.
-  mesh = np.zeros((nx, ny2, 3))
-
-  # Set up a basic rectangular wing with the given span and root chord.
-  # Note we only model one half of the wing.
-  # We start away from the symmetry plane and approach the plane as the array
-  # indices increase.
-  mesh[:, :, 1] = np.linspace(-span/2, 0, ny2)
-  mesh[1, :, 0] = root_chord
-
-  # Now we vary the z coordinate of the wing linearly in two sections to create
-  # an inverted gull wing shape.
-
-  # The wingtip is translated upwards while the 1/3 span is translated downwards.
-  mesh[:, :2*ny2//3, 2] += np.linspace(.5, -.25, 2*ny2//3)
-  mesh[:, 2*ny2//3:, 2] -= np.linspace(.25, 0, ny2 - 2*ny2//3)
-
-  # Instantiate problem and add default surface
-  OAS_prob = OASProblem(prob_dict)
-  OAS_prob.add_surface({'name' : 'wing',
-                        'symmetry' : True,
-                        'mesh' : mesh})
-
-  # Set up and run the problem
-  OAS_prob.setup()
-  OAS_prob.run()
-
-This produces the inverted gull-wing shown below:
-
-.. image:: inverted_gull-wing.svg
-  :width: 75 %
-  :align: center
-
-|
-
-.. note::
-  When using `symmetry = True` for the surface, only define half of the mesh. Otherwise, define the entire mesh.
-
-Using OpenAeroStruct's geometry modifiers to create an initial geometry
------------------------------------------------------------------------
-
-Instead of using a user-defined mesh, you could start with the default rectangular mesh and transform it into a certain shape using OpenAeroStruct's geometry tools.
-In the code below, we start with a rectangular wing and apply a chord and x shear distribution to create a wing shape close to the CRM.
-
-.. note::
-  We can use any number of control points for each design variable to achieve our desired shape.
-  The number of control points does not need to match the number of nodal points.
-
-.. code-block:: python
+  .. code-block:: python
 
     import numpy as np
     from OpenAeroStruct import OASProblem
 
-    # Set problem type and name
-    prob_dict = {'prob_name' : 'CRM_geom',
-                'type' : 'aerostruct',
-                'optimize' : False,
-                }
+    # Set problem type
+    prob_dict = {'type' : 'aero',
+                 'optimize' : False}
+
+    nx = 2  # number of chordwise nodal points
+    ny2 = 21  # number of spanwise nodal points for the half-span
+    span = 10.
+    root_chord = 1.
+
+    # Initialize the mesh object. Note that the three dimensions of the array
+    # go in order of chordwise, spanwise, then the 3D coordinates.
+    mesh = np.zeros((nx, ny2, 3))
+
+    # Set up a basic rectangular wing with the given span and root chord.
+    # Note we only model one half of the wing.
+    # We start away from the symmetry plane and approach the plane as the array
+    # indices increase.
+    mesh[:, :, 1] = np.linspace(-span/2, 0, ny2)
+    mesh[1, :, 0] = root_chord
+
+    # Now we vary the z coordinate of the wing linearly in two sections to create
+    # an inverted gull wing shape.
+
+    # The wingtip is translated upwards while the 1/3 span is translated downwards.
+    mesh[:, :2*ny2//3, 2] += np.linspace(.5, -.25, 2*ny2//3)
+    mesh[:, 2*ny2//3:, 2] -= np.linspace(.25, 0, ny2 - 2*ny2//3)
 
     # Instantiate problem and add default surface
     OAS_prob = OASProblem(prob_dict)
+    OAS_prob.add_surface({'name' : 'wing',
+                          'symmetry' : True,
+                          'mesh' : mesh})
 
-    # Create a dictionary to store options about the surface
-    surf_dict = {
-                 'symmetry' : True,
-                 'num_y' : 7,  # set total number of spanwise nodes
-                 'num_x' : 2,  # set number of chordwise nodes
-                 'wing_type' : 'rect',  # begin with rectangular wing
-                 'span' : 58.,  # set full span
-                 'root_chord' : 5.,  # set the root chord
-                 'chord_cp' : np.array([0.5, 0.9, 1.2, 2.7]),  # set chord control point distribution
-                 'span_cos_spacing' : 0.5,  # set spanwise spacing
-                 'xshear_cp' : np.array([19., 16, 7, 0.]),  # set x shear control point distribution
-                 'CL0' : 0.2,  # CL at AoA = 0
-                 'CD0' : 0.015,  # CD at AoA = 0
-                 }
-
-    # Add the specified wing surface to the problem
-    OAS_prob.add_surface(surf_dict)
+    # Set up and run the problem
     OAS_prob.setup()
-
-    # Actually run the problem
     OAS_prob.run()
 
-This produces the wing shown below.
+  This produces the inverted gull-wing shown below:
 
-|
+  .. image:: inverted_gull-wing.svg
+    :width: 75 %
+    :align: center
 
-.. image:: CRM_esque.svg
-  :width: 60 %
-  :align: center
+  |
 
-|
+  .. note::
+    When using `symmetry = True` for the surface, only define half of the mesh. Otherwise, define the entire mesh.
+
+  Using OpenAeroStruct's geometry modifiers to create an initial geometry
+  -----------------------------------------------------------------------
+
+  Instead of using a user-defined mesh, you could start with the default rectangular mesh and transform it into a certain shape using OpenAeroStruct's geometry tools.
+  In the code below, we start with a rectangular wing and apply a chord and x shear distribution to create a wing shape close to the CRM.
+
+  .. note::
+    We can use any number of control points for each design variable to achieve our desired shape.
+    The number of control points does not need to match the number of nodal points.
+
+  .. code-block:: python
+
+      import numpy as np
+      from OpenAeroStruct import OASProblem
+
+      # Set problem type and name
+      prob_dict = {'prob_name' : 'CRM_geom',
+                  'type' : 'aerostruct',
+                  'optimize' : False,
+                  }
+
+      # Instantiate problem and add default surface
+      OAS_prob = OASProblem(prob_dict)
+
+      # Create a dictionary to store options about the surface
+      surf_dict = {
+                   'symmetry' : True,
+                   'num_y' : 7,  # set total number of spanwise nodes
+                   'num_x' : 2,  # set number of chordwise nodes
+                   'wing_type' : 'rect',  # begin with rectangular wing
+                   'span' : 58.,  # set full span
+                   'root_chord' : 5.,  # set the root chord
+                   'chord_cp' : np.array([0.5, 0.9, 1.2, 2.7]),  # set chord control point distribution
+                   'span_cos_spacing' : 0.5,  # set spanwise spacing
+                   'xshear_cp' : np.array([19., 16, 7, 0.]),  # set x shear control point distribution
+                   'CL0' : 0.2,  # CL at AoA = 0
+                   'CD0' : 0.015,  # CD at AoA = 0
+                   }
+
+      # Add the specified wing surface to the problem
+      OAS_prob.add_surface(surf_dict)
+      OAS_prob.setup()
+
+      # Actually run the problem
+      OAS_prob.run()
+
+  This produces the wing shown below.
+
+  |
+
+  .. image:: CRM_esque.svg
+    :width: 60 %
+    :align: center
+
+  |
+..
 
 
 Explanation of design variables

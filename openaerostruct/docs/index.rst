@@ -57,9 +57,3 @@ Notes
 =====
 
 This current version of this repository has grown past the previous Matlab implementation. If you are looking for a Matlab-capable version, please see https://github.com/samtx/OpenAeroStruct for the latest version.
-
-Known Issues
-============
-
-* The increase in accuracy of results when using a cosine-spaced mesh is not as large as it should be.
-* Aerostructural optimization sometimes fails to converge for certain geometries. The example provided in `run_aerostruct.py` should converge. The structural and aerodynamic values must make sense together, e.g. the beam thickness and radius must be able to support the aerodynamic loads.

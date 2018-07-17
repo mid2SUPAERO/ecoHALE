@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
         from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
         from openaerostruct.structures.struct_groups import SpatialBeamAlone
 
-        from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, SqliteRecorder
+        from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
 
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 7,
