@@ -78,7 +78,7 @@ numpydoc_show_class_members = False
 
 # General information about the project.
 project = u'OpenAeroStruct'
-copyright = u'2017, John Jasa, Dr. John Hwang, Justin S. Gray'
+copyright = u'2018, John Jasa, Dr. John Hwang, Justin S. Gray'
 author = u'John Jasa, Dr. John Hwang, Justin S. Gray'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -86,9 +86,9 @@ author = u'John Jasa, Dr. John Hwang, Justin S. Gray'
 # built documents.
 #
 # The short X.Y version.
-version = '0.3.2'
+version = '2.0.0'
 # The full version, including alpha/beta/rc tags.
-release = '0.3.2'
+release = '2.0.0'
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
