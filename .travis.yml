@@ -3,9 +3,11 @@ sudo: false
 os:
   - linux
 
+language: generic
+
 env:
-- FORTRAN= PY=2.7
-- FORTRAN= PY=3.6
+- PY=2.7
+- PY=3.6
 - FORTRAN=1 PY=2.7
 
 addons:
