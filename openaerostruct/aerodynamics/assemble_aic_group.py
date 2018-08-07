@@ -10,6 +10,7 @@ from openaerostruct.aerodynamics.horseshoe_circulations import HorseshoeCirculat
 from openaerostruct.aerodynamics.eval_velocities import EvalVelocities
 from openaerostruct.aerodynamics.panel_forces import PanelForces
 from openaerostruct.aerodynamics.panel_forces_surf import PanelForcesSurf
+from openaerostruct.aerodynamics.vortex_mesh import VortexMesh
 
 
 class AssembleAICGroup(Group):
@@ -34,6 +35,11 @@ class AssembleAICGroup(Group):
              CollocationPoints(surfaces=surfaces),
              promotes_inputs=['*'],
              promotes_outputs=['coll_pts', 'force_pts', 'bound_vecs'])
+
+        self.add_subsystem('vortex_mesh',
+            VortexMesh(surfaces=surfaces),
+            promotes_inputs=['*'],
+            promotes_outputs=['*'])
 
         # Get vectors from mesh points to collocation points
         self.add_subsystem('get_vectors',

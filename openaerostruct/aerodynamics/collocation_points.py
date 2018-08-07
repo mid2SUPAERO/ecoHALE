@@ -126,3 +126,7 @@ class CollocationPoints(ExplicitComponent):
             ).reshape(((nx - 1) * (ny - 1), 3))
 
             ind_eval_points_1 += (nx - 1) * (ny - 1)
+
+        print(outputs['coll_pts'])
+        print(outputs['force_pts'])
+        print(outputs['bound_vecs'])

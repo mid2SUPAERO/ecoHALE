@@ -7,7 +7,7 @@ from openmdao.api import ExplicitComponent
 class ConvertVelocity(ExplicitComponent):
 
     def initialize(self):
-        self.options.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
         surfaces = self.options['surfaces']

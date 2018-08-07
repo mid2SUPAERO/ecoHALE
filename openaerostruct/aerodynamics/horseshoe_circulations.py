@@ -8,7 +8,7 @@ from openmdao.api import ExplicitComponent
 class HorseshoeCirculations(ExplicitComponent):
 
     def initialize(self):
-        self.options.declare('surfaces', type_=list)
+        self.options.declare('surfaces', types=list)
 
     def setup(self):
         surfaces = self.options['surfaces']
@@ -61,3 +61,5 @@ class HorseshoeCirculations(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         outputs['horseshoe_circulations'] = self.mtx.dot(inputs['circulations'])
+        print(outputs['horseshoe_circulations'])
+        exit()

@@ -25,7 +25,7 @@ class GetVectors(ExplicitComponent):
             name = surface['name']
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
 
-            self.add_input(name + '_def_mesh', val=np.zeros((nx, ny, 3)), units='m')
+            self.add_input(name + '_vortex_mesh', val=np.zeros((nx, ny, 3)), units='m')
 
             self.add_output(vectors_name, val=np.ones((num_eval_points, nx, ny, 3)), units='m')
 
@@ -39,7 +39,7 @@ class GetVectors(ExplicitComponent):
                 np.ones((nx, ny), int),
             ).flatten()
 
-            self.declare_partials(vectors_name, name + '_def_mesh', val=-1., rows=vector_indices, cols=mesh_indices)
+            self.declare_partials(vectors_name, name + '_vortex_mesh', val=-1., rows=vector_indices, cols=mesh_indices)
             self.declare_partials(vectors_name, eval_name, val= 1., rows=vector_indices, cols=eval_indices)
 
     def compute(self, inputs, outputs):
@@ -52,8 +52,7 @@ class GetVectors(ExplicitComponent):
             nx = surface['num_x']
             name = surface['name']
 
-            mesh_name = name + '_def_mesh'
-            name + '_b_pts'
+            mesh_name = name + '_vortex_mesh'
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
 
             mesh_reshaped = np.einsum('i,jkl->ijkl', np.ones(num_eval_points), inputs[mesh_name])
@@ -63,3 +62,7 @@ class GetVectors(ExplicitComponent):
             )
 
             outputs[vectors_name] = eval_points_reshaped - mesh_reshaped
+
+        print('')
+        print('vec')
+        print(outputs[vectors_name])

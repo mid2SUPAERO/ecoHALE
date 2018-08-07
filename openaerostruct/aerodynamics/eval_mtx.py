@@ -110,6 +110,8 @@ class EvalVelMtx(ExplicitComponent):
         eval_name = self.options['eval_name']
         num_eval_points = self.options['num_eval_points']
 
+        self.add_input('alpha', val=0.)
+
         for surface in surfaces:
             nx = surface['num_x']
             ny = surface['num_y']
@@ -150,9 +152,13 @@ class EvalVelMtx(ExplicitComponent):
             ny = surface['num_y']
             name = surface['name']
 
+            alpha = inputs['alpha'][0]
+            cosa = np.cos(alpha * np.pi / 180.)
+            sina = np.sin(alpha * np.pi / 180.)
+
             u = np.einsum('ijk,l->ijkl',
                 np.ones((num_eval_points, 1, ny - 1)),
-                np.array([1., 0., 0.]))
+                np.array([cosa, 0, sina]))
 
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
@@ -197,9 +203,13 @@ class EvalVelMtx(ExplicitComponent):
             ny = surface['num_y']
             name = surface['name']
 
+            alpha = inputs['alpha'][0]
+            cosa = np.cos(alpha * np.pi / 180.)
+            sina = np.sin(alpha * np.pi / 180.)
+
             u = np.einsum('ijk,l->ijkl',
                 np.ones((num_eval_points, 1, ny - 1)),
-                np.array([1., 0., 0.]))
+                np.array([cosa, 0, sina]))
 
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
