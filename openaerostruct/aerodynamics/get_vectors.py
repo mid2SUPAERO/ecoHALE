@@ -14,7 +14,7 @@ class GetVectors(ExplicitComponent):
     def setup(self):
         surfaces = self.options['surfaces']
         num_eval_points = self.options['num_eval_points']
-        eval_name = self.metadata['eval_name']
+        eval_name = self.options['eval_name']
 
         self.declare_partials('*', '*', dependent=False)
 
@@ -40,12 +40,12 @@ class GetVectors(ExplicitComponent):
             ).flatten()
 
             self.declare_partials(vectors_name, name + '_def_mesh', val=-1., rows=vector_indices, cols=mesh_indices)
-            self.declare_partials(vectors_name, 'coll_pts', val= 1., rows=vector_indices, cols=eval_indices)
+            self.declare_partials(vectors_name, eval_name, val= 1., rows=vector_indices, cols=eval_indices)
 
     def compute(self, inputs, outputs):
         surfaces = self.options['surfaces']
-        num_eval_points = self.metadata['num_eval_points']
-        eval_name = self.metadata['eval_name']
+        num_eval_points = self.options['num_eval_points']
+        eval_name = self.options['eval_name']
 
         for surface in surfaces:
             ny = surface['num_y']

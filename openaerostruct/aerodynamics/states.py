@@ -25,18 +25,19 @@ class VLMStates(Group):
                  AssembleAIC(surfaces=surfaces),
                  promotes_inputs=['*'],
                  promotes_outputs=['AIC', 'rhs'])
+
+            self.add_subsystem('circulations',
+                Circulations(size=int(tot_panels)),
+                promotes_inputs=['AIC', 'rhs'],
+                promotes_outputs=['circulations'])
+
+            self.add_subsystem('forces',
+                Forces(surfaces=surfaces),
+                promotes_inputs=['*'],
+                promotes_outputs=['*'])
+
         else:
             self.add_subsystem('assembly',
                  AssembleAICGroup(surfaces=surfaces),
                  promotes_inputs=['*'],
                  promotes_outputs=['*'])
-
-        self.add_subsystem('circulations',
-             Circulations(size=int(tot_panels)),
-             promotes_inputs=['AIC', 'rhs'],
-             promotes_outputs=['circulations'])
-
-        self.add_subsystem('forces',
-             Forces(surfaces=surfaces),
-             promotes_inputs=['*'],
-             promotes_outputs=['*'])
