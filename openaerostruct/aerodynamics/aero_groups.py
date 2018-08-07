@@ -16,11 +16,11 @@ class AeroPoint(Group):
         for surface in surfaces:
             name = surface['name']
 
-            # self.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
-            # self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
+            self.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
+            self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
             self.connect(name + '.normals', 'aero_states.' + name + '_normals')
-            # self.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
-            # self.connect(name + '.widths', 'aero_states.' + name + '_widths')
+            self.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
+            self.connect(name + '.widths', 'aero_states.' + name + '_widths')
 
             # Connect the results from 'aero_states' to the performance groups
             self.connect('aero_states.' + name + '_sec_forces', name + '_perf' + '.sec_forces')
