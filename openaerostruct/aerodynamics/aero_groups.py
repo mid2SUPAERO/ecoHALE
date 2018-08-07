@@ -17,8 +17,8 @@ class AeroPoint(Group):
             name = surface['name']
 
             self.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
-            self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
-            self.connect(name + '.normals', 'aero_states.' + name + '_normals')
+            # self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
+            # self.connect(name + '.normals', 'aero_states.' + name + '_normals')
             self.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
             self.connect(name + '.widths', 'aero_states.' + name + '_widths')
 

@@ -2,6 +2,8 @@ from openmdao.api import Group
 from openaerostruct.aerodynamics.assemble_aic import AssembleAIC
 from openaerostruct.aerodynamics.circulations import Circulations
 from openaerostruct.aerodynamics.forces import Forces
+from openaerostruct.aerodynamics.assemble_aic_group import AssembleAICGroup
+
 
 class VLMStates(Group):
     """ Group that contains the aerodynamic states. """
@@ -18,10 +20,16 @@ class VLMStates(Group):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-        self.add_subsystem('assembly',
-             AssembleAIC(surfaces=surfaces),
-             promotes_inputs=['*'],
-             promotes_outputs=['AIC', 'rhs'])
+        if 0:
+            self.add_subsystem('assembly',
+                 AssembleAIC(surfaces=surfaces),
+                 promotes_inputs=['*'],
+                 promotes_outputs=['AIC', 'rhs'])
+        else:
+            self.add_subsystem('assembly',
+                 AssembleAICGroup(surfaces=surfaces),
+                 promotes_inputs=['*'],
+                 promotes_outputs=['*'])
 
         self.add_subsystem('circulations',
              Circulations(size=int(tot_panels)),
