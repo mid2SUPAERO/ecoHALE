@@ -259,7 +259,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                                 # computation, due to the different collocation
                                 # points.
                                 if skip and el_loc == cp_loc:
-                                    if 0:#symmetry:
+                                    if symmetry:
                                         bound = _calc_vorticity(B_sym, A_sym, P)
                                     else:
                                         bound = np.zeros((3))
