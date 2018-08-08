@@ -44,7 +44,7 @@ def compute_finite_vortex_deriv1(r1, r2, r1_deriv):
     # return num / den / 4 / np.pi
 
     result = (num_deriv * den - num * den_deriv) / den ** 2 / 4 / np.pi
-    result[den == 0] = 0.
+    result[np.abs(den) < 1e-10] = 0.
     return result
 
 def compute_finite_vortex_deriv2(r1, r2, r2_deriv):
@@ -67,7 +67,7 @@ def compute_finite_vortex_deriv2(r1, r2, r2_deriv):
     # return num / den / 4 / np.pi
 
     result = (num_deriv * den - num * den_deriv) / den ** 2 / 4 / np.pi
-    result[den == 0] = 0.
+    result[np.abs(den) < 1e-10] = 0.
     return result
 
 def compute_semi_infinite_vortex(u, r):
@@ -159,17 +159,12 @@ class EvalVelMtx(ExplicitComponent):
 
             u = np.einsum('ijk,l->ijkl',
                 np.ones((num_eval_points, 1, ny - 1)),
-                np.array([1., 0, 0]))
-                # np.array([cosa, 0, sina]))
+                np.array([cosa, 0, sina]))
 
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
 
             outputs[vel_mtx_name] = 0.
-
-            global flag
-            if eval_name == 'force_pts':
-                flag = True
 
             # front vortex
             r1 = inputs[vectors_name][:, 0:-1, 1:  , :]
