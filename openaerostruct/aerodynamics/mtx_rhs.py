@@ -23,9 +23,9 @@ class VLMMtxRHSComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('inflow_velocities', shape=(system_size, 3))
-        self.add_output('mtx', shape=(system_size, system_size))
-        self.add_output('rhs', shape=system_size)
+        self.add_input('inflow_velocities', shape=(system_size, 3), units='m/s')
+        self.add_output('mtx', shape=(system_size, system_size), units='1/m')
+        self.add_output('rhs', shape=system_size, units='m/s')
 
         inflow_indices = np.arange(system_size * 3).reshape((system_size, 3))
         mtx_indices = np.arange(system_size * system_size).reshape((system_size, system_size))

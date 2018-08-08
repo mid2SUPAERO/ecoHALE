@@ -23,12 +23,12 @@ class ConvertVelocity(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('alpha', val=0.)
-        self.add_input('v', val=1.)
+        self.add_input('alpha', val=0., units='deg')
+        self.add_input('v', val=1., units='m/s')
 
-        self.add_output('inflow_velocities', shape=(system_size, 3))
+        self.add_output('inflow_velocities', shape=(system_size, 3), units='m/s')
 
-        self.declare_partials('*', '*')
+        self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
         alpha = inputs['alpha'][0] * np.pi / 180.

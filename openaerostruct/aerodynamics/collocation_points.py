@@ -21,9 +21,9 @@ class CollocationPoints(ExplicitComponent):
 
             num_eval_points += (nx - 1) * (ny - 1)
 
-        self.add_output('coll_pts', shape=(num_eval_points, 3))
-        self.add_output('force_pts', shape=(num_eval_points, 3))
-        self.add_output('bound_vecs', shape=(num_eval_points, 3))
+        self.add_output('coll_pts', shape=(num_eval_points, 3), units='m')
+        self.add_output('force_pts', shape=(num_eval_points, 3), units='m')
+        self.add_output('bound_vecs', shape=(num_eval_points, 3), units='m')
 
         eval_indices = np.arange(num_eval_points * 3).reshape((num_eval_points, 3))
 
@@ -37,7 +37,7 @@ class CollocationPoints(ExplicitComponent):
             ind_eval_points_2 += (nx - 1) * (ny - 1)
 
             mesh_name = name + '_def_mesh'
-            self.add_input(mesh_name, shape=(nx, ny, 3))
+            self.add_input(mesh_name, shape=(nx, ny, 3), units='m')
 
             mesh_indices = np.arange(nx * ny * 3).reshape(
                 (nx, ny, 3))

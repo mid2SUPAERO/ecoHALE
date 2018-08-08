@@ -27,7 +27,7 @@ class PanelForcesSurf(ExplicitComponent):
 
         arange = np.arange(3 * system_size)
 
-        self.add_input('panel_forces', shape=(system_size, 3))
+        self.add_input('panel_forces', shape=(system_size, 3), units='N')
 
         ind1, ind2 = 0, 0
         for surface in surfaces:
@@ -39,7 +39,7 @@ class PanelForcesSurf(ExplicitComponent):
 
             ind2 += (nx - 1) * (ny - 1) * 3
 
-            self.add_output(out_name, shape=(nx - 1, ny - 1, 3))
+            self.add_output(out_name, shape=(nx - 1, ny - 1, 3), units='N')
 
             rows = np.arange((nx - 1) * (ny - 1) * 3)
             cols = arange[ind1:ind2]

@@ -29,9 +29,9 @@ class EvalVelocities(ExplicitComponent):
 
         velocities_name = '{}_velocities'.format(eval_name)
 
-        self.add_input('inflow_velocities', shape=(system_size, 3))
-        self.add_input('circulations', shape=system_size)
-        self.add_output(velocities_name, shape=(num_eval_points, 3))
+        self.add_input('inflow_velocities', shape=(system_size, 3), units='m/s')
+        self.add_input('circulations', shape=system_size, units='m**2/s')
+        self.add_output(velocities_name, shape=(num_eval_points, 3), units='m/s')
 
         circulations_indices = np.arange(system_size)
         velocities_indices = np.arange(num_eval_points * 3).reshape((num_eval_points, 3))

@@ -23,9 +23,9 @@ class SolveMatrix(ImplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('mtx', shape=(system_size, system_size))
-        self.add_input('rhs', shape=system_size)
-        self.add_output('circulations', shape=system_size)
+        self.add_input('mtx', shape=(system_size, system_size), units='1/m')
+        self.add_input('rhs', shape=system_size, units='m/s')
+        self.add_output('circulations', shape=system_size, units='m**2/s')
 
         self.declare_partials('circulations', 'circulations',
             rows=np.outer(np.arange(system_size), np.ones(system_size, int)).flatten(),

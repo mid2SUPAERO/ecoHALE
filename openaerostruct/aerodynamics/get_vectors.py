@@ -25,22 +25,28 @@ class GetVectors(ExplicitComponent):
             name = surface['name']
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
 
-            self.add_input(name + '_vortex_mesh', val=np.zeros((nx, ny, 3)), units='m')
+            if surface['symmetry']:
+                self.add_input(name + '_vortex_mesh', val=np.zeros((nx, ny*2-1, 3)), units='m')
+                self.add_output(vectors_name, val=np.ones((num_eval_points, nx, 2*ny-1, 3)), units='m')
 
-            self.add_output(vectors_name, val=np.ones((num_eval_points, nx, ny, 3)), units='m')
+                self.declare_partials(vectors_name, name + '_vortex_mesh', method='cs')
+                self.declare_partials(vectors_name, eval_name, method='cs')
+            else:
+                self.add_input(name + '_vortex_mesh', val=np.zeros((nx, ny, 3)), units='m')
+                self.add_output(vectors_name, val=np.ones((num_eval_points, nx, ny, 3)), units='m')
 
-            vector_indices = np.arange(num_eval_points * nx * ny * 3)
-            mesh_indices = np.outer(
-                np.ones(num_eval_points, int),
-                np.arange(nx * ny * 3),
-            ).flatten()
-            eval_indices = np.einsum('il,jk->ijkl',
-                np.arange(num_eval_points * 3).reshape((num_eval_points, 3)),
-                np.ones((nx, ny), int),
-            ).flatten()
+                vector_indices = np.arange(num_eval_points * nx * ny * 3)
+                mesh_indices = np.outer(
+                    np.ones(num_eval_points, int),
+                    np.arange(nx * ny * 3),
+                ).flatten()
+                eval_indices = np.einsum('il,jk->ijkl',
+                    np.arange(num_eval_points * 3).reshape((num_eval_points, 3)),
+                    np.ones((nx, ny), int),
+                ).flatten()
 
-            self.declare_partials(vectors_name, name + '_vortex_mesh', val=-1., rows=vector_indices, cols=mesh_indices)
-            self.declare_partials(vectors_name, eval_name, val= 1., rows=vector_indices, cols=eval_indices)
+                self.declare_partials(vectors_name, name + '_vortex_mesh', val=-1., rows=vector_indices, cols=mesh_indices)
+                self.declare_partials(vectors_name, eval_name, val= 1., rows=vector_indices, cols=eval_indices)
 
     def compute(self, inputs, outputs):
         surfaces = self.options['surfaces']
@@ -56,9 +62,16 @@ class GetVectors(ExplicitComponent):
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
 
             mesh_reshaped = np.einsum('i,jkl->ijkl', np.ones(num_eval_points), inputs[mesh_name])
-            eval_points_reshaped = np.einsum('il,jk->ijkl',
-                inputs[eval_name],
-                np.ones((nx, ny)),
-            )
+
+            if surface['symmetry']:
+                eval_points_reshaped = np.einsum('il,jk->ijkl',
+                    inputs[eval_name],
+                    np.ones((nx, 2*ny-1)),
+                )
+            else:
+                eval_points_reshaped = np.einsum('il,jk->ijkl',
+                    inputs[eval_name],
+                    np.ones((nx, ny)),
+                )
 
             outputs[vectors_name] = eval_points_reshaped - mesh_reshaped

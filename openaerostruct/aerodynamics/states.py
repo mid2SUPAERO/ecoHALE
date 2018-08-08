@@ -20,7 +20,7 @@ class VLMStates(Group):
             nx = surface['num_x']
             tot_panels += (nx - 1) * (ny - 1)
 
-        if 1:
+        if 0:
             self.add_subsystem('assembly',
                  AssembleAIC(surfaces=surfaces),
                  promotes_inputs=['*'],
