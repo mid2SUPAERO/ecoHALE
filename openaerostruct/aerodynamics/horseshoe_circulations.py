@@ -61,5 +61,3 @@ class HorseshoeCirculations(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         outputs['horseshoe_circulations'] = self.mtx.dot(inputs['circulations'])
-        print(outputs['horseshoe_circulations'])
-        exit()

@@ -19,7 +19,7 @@ class Geometry(Group):
         # only for this surface
         ny = surface['mesh'].shape[1]
 
-        if 'twist_cp' in surface.keys() or 'chord_cp' in surface.keys() or 'xshear_cp' in surface.keys() or 'yshear_cp' in surface.keys() or 'zshear_cp' in surface.keys() or self.options['DVGeo']:
+        if 'twist_cp' in surface.keys() or 'chord_cp' in surface.keys() or 'xshear_cp' in surface.keys() or 'yshear_cp' in surface.keys() or 'zshear_cp' in surface.keys() or 'sweep' in surface.keys() or 'taper' in surface.keys() or 'dihedral' in surface.keys() or self.options['DVGeo']:
             # Add independent variables that do not belong to a specific component
             indep_var_comp = IndepVarComp()
 

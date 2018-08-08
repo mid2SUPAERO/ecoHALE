@@ -156,9 +156,6 @@ class Forces(ExplicitComponent):
 
             i += num_panels
 
-        print('forces')
-        print(outputs[name + '_sec_forces'])
-
 
     if fortran_flag:
         if 0:

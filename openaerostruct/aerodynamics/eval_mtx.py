@@ -8,6 +8,7 @@ from openaerostruct.utils.vector_algebra import compute_dot, compute_dot_deriv
 from openaerostruct.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
 from openaerostruct.utils.vector_algebra import compute_norm, compute_norm_deriv
 
+flag = False
 
 def compute_finite_vortex(r1, r2):
     r1_norm = compute_norm(r1)
@@ -20,7 +21,7 @@ def compute_finite_vortex(r1, r2):
     den = r1_norm * r2_norm + r1_d_r2
 
     result = num / den / 4 / np.pi
-    result[den == 0] = 0.
+    result[np.abs(den) < 1e-10] = 0.
     return result
 
 def compute_finite_vortex_deriv1(r1, r2, r1_deriv):
@@ -158,12 +159,17 @@ class EvalVelMtx(ExplicitComponent):
 
             u = np.einsum('ijk,l->ijkl',
                 np.ones((num_eval_points, 1, ny - 1)),
-                np.array([cosa, 0, sina]))
+                np.array([1., 0, 0]))
+                # np.array([cosa, 0, sina]))
 
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
 
             outputs[vel_mtx_name] = 0.
+
+            global flag
+            if eval_name == 'force_pts':
+                flag = True
 
             # front vortex
             r1 = inputs[vectors_name][:, 0:-1, 1:  , :]
@@ -209,7 +215,8 @@ class EvalVelMtx(ExplicitComponent):
 
             u = np.einsum('ijk,l->ijkl',
                 np.ones((num_eval_points, 1, ny - 1)),
-                np.array([cosa, 0, sina]))
+                np.array([1, 0, 0]))
+                # np.array([cosa, 0, sina]))
 
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)

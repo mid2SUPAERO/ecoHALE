@@ -99,7 +99,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
     cosa = np.cos(alpha * np.pi / 180.)
     sina = np.sin(alpha * np.pi / 180.)
     u = np.array([cosa, 0, sina])
-    u = np.array([1., 0., 0.])
+    u = np.array([1, 0, 0])
 
     i_ = 0
     i_panels_ = 0
@@ -260,7 +260,7 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
                                 # computation, due to the different collocation
                                 # points.
                                 if skip and el_loc == cp_loc:
-                                    if symmetry:
+                                    if 0:#symmetry:
                                         bound = _calc_vorticity(B_sym, A_sym, P)
                                     else:
                                         bound = np.zeros((3))

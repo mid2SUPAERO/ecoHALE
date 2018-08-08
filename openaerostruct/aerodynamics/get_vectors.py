@@ -62,7 +62,3 @@ class GetVectors(ExplicitComponent):
             )
 
             outputs[vectors_name] = eval_points_reshaped - mesh_reshaped
-
-        print('')
-        print('vec')
-        print(outputs[vectors_name])

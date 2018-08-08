@@ -198,13 +198,6 @@ class Display(object):
                         self.S_ref.append(case.outputs[pt_name + '.' + name + '.S_ref'])
                         self.show_wing = True
 
-                        # Not the best solution for now, but this will ensure
-                        # that this plots correctly even if twist isn't a desvar
-                        try:
-                            self.twist.append(case.outputs[name+'.twist'])
-                            self.twist_included = True
-                        except:
-                            pass
                     except:
                         self.show_wing = False
                 else:
@@ -233,13 +226,13 @@ class Display(object):
                     S_ref_var_name = '{pt_name}.coupled.{surf_name}.aero_geom.S_ref'.format(pt_name=pt_name, surf_name=name)
                     self.S_ref.append(case.outputs[S_ref_var_name])
 
-                    # Not the best solution for now, but this will ensure
-                    # that this plots correctly even if twist isn't a desvar
-                    if self.twist_included:
-                        self.twist.append(case.outputs[name+'.geometry.twist'])
-                    else:
-                        ny = self.mesh[0].shape[1]
-                        self.twist.append(np.zeros(ny))
+                # Not the best solution for now, but this will ensure
+                # that this plots correctly even if twist isn't a desvar
+                if self.twist_included:
+                    self.twist.append(case.outputs[name+'.geometry.twist'])
+                else:
+                    ny = self.mesh[0].shape[1]
+                    self.twist.append(np.zeros(ny))
 
             if self.show_wing:
                 alpha.append(case.outputs['alpha'] * np.pi / 180.)
@@ -766,4 +759,4 @@ def disp_plot(args=sys.argv):
     Tk.mainloop()
 
 if __name__ == '__main__':
-    disp_plot(db_name)
+    disp_plot()

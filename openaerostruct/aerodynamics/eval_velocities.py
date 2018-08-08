@@ -101,6 +101,11 @@ class EvalVelocities(ExplicitComponent):
                 inputs['circulations'][ind_1:ind_2],
             )
 
+            tmp = np.einsum('ijk,j->ik',
+                inputs[vel_mtx_name].reshape((num_eval_points, num, 3)),
+                inputs['circulations'][ind_1:ind_2],
+            )
+
             ind_1 += num
 
     def compute_partials(self, inputs, partials):
