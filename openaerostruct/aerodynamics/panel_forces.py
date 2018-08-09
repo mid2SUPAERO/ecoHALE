@@ -30,7 +30,7 @@ class PanelForces(ExplicitComponent):
         velocities_name = '{}_velocities'.format('force_pts')
 
         self.add_input('rho', units='kg/m**3')
-        self.add_input('horseshoe_circulations', shape=system_size)
+        self.add_input('horseshoe_circulations', shape=system_size, units='m**2/s')
         self.add_input(velocities_name, shape=(system_size, 3), units='m/s')
         self.add_input('bound_vecs', shape=(system_size, 3), units='m')
         self.add_output('panel_forces', shape=(system_size, 3), units='N')

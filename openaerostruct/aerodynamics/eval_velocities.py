@@ -61,7 +61,7 @@ class EvalVelocities(ExplicitComponent):
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
 
             self.add_input(vel_mtx_name,
-                shape=(num_eval_points, nx - 1, ny - 1, 3))
+                shape=(num_eval_points, nx - 1, ny - 1, 3), units='1/m')
 
             vel_mtx_indices = np.arange(num_eval_points * num * 3).reshape(
                 (num_eval_points, num, 3))

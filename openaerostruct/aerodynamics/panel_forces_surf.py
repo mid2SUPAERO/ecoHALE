@@ -58,9 +58,8 @@ class PanelForcesSurf(ExplicitComponent):
 
             out_name = '{}_sec_forces'.format(name)
 
-            ind2 += (nx - 1) * (ny - 1) * 3
-
+            ind2 += (nx - 1) * (ny - 1)
             outputs[out_name] = inputs['panel_forces'][ind1:ind2].reshape(
                 (nx - 1, ny - 1, 3))
 
-            ind1 += (nx - 1) * (ny - 1) * 3
+            ind1 += (nx - 1) * (ny - 1)

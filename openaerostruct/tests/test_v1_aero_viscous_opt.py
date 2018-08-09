@@ -117,6 +117,7 @@ class Test(unittest.TestCase):
 
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
+        prob.driver.options['tol'] = 1e-9
 
         # # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
@@ -130,8 +131,8 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.019234984422361764, 1e-4)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-5)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.019234984422361764, 1e-3)
 
 
 if __name__ == '__main__':

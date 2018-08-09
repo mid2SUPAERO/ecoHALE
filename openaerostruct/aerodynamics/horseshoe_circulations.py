@@ -23,8 +23,8 @@ class HorseshoeCirculations(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('circulations', shape=system_size)
-        self.add_output('horseshoe_circulations', shape=system_size)
+        self.add_input('circulations', shape=system_size, units='m**2/s')
+        self.add_output('horseshoe_circulations', shape=system_size, units='m**2/s')
 
         data = [np.ones(system_size)]
         rows = [np.arange(system_size)]

@@ -52,7 +52,7 @@ class VLMMtxRHSComp(ExplicitComponent):
             normals_name = '{}_normals'.format(name)
 
             self.add_input(vel_mtx_name,
-                shape=(system_size, nx - 1, ny - 1, 3))
+                shape=(system_size, nx - 1, ny - 1, 3), units='1/m')
             self.add_input(normals_name, shape=(nx - 1, ny - 1, 3))
 
             velocities_indices = np.arange(system_size * num * 3).reshape(
@@ -77,6 +77,7 @@ class VLMMtxRHSComp(ExplicitComponent):
 
         self.mtx_n_n_3 = np.zeros((system_size, system_size, 3))
         self.normals_n_3 = np.zeros((system_size, 3))
+        self.set_check_partial_options(wrt='*', method='fd', step=1e-5)
 
     def compute(self, inputs, outputs):
         surfaces = self.options['surfaces']
