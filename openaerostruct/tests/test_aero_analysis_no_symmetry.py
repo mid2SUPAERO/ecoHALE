@@ -7,7 +7,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, SqliteRecorder
 
 
 class Test(unittest.TestCase):
@@ -15,15 +15,13 @@ class Test(unittest.TestCase):
     def test(self):
 
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 5,
+        mesh_dict = {'num_y' : 11,
                      'num_x' : 3,
-                     'wing_type' : 'rect',
+                     'wing_type' : 'CRM',
                      'symmetry' : False,
-                     'span' : 10.,
-                     'chord' : 1,
-                     'span_cos_spacing' : 1.}
+                     'num_twist_cp' : 5}
 
-        mesh = generate_mesh(mesh_dict)
+        mesh, twist_cp = generate_mesh(mesh_dict)
 
         surf_dict = {
                     # Wing definition
@@ -33,12 +31,11 @@ class Test(unittest.TestCase):
                                             # reflected across the plane y = 0
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
-                    'fem_model_type' : 'tube',
 
-                    'twist_cp' : np.zeros(5),
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
                     'num_y' : mesh.shape[1],
+                    'twist_cp' : twist_cp,
 
                     # Aerodynamic performance of the lifting surface at
                     # an angle of attack of 0 (alpha=0).
@@ -52,12 +49,10 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
+                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
-                    'sweep' : 0.,
-                    'dihedral' : 0.,
                     }
 
         surfaces = [surf_dict]
@@ -115,24 +110,19 @@ class Test(unittest.TestCase):
                 # 'aero_states' group.
                 prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
-        from openmdao.api import ScipyOptimizeDriver
-        prob.driver = ScipyOptimizeDriver()
-        prob.driver.options['tol'] = 1e-5
-
-        # # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-        prob.model.add_design_var('wing.sweep', lower=10., upper=30.)
-        prob.model.add_design_var('wing.dihedral', lower=-10., upper=20.)
-        prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
-        prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
+        recorder = SqliteRecorder("aero_analysis_no_sym.db")
+        prob.driver.add_recorder(recorder)
+        prob.driver.recording_options['record_derivatives'] = True
 
         # Set up the problem
         prob.setup()
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-5)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.019234984422361764, 1e-3)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.4641915422309865, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.019503986624201042, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.16030345664035917, 1e-6)
+
 
 
 if __name__ == '__main__':
