@@ -6,6 +6,15 @@ import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
+def view_mat(mat):
+    """ Helper function used to visually examine matrices. """
+    import matplotlib.pyplot as plt
+    if len(mat.shape) > 2:
+        mat = np.sum(mat, axis=2)
+    im = plt.imshow(mat.real, interpolation='none')
+    plt.colorbar(im, orientation='horizontal')
+    plt.show()
+
 def run_test(obj, comp, decimal=3, complex=False):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)

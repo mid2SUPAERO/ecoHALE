@@ -37,7 +37,6 @@ class VortexMesh(ExplicitComponent):
                 mesh_indices = np.arange(nx * ny * 3).reshape((nx, ny, 3))
                 vor_indices = np.arange(nx * (2*ny-1) * 3).reshape((nx, (2*ny-1), 3))
 
-                # TODO: this works but is not right, hardcoded probably
                 rows = np.tile(vor_indices[:(nx-1), :ny, :].flatten(), 2)
                 rows = np.hstack((rows, vor_indices[-1  , :ny, :].flatten()))
                 rows = np.hstack((rows, np.tile(vor_indices[:(nx-1), ny:, :][:, ::-1, :].flatten(), 2)))
