@@ -15,10 +15,10 @@ def view_mat(mat):
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
-def run_test(obj, comp, decimal=3, complex=False):
+def run_test(obj, comp, decimal=3, complex_flag=False):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
-    prob.setup(force_alloc_complex=complex)
+    prob.setup(force_alloc_complex=complex_flag)
 
     prob.run_model()
     check = prob.check_partials(compact_print=True)
