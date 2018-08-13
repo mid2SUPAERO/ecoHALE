@@ -11,7 +11,7 @@ class Test(unittest.TestCase):
         surface['k_lam'] = .05
         comp = ViscousDrag(surface=surface, with_viscous=True)
 
-        run_test(self, comp, complex=True)
+        run_test(self, comp, complex_flag=True)
 
 
 if __name__ == '__main__':
