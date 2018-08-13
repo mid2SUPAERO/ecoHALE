@@ -19,7 +19,7 @@ class Test(unittest.TestCase):
         mesh_dict = {'num_y' : 7,
                      'num_x' : 2,
                      'wing_type' : 'CRM',
-                     'symmetry' : True,
+                     'symmetry' : False,
                      'num_twist_cp' : 5}
 
         # Generate the aerodynamic mesh based on the previous dictionary
@@ -31,7 +31,7 @@ class Test(unittest.TestCase):
                     # Wing definition
                     'name' : 'wing',        # name of the surface
                     'type' : 'aero',
-                    'symmetry' : True,     # if true, model one half of wing
+                    'symmetry' : False,     # if true, model one half of wing
                                             # reflected across the plane y = 0
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
@@ -105,10 +105,6 @@ class Test(unittest.TestCase):
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
 
-        recorder = SqliteRecorder("aero.db")
-        prob.driver.add_recorder(recorder)
-        prob.driver.recording_options['record_derivatives'] = True
-
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
         prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
@@ -117,13 +113,13 @@ class Test(unittest.TestCase):
         # Set up and run the optimization problem
         prob.setup()
         prob.run_model()
-        # prob.check_partials(compact_print=True)
+        # prob.check_partials()
         # exit()
         prob.run_driver()
 
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03339013029042684, 1e-5)
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.18451822790794759, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.18453592482214315, 1e-4)
 
 
 if __name__ == '__main__':

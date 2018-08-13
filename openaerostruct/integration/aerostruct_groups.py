@@ -140,12 +140,12 @@ class AerostructPoint(Group):
 
             # Perform the connections with the modified names within the
             # 'aero_states' group.
-            coupled.connect(name + '.def_mesh', 'aero_states.' + name + '_def_mesh')
-            coupled.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
-            coupled.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
             coupled.connect(name + '.normals', 'aero_states.' + name + '_normals')
-            coupled.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
-            coupled.connect(name + '.widths', 'aero_states.' + name + '_widths')
+            coupled.connect(name + '.def_mesh', 'aero_states.' + name + '_def_mesh')
+            # coupled.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
+            # coupled.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
+            # coupled.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
+            # coupled.connect(name + '.widths', 'aero_states.' + name + '_widths')
 
             # Connect the results from 'coupled' to the performance groups
             coupled.connect(name + '.def_mesh', name + '_loads.def_mesh')
@@ -190,7 +190,7 @@ class AerostructPoint(Group):
         # coupled group.
         coupled.add_subsystem('aero_states',
             VLMStates(surfaces=surfaces),
-            promotes_inputs=['v', 'alpha', 'rho', 'M'])
+            promotes_inputs=['v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.
@@ -225,7 +225,7 @@ class AerostructPoint(Group):
         """
 
         # Add the coupled group to the model problem
-        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho', 'M'])
+        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho'])
 
         for surface in surfaces:
             name = surface['name']

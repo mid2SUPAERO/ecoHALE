@@ -136,8 +136,8 @@ class Test(unittest.TestCase):
         from openmdao.api import pyOptSparseDriver
         prob.driver = pyOptSparseDriver()
         prob.driver.options['optimizer'] = "SNOPT"
-        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-8,
-                                    'Major feasibility tolerance': 1.0e-8}
+        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-5,
+                                    'Major feasibility tolerance': 1.0e-5}
 
         # # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('alpha', lower=-15, upper=15)

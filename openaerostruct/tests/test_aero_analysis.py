@@ -16,7 +16,7 @@ class Test(unittest.TestCase):
 
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 7,
-                     'num_x' : 2,
+                     'num_x' : 3,
                      'wing_type' : 'CRM',
                      'symmetry' : True,
                      'num_twist_cp' : 5}
@@ -118,11 +118,14 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
+        # from openmdao.api import view_model
+        # view_model(prob)
+
         prob.run_driver()
 
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03721668954472605, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.51232315219856261, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.17933464818322539, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.038041969673747206, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5112640267782032, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.17919671624487307, 1e-6)
 
 
 

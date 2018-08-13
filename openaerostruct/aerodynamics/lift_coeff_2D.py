@@ -51,7 +51,7 @@ class LiftCoeff2D(ExplicitComponent):
         self.num_panels = (self.nx-1) * (self.ny-1)
 
         # Inputs
-        self.add_input('alpha', val=3.)
+        self.add_input('alpha', val=3., units='deg')
         self.add_input('sec_forces', val=np.ones((self.nx-1, self.ny-1, 3)), units='N')
         self.add_input('widths', val=np.ones((self.ny-1)), units='m')
         self.add_input('chords', val=np.ones((self.ny)), units='m')

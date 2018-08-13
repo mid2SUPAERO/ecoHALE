@@ -94,8 +94,8 @@ def _assemble_AIC_mtx(mtx, params, surfaces, skip=False):
         derivative of v w.r.t. circulations.
     """
 
-    alpha = params['alpha'][0]
     mtx[:, :, :] = 0.0
+    alpha = params['alpha'][0]
     cosa = np.cos(alpha * np.pi / 180.)
     sina = np.sin(alpha * np.pi / 180.)
     u = np.array([cosa, 0, sina])
