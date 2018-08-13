@@ -46,6 +46,7 @@ class SectionPropertiesTube(ExplicitComponent):
         self.arange = np.arange((self.ny - 1))
 
         self.declare_partials('*', '*')
+        self.set_check_partial_options(wrt='*', method='cs')
 
     def compute(self, inputs, outputs):
         pi = np.pi
