@@ -19,7 +19,16 @@ class Geometry(Group):
         # only for this surface
         ny = surface['mesh'].shape[1]
 
-        if 'twist_cp' in surface.keys() or 'chord_cp' in surface.keys() or 'xshear_cp' in surface.keys() or 'yshear_cp' in surface.keys() or 'zshear_cp' in surface.keys() or 'sweep' in surface.keys() or 'taper' in surface.keys() or 'dihedral' in surface.keys() or self.options['DVGeo']:
+        # Check if any control points were added to the surface dict
+        dv_keys = set(['twist_cp', 'chord_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp', 'sweep', 'taper', 'dihedral'])
+        active_dv_keys = dv_keys.intersection(set(surface.keys()))
+        # Make sure that at least one of them is an independent variable
+        make_ivc = True
+        for key in active_dv_keys:
+            if not surface.get(key + '_dv', True):
+                make_ivc = False
+
+        if make_ivc or self.options['DVGeo']:
             # Add independent variables that do not belong to a specific component
             indep_var_comp = IndepVarComp()
 
@@ -51,7 +60,11 @@ class Geometry(Group):
                     bspline_order=min(n_cp, 4), distribution='uniform'),
                     promotes_inputs=['twist_cp'], promotes_outputs=['twist'])
                 bsp_inputs.append('twist')
-                indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
+
+                # Since default assumption is that we want tail rotation as a design variable, add this to allow for trimmed drag polar where the tail rotation should not be a design variable
+                if surface.get('twist_cp_dv', True): 
+                    indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
+                # TODO need to do this for all other vars
 
             if 'chord_cp' in surface.keys():
                 n_cp = len(surface['chord_cp'])
