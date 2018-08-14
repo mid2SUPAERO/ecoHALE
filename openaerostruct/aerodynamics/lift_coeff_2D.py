@@ -115,12 +115,21 @@ class LiftCoeff2D(ExplicitComponent):
                    ( 0.5 * rho * v**2 * chord[:] )
 
         # Analytic derivatives for sec_forces
-        tmp = np.array([-sina, 0, cosa])
-        for ix in range(self.nx-1):
-            for jy in range(self.ny-1):
-                for ind in range(3):
-                   partials['Cl', 'sec_forces'][jy, ix*(self.ny-1)*3 + jy*3 + ind] = \
-                       tmp[ind] / widths[jy] / ( 0.5 * rho * v**2 * chord[jy] )
+        tmp = np.concatenate((-sina, np.array([0]), cosa))
+        A = np.zeros((self.ny-1, 3*(self.ny-1)))
+        
+#         print(tmp)
+#         for ix in range(self.nx-1):
+#             for jy in range(self.ny-1):
+#                 for ind in range(3):
+#                    partials['Cl', 'sec_forces'][jy, ix*(self.ny-1)*3 + jy*3 + ind] = \
+#                        tmp[ind] / widths[jy] / ( 0.5 * rho * v**2 * chord[jy] )
+#     
+        for jy in range(self.ny-1):
+           A[jy, jy*3 : jy*3 + 3] = \
+               tmp / widths[jy] / ( 0.5 * rho * v**2 * chord[jy] )
+        partials['Cl', 'sec_forces'] = np.matlib.repmat(A,1, self.nx-1)
+        
 
         # Analytic derivatives for widths
         partials['Cl', 'widths'] = np.diag( -1./ widths[:]**2 * \
@@ -128,14 +137,21 @@ class LiftCoeff2D(ExplicitComponent):
                                ( 0.5 * rho * v**2 * chord[:] ) )
 
         # Analytic derivatives for chords
-        for iy in range(self.ny-1):
-            partials['Cl', 'chords'][iy,iy  ] = \
-                             -1. / ( 0.5 * (chords[iy] + chords[iy+1])**2 ) * \
-                             lift_dist[iy] / ( 0.5 * rho * v**2 )
-            partials['Cl', 'chords'][iy,iy+1] = \
-                             -1. / ( 0.5 * (chords[iy] + chords[iy+1])**2 ) * \
-                             lift_dist[iy] / ( 0.5 * rho * v**2 )
-
+#         print (chords.shape, lift_dist.shape)
+        tmp_der =  -1/(0.5*(chords[:-1]+ chords[1:])**2)*lift_dist/( 0.5 * rho * v**2 )
+        partials['Cl', 'chords'] = (np.diag(np.concatenate((tmp_der, np.array([0]))))+\
+                                    np.diag(tmp_der, k=1))[:-1]
+                                    
+#         print(partials['Cl', 'chords'])
+#         for iy in range(self.ny-1):
+#             partials['Cl', 'chords'][iy,iy  ] = \
+#                              -1. / ( 0.5 * (chords[iy] + chords[iy+1])**2 ) * \
+#                              lift_dist[iy] / ( 0.5 * rho * v**2 )
+#             partials['Cl', 'chords'][iy,iy+1] = \
+#                              -1. / ( 0.5 * (chords[iy] + chords[iy+1])**2 ) * \
+#                              lift_dist[iy] / ( 0.5 * rho * v**2 )
+#                              
+            
         # Analytic derivatives for v
         partials['Cl', 'v'] = -2. / v**3 * \
                           lift_dist[:] / ( 0.5 * rho * chord[:] )
