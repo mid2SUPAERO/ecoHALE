@@ -2,6 +2,7 @@ from openmdao.api import Problem, Group, IndepVarComp, view_model
 
 from six import iteritems
 from numpy.testing import assert_almost_equal
+from openmdao.utils.assert_utils import assert_rel_error
 import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
@@ -30,7 +31,7 @@ def view_mat(mat1, mat2):
     ax[2].set_title('Difference')
     plt.show()
 
-def run_test(obj, comp, decimal=3, complex_flag=False):
+def run_test(obj, comp, complex_flag=False):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
@@ -39,10 +40,10 @@ def run_test(obj, comp, decimal=3, complex_flag=False):
     check = prob.check_partials(compact_print=True)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
-            assert_almost_equal(
-                subjac['rel error'].forward, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
-            assert_almost_equal(
-                subjac['rel error'].reverse, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
+            assert_rel_error(
+                subjac['rel error'].forward, 0., 1e-6)
+            assert_rel_error(
+                subjac['rel error'].reverse, 0., 1e-6)
 
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
