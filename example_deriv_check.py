@@ -8,7 +8,7 @@ from openmdao.api import Problem, Group, IndepVarComp, view_model
 from six import iteritems
 from numpy.testing import assert_almost_equal
 
-from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
+from openaerostruct.aerodynamics.convert_velocity import ConvertVelocity
 from openaerostruct.utils.testing import get_default_surfaces, run_test
 
 
@@ -29,14 +29,6 @@ class Test(unittest.TestCase):
     finite-difference or complex-step.
     """
 
-    def test_quick(self):
-        """ Short pre-setup test to compare component derivs. """
-        surfaces = get_default_surfaces()
-
-        comp = SectionPropertiesTube(surface=surfaces[0])
-
-        run_test(self, comp, complex_flag=True)
-
     def test_detailed(self):
         """ This is a longer version of the previous method, with plotting. """
 
@@ -46,7 +38,9 @@ class Test(unittest.TestCase):
         # Instantiate an OpenMDAO problem and add the component we want to test
         # as asubsystem, giving that component a default lifting surface
         prob = Problem()
-        prob.model.add_subsystem('tube', SectionPropertiesTube(surface=surfaces[0]))
+        print('done')
+        exit()
+        prob.model.add_subsystem('tube', ConvertVelocity(surfaces=surfaces))
 
         # Set up the problem and ensure it uses complex arrays so we can check
         # the derivatives using complex step
