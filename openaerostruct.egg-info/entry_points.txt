@@ -1,4 +1,0 @@
-
-    [console_scripts]
-    plot_wing=openaerostruct.utils.plot_wing:disp_plot
-    

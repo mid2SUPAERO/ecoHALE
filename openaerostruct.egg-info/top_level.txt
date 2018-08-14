@@ -1,7 +1,0 @@
-openaerostruct
-openaerostruct/aerodynamics
-openaerostruct/fortran
-openaerostruct/functionals
-openaerostruct/geometry
-openaerostruct/integration
-openaerostruct/structures
