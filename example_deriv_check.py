@@ -29,13 +29,13 @@ class Test(unittest.TestCase):
     finite-difference or complex-step.
     """
 
-   def test_quick(self):	
-        """ Short pre-setup test to compare component derivs. """	
-        surfaces = get_default_surfaces()	
+    def test_quick(self):
+        """ Short pre-setup test to compare component derivs. """
+        surfaces = get_default_surfaces()
 
-         comp = SectionPropertiesTube(surface=surfaces[0])	
+        comp = SectionPropertiesTube(surface=surfaces[0])
 
-         run_test(self, comp, complex_flag=True)	
+        run_test(self, comp, complex_flag=True)
 
     def test_detailed(self):
         """ This is a longer version of the previous method, with plotting. """
