@@ -23,10 +23,11 @@ class Geometry(Group):
         dv_keys = set(['twist_cp', 'chord_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp', 'sweep', 'taper', 'dihedral'])
         active_dv_keys = dv_keys.intersection(set(surface.keys()))
         # Make sure that at least one of them is an independent variable
-        make_ivc = True
+        make_ivc = False
         for key in active_dv_keys:
-            if not surface.get(key + '_dv', True):
-                make_ivc = False
+            if surface.get(key + '_dv', True):
+                make_ivc = True
+                break
 
         if make_ivc or self.options['DVGeo']:
             # Add independent variables that do not belong to a specific component
@@ -63,8 +64,7 @@ class Geometry(Group):
 
                 # Since default assumption is that we want tail rotation as a design variable, add this to allow for trimmed drag polar where the tail rotation should not be a design variable
                 if surface.get('twist_cp_dv', True): 
-                    indep_var_comp.add_output('twist_cp', val=surface['twist_cp'])
-                # TODO need to do this for all other vars
+                    indep_var_comp.add_output('twist_cp', val=surface['twist_cp'], units = 'deg')
 
             if 'chord_cp' in surface.keys():
                 n_cp = len(surface['chord_cp'])
@@ -75,7 +75,8 @@ class Geometry(Group):
                     bspline_order=min(n_cp, 4), distribution='uniform'),
                     promotes_inputs=['chord_cp'], promotes_outputs=['chord'])
                 bsp_inputs.append('chord')
-                indep_var_comp.add_output('chord_cp', val=surface['chord_cp'], units='m')
+                if surface.get('chord_cp_dv', True): 
+                    indep_var_comp.add_output('chord_cp', val=surface['chord_cp'], units='m')
 
             if 'toverc_cp' in surface.keys():
                 n_cp = len(surface['toverc_cp'])
@@ -85,7 +86,8 @@ class Geometry(Group):
                     num_control_points=n_cp, num_points=int(ny-1),
                     bspline_order=min(n_cp, 4), distribution='uniform'),
                     promotes_inputs=['toverc_cp'], promotes_outputs=['toverc'])
-                indep_var_comp.add_output('toverc_cp', val=surface['toverc_cp'], units='m')
+                if surface.get('toverc_cp_dv', True): 
+                    indep_var_comp.add_output('toverc_cp', val=surface['toverc_cp'], units='m')
 
             if 'xshear_cp' in surface.keys():
                 n_cp = len(surface['xshear_cp'])
@@ -96,7 +98,8 @@ class Geometry(Group):
                     bspline_order=min(n_cp, 4), distribution='uniform'),
                     promotes_inputs=['xshear_cp'], promotes_outputs=['xshear'])
                 bsp_inputs.append('xshear')
-                indep_var_comp.add_output('xshear_cp', val=surface['xshear_cp'], units='m')
+                if surface.get('xshear_cp_dv', True): 
+                    indep_var_comp.add_output('xshear_cp', val=surface['xshear_cp'], units='m')
 
             if 'yshear_cp' in surface.keys():
                 n_cp = len(surface['yshear_cp'])
@@ -107,7 +110,8 @@ class Geometry(Group):
                     bspline_order=min(n_cp, 4), distribution='uniform'),
                     promotes_inputs=['yshear_cp'], promotes_outputs=['yshear'])
                 bsp_inputs.append('yshear')
-                indep_var_comp.add_output('yshear_cp', val=surface['yshear_cp'], units='m')
+                if surface.get('yshear_cp_dv', True): 
+                    indep_var_comp.add_output('yshear_cp', val=surface['yshear_cp'], units='m')
 
             if 'zshear_cp' in surface.keys():
                 n_cp = len(surface['zshear_cp'])
@@ -118,19 +122,23 @@ class Geometry(Group):
                     bspline_order=min(n_cp, 4), distribution='uniform'),
                     promotes_inputs=['zshear_cp'], promotes_outputs=['zshear'])
                 bsp_inputs.append('zshear')
-                indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'], units='m')
+                if surface.get('zhear_cp_dv', True): 
+                    indep_var_comp.add_output('zhear_cp', val=surface['zhear_cp'], units='m')
 
             if 'sweep' in surface.keys():
                 bsp_inputs.append('sweep')
-                indep_var_comp.add_output('sweep', val=surface['sweep'], units='deg')
+                if surface.get('sweep_dv', True): 
+                    indep_var_comp.add_output('sweep', val=surface['sweep'], units='deg')
 
             if 'dihedral' in surface.keys():
                 bsp_inputs.append('dihedral')
-                indep_var_comp.add_output('dihedral', val=surface['dihedral'], units='deg')
+                if surface.get('dihedral_dv', True): 
+                    indep_var_comp.add_output('dihedral', val=surface['dihedral'], units='deg')
 
             if 'taper' in surface.keys():
                 bsp_inputs.append('taper')
-                indep_var_comp.add_output('taper', val=surface['taper'])
+                if surface.get('taper_dv', True): 
+                    indep_var_comp.add_output('taper', val=surface['taper'])
 
             self.add_subsystem('mesh',
                 GeometryMesh(surface=surface),

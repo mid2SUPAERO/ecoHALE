@@ -63,44 +63,50 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
             promotes_outputs = ['tail_rotation'])
         prob.model.connect('aero.CM', 'balance.lhs:tail_rotation', src_indices = [1])
         prob.model.connect('tail_rotation', 'tail.twist_cp', src_indices = np.zeros((1,5), dtype = int))
+        
+        # Use Newton Solver
         # prob.model.nonlinear_solver = NewtonSolver()
         # prob.model.nonlinear_solver.options['solve_subsystems'] = True
+
+        # Use Broyden Solver
         prob.model.nonlinear_solver = BroydenSolver()
         prob.model.nonlinear_solver.options['state_vars'] = ['tail_rotation']
-        # prob.model.nonlinear_solver.linesearch = ArmijoGoldsteinLS() 
+
+        # prob.model.nonlinear_solver.linesearch = ArmijoGoldsteinLS()
+        
         prob.model.nonlinear_solver.options['iprint'] = 2
         prob.model.nonlinear_solver.options['maxiter'] = 20
         prob.model.linear_solver = DirectSolver()
     
 
     prob.setup()
-    prob['tail_rotation'] = -0.75
+    
+    #prob['tail_rotation'] = -0.75
 
     prob.run_model()
     #prob.check_partials(compact_print = True)
-    prob.model.list_outputs(residuals = True)
-    quit()
-
-    prob.run_model()
     #prob.model.list_outputs(prom_name = True)
+
+    prob.model.list_outputs(residuals = True)
 
     CLs = []
     CDs = []
     CMs = []
-    # for a in alphas:
-    #     prob['alpha'] =  a 
-    #     prob.run_model()
-    #     CLs.append(prob['aero.CL'][0])
-    #     CDs.append(prob['aero.CD'][0])
-    #     CMs.append(prob['aero.CM'][1]) # Take only the longitudinal CM
-    #     #print(a, prob['aero.CL'], prob['aero.CD'], prob['aero.CM'][1])
 
-    # # Plot CL vs alpha and drag polar 
-    # fig,axes =  plt.subplots(nrows=3)
-    # axes[0].plot(alphas, CLs)
-    # axes[1].plot(alphas, CMs)
-    # axes[2].plot(CLs, CDs)
-    # fig.savefig('drag_polar.pdf')
+    for a in alphas:
+        prob['alpha'] =  a 
+        prob.run_model()
+        CLs.append(prob['aero.CL'][0])
+        CDs.append(prob['aero.CD'][0])
+        CMs.append(prob['aero.CM'][1]) # Take only the longitudinal CM
+        #print(a, prob['aero.CL'], prob['aero.CD'], prob['aero.CM'][1])
+
+    # Plot CL vs alpha and drag polar 
+    fig,axes =  plt.subplots(nrows=3)
+    axes[0].plot(alphas, CLs)
+    axes[1].plot(alphas, CMs)
+    axes[2].plot(CLs, CDs)
+    fig.savefig('drag_polar.pdf')
     #plt.show()
 
     return CLs, CDs, CMs
@@ -194,7 +200,7 @@ if __name__=='__main__':
     surfaces = [wing_surface, tail_surface]
 
     Mach = 0.82
-    #alphas = np.linspace(-10, 15, 25)
-    alphas = [0.]
+    alphas = np.linspace(-10, 15, 25)
+    #alphas = [0.]
 
     CL, CD, CM = compute_drag_polar(Mach, alphas, surfaces, trimmed = True)
