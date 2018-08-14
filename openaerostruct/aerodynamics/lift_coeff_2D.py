@@ -130,7 +130,6 @@ class LiftCoeff2D(ExplicitComponent):
 
         # Analytic derivatives for sec_forces
         tmp = np.concatenate((-sina, np.array([0]), cosa))
-        A = np.zeros((self.ny-1, 3*(self.ny-1)))
         
         
 #         ### Replaced to vectorize computation
@@ -151,7 +150,6 @@ class LiftCoeff2D(ExplicitComponent):
                                ( 0.5 * rho * v**2 * chord[:] ) )
 
         # Analytic derivatives for chords
-#         print (chords.shape, lift_dist.shape)
         tmp_der =  -1/(0.5*(chords[:-1]+ chords[1:])**2)*lift_dist/( 0.5 * rho * v**2 )
         partials['Cl', 'chords'] = list(tmp_der)*2
         
