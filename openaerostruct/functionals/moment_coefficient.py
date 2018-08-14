@@ -9,7 +9,7 @@ try:
     data_type = float
 except:
     fortran_flag = False
-    data_type = complex
+    data_type = float
 
 
 class MomentCoefficient(ExplicitComponent):
@@ -67,6 +67,7 @@ class MomentCoefficient(ExplicitComponent):
         self.add_output('CM', val=np.ones((3)))
 
         self.declare_partials('*', '*')
+        self.set_check_partial_options('*', step_calc = 'rel', step = 1E-5)
 
         if not fortran_flag:
             self.declare_partials('*', '*', method='fd')
@@ -118,6 +119,7 @@ class MomentCoefficient(ExplicitComponent):
                 moment = np.zeros((ny - 1, 3))
                 for ind in range(nx-1):
                     moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
+                    print(moment.dtype, diff.dtype, sec_forces.dtype)
 
                 # If the surface is symmetric, set the x- and z-direction moments
                 # to 0 and double the y-direction moment
