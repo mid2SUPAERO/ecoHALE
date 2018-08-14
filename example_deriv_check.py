@@ -9,17 +9,8 @@ from six import iteritems
 from numpy.testing import assert_almost_equal
 
 from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
-from openaerostruct.utils.testing import get_default_surfaces, run_test
+from openaerostruct.utils.testing import get_default_surfaces, run_test, view_mat
 
-
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
-    import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
-    plt.show()
 
 class Test(unittest.TestCase):
     """
@@ -62,11 +53,7 @@ class Test(unittest.TestCase):
         for key, subjac in iteritems(check[list(check.keys())[0]]):
             print()
             print(key)
-            print('Approximated derivative (either fd or cs):')
-            view_mat(subjac['J_fd'])
-
-            print('Computed derivative set by user:')
-            view_mat(subjac['J_fwd'])
+            view_mat(subjac['J_fd'],mat2=subjac['J_fwd'])
 
         # Loop through the `check` dictionary and perform assert that the
         # approximated deriv must be very close to the computed deriv

@@ -6,13 +6,28 @@ import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat):
+def view_mat(mat1, mat2):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
+    if len(mat1.shape) > 2:
+        mat1 = np.sum(mat1, axis=2)
+    if len(mat2.shape) > 2:
+        mat2 = np.sum(mat2, axis=2)
+    vmin = np.amin(np.hstack((mat1.flatten(),mat2.flatten())))
+    vmax = np.amax(np.hstack((mat1.flatten(),mat2.flatten())))
+    fig, ax = plt.subplots(ncols=3)
+
+    ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
+    ax[0].set_title('Approximated Jacobian')
+    
+    im = ax[1].imshow(mat2.real, interpolation='none',vmin=vmin,vmax=vmax)
+    fig.colorbar(im, orientation='horizontal',ax=ax[0:2].ravel().tolist())
+    ax[1].set_title('User-Defined Jacobian')
+
+    diff = mat2.real - mat1.real
+    im2 = ax[2].imshow(diff, interpolation='none')
+    fig.colorbar(im2, orientation='horizontal',ax=ax[2],aspect=10)
+    ax[2].set_title('Difference')
     plt.show()
 
 def run_test(obj, comp, decimal=3, complex_flag=False):
