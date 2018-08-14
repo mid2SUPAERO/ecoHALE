@@ -61,7 +61,11 @@ class LiftCoeff2D(ExplicitComponent):
         # Outputs
         self.add_output('Cl', val=np.zeros((self.ny-1)))
 
-        self.declare_partials('*', '*')
+        self.declare_partials(of='Cl', wrt='widths')
+        self.declare_partials(of='Cl', wrt='v')
+        self.declare_partials(of='Cl', wrt='rho')
+        self.declare_partials(of='Cl', wrt='alpha')
+        ### Added to declare Jacobian sparse
         self.declare_partials(of='Cl', wrt='chords', rows=range(self.ny-1)*2, \
                               cols=range(self.ny-1)+range(1,self.ny))
         
@@ -69,8 +73,9 @@ class LiftCoeff2D(ExplicitComponent):
         for i in range(self.ny-1):
             tmp_l = tmp_l + [i]*3
         
-        self.declare_partials(of='Cl', wrt='widths', rows=tmp_l, \
+        self.declare_partials(of='Cl', wrt='sec_forces', rows=tmp_l, \
                               cols=range((self.ny-1)*(self.nx-1)*3))
+        
 
     def compute(self, inputs, outputs):
 
@@ -127,18 +132,18 @@ class LiftCoeff2D(ExplicitComponent):
         tmp = np.concatenate((-sina, np.array([0]), cosa))
         A = np.zeros((self.ny-1, 3*(self.ny-1)))
         
+        
+#         ### Replaced to vectorize computation
 #         print(tmp)
 #         for ix in range(self.nx-1):
 #             for jy in range(self.ny-1):
 #                 for ind in range(3):
 #                    partials['Cl', 'sec_forces'][jy, ix*(self.ny-1)*3 + jy*3 + ind] = \
 #                        tmp[ind] / widths[jy] / ( 0.5 * rho * v**2 * chord[jy] )
-#     
-        for jy in range(self.ny-1):
-           A[jy, jy*3 : jy*3 + 3] = \
-               tmp / widths[jy] / ( 0.5 * rho * v**2 * chord[jy] )
-        partials['Cl', 'sec_forces'] = np.matlib.repmat(A,1, self.nx-1)
-        
+#         
+        partials['Cl', 'sec_forces'] = np.ravel(np.matlib.repmat(np.einsum('i,j,j->ji', \
+                                                          tmp, 1/widths, \
+                                                          1/( 0.5 * rho * v**2 * chord )), self.nx-1,1))
 
         # Analytic derivatives for widths
         partials['Cl', 'widths'] = np.diag( -1./ widths[:]**2 * \
@@ -149,8 +154,8 @@ class LiftCoeff2D(ExplicitComponent):
 #         print (chords.shape, lift_dist.shape)
         tmp_der =  -1/(0.5*(chords[:-1]+ chords[1:])**2)*lift_dist/( 0.5 * rho * v**2 )
         partials['Cl', 'chords'] = list(tmp_der)*2
-                                    
-#         print(partials['Cl', 'chords'])
+        
+#        ### Replaced to vectorize computation  
 #         for iy in range(self.ny-1):
 #             partials['Cl', 'chords'][iy,iy  ] = \
 #                              -1. / ( 0.5 * (chords[iy] + chords[iy+1])**2 ) * \
