@@ -72,6 +72,7 @@ class LiftCoeff2D(ExplicitComponent):
         tmp_l = []
         for i in range(self.ny-1):
             tmp_l = tmp_l + [i]*3
+        tmp_l = tmp_l*(self.nx-1)
         
         self.declare_partials(of='Cl', wrt='sec_forces', rows=tmp_l, \
                               cols=range((self.ny-1)*(self.nx-1)*3))
