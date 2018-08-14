@@ -128,13 +128,6 @@ class Display(object):
         self.obj = []
         self.cg = []
 
-        # figure out if twist is a desvar
-        self.twist_included = False
-        for dv_name in last_case.get_desvars():
-            if 'twist' in dv_name:
-                self.twist_included = True
-                break
-
         # find the names of all surfaces
         names = []
         pt_names = []
@@ -228,14 +221,14 @@ class Display(object):
 
                 # Not the best solution for now, but this will ensure
                 # that this plots correctly even if twist isn't a desvar
-                if self.twist_included:
+                try:
                     if self.aerostruct: # twist is handled differently for aero and aerostruct
                         self.twist.append(case.outputs[name+'.geometry.twist'])
                     else:
                         self.twist.append(case.outputs[name+'.twist'])
-                else:
+                except:
                     ny = self.mesh[0].shape[1]
-                    self.twist.append(np.zeros(ny))
+                    self.twist.append(np.atleast_2d(np.zeros(ny)))
 
             if self.show_wing:
                 alpha.append(case.outputs['alpha'] * np.pi / 180.)
@@ -258,7 +251,7 @@ class Display(object):
         if self.opt:
             self.num_iters = np.max([int(len(self.mesh) / n_names) - 1, 1])
         else:
-            self.num_iters = 0
+            self.num_iters = 1
 
         symm_count = 0
         for mesh in self.mesh:
