@@ -105,7 +105,7 @@ class Display(object):
         try: # if its not an empty list
             self.obj_key = obj_keys.keys[0]
             self.opt = True
-        except IndexError:
+        except (IndexError, TypeError):
             self.opt = False
 
         self.twist = []

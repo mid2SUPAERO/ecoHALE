@@ -68,5 +68,4 @@ class AeroPoint(Group):
         self.add_subsystem('total_perf',
             TotalAeroPerformance(surfaces=surfaces),
             promotes_inputs=['v', 'rho', 'cg', 'S_ref_total'],
-
             promotes_outputs=['CM', 'CL', 'CD'])
