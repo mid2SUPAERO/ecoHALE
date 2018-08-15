@@ -17,24 +17,19 @@ def unit(vec):
     return vec / norm(vec)
 
 def norm_d(vec):
-
     vec_d = vec/norm(vec)
-
     return vec_d
 
 def unit_d(vec):
-
     n_d = norm_d(vec)
-
     normvec = norm(vec)
-
-    vec_d = -vec/(normvec*normvec)*n_d+1/normvec*np.eye(len(vec))
+    vec_d = np.outer((-vec/(normvec*normvec)),n_d)+1/normvec*np.eye(len(vec))
 
     return vec_d
 
 # This is a limited cross product definition for 3 vectors
 def cross_d(a,b):
-    # check size of a and b
+    # todo:check size of a and b
     # use openmdao assert
 
     dcda = np.zeros([3,3])
