@@ -2,20 +2,36 @@ from openmdao.api import Problem, Group, IndepVarComp, view_model
 
 from six import iteritems
 from numpy.testing import assert_almost_equal
+from openmdao.utils.assert_utils import assert_rel_error
 import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat):
+def view_mat(mat1, mat2):
     """ Helper function used to visually examine matrices. """
     import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
+    if len(mat1.shape) > 2:
+        mat1 = np.sum(mat1, axis=2)
+    if len(mat2.shape) > 2:
+        mat2 = np.sum(mat2, axis=2)
+    vmin = np.amin(np.hstack((mat1.flatten(),mat2.flatten())))
+    vmax = np.amax(np.hstack((mat1.flatten(),mat2.flatten())))
+    fig, ax = plt.subplots(ncols=3)
+
+    ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
+    ax[0].set_title('Approximated Jacobian')
+
+    im = ax[1].imshow(mat2.real, interpolation='none',vmin=vmin,vmax=vmax)
+    fig.colorbar(im, orientation='horizontal',ax=ax[0:2].ravel().tolist())
+    ax[1].set_title('User-Defined Jacobian')
+
+    diff = mat2.real - mat1.real
+    im2 = ax[2].imshow(diff, interpolation='none')
+    fig.colorbar(im2, orientation='horizontal',ax=ax[2],aspect=10)
+    ax[2].set_title('Difference')
     plt.show()
 
-def run_test(obj, comp, decimal=3, complex_flag=False):
+def run_test(obj, comp, tol=1e-5, complex_flag=False):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
@@ -24,10 +40,10 @@ def run_test(obj, comp, decimal=3, complex_flag=False):
     check = prob.check_partials(compact_print=True)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
-            assert_almost_equal(
-                subjac['rel error'].forward, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
-            assert_almost_equal(
-                subjac['rel error'].reverse, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
+            assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
+            assert_rel_error(obj, subjac['rel error'].reverse, 0., tol)
+        elif np.isnan(subjac['magnitude'].fd):
+            raise ValueError('Derivative magnitude is NaN')
 
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
