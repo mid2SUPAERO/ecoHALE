@@ -5,7 +5,6 @@ from openmdao.api import ExplicitComponent
 
 from openaerostruct.structures.utils import norm, unit, norm_d, unit_d, cross_d
 
-data_type = complex
 class VonMisesTube(ExplicitComponent):
     """ Compute the von Mises stress in each element.
 
@@ -41,14 +40,21 @@ class VonMisesTube(ExplicitComponent):
 
         self.E = surface['E']
         self.G = surface['G']
-
-        self.T = np.zeros((3, 3),dtype=data_type)
-        self.x_gl = np.array([1, 0, 0],dtype=data_type)
+        # data_type = float
+        # if self._outputs._alloc_complex:
+        #     data_type = complex
+        # self.T = np.zeros((3, 3),dtype=data_type)
+        # self.x_gl = np.array([1, 0, 0],dtype=data_type)
 
         # TODO fix the sparsity declarations
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
+        data_type = float
+        if self._outputs._vector_info._under_complex_step:
+            data_type = complex
+        self.T = np.zeros((3, 3),dtype=data_type)
+        self.x_gl = np.array([1, 0, 0],dtype=data_type)
         radius = inputs['radius']
         disp = inputs['disp']
         nodes = inputs['nodes']
