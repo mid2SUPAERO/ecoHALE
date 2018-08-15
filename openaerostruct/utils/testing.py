@@ -15,13 +15,13 @@ def view_mat(mat):
     plt.colorbar(im, orientation='horizontal')
     plt.show()
 
-def run_test(obj, comp, decimal=3, complex_flag=False,compact_print=True,method='fd'):
+def run_test(obj, comp, decimal=3, complex_flag=False,compact_print=True,method='fd',step=1e-6):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
 
     prob.run_model()
-    check = prob.check_partials(compact_print=compact_print,method=method)
+    check = prob.check_partials(compact_print=compact_print,method=method,step=step)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
             assert_almost_equal(

@@ -92,8 +92,14 @@ class VonMisesTube(ExplicitComponent):
             r0x, r0y, r0z = T.dot(disp[ielem, 3:])
             u1x, u1y, u1z = T.dot(disp[ielem+1, :3])
             r1x, r1y, r1z = T.dot(disp[ielem+1, 3:])
-
+            #print('r0',r0x,r0y,r0z)
+            #print('r1',r1x,r1y,r1z)
             tmp = np.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
+            #tmp1 = (r1y - r0y)**2 + (r1z - r0z)**2
+
+            #tmp = np.sqrt(tmp1)
+            #print('tmptest',tmp,tmp2)
+            #tmp = np.sqrt((r1y-r0y)**2)
             sxx0 = E * (u1x - u0x) / L + E * radius[ielem] / L * tmp
             sxx1 = E * (u0x - u1x) / L + E * radius[ielem] / L * tmp
             sxt = G * radius[ielem] * (r1x - r0x) / L
@@ -176,6 +182,9 @@ class VonMisesTube(ExplicitComponent):
             dxddisp = T[0,:]
             dyddisp = T[1,:]
             dzddisp = T[2,:]
+            print('dxddisp',dxddisp)
+            print('dyddisp',dyddisp)
+            print('dzddisp',dzddisp)
             #The derivatives of the above code wrt T all boil down to sections of the #displacement vector
             du0dT = disp[ielem, :3]
             dr0dT = disp[ielem, 3:]
@@ -194,25 +203,60 @@ class VonMisesTube(ExplicitComponent):
             # Original code
             # $$$$$$$$$$$$
             tmp = np.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
+            #tmp1 = (r1y - r0y)**2 + (r1z - r0z)**2
+            #tmp = np.sqrt(tmp1)
             sxx0 = E * (u1x - u0x) / L + E * radius[ielem] / L * tmp
             sxx1 = E * (u0x - u1x) / L + E * radius[ielem] / L * tmp
             sxt = G * radius[ielem] * (r1x - r0x) / L
             # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+           
             
             dtmpdr0y = 1/tmp * (r1y - r0y)*-1
             dtmpdr1y = 1/tmp * (r1y - r0y)
             dtmpdr0z = 1/tmp * (r1z - r0z)*-1
             dtmpdr1z = 1/tmp * (r1z - r0z)
-
+            # dtmp1dr0y = 2* (r1y - r0y)*-1
+            # dtmp1dr1y = 2* (r1y - r0y)
+            # dtmp1dr0z = 2* (r1z - r0z)*-1
+            # dtmp1dr1z = 2 * (r1z - r0z)
+            # dtmpdtmp1 = 1.0/(2*np.sqrt(tmp1))#2* (r1y - r0y)*-1
+            # dtmpdr1y = -1#2* (r1y)
+            # dtmpdr0z = 0#2* (r1z - r0z)*-1
+            # dtmpdr1z = 0#2 * (r1z - r0z)
+            #print('tmp,',1/tmp,1.0/tmp , (r1y - r0y),r1z , r0z)
+            print('dtmpy0',dtmpdr0y)
+            print('dtmpy1',dtmpdr1y)
+            print('dtmp0z',dtmpdr0z)
+            print('dtmp1z',dtmpdr1z)
             # Combine all of the derivtives for tmp
-            dtmpdDisp = np.zeros(2 * 6,)
+            dtmpdDisp = np.zeros(2 * 6)
+            dr0xdDisp = np.zeros(2*6)
+            dr0ydDisp = np.zeros(2*6)
+            dr0zdDisp = np.zeros(2*6)
+            dr1xdDisp = np.zeros(2*6)
+            dr1ydDisp = np.zeros(2*6)
+            dr1zdDisp = np.zeros(2*6)              
+              
             idx1 = 3
             idx2 = 6 + 3
             #r0 term
-            dtmpdDisp[idx1:idx1+3] = dtmpdr0y*dyddisp + dtmpdr0z*dzddisp
+            #dtmpdDisp[idx1:idx1+3] = dtmpdr0y*dyddisp + dtmpdr0z*dzddisp
+            #print('dtmp',dtmpdr0y,dyddisp[1],dtmpdr0z,dzddisp[2])
+            dr0xdDisp[idx1:idx1+3] = dxddisp
+            dr0ydDisp[idx1:idx1+3] = dyddisp
+            dr0zdDisp[idx1:idx1+3] = dzddisp
+            dr1xdDisp[idx2:idx2+3] = dxddisp
+            dr1ydDisp[idx2:idx2+3] = dyddisp
+            dr1zdDisp[idx2:idx2+3] = dzddisp
+            dtmpdDisp = (dtmpdr0y*dr0ydDisp+dtmpdr1y*dr1ydDisp+\
+                        dtmpdr0z*dr0zdDisp+dtmpdr1z*dr1zdDisp)
+            #dtmpdDisp[idx1+2] = dtmpdr0z*dzddisp[2]
 
             #r1 term
-            dtmpdDisp[idx2:idx2+3] = dtmpdr1y*dyddisp + dtmpdr1z*dzddisp
+            #dtmpdDisp[idx2:idx2+3] = dtmpdr1y*dyddisp + dtmpdr1z*dzddisp
+            # dtmpdDisp[idx2+1] = dtmpdr1y*dyddisp[1]
+            # dtmpdDisp[idx2+2] = dtmpdr1z*dzddisp[2] 
 
             # x_loc, y_loc and z_loc terms
             dtmpdx_loc = np.array([0,0,0])
@@ -265,8 +309,9 @@ class VonMisesTube(ExplicitComponent):
             dsxtdP = dsxtdr0x*(dr0dloc.dot(dxdP))+ dsxtdr1x*(dr1dloc.dot(dxdP))+\
                      dsxtdL*dLddP
             #disp
-            dsxtdDisp[idx1:idx1+3] = dsxtdr0x * dxddisp
-            dsxtdDisp[idx2:idx2+3] = dsxtdr1x * dxddisp
+            # dsxtdDisp[idx1:idx1+3] = dsxtdr0x * dxddisp
+            # dsxtdDisp[idx2:idx2+3] = dsxtdr1x * dxddisp
+            dsxtdDisp= dsxtdr0x * dr0xdDisp + dsxtdr1x * dr1xdDisp
 
             
             #radius derivatives
@@ -288,6 +333,9 @@ class VonMisesTube(ExplicitComponent):
                                                             (dVm0dsxx0*dsxx0dDisp+dVm0dsxt*dsxtdDisp )
             partials['vonmises','disp'][idx+1,idx2:idx2+12] = partials['vonmises','disp'][idx+1,idx2:idx2+12]+\
                                                               (dVm1dsxx1*dsxx1dDisp+dVm1dsxt*dsxtdDisp )
+            # partials['vonmises','disp'][idx,idx2:idx2+12] = partials['vonmises','disp'][idx,idx2:idx2+12]+dtmpdDisp#dsxtdDisp#dtmpdDisp#dr0zdDisp+dr1zdDisp#dtmpdDisp
+            # partials['vonmises','disp'][idx+1,idx2:idx2+12] = 0#partials['vonmises','disp'][idx+1,idx2:idx2+12]+\
+            #                                                  # (dVm1dsxx1*dsxx1dDisp+dVm1dsxt*dsxtdDisp )
 
             # Compute terms for the nodes
             idx3 = ielem*3
