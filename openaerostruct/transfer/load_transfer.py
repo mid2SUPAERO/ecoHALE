@@ -93,7 +93,7 @@ class LoadTransfer(ExplicitComponent):
             diff = a_pts - s_pts
             moment = np.zeros((self.ny - 1, 3))
             for ind in range(self.nx-1):
-                moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
+                moment = moment + np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
             # Compute the loads based on the xyz forces and the computed moments
             loads = np.zeros((self.ny, 6))
