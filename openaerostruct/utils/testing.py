@@ -20,7 +20,7 @@ def view_mat(mat1, mat2):
 
     ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
     ax[0].set_title('Approximated Jacobian')
-    
+
     im = ax[1].imshow(mat2.real, interpolation='none',vmin=vmin,vmax=vmax)
     fig.colorbar(im, orientation='horizontal',ax=ax[0:2].ravel().tolist())
     ax[1].set_title('User-Defined Jacobian')
@@ -31,7 +31,7 @@ def view_mat(mat1, mat2):
     ax[2].set_title('Difference')
     plt.show()
 
-def run_test(obj, comp, complex_flag=False):
+def run_test(obj, comp, tol=1e-5, complex_flag=False):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
@@ -40,10 +40,10 @@ def run_test(obj, comp, complex_flag=False):
     check = prob.check_partials(compact_print=True)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
-            assert_rel_error(
-                subjac['rel error'].forward, 0., 1e-6)
-            assert_rel_error(
-                subjac['rel error'].reverse, 0., 1e-6)
+            assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
+            assert_rel_error(obj, subjac['rel error'].reverse, 0., tol)
+        elif np.isnan(subjac['magnitude'].fd):
+            raise ValueError('Derivative magnitude is NaN')
 
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
