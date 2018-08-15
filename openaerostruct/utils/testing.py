@@ -60,7 +60,6 @@ def view_mat(mat1, mat2,key,tol=1e-10):
     plt.show()
 
 def run_test(obj, comp, tol=1e-5, complex_flag=False,compact_print=True,method='fd',step=1e-6):
-
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
@@ -69,8 +68,8 @@ def run_test(obj, comp, tol=1e-5, complex_flag=False,compact_print=True,method='
     check = prob.check_partials(compact_print=compact_print,method=method,step=step)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
+            print('error',key,subjac['rel error'].forward,subjac['rel error'].reverse)
             assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
-            assert_rel_error(obj, subjac['rel error'].reverse, 0., tol)
         elif np.isnan(subjac['magnitude'].fd):
             raise ValueError('Derivative magnitude is NaN')
 

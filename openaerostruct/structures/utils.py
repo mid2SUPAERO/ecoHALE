@@ -29,8 +29,14 @@ def unit_d(vec):
 
 # This is a limited cross product definition for 3 vectors
 def cross_d(a,b):
-    # todo:check size of a and b
-    # use openmdao assert
+    if not isinstance(a, np.ndarray) : 
+        a = np.array(a)
+        if a.shape!=(3,):
+            raise ValueError('a must be a (3,) nd array')
+    if not isinstance(b, np.ndarray): 
+        b = np.array(b)
+        if b.shape!=(3,):
+            raise ValueError('b must be a (3,) nd array')
 
     dcda = np.zeros([3,3])
     dcdb = np.zeros([3,3])
