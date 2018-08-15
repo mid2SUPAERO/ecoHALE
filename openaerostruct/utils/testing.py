@@ -2,20 +2,65 @@ from openmdao.api import Problem, Group, IndepVarComp, view_model
 
 from six import iteritems
 from numpy.testing import assert_almost_equal
+from openmdao.utils.assert_utils import assert_rel_error
 import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
+def view_mat(mat1, mat2,key,tol=1e-10):
+    """
+    Helper function used to visually examine matrices. It plots mat1 and mat2 side by side,
+    and shows the difference between the two.
+
+    Parameters
+    ----------
+    mat1 : ndarray
+        The Jacobian approximated by openMDAO
+    mat2 : ndarray
+        The Jacobian computed by compute_partials
+    key : str
+        The name of the tuple (of, wrt) for which the Jacobian is computed
+    tol : float (Optional) 
+        The tolerance, below which the two numbers are considered the same for
+        plotting purposes.
+
+    Returns
+    -------
+    CDw : float
+        Wave drag coefficient for the lifting surface computed using the 
+        Korn equation
+    """
     import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
+    if len(mat1.shape) > 2:
+        mat1 = np.sum(mat1, axis=2)
+    if len(mat2.shape) > 2:
+        mat2 = np.sum(mat2, axis=2)
+    vmin = np.amin(np.hstack((mat1.flatten(),mat2.flatten())))
+    vmax = np.amax(np.hstack((mat1.flatten(),mat2.flatten())))
+    if vmax-vmin < tol: # add small difference for plotting if both values are the same
+        vmin = vmin - tol
+        vmax = vmax + tol
+
+    fig, ax = plt.subplots(ncols=3,figsize=(12,6))
+    ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
+    ax[0].set_title('Approximated Jacobian')
+
+    im = ax[1].imshow(mat2.real, interpolation='none',vmin=vmin,vmax=vmax)
+    fig.colorbar(im, orientation='horizontal',ax=ax[0:2].ravel().tolist())
+    ax[1].set_title('User-Defined Jacobian')
+
+    diff = mat2.real - mat1.real
+    if np.max(np.abs(diff).flatten()) < tol: # add small difference for plotting if diff is small
+        vmin = -1*tol
+        vmax = tol
+    im2 = ax[2].imshow(diff, interpolation='none', vmin=vmin,vmax=vmax)
+    fig.colorbar(im2, orientation='horizontal',ax=ax[2],aspect=10)
+    ax[2].set_title('Difference')
+    plt.suptitle(key)
     plt.show()
 
-def run_test(obj, comp, decimal=3, complex_flag=False,compact_print=True,method='fd',step=1e-6):
+def run_test(obj, comp, tol=1e-5, complex_flag=False,compact_print=True,method='fd',step=1e-6):
+
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
@@ -24,10 +69,10 @@ def run_test(obj, comp, decimal=3, complex_flag=False,compact_print=True,method=
     check = prob.check_partials(compact_print=compact_print,method=method,step=step)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
-            assert_almost_equal(
-                subjac['rel error'].forward, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
-            assert_almost_equal(
-                subjac['rel error'].reverse, 0., decimal=decimal, err_msg='deriv of %s wrt %s' % key)
+            assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
+            assert_rel_error(obj, subjac['rel error'].reverse, 0., tol)
+        elif np.isnan(subjac['magnitude'].fd):
+            raise ValueError('Derivative magnitude is NaN')
 
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
@@ -56,6 +101,7 @@ def get_default_surfaces():
                  'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                          # thickness
                  'with_viscous' : True,  # if true, compute viscous drag
+                 'with_wave' : True, # if true, computes wave drag
                  'fem_model_type' : 'tube',
 
                  # Structural values are based on aluminum 7075

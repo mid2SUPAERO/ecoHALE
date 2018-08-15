@@ -45,7 +45,9 @@ class SectionPropertiesTube(ExplicitComponent):
 
         self.arange = np.arange((self.ny - 1))
 
-        self.declare_partials('*', '*')
+        a = self.arange
+
+        self.declare_partials('*', '*', rows=a, cols=a, val=1.0)
         self.set_check_partial_options(wrt='*', method='cs')
 
     def compute(self, inputs, outputs):
@@ -77,12 +79,12 @@ class SectionPropertiesTube(ExplicitComponent):
         r1_3 = r1**3
         r2_3 = r2**3
 
-        a = self.arange
-        partials['A', 'radius'][a, a] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
-        partials['A', 'thickness'][a, a] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
-        partials['Iy', 'radius'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        partials['Iy', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        partials['Iz', 'radius'][a, a] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        partials['Iz', 'thickness'][a, a] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
-        partials['J', 'radius'][a, a] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
-        partials['J', 'thickness'][a, a] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        #a = self.arange
+        partials['A', 'radius'] = 2 * pi * (r2 * dr2_dr - r1 * dr1_dr)
+        partials['A', 'thickness'] = 2 * pi * (r2 * dr2_dt - r1 * dr1_dt)
+        partials['Iy', 'radius'] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        partials['Iy', 'thickness'] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        partials['Iz', 'radius'] = pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        partials['Iz', 'thickness'] = pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)
+        partials['J', 'radius'] = 2 * pi * (r2_3 * dr2_dr - r1_3 * dr1_dr)
+        partials['J', 'thickness'] = 2 * pi * (r2_3 * dr2_dt - r1_3 * dr1_dt)

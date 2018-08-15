@@ -149,7 +149,7 @@ class EvalVelMtx(ExplicitComponent):
                 ])
 
                 self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
-                self.declare_partials(vel_mtx_name, vectors_name, method='cs')
+                self.declare_partials(vel_mtx_name, vectors_name, method='fd')
             else:
                 self.add_input(vectors_name, shape=(num_eval_points, nx, ny, 3), units='m')
 
@@ -171,11 +171,11 @@ class EvalVelMtx(ExplicitComponent):
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 1:  , :], np.ones(3, int)).flatten(),
                 ])
                 self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
-                self.declare_partials(vel_mtx_name, vectors_name, method='cs')
+                self.declare_partials(vel_mtx_name, vectors_name, method='fd')
 
-            self.declare_partials(vel_mtx_name, 'alpha', method='cs')
+            self.declare_partials(vel_mtx_name, 'alpha', method='fd')
             self.add_output(vel_mtx_name, shape=(num_eval_points, nx - 1, ny - 1, 3), units='1/m')
-            self.set_check_partial_options(wrt='*', method='cs')
+            self.set_check_partial_options(wrt='*', method='fd')
 
     def compute(self, inputs, outputs):
         surfaces = self.options['surfaces']
