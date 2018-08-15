@@ -53,7 +53,7 @@ class Test(unittest.TestCase):
         for key, subjac in iteritems(check[list(check.keys())[0]]):
             print()
             print(key)
-            view_mat(subjac['J_fd'],mat2=subjac['J_fwd'])
+            view_mat(subjac['J_fd'],subjac['J_fwd'],key)
 
         # Loop through the `check` dictionary and perform assert that the
         # approximated deriv must be very close to the computed deriv
