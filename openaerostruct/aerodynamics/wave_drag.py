@@ -5,19 +5,24 @@ from openmdao.api import ExplicitComponent
 
 class WaveDrag(ExplicitComponent):
     """
-    Compute the wave drag if the with_wave option is True.
-    If not, the CDw is 0.
+    Compute the wave drag if the with_wave option is True. If not, the CDw is 0.
     This component exists for each lifting surface.
 
     Parameters
     ----------
     M : float
         Mach number.
-    sweep : float
-        The angle (in degrees) of the wing sweep. This is used in the form
-        factor calculation.
-    lengths[ny] : numpy array
-        The sum of the lengths of each line segment along a chord section.
+    cos_sweep[ny-1] : ndarray
+        The with in the spanwise direction of each VLM panel. This is the numerator of cos(sweep).
+    widths[ny-1] : ndarray
+        The actual width of each VLM panel, rotated by the sweep angle. This is the denominator
+        of cos(sweep)
+    CL : float
+        The CL of the lifting surface used for wave drag estimation.
+    chords[ny] : ndarray
+        The chord length of each mesh slice. This is dimension ny rather than ny-1 which would be
+        expected for chord length of each VLM panel.
+
 
     Returns
     -------
@@ -42,7 +47,7 @@ class WaveDrag(ExplicitComponent):
 
         self.add_input('M', val=1.6)
         self.add_input('cos_sweep', val=np.ones((ny-1))*.2, units='m')
-        self.add_input('widths', val=np.arange((ny-1))+1., units='m')
+        self.add_input('widths', val=np.arange((ny-1))+1., units='m') # set to np.arange so that d_CDw_d_chords is nonzero
         self.add_input('CL', val=0.33)
         self.add_input('chords', val=np.ones((ny)), units='m')
         self.add_output('CDw', val=0.)
@@ -114,7 +119,7 @@ class WaveDrag(ExplicitComponent):
                 partials['CDw','cos_sweep'] = dCDwdMDD * dMDDdavg * davgdcos
                 partials['CDw','chords'] = dCDwdMDD * dMDDdavg * np.matmul(davgdc, dcdchords)
 
-                
+
         if self.surface['symmetry']:
             partials['CDw', 'CL'][0, :] *=  2
             partials['CDw', 'widths'][0, :] *= 2
