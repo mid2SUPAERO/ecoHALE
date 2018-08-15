@@ -119,7 +119,6 @@ class MomentCoefficient(ExplicitComponent):
                 moment = np.zeros((ny - 1, 3))
                 for ind in range(nx-1):
                     moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
-                    print(moment.dtype, diff.dtype, sec_forces.dtype)
 
                 # If the surface is symmetric, set the x- and z-direction moments
                 # to 0 and double the y-direction moment
