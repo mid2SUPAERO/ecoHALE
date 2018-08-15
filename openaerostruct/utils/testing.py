@@ -37,12 +37,8 @@ def view_mat(mat1, mat2,key,tol=1e-10):
     vmin = np.amin(np.hstack((mat1.flatten(),mat2.flatten())))
     vmax = np.amax(np.hstack((mat1.flatten(),mat2.flatten())))
     if vmax-vmin < tol: # add small difference for plotting if both values are the same
-        if np.abs(vmax) < tol: # if the value is 0
-            vmin = -1*tol
-            vmax = tol
-        else:
-            vmin = vmin * 0.999
-            vmax = vmax * 1.001
+        vmin = vmin - tol
+        vmax = vmax + tol
 
     fig, ax = plt.subplots(ncols=3,figsize=(12,6))
     ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
