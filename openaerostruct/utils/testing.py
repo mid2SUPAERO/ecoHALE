@@ -7,7 +7,7 @@ import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat1, mat2,key,tol=1e-10):
+def view_mat(mat1, mat2, key='Title', tol=1e-10):
     """
     Helper function used to visually examine matrices. It plots mat1 and mat2 side by side,
     and shows the difference between the two.
@@ -20,14 +20,14 @@ def view_mat(mat1, mat2,key,tol=1e-10):
         The Jacobian computed by compute_partials
     key : str
         The name of the tuple (of, wrt) for which the Jacobian is computed
-    tol : float (Optional) 
+    tol : float (Optional)
         The tolerance, below which the two numbers are considered the same for
         plotting purposes.
 
     Returns
     -------
     CDw : float
-        Wave drag coefficient for the lifting surface computed using the 
+        Wave drag coefficient for the lifting surface computed using the
         Korn equation
     """
     import matplotlib.pyplot as plt
@@ -67,10 +67,10 @@ def run_test(obj, comp, tol=1e-5, complex_flag=False):
     prob.run_model()
     check = prob.check_partials(compact_print=True)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
+        view_mat(subjac['J_fd'], subjac['J_fwd'])
         if subjac['magnitude'].fd > 1e-6:
             assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
-            assert_rel_error(obj, subjac['rel error'].reverse, 0., tol)
-        elif np.isnan(subjac['magnitude'].fd):
+        elif np.isnan(subjac['rel error'].forward):
             raise ValueError('Derivative magnitude is NaN')
 
 def get_default_surfaces():
