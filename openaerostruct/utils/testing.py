@@ -69,6 +69,8 @@ def run_test(obj, comp, tol=1e-5, complex_flag=False):
     for key, subjac in iteritems(check[list(check.keys())[0]]):
         if subjac['magnitude'].fd > 1e-6:
             assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
+        elif np.all(np.abs(subjac['J_fwd'] - subjac['J_fd'])) < tol:
+            pass
         elif np.isnan(subjac['rel error'].forward):
             raise ValueError('Derivative magnitude is NaN')
 
