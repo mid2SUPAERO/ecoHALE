@@ -1,17 +1,30 @@
 import unittest
+import numpy as np
 
+from openmdao.api import Group, IndepVarComp
 from openaerostruct.structures.weight import Weight
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
+
+np.random.seed(314)
 
 class Test(unittest.TestCase):
 
     def test(self):
         surface = get_default_surfaces()[0]
+        ny = surface['num_y']
+
+        group = Group()
+
+        ivc = IndepVarComp()
+        ivc.add_output('nodes', val=np.random.random_sample((ny, 3)))
 
         comp = Weight(surface=surface)
 
-        run_test(self, comp)
+        group.add_subsystem('ivc', ivc, promotes=['*'])
+        group.add_subsystem('comp', comp, promotes=['*'])
+
+        run_test(self, group)
 
 
 if __name__ == '__main__':
