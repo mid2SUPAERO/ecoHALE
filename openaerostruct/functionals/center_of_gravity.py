@@ -45,26 +45,27 @@ class CenterOfGravity(ExplicitComponent):
 
     def setup(self):
 
-        self.declare_partials('*', '*')
-
+        arange = np.arange(3)
         for surface in self.options['surfaces']:
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
-            self.add_input(name + '_cg_location', val=np.zeros(3), units='m')
+            self.add_input(name + '_cg_location', val=np.ones(3), units='m')
 
-            arange = np.arange(3)
             self.declare_partials('cg', name + '_cg_location', rows=arange, cols=arange)
-
-        self.declare_partials('cg', 'empty_cg', rows=arange, cols=arange)
+            self.declare_partials('cg', name + '_structural_weight')
 
         self.add_input('total_weight', val=1., units='N')
         self.add_input('fuelburn', val=1., units='kg')
         self.add_input('W0', val=1., units='kg')
         self.add_input('load_factor', val=1.)
-        self.add_input('empty_cg', val=np.zeros((3)), units='m')
+        self.add_input('empty_cg', val=np.ones((3)), units='m')
+        self.add_output('cg', val=np.ones(3), units='m')
 
-        self.add_output('cg', val=np.zeros(3), units='m')
-
+        self.declare_partials('cg', 'total_weight')
+        self.declare_partials('cg', 'W0')
+        self.declare_partials('cg', 'fuelburn')
+        self.declare_partials('cg', 'load_factor')
+        self.declare_partials('cg', 'empty_cg', rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
 

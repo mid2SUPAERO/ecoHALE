@@ -13,16 +13,12 @@ class MultiCD(ExplicitComponent):
             self.add_input(str(i) + '_CD', val=0.)
 
         self.add_output('CD', val=0.)
-        self.declare_partials('*', '*')
+        self.declare_partials('*', '*', val=1.)
 
     def compute(self, inputs, outputs):
         outputs['CD'] = 0.
         for i in range(self.n_points):
             outputs['CD'] += inputs[str(i) + '_CD']
-
-    def compute_partials(self, inputs, partials):
-        for i in range(self.n_points):
-            partials['CD', str(i) + '_CD'] = 1.
 
 class GeomMatch(ExplicitComponent):
 
