@@ -93,54 +93,6 @@ contains
 
   end subroutine
 
-  subroutine forcecalc(v, circ, rho, bpts, nx, ny, num_panels, sec_forces)
-
-    implicit none
-
-    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho, bpts(nx-1, ny, 3)
-    integer, intent(in) :: nx, ny, num_panels
-
-    real(kind=8), intent(out) :: sec_forces(num_panels, 3)
-
-    call forcecalc_main(v, circ, rho, bpts, nx, ny, num_panels, sec_forces)
-
-  end subroutine
-
-  subroutine forcecalc_d(v, vd, circ, circd, rho, rhod, bpts, bptsd, &
-    nx, ny, num_panels, sec_forces, sec_forcesd)
-
-    use oas_main_d, only: forcecalc_main_d
-    implicit none
-
-    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho, bpts(nx-1, ny, 3)
-    real(kind=8), intent(in) :: vd(num_panels, 3), circd(num_panels), rhod, bptsd(nx-1, ny, 3)
-    integer, intent(in) :: nx, ny, num_panels
-
-    real(kind=8), intent(out) :: sec_forces(num_panels, 3), sec_forcesd(num_panels, 3)
-
-    call forcecalc_main_d(v, vd, circ, circd, rho, rhod, bpts, bptsd, &
-    nx, ny, num_panels, sec_forces, sec_forcesd)
-
-  end subroutine
-
-  subroutine forcecalc_b(v, vb, circ, circb, rho, rhob, bpts, bptsb, &
-    nx, ny, num_panels, sec_forces, sec_forcesb)
-
-    use oas_main_b, only: forcecalc_main_b
-    implicit none
-
-    real(kind=8), intent(in) :: v(num_panels, 3), circ(num_panels), rho, bpts(nx-1, ny, 3)
-    real(kind=8), intent(in) :: sec_forcesb(num_panels, 3)
-    integer, intent(in) :: nx, ny, num_panels
-
-    real(kind=8), intent(out) :: sec_forces(num_panels, 3)
-    real(kind=8), intent(out) :: vb(num_panels, 3), circb(num_panels), rhob, bptsb(nx-1, ny, 3)
-
-    call forcecalc_main_b(v, vb, circ, circb, rho, rhob, bpts, bptsb, &
-    nx, ny, num_panels, sec_forces, sec_forcesb)
-
-  end subroutine
-
   subroutine momentcalc(bpts, cg, chords, widths, S_ref, sec_forces, symmetry, nx, ny, M)
 
     implicit none
@@ -303,69 +255,6 @@ contains
   &   , const2, const_y, const_z, k, kb)
 
   end subroutine assemblestructmtx_b
-
-  subroutine assembleaeromtx(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, symmetry, mtx)
-
-    implicit none
-
-    ! Input
-    integer, intent(in) :: ny, nx, ny_, nx_
-    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
-    logical, intent(in) :: skip, symmetry
-
-    ! Output
-    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
-
-    call assembleaeromtx_main(ny, nx, ny_, nx_, alpha, points, bpts, mesh, skip, symmetry, mtx)
-
-  end subroutine assembleaeromtx
-
-  subroutine assembleaeromtx_d(ny, nx, ny_, nx_, alpha, alphad, points, pointsd, &
-    bpts, bptsd, mesh, meshd, skip, symmetry, mtx, mtxd)
-
-    use oas_main_d, only: assembleaeromtx_main_d
-    implicit none
-
-    ! Input
-    integer, intent(in) :: ny, nx, ny_, nx_
-    real(kind=8), intent(in) :: alpha, alphad
-    real(kind=8), intent(in) :: mesh(nx_, ny_, 3), meshd(nx_, ny_, 3)
-    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), pointsd(nx-1, ny-1, 3)
-    real(kind=8), intent(in) :: bpts(nx_-1, ny_, 3), bptsd(nx_-1, ny_, 3)
-    logical, intent(in) :: skip, symmetry
-
-    ! Output
-    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
-    real(kind=8), intent(out) :: mtxd((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
-
-    call assembleaeromtx_main_d(ny, nx, ny_, nx_, alpha, alphad, &
-  &   points, pointsd, bpts, bptsd, mesh, meshd, skip, symmetry, mtx, mtxd)
-
-  end subroutine assembleaeromtx_d
-
-  subroutine assembleaeromtx_b(ny, nx, ny_, nx_, alpha, alphab, points, pointsb, &
-    bpts, bptsb, mesh, meshb, skip, symmetry, mtx, mtxb)
-
-    use oas_main_b, only: assembleaeromtx_main_b
-    implicit none
-
-    ! Input
-    integer, intent(in) :: ny, nx, ny_, nx_
-    real(kind=8), intent(in) :: alpha, mesh(nx_, ny_, 3)
-    real(kind=8), intent(in) :: points(nx-1, ny-1, 3), bpts(nx_-1, ny_, 3)
-    logical, intent(in) :: skip, symmetry
-    real(kind=8), intent(in) :: mtxb((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
-
-    ! Output
-    real(kind=8), intent(out) :: mtx((nx-1)*(ny-1), (nx_-1)*(ny_-1), 3)
-    real(kind=8), intent(out) :: alphab, meshb(nx_, ny_, 3)
-    real(kind=8), intent(out) :: pointsb(nx-1, ny-1, 3), bptsb(nx_-1, ny_, 3)
-
-    call assembleaeromtx_main_b(ny, nx, ny_, nx_, alpha, alphab, &
-  &   points, pointsb, bpts, bptsb, mesh, meshb, skip, symmetry, mtx, mtxb)
-
-  end subroutine assembleaeromtx_b
 
   subroutine calc_vonmises(nodes, r, disp, E, G, x_gl, n, vonmises)
 
