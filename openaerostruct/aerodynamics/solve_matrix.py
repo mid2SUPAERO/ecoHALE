@@ -50,7 +50,6 @@ class SolveMatrix(ImplicitComponent):
 
     def linearize(self, inputs, outputs, partials):
         system_size = self.system_size
-
         self.lu = lu_factor(inputs['mtx'])
 
         partials['circulations', 'circulations'] = inputs['mtx'].flatten()
