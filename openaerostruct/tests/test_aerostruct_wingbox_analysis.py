@@ -57,8 +57,6 @@ class Test(unittest.TestCase):
 
                     'spar_thickness_cp' : np.array([0.004, 0.005, 0.005, 0.008, 0.008, 0.01]), # [m]
                     'skin_thickness_cp' : np.array([0.005, 0.01, 0.015, 0.020, 0.025, 0.026]),
-                    'toverc_cp' : np.array([0.08, 0.08, 0.08, 0.10, 0.10, 0.08]),
-
                     'twist_cp' : np.array([4., 5., 8., 8., 8., 9.]),
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
@@ -82,9 +80,9 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
-                    'c_max_t' : .38,       # chordwise location of maximum (NACA0015)
-                                            # thickness
+                    't_over_c_cp' : np.array([0.08, 0.08, 0.08, 0.10, 0.10, 0.08]),
+                    'original_wingbox_airfoil_t_over_c' : 0.12,
+                    'c_max_t' : .38,       # chordwise location of maximum thickness
                     'with_viscous' : True,
                     'with_wave' : False,     # if true, compute wave drag
 
@@ -188,6 +186,7 @@ class Test(unittest.TestCase):
 
                 prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
                 prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
+                prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
@@ -211,16 +210,8 @@ class Test(unittest.TestCase):
         #                         hierarchical=False,
         #                         print_arrays=True)
 
-        print('fuelburn: ', prob['AS_point_0.fuelburn'][0])
-        print('structural_weight: ', prob['wing.structural_weight'][0]/1.25)
-
-        # Straight from Sham's version
-        # assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 116775.0566890688, 1e-5)
-        # assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235865.31541985113, 1e-5)
-
-        # Just using these values so tests pass for now
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 116987.20937886737, 1e-5)
-        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235533.42118541995, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 114321.532838, 1e-5)
+        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235533.421185, 1e-5)
 
 
 if __name__ == '__main__':

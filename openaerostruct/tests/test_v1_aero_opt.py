@@ -64,7 +64,7 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.12]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : False,  # if true, compute viscous drag,
@@ -104,6 +104,8 @@ class Test(unittest.TestCase):
         # 'aero_states' group.
         prob.model.connect(name + '.mesh', point_name + \
             '.aero_states.' + name + '_def_mesh')
+
+        prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
 
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()

@@ -32,24 +32,25 @@ class RadiusComp(ExplicitComponent):
 
         self.nx, self.ny = surface['num_x'], surface['num_y']
         self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
+        self.add_input('t_over_c', val=np.ones((self.ny-1)))
         self.add_output('radius', val=np.ones((self.ny - 1)), units='m')
 
         self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
-        outputs['radius'] = radii(inputs['mesh'], self.options['surface']['t_over_c'])
+        outputs['radius'] = radii(inputs['mesh'], inputs['t_over_c'])
 
-    def compute_partials(self, inputs, partials):
-        """
-        Obtain the radii of the FEM element based on local chord.
-        """
-        mesh = inputs['mesh']
-        t_c = self.options['surface']['t_over_c']
-        vectors = mesh[-1, :, :] - mesh[0, :, :]
-        chords = np.sqrt(np.sum(vectors**2, axis=1))
-        mean_chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
-        radii_output = t_c * mean_chords / 2.
-
-        for iy in range(self.ny-1):
-            partials['radius', 'mesh'][iy, iy*3:(iy+1)*3] = -vectors[iy, :] / chords[iy] * t_c / 4
-            partials['radius', 'mesh'][iy, (iy+1)*3:(iy+2)*3] = -vectors[iy+1, :] / chords[iy+1] * t_c / 4
+    # def compute_partials(self, inputs, partials):
+    #     """
+    #     Obtain the radii of the FEM element based on local chord.
+    #     """
+    #     mesh = inputs['mesh']
+    #     t_c = self.options['surface']['t_over_c']
+    #     vectors = mesh[-1, :, :] - mesh[0, :, :]
+    #     chords = np.sqrt(np.sum(vectors**2, axis=1))
+    #     mean_chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
+    #     radii_output = t_c * mean_chords / 2.
+    # 
+    #     for iy in range(self.ny-1):
+    #         partials['radius', 'mesh'][iy, iy*3:(iy+1)*3] = -vectors[iy, :] / chords[iy] * t_c / 4
+    #         partials['radius', 'mesh'][iy, (iy+1)*3:(iy+2)*3] = -vectors[iy+1, :] / chords[iy+1] * t_c / 4
