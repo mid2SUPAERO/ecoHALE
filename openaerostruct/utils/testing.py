@@ -66,13 +66,14 @@ def run_test(obj, comp, tol=1e-5, complex_flag=False):
 
     prob.run_model()
     check = prob.check_partials(compact_print=True)
-    for key, subjac in iteritems(check[list(check.keys())[0]]):
-        if subjac['magnitude'].fd > 1e-6:
-            assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
-        elif np.all(np.abs(subjac['J_fwd'] - subjac['J_fd'])) < tol:
-            pass
-        elif np.isnan(subjac['rel error'].forward):
-            raise ValueError('Derivative magnitude is NaN')
+    for comp in list(check.keys()):
+        for key, subjac in iteritems(check[comp]):
+            if subjac['magnitude'].fd > 1e-6:
+                assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
+            elif np.all(np.abs(subjac['J_fwd'] - subjac['J_fd'])) < tol:
+                pass
+            elif np.isnan(subjac['rel error'].forward):
+                raise ValueError('Derivative magnitude is NaN')
 
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
