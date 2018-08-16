@@ -45,13 +45,16 @@ class TotalLiftDrag(ExplicitComponent):
             self.add_input(name + '_S_ref', val=1., units='m**2')
             self.declare_partials('CL', name + '_CD', dependent=False)
             self.declare_partials('CD', name + '_CL', dependent=False)
+            self.declare_partials('CL', name + '_CL')
+            self.declare_partials('CD', name + '_CD')
+            self.declare_partials('CL', name + '_S_ref')
+            self.declare_partials('CD', name + '_S_ref')
 
         self.add_input('S_ref_total', val=1., units='m**2')
-
         self.add_output('CL', val=1.)
         self.add_output('CD', val=1.)
-
-        self.declare_partials('*', '*')
+        self.declare_partials('CL','S_ref_total')
+        self.declare_partials('CD','S_ref_total')
 
     def compute(self, inputs, outputs):
 

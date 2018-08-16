@@ -31,8 +31,6 @@ class VLMMtxRHSComp(ExplicitComponent):
         mtx_indices = np.arange(system_size * system_size).reshape((system_size, system_size))
         rhs_indices = np.arange(system_size)
 
-        self.declare_partials('*', '*', dependent=False)
-
         self.declare_partials('rhs', 'inflow_velocities',
             rows=np.einsum('i,j->ij', rhs_indices, np.ones(3, int)).flatten(),
             cols=inflow_indices.flatten()
