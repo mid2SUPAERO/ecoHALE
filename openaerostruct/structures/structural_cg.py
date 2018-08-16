@@ -43,7 +43,7 @@ class StructuralCG(ExplicitComponent):
         self.add_input('element_weights', val=np.zeros((self.ny-1)), units='N')
         self.add_output('cg_location', val=np.zeros((3)), units='m')#, dtype=data_type))
 
-        self.declare_partials('*', '*')
+        self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
         nodes = inputs['nodes']
