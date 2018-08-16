@@ -4,6 +4,7 @@ from openaerostruct.aerodynamics.coeffs import Coeffs
 from openaerostruct.aerodynamics.total_lift import TotalLift
 from openaerostruct.aerodynamics.total_drag import TotalDrag
 from openaerostruct.aerodynamics.viscous_drag import ViscousDrag
+from openaerostruct.aerodynamics.wave_drag import WaveDrag
 from openaerostruct.aerodynamics.lift_coeff_2D import LiftCoeff2D
 
 
@@ -18,10 +19,6 @@ class VLMFunctionals(Group):
 
     def setup(self):
         surface = self.options['surface']
-
-        self.add_subsystem('viscousdrag',
-            ViscousDrag(surface=surface),
-            promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref'], promotes_outputs=['CDv'])
 
         # This component is generally not needed unless you want the sectional CLs
         self.add_subsystem('liftcoeff',
@@ -39,12 +36,19 @@ class VLMFunctionals(Group):
             promotes_inputs=['v', 'rho', 'S_ref', 'L', 'D'],
             promotes_outputs=['CL1', 'CDi'])
 
-        self.add_subsystem('CD',
-            TotalDrag(surface=surface),
-            promotes_inputs=['CDv', 'CDi'],
-            promotes_outputs=['CD'])
-
         self.add_subsystem('CL',
             TotalLift(surface=surface),
             promotes_inputs=['CL1'],
             promotes_outputs=['CL'])
+        self.add_subsystem('viscousdrag',
+            ViscousDrag(surface=surface),
+            promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref'], promotes_outputs=['CDv'])
+            
+        self.add_subsystem('wavedrag',
+            WaveDrag(surface=surface),
+            promotes_inputs=['M', 'cos_sweep', 'widths', 'CL', 'chords'], promotes_outputs=['CDw'])
+
+        self.add_subsystem('CD',
+            TotalDrag(surface=surface),
+            promotes_inputs=['CDv', 'CDi', 'CDw'],
+            promotes_outputs=['CD'])
