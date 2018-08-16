@@ -67,7 +67,6 @@ def run_test(obj, comp, tol=1e-5, complex_flag=False):
     prob.run_model()
     check = prob.check_partials(compact_print=True)
     for key, subjac in iteritems(check[list(check.keys())[0]]):
-        view_mat(subjac['J_fd'], subjac['J_fwd'])
         if subjac['magnitude'].fd > 1e-6:
             assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
         elif np.isnan(subjac['rel error'].forward):
