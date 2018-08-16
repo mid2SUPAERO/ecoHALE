@@ -155,26 +155,13 @@ def wingbox_props(chord, spar_thickness, skin_thickness, data_x_upper, data_x_lo
 class SectionPropertiesWingbox(ExplicitComponent):
     """
     Compute geometric properties for a wingbox element.
-    The thicknesses are added to the interior of the element, so the
-    'radius' value is the outer radius of the tube.
 
     Parameters
     ----------
-    radius : numpy array
-        Outer radii for each FEM element.
-    thickness : numpy array
-        Tube thickness for each FEM element.
 
     Returns
     -------
-    A : numpy array
-        Cross-sectional area for each FEM element.
-    Iy : numpy array
-        Area moment of inertia around the y-axis for each FEM element.
-    Iz : numpy array
-        Area moment of inertia around the z-axis for each FEM element.
-    J : numpy array
-        Polar moment of inertia for each FEM element.
+
     """
 
     def initialize(self):

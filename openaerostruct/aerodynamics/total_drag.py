@@ -26,6 +26,7 @@ class TotalDrag(ExplicitComponent):
 
         self.add_input('CDi', val=1.)
         self.add_input('CDv', val=1.)
+        self.add_input('CDw', val=1.)
         
         self.add_output('CD', val=1.)
 
@@ -33,6 +34,7 @@ class TotalDrag(ExplicitComponent):
 
         self.declare_partials('CD', 'CDi', val=1.)
         self.declare_partials('CD', 'CDv', val=1.)
+        self.declare_partials('CD', 'CDw', val=1.)
 
     def compute(self, inputs, outputs):
-        outputs['CD'] = inputs['CDi'] + inputs['CDv'] + self.CD0
+        outputs['CD'] = inputs['CDi'] + inputs['CDv'] + inputs['CDw'] + self.CD0

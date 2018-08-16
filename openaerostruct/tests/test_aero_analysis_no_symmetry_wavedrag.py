@@ -1,55 +1,41 @@
 from __future__ import division, print_function
 from openmdao.utils.assert_utils import assert_rel_error
-import numpy as np
 import unittest
+import numpy as np
 
-try:
-    import pygeo
-    pygeo_flag = True
-except:
-    pygeo_flag = False
+from openaerostruct.geometry.utils import generate_mesh
+from openaerostruct.geometry.geometry_group import Geometry
+from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-@unittest.skipUnless(pygeo_flag, "pyGeo is required.")
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, SqliteRecorder
+
+
 class Test(unittest.TestCase):
 
     def test(self):
 
-        from openaerostruct.geometry.utils import generate_mesh, write_FFD_file
-        from openaerostruct.geometry.geometry_group import Geometry
-        from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
-
-        from openaerostruct.aerodynamics.aero_groups import AeroPoint
-
-        from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver# TODO, SqliteRecorder, CaseReader, profile
-        from openmdao.devtools import iprofile
-        from openmdao.api import view_model
-        from six import iteritems
-        from pygeo import DVGeometry
-
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 7,
+        mesh_dict = {'num_y' : 11,
                      'num_x' : 3,
                      'wing_type' : 'CRM',
-                     'symmetry' : True,
-                     'num_twist_cp' : 5,
-                     'span_cos_spacing' : 0.}
+                     'symmetry' : False,
+                     'num_twist_cp' : 5}
 
-        mesh, _ = generate_mesh(mesh_dict)
+        mesh, twist_cp = generate_mesh(mesh_dict)
 
         surf_dict = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
                     'type' : 'aero',
-                    'symmetry' : True,     # if true, model one half of wing
+                    'symmetry' : False,     # if true, model one half of wing
                                             # reflected across the plane y = 0
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
-                    'fem_model_type' : 'tube',
 
-                    'DVGeo' : True,
                     'mesh' : mesh,
-                    'mx' : 2,
-                    'my' : 3,
+                    'num_x' : mesh.shape[0],
+                    'num_y' : mesh.shape[1],
+                    'twist_cp' : twist_cp,
 
                     # Aerodynamic performance of the lifting surface at
                     # an angle of attack of 0 (alpha=0).
@@ -58,7 +44,7 @@ class Test(unittest.TestCase):
                     # the total CL and CD.
                     # These CL0 and CD0 values do not vary wrt alpha.
                     'CL0' : 0.0,            # CL of the surface at alpha=0
-                    'CD0' : 0.015,            # CD of the surface at alpha=0
+                    'CD0' : 0.0,            # CD of the surface at alpha=0
 
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
@@ -67,10 +53,8 @@ class Test(unittest.TestCase):
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
-                    'with_wave' : False,     # if true, compute wave drag
+                    'with_wave' : True,     # if true, compute wave drag
                     }
-
-        surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
         surfaces = [surf_dict]
 
@@ -79,7 +63,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
-        indep_var_comp.add_output('alpha', val=6.64, units='deg')
+        indep_var_comp.add_output('alpha', val=5., units='deg')
         indep_var_comp.add_output('M', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
@@ -92,9 +76,7 @@ class Test(unittest.TestCase):
         # Loop over each surface in the surfaces list
         for surface in surfaces:
 
-            filename = write_FFD_file(surface, surface['mx'], surface['my'])
-            DVGeo = DVGeometry(filename)
-            geom_group = Geometry(surface=surface, DVGeo=DVGeo)
+            geom_group = Geometry(surface=surface)
 
             # Add tmp_group to the problem as the name of the surface.
             # Note that is a group and performance group for each
@@ -131,31 +113,19 @@ class Test(unittest.TestCase):
 
                 prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
 
-        from openmdao.api import pyOptSparseDriver
-        prob.driver = pyOptSparseDriver()
-        prob.driver.options['optimizer'] = "SNOPT"
-        prob.driver.opt_settings = {'Major optimality tolerance': 1.0e-6,
-                                    'Major feasibility tolerance': 1.0e-6}
-
-        # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('alpha', lower=-15, upper=15)
-        prob.model.add_design_var('wing.shape', lower=-3, upper=2)
-
-        # prob.model.add_constraint('wing.shape', equals=0., indices=range(surf_dict['my'] * 2), linear=True)
-        prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
-        prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
+        recorder = SqliteRecorder("aero_analysis_no_sym_wavedrag.db")
+        prob.driver.add_recorder(recorder)
+        prob.driver.recording_options['record_derivatives'] = True
 
         # Set up the problem
         prob.setup()
 
-        # view_model(prob, outfile='aero.html', show_browser=False)
-
-        # prob.run_model()
         prob.run_driver()
 
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03398038, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.18379626783513864, 1e-5)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.464191542231, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.022157898084, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.1603034566404, 1e-6)
+
 
 
 if __name__ == '__main__':

@@ -84,6 +84,7 @@ class Test(unittest.TestCase):
                     'original_wingbox_airfoil_t_over_c' : 0.12,
                     'c_max_t' : .38,       # chordwise location of maximum thickness
                     'with_viscous' : True,
+                    'with_wave' : False,     # if true, compute wave drag
 
                     # Structural values are based on aluminum 7075
                     'E' : 73.1e9,              # [Pa] Young's modulus
@@ -106,7 +107,7 @@ class Test(unittest.TestCase):
         # Add problem information as an independent variables component
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=.85 * 295.07, units='m/s')
-        indep_var_comp.add_output('alpha', val=0.)
+        indep_var_comp.add_output('alpha', val=0., units='deg')
         indep_var_comp.add_output('M', val=0.85)
         indep_var_comp.add_output('re', val=0.348*295.07*.85*1./(1.43*1e-5), units='1/m')
         indep_var_comp.add_output('rho', val=0.348, units='kg/m**3')

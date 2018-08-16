@@ -100,7 +100,7 @@ def get_default_surfaces():
                  'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                          # thickness
                  'with_viscous' : True,  # if true, compute viscous drag
-                 'with_wave' : True, # if true, computes wave drag
+                 'with_wave' : False, # if true, computes wave drag
                  'fem_model_type' : 'tube',
 
                  # Structural values are based on aluminum 7075
@@ -109,7 +109,6 @@ def get_default_surfaces():
                  'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
                  'mrho' : 3.e3,          # [kg/m^3] material density
                  'fem_origin' : 0.35,    # normalized chordwise location of the spar
-                 't_over_c' : 0.15,      # maximum airfoil thickness
                  'wing_weight_ratio' : 2.,
 
                  }
