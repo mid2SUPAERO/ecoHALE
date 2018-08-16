@@ -3,12 +3,14 @@ import unittest
 from openaerostruct.aerodynamics.wave_drag import WaveDrag
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 from openmdao.api import Group, IndepVarComp, BsplinesComp
+import numpy as np
 
 class Test(unittest.TestCase):
 
     def test(self):
         surface = get_default_surfaces()[0]
         surface['with_wave'] = True
+        surface['t_over_c_cp'] = np.array([0.15, 0.21, 0.03, 0.05])
         
         ny = surface['num_y']
         nx = surface['num_x']
