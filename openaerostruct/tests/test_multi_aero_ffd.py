@@ -63,7 +63,7 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
@@ -129,6 +129,8 @@ class Test(unittest.TestCase):
                 # Perform the connections with the modified names within the
                 # 'aero_states' group.
                 prob.model.connect(point_name + '.' + name + '_geom.mesh', point_name + '.aero_states.' + name + '_def_mesh')
+                
+                prob.model.connect(point_name + '.' + name + '_geom.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
 
         prob.model.add_subsystem('multi_CD', MultiCD(n_points=n_points), promotes_outputs=['CD'])
         prob.model.add_subsystem('geom_match', GeomMatch(n_points=n_points, mx=surf_dict['mx'], my=surf_dict['my']), promotes_outputs=['shape_diff'])

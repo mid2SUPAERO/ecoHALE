@@ -21,7 +21,7 @@ class VLMFunctionals(Group):
 
         self.add_subsystem('viscousdrag',
             ViscousDrag(surface=surface),
-            promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref'], promotes_outputs=['CDv'])
+            promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref', 't_over_c'], promotes_outputs=['CDv'])
 
         # This component is generally not needed unless you want the sectional CLs
         self.add_subsystem('liftcoeff',

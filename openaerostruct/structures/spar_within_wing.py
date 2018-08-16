@@ -48,6 +48,7 @@ class SparWithinWing(ExplicitComponent):
 
         self.add_input('mesh', val=np.zeros((nx, self.ny, 3)), units='m')
         self.add_input('radius', val=np.zeros((self.ny-1)), units='m')
+        self.add_input('t_over_c', val=np.zeros((self.ny-1)))
         self.add_output('spar_within_wing', val=np.zeros((self.ny-1)), units='m')
 
         self.declare_partials('spar_within_wing', 'mesh', method='fd')
@@ -56,5 +57,6 @@ class SparWithinWing(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         mesh = inputs['mesh']
-        max_radius = radii(mesh, self.surface['t_over_c'])
+        t_over_c = inputs['t_over_c']
+        max_radius = radii(mesh, t_over_c)
         outputs['spar_within_wing'] = inputs['radius'] - max_radius

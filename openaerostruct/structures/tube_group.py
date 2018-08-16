@@ -31,7 +31,7 @@ class TubeGroup(Group):
         if 'struct' in surface['type']:
             self.add_subsystem('radius_comp',
                 RadiusComp(surface=surface),
-                promotes_inputs=['mesh'],
+                promotes_inputs=['mesh', 't_over_c'],
                 promotes_outputs=['radius'])
 
         if 'thickness_cp' in surface.keys():

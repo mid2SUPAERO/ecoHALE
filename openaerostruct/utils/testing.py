@@ -96,7 +96,7 @@ def get_default_surfaces():
                  # Airfoil properties for viscous drag calculation
                  'k_lam' : 0.05,         # percentage of chord with laminar
                                          # flow, used for viscous drag
-                 't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                 't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                  'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                          # thickness
                  'with_viscous' : True,  # if true, compute viscous drag

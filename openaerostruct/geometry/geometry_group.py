@@ -20,7 +20,7 @@ class Geometry(Group):
         ny = surface['mesh'].shape[1]
 
         # Check if any control points were added to the surface dict
-        dv_keys = set(['twist_cp', 'chord_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp', 'sweep', 'taper', 'dihedral'])
+        dv_keys = set(['twist_cp', 'chord_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp', 'sweep', 'taper', 'dihedral', 't_over_c_cp'])
         active_dv_keys = dv_keys.intersection(set(surface.keys()))
         # Make sure that at least one of them is an independent variable
         make_ivc = False
@@ -41,6 +41,17 @@ class Geometry(Group):
         if self.options['DVGeo']:
             from openaerostruct.geometry.ffd_component import GeometryMesh
             indep_var_comp.add_output('shape', val=np.zeros((surface['mx'], surface['my'])), units='m')
+
+            if 't_over_c_cp' in surface.keys():
+                n_cp = len(surface['t_over_c_cp'])
+                # Add bspline components for active bspline geometric variables.
+                self.add_subsystem('t_over_c_bsp', BsplinesComp(
+                    in_name='t_over_c_cp', out_name='t_over_c',
+                    num_control_points=n_cp, num_points=int(ny-1),
+                    bspline_order=min(n_cp, 4), distribution='uniform'),
+                    promotes_inputs=['t_over_c_cp'], promotes_outputs=['t_over_c'])
+                if surface.get('t_over_c_cp_dv', True):
+                    indep_var_comp.add_output('t_over_c_cp', val=surface['t_over_c_cp'], units='m')
 
             self.add_subsystem('mesh',
                 GeometryMesh(surface=surface, DVGeo=self.options['DVGeo']),
@@ -78,16 +89,16 @@ class Geometry(Group):
                 if surface.get('chord_cp_dv', True): 
                     indep_var_comp.add_output('chord_cp', val=surface['chord_cp'], units='m')
 
-            if 'toverc_cp' in surface.keys():
-                n_cp = len(surface['toverc_cp'])
+            if 't_over_c_cp' in surface.keys():
+                n_cp = len(surface['t_over_c_cp'])
                 # Add bspline components for active bspline geometric variables.
-                self.add_subsystem('toverc_bsp', BsplinesComp(
-                    in_name='toverc_cp', out_name='toverc',
+                self.add_subsystem('t_over_c_bsp', BsplinesComp(
+                    in_name='t_over_c_cp', out_name='t_over_c',
                     num_control_points=n_cp, num_points=int(ny-1),
                     bspline_order=min(n_cp, 4), distribution='uniform'),
-                    promotes_inputs=['toverc_cp'], promotes_outputs=['toverc'])
-                if surface.get('toverc_cp_dv', True): 
-                    indep_var_comp.add_output('toverc_cp', val=surface['toverc_cp'], units='m')
+                    promotes_inputs=['t_over_c_cp'], promotes_outputs=['t_over_c'])
+                if surface.get('t_over_c_cp_dv', True):
+                    indep_var_comp.add_output('t_over_c_cp', val=surface['t_over_c_cp'], units='m')
 
             if 'xshear_cp' in surface.keys():
                 n_cp = len(surface['xshear_cp'])

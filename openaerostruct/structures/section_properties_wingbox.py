@@ -185,7 +185,7 @@ class SectionPropertiesWingbox(ExplicitComponent):
 
         self.ny = surface['num_y']
         self.mesh = surface['mesh']
-        self.t_over_c = surface['t_over_c']
+        self.orig_wb_af_t_over_c = surface['original_wingbox_airfoil_t_over_c']
         name = surface['name']
 
         self.data_x_upper = surface['data_x_upper']
@@ -199,7 +199,7 @@ class SectionPropertiesWingbox(ExplicitComponent):
 
         self.add_input('spar_thickness', val=np.ones((self.ny - 1), dtype = complex))
         self.add_input('skin_thickness', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_input('toverc', val=np.ones((self.ny - 1),  dtype = complex))
+        self.add_input('t_over_c', val=np.ones((self.ny - 1),  dtype = complex))
 
         self.add_output('A', val=np.ones((self.ny - 1),  dtype = complex))
         self.add_output('A_enc', val=np.ones((self.ny - 1),  dtype = complex))
@@ -222,4 +222,4 @@ class SectionPropertiesWingbox(ExplicitComponent):
             outputs['Iz'][i], outputs['Iy'][i], outputs['Qz'][i], outputs['J'][i], outputs['A'][i], outputs['A_enc'][i],\
             outputs['htop'][i], outputs['hbottom'][i], outputs['hfront'][i], outputs['hrear'][i], outputs['A_int'][i]  = \
             wingbox_props(inputs['fem_chords'][i], inputs['spar_thickness'][i], inputs['skin_thickness'][i], self.data_x_upper, \
-            self.data_x_lower, self.data_y_upper, self.data_y_lower, self.t_over_c, inputs['toverc'][i], inputs['streamwise_chords'][i], -inputs['fem_twists'][i])
+            self.data_x_lower, self.data_y_upper, self.data_y_lower, self.orig_wb_af_t_over_c, inputs['t_over_c'][i], inputs['streamwise_chords'][i], -inputs['fem_twists'][i])
