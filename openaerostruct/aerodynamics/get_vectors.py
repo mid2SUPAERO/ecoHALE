@@ -16,8 +16,6 @@ class GetVectors(ExplicitComponent):
         num_eval_points = self.options['num_eval_points']
         eval_name = self.options['eval_name']
 
-        self.declare_partials('*', '*', dependent=False)
-
         self.add_input(eval_name, val=np.zeros((num_eval_points, 3)), units='m')
         for surface in surfaces:
             ny = surface['num_y']
