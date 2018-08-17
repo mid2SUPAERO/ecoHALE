@@ -50,7 +50,7 @@ class WaveDrag(ExplicitComponent):
         self.add_input('widths', val=np.arange((ny-1))+1., units='m') # set to np.arange so that d_CDw_d_chords is nonzero
         self.add_input('CL', val=0.33)
         self.add_input('chords', val=np.ones((ny)), units='m')
-        self.add_input('t_over_c', val=np.ones((ny-1)))
+        self.add_input('t_over_c', val=np.arange((ny-1)))
         self.add_output('CDw', val=0.)
 
         self.declare_partials('CDw', '*')
@@ -99,7 +99,7 @@ class WaveDrag(ExplicitComponent):
             sum_panel_areas = np.sum(panel_areas)
             avg_cos_sweep = np.sum(actual_cos_sweep * panel_areas) / sum_panel_areas
             avg_t_over_c = np.sum(t_over_c * panel_areas) / sum_panel_areas
-            
+
             MDD = 0.95 / avg_cos_sweep - avg_t_over_c / avg_cos_sweep**2 - CL / (10*avg_cos_sweep**3)
             Mcrit = MDD - (0.1 / 80.)**(1./3.)
 
