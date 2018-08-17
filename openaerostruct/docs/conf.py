@@ -54,7 +54,7 @@ packages = [
     'transfer',
 ]
 
-openmdao.docutils.generate_docs("..", "../..", packages, project_name='openaerostruct')
+generate_docs("..", "../..", packages, project_name='openaerostruct')
 
 # -- General configuration ------------------------------------------------
 
