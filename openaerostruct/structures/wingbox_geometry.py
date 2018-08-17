@@ -48,7 +48,7 @@ class WingboxGeometry(ExplicitComponent):
         self.add_output('fem_chords', val=np.ones((ny - 1)))
         self.add_output('fem_twists', val=np.ones((ny - 1)))
 
-        self.declare_partials('*', '*', method='cs')
+        self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         mesh = inputs['mesh']
@@ -121,5 +121,4 @@ class WingboxGeometry(ExplicitComponent):
                 theta_1 = np.arccos(cos_twist_1)
 
             fem_twists[ielem] = (theta_0 + theta_1) / 2 * streamwise_chords[ielem] / fem_chords[ielem]
-
         outputs['fem_twists'] = fem_twists

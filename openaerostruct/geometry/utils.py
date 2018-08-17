@@ -714,16 +714,6 @@ def generate_mesh(input_dict):
 
         return mesh
 
-
-def view_mat(mat):
-    """ Helper function used to visually examine matrices. """
-    import matplotlib.pyplot as plt
-    if len(mat.shape) > 2:
-        mat = np.sum(mat, axis=2)
-    im = plt.imshow(mat.real, interpolation='none')
-    plt.colorbar(im, orientation='horizontal')
-    plt.show()
-
 def write_FFD_file(surface, mx, my):
 
     mesh = surface['mesh']

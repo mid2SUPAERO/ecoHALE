@@ -1,4 +1,4 @@
-from openmdao.api import Group, LinearRunOnce
+from openmdao.api import Group, LinearRunOnce, DirectSolver
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -16,11 +16,11 @@ class AeroPoint(Group):
         for surface in surfaces:
             name = surface['name']
 
-            self.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
-            self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
             self.connect(name + '.normals', 'aero_states.' + name + '_normals')
-            self.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
-            self.connect(name + '.widths', 'aero_states.' + name + '_widths')
+            # self.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
+            # self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
+            # self.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
+            # self.connect(name + '.widths', 'aero_states.' + name + '_widths')
 
             # Connect the results from 'aero_states' to the performance groups
             self.connect('aero_states.' + name + '_sec_forces', name + '_perf' + '.sec_forces')
@@ -28,7 +28,7 @@ class AeroPoint(Group):
             # Connect S_ref for performance calcs
             self.connect(name + '.S_ref', name + '_perf.S_ref')
             self.connect(name + '.widths', name + '_perf.widths')
-            # self.connect(name + '.chords', name + '_perf.chords')
+            self.connect(name + '.chords', name + '_perf.chords')
             self.connect(name + '.lengths', name + '_perf.lengths')
             self.connect(name + '.cos_sweep', name + '_perf.cos_sweep')
 
@@ -53,7 +53,8 @@ class AeroPoint(Group):
 
         self.add_subsystem('aero_states',
                  aero_states,
-                 promotes_inputs=['v', 'alpha', 'rho', 'M'], promotes_outputs=['circulations'])
+                 promotes_inputs=['v', 'alpha', 'rho'],
+                 promotes_outputs=['circulations'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.
@@ -67,5 +68,4 @@ class AeroPoint(Group):
         self.add_subsystem('total_perf',
             TotalAeroPerformance(surfaces=surfaces),
             promotes_inputs=['v', 'rho', 'cg', 'S_ref_total'],
-
             promotes_outputs=['CM', 'CL', 'CD'])

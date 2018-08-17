@@ -9,7 +9,7 @@ try:
     data_type = float
 except:
     fortran_flag = False
-    data_type = complex
+    data_type = float
 
 
 class MomentCoefficient(ExplicitComponent):
@@ -53,13 +53,13 @@ class MomentCoefficient(ExplicitComponent):
             ny = surface['num_y']
             nx = surface['num_x']
 
-            self.add_input(name + '_b_pts', val=np.zeros((nx-1, ny, 3)), units='m')
-            self.add_input(name + '_widths', val=np.zeros((ny-1)), units='m')
-            self.add_input(name + '_chords', val=np.zeros((ny)), units='m')
+            self.add_input(name + '_b_pts', val=np.ones((nx-1, ny, 3)), units='m')
+            self.add_input(name + '_widths', val=np.ones((ny-1)), units='m')
+            self.add_input(name + '_chords', val=np.ones((ny)), units='m')
             self.add_input(name + '_S_ref', val=1., units='m**2')
-            self.add_input(name + '_sec_forces', val=np.zeros((nx-1, ny-1, 3)), units='N')
+            self.add_input(name + '_sec_forces', val=np.ones((nx-1, ny-1, 3)), units='N')
 
-        self.add_input('cg', val=np.zeros((3)), units='m')
+        self.add_input('cg', val=np.ones((3)), units='m')
         self.add_input('v', val=10., units='m/s')
         self.add_input('rho', val=3., units='kg/m**3')
         self.add_input('S_ref_total', val=1., units='m**2')
@@ -67,6 +67,7 @@ class MomentCoefficient(ExplicitComponent):
         self.add_output('CM', val=np.ones((3)))
 
         self.declare_partials('*', '*')
+        self.set_check_partial_options('*', step_calc = 'rel', step = 1E-5)
 
         if not fortran_flag:
             self.declare_partials('*', '*', method='fd')

@@ -30,9 +30,8 @@ class Aerostruct(Group):
 
         if 'twist_cp' in surface.keys():
             geom_promotes.append('twist_cp')
-        if 'toverc_cp' in surface.keys():
-            geom_promotes.append('toverc_cp')
-            geom_promotes.append('toverc')
+        if 't_over_c_cp' in surface.keys():
+            geom_promotes.append('t_over_c')
         if 'mx' in surface.keys():
             geom_promotes.append('shape')
 
@@ -47,7 +46,7 @@ class Aerostruct(Group):
                 tube_promotes.append('thickness_cp')
             self.add_subsystem('tube_group',
                 TubeGroup(surface=surface),
-                promotes_inputs=['mesh'],
+                promotes_inputs=['mesh', 't_over_c'],
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
         elif surface['fem_model_type'] == 'wingbox':
             wingbox_promotes = []
@@ -61,7 +60,7 @@ class Aerostruct(Group):
 
             self.add_subsystem('wingbox_group',
                 WingboxGroup(surface=surface),
-                promotes_inputs=['mesh', 'toverc'],
+                promotes_inputs=['mesh', 't_over_c'],
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
@@ -104,7 +103,7 @@ class CoupledPerformance(Group):
 
         self.add_subsystem('aero_funcs',
             VLMFunctionals(surface=surface),
-            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'S_ref', 'sec_forces'], promotes_outputs=['CDv', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
+            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'S_ref', 'sec_forces', 't_over_c'], promotes_outputs=['CDv', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
 
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_funcs',
@@ -140,12 +139,12 @@ class AerostructPoint(Group):
 
             # Perform the connections with the modified names within the
             # 'aero_states' group.
-            coupled.connect(name + '.def_mesh', 'aero_states.' + name + '_def_mesh')
-            coupled.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
-            coupled.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
             coupled.connect(name + '.normals', 'aero_states.' + name + '_normals')
-            coupled.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
-            coupled.connect(name + '.widths', 'aero_states.' + name + '_widths')
+            coupled.connect(name + '.def_mesh', 'aero_states.' + name + '_def_mesh')
+            # coupled.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
+            # coupled.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
+            # coupled.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
+            # coupled.connect(name + '.widths', 'aero_states.' + name + '_widths')
 
             # Connect the results from 'coupled' to the performance groups
             coupled.connect(name + '.def_mesh', name + '_loads.def_mesh')
@@ -190,7 +189,7 @@ class AerostructPoint(Group):
         # coupled group.
         coupled.add_subsystem('aero_states',
             VLMStates(surfaces=surfaces),
-            promotes_inputs=['v', 'alpha', 'rho', 'M'])
+            promotes_inputs=['v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.
@@ -225,7 +224,7 @@ class AerostructPoint(Group):
         """
 
         # Add the coupled group to the model problem
-        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho', 'M'])
+        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho'])
 
         for surface in surfaces:
             name = surface['name']
