@@ -3,12 +3,13 @@ import unittest
 from openaerostruct.aerodynamics.viscous_drag import ViscousDrag
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 from openmdao.api import Group, IndepVarComp, BsplinesComp
-
+import numpy as np
 
 class Test(unittest.TestCase):
 
     def test(self):
         surface = get_default_surfaces()[0]
+        surface['t_over_c_cp'] = np.array([0.1, 0.15, 0.2])
 
         ny = surface['num_y']
         nx = surface['num_x']

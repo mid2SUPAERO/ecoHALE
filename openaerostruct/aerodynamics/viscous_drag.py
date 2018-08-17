@@ -125,9 +125,9 @@ class ViscousDrag(ExplicitComponent):
         t_over_c = inputs['t_over_c']
 
         if self.with_viscous:
-            p180 = np.pi / 180.
-            M = inputs['M'][0]
-            S_ref = inputs['S_ref'][0]
+
+            M = inputs['M']
+            S_ref = inputs['S_ref']
 
             widths = inputs['widths']
             lengths = inputs['lengths']
@@ -200,7 +200,8 @@ class ViscousDrag(ExplicitComponent):
             partials['CDv', 'widths'][0, :] = d_over_q * FF / S_ref * 0.72
             partials['CDv', 'S_ref'] = - D_over_q / S_ref**2
             partials['CDv', 'cos_sweep'][0, :] = 0.28 * k_FF * d_over_q / S_ref / cos_sweep**0.72
-
+            partials['CDv', 't_over_c'] = (d_over_q * widths * 1.34 * M**0.18 * \
+                            (0.6/self.c_max_t + 400*t_over_c**3) * cos_sweep**0.28) / S_ref
 
             term =  (-0.65/(1+0.144*M**2)**1.65) * 2*0.144*M
             dcdturb_total__dM = 0.455 / (np.log10(Re_c))**2.58 * term
@@ -246,3 +247,4 @@ class ViscousDrag(ExplicitComponent):
                 partials['CDv', 'cos_sweep'][0, :] *=  2
                 partials['CDv', 'M'][0, :] *=  2
                 partials['CDv', 're'][0, :] *=  2
+                partials['CDv', 't_over_c'][0, :] *=  2

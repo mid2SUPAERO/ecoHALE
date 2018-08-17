@@ -49,7 +49,7 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.10, 0.15, 0.2]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
@@ -132,7 +132,7 @@ class Test(unittest.TestCase):
         prob.run_driver()
 
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.02257921, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.022662637, 1e-6)
         assert_rel_error(self, prob['aero_point_0.CM'][1], -0.179451279, 1e-6)
 
 
