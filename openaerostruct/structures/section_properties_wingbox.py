@@ -121,18 +121,10 @@ class SectionPropertiesWingbox(ExplicitComponent):
         rot_mat = np.array([[np.cos(theta), np.sin(theta)],
                             [-np.sin(theta), np.cos(theta)]])
 
-        data_x_upper_2 = data_x_upper.copy()
-        data_y_upper_2 = data_y_upper.copy()
-        data_x_lower_2 = data_x_lower.copy()
-        data_y_lower_2 = data_y_lower.copy()
-
-        for i in range(data_x_upper.shape[0]):
-
-            data_x_upper_2[i] = rot_mat[0,0] * data_x_upper[i] + rot_mat[0,1] * data_y_upper[i]
-            data_y_upper_2[i] = rot_mat[1,0] * data_x_upper[i] + rot_mat[1,1] * data_y_upper[i]
-
-            data_x_lower_2[i] = rot_mat[0,0] * data_x_lower[i] + rot_mat[0,1] * data_y_lower[i]
-            data_y_lower_2[i] = rot_mat[1,0] * data_x_lower[i] + rot_mat[1,1] * data_y_lower[i]
+        data_x_upper_2 = rot_mat[0, 0] * data_x_upper + rot_mat[0, 1] * data_y_upper
+        data_y_upper_2 = rot_mat[1, 0] * data_x_upper + rot_mat[1, 1] * data_y_upper
+        data_x_lower_2 = rot_mat[0, 0] * data_x_lower + rot_mat[0, 1] * data_y_lower
+        data_y_lower_2 = rot_mat[1, 0] * data_x_lower + rot_mat[1, 1] * data_y_lower
 
         data_x_upper = data_x_upper_2.copy()
         data_y_upper = data_y_upper_2.copy()
