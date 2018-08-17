@@ -171,7 +171,6 @@ class EvalVelMtx(ExplicitComponent):
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 1:  , :], np.ones(3, int)).flatten(),
                 ])
                 self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
-                self.declare_partials(vel_mtx_name, vectors_name, method='fd')
 
             self.declare_partials(vel_mtx_name, 'alpha', method='fd')
             self.add_output(vel_mtx_name, shape=(num_eval_points, nx - 1, ny - 1, 3), units='1/m')
