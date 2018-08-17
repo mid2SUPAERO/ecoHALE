@@ -827,3 +827,56 @@ def write_FFD_file(surface, mx, my):
         f.write(z)
 
     return filename
+
+def writeMesh(mesh,filename):
+    """
+    Writes the OAS mesh in Tecplot .dat file format, for visualization and debugging purposes.
+
+    Parameters
+    ----------
+    mesh[nx,ny,3] : ndarray
+        The OAS mesh to be written.
+    filename : str
+        The file name including .dat extension.
+    """
+    num_y = mesh.shape[0]
+    num_x = mesh.shape[1]
+    f = open(filename, 'w')
+    f.write('\t\t1\n')
+    f.write('\t\t%d\t\t%d\t\t%d\n' % (num_y, num_x, 1))
+
+    x = mesh[:, :, 0]
+    y = mesh[:, :, 1]
+    z = mesh[:, :, 2]
+
+    for dim in [x, y, z]:
+        for iy in range(num_x):
+            row = dim[:, iy]
+            for val in row:
+                f.write('\t{: 3.6f}'.format(val))
+            f.write('\n')
+    f.close()
+
+
+def getFullMesh(left_mesh):
+    """
+    For a symmetric wing, OAS only keeps and does computation on the left half.
+    This script mirros the OAS mesh and attaches it to the existing mesh to 
+    obtain the full mesh.
+
+    Parameters
+    ----------
+    mesh[nx,ny,3] : ndarray
+        The OAS mesh to be written.
+    filename : str
+        The file name including .dat extension.
+    
+    Returns
+    -------
+    full_mesh[nx,2*ny-1,3] : ndarray
+        The computed full mesh.
+    """
+    right_mesh = np.flip(left_mesh,axis=1).copy()
+    right_mesh[:,:,1] *= -1
+    full_mesh = np.concatenate((left_mesh,right_mesh[:,1:,:]),axis=1)
+    return full_mesh
