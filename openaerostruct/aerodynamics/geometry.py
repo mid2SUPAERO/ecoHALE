@@ -122,7 +122,7 @@ class VLMGeometry(ExplicitComponent):
                 axis=2)
 
             proj_norms = np.sqrt(np.sum(proj_normals**2, axis=2))
-            for j in xrange(3):
+            for j in range(3):
                 proj_normals[:, :, j] /= proj_norms
 
             S_ref = 0.5 * np.sum(proj_norms)
