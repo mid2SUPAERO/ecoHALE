@@ -62,8 +62,7 @@ class ViscousDrag(ExplicitComponent):
         self.add_output('CDv', val=0.)
 
         self.declare_partials('CDv', '*')
-        # self.declare_partials('CDv', 'M', method='fd')
-        # self.declare_partials('CDv', 're')
+        self.declare_partials('CDv', 't_over_c', method='cs')
 
         self.set_check_partial_options(wrt='*', method='cs', step=1e-50)
 
