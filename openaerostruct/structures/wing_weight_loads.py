@@ -66,14 +66,14 @@ class StructureWeightLoads(ExplicitComponent):
         loads = np.zeros((self.ny, 6), dtype=complex)
 
         # Loads in z-direction
-        loads[:-1, 2] = -z_forces_for_each
-        loads[1:, 2] = -z_forces_for_each
+        loads[:-1, 2] += -z_forces_for_each
+        loads[1:, 2] += -z_forces_for_each
 
         # Bending moments for consistency
-        loads[:-1, 3] = -z_moments_for_each * deltas[: , 1] / element_lengths
-        loads[1:, 3] = z_moments_for_each * deltas[: , 1] / element_lengths
+        loads[:-1, 3] += -z_moments_for_each * deltas[: , 1] / element_lengths
+        loads[1:, 3] += z_moments_for_each * deltas[: , 1] / element_lengths
         
-        loads[:-1, 4] = -z_moments_for_each * deltas[: , 0] / element_lengths
-        loads[1:, 4] = z_moments_for_each * deltas[: , 0] / element_lengths
+        loads[:-1, 4] += -z_moments_for_each * deltas[: , 0] / element_lengths
+        loads[1:, 4] += z_moments_for_each * deltas[: , 0] / element_lengths
         
         outputs['struct_weight_loads'] = loads
