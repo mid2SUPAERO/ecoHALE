@@ -80,7 +80,7 @@ class CoupledAS(Group):
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads', 'element_weights'], promotes_outputs=['disp'])
+            promotes_inputs=['K', 'forces', 'loads', 'element_weights', 'nodes'], promotes_outputs=['disp'])
 
         self.add_subsystem('def_mesh',
             DisplacementTransfer(surface=surface),
