@@ -186,7 +186,7 @@ class SectionPropertiesWingbox(ExplicitComponent):
         outputs['Iz'] = I_horiz
 
         # Compute the Q required for transverse shear stress due to upward bending
-        Q_upper = np.sum(((y_up_add / 2 - (skin_thickness/2) ) - centroid) * skin_thickness * x_up_add, axis=0)
+        Q_upper = np.sum(((y_up_add / 2 - (skin_thickness/2) ) - centroid) * skin_thickness * x_up_diff, axis=0)
 
         Q_upper += (data_y_upper[0] - skin_thickness - centroid)**2 / 2 * (spar_thickness)
         Q_upper += (data_y_upper[-1] - skin_thickness - centroid)**2 / 2 * (spar_thickness)

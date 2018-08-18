@@ -94,7 +94,7 @@ class Test(unittest.TestCase):
                     'strength_factor_for_upper_skin' : 1.0, # the yield stress is multiplied by this factor for the upper skin
                     # 'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1.25,
-                    'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
+                    'struct_weight_relief' : True,    # True to add the weight of the structure to the loads on the structure
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
@@ -211,8 +211,9 @@ class Test(unittest.TestCase):
         #                         hierarchical=False,
         #                         print_arrays=True)
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 114321.532838, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112474.928281, 1e-5)
         assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235533.421185, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 1.7064414, 1e-5)
 
 
 if __name__ == '__main__':
