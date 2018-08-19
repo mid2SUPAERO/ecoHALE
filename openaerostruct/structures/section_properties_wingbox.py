@@ -210,10 +210,10 @@ class SectionPropertiesWingbox(ExplicitComponent):
 
         # Distances for calculating max bending stresses (KS function used)
         ks_rho = 500. # Hard coded, see Martins and Poon 2005 for more
-        fmax_upper = np.max(data_y_upper)
+        fmax_upper = np.max(data_y_upper, axis=0)
         htop = fmax_upper + 1 / ks_rho * np.log(np.sum(np.exp(ks_rho * (data_y_upper - fmax_upper)), axis=0)) - centroid
 
-        fmax_lower = np.max(-data_y_lower)
+        fmax_lower = np.max(-data_y_lower, axis=0)
         hbottom = fmax_lower + 1 / ks_rho * np.log(np.sum(np.exp(ks_rho * (-data_y_lower - fmax_lower)), axis=0)) + centroid
 
         hfront =  centroid_Ivert - data_x_upper[0]
