@@ -47,7 +47,7 @@ class Test(unittest.TestCase):
                     't_over_c_cp' : np.array([0.15]),      # maximum airfoil thickness
                     'thickness_cp' : np.ones((3)) * .0075,
                     'wing_weight_ratio' : 1.,
-
+                    'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
                     'exact_failure_constraint' : False,
                     }
 

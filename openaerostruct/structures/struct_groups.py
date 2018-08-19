@@ -55,7 +55,7 @@ class SpatialBeamAlone(Group):
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads', 'element_weights'],
+            promotes_inputs=['K', 'forces', 'loads', 'element_weights', 'nodes'],
             promotes_outputs=['disp'])
 
         self.add_subsystem('struct_funcs',
