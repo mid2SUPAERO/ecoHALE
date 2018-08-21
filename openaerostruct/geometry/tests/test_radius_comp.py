@@ -21,7 +21,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('mesh', val=surfaces[0]['mesh'], units='m')
-        indep_var_comp.add_output('t_over_c', val=np.linspace(0.1,0.5,num=surfaces[0]['num_y']-1), units='m')
+        indep_var_comp.add_output('t_over_c', val=np.linspace(0.1,0.5,num=surfaces[0]['num_y']-1))
         
         group.add_subsystem('radius', comp)
         group.add_subsystem('indep_var_comp', indep_var_comp)
@@ -29,7 +29,7 @@ class Test(unittest.TestCase):
         group.connect('indep_var_comp.mesh', 'radius.mesh')
         group.connect('indep_var_comp.t_over_c', 'radius.t_over_c')
 
-        run_test(self, group)
+        run_test(self, group,tol=2e-6)
 
 
 if __name__ == '__main__':
