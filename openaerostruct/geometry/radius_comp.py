@@ -63,21 +63,22 @@ class RadiusComp(ExplicitComponent):
         dr_dchords = np.squeeze(np.matmul(dr_dmean, dmean_dchords))
 
         dchords_dmesh = np.zeros((self.ny,self.nx*self.ny*3))
-        for i in range(self.ny):
-            dx = mesh[0, i, 0] - mesh[-1, i, 0]
-            dy = mesh[0, i, 1] - mesh[-1, i, 1]
-            dz = mesh[0, i, 2] - mesh[-1, i, 2]
 
-            l = np.sqrt(dx**2 + dy**2 + dz**2)
+        le_ind = 0
+        te_ind = (self.nx - 1) * 3 * self.ny
 
-            le_ind = 0
-            te_ind = (self.nx - 1) * 3 * self.ny
+        dx = mesh[0, :, 0] - mesh[-1, :, 0]
+        dy = mesh[0, :, 1] - mesh[-1, :, 1]
+        dz = mesh[0, :, 2] - mesh[-1, :, 2]
 
-            dchords_dmesh[i, le_ind + i*3 + 0] += dx / l
-            dchords_dmesh[i, te_ind + i*3 + 0] -= dx / l
-            dchords_dmesh[i, le_ind + i*3 + 1] += dy / l
-            dchords_dmesh[i, te_ind + i*3 + 1] -= dy / l
-            dchords_dmesh[i, le_ind + i*3 + 2] += dz / l
-            dchords_dmesh[i, te_ind + i*3 + 2] -= dz / l
+        l = np.sqrt(dx**2 + dy**2 + dz**2)
+        i = np.arange(self.ny)
+
+        dchords_dmesh[i, le_ind + i*3 + 0] += dx[i] / l[i]
+        dchords_dmesh[i, te_ind + i*3 + 0] -= dx[i] / l[i]
+        dchords_dmesh[i, le_ind + i*3 + 1] += dy[i] / l[i]
+        dchords_dmesh[i, te_ind + i*3 + 1] -= dy[i] / l[i]
+        dchords_dmesh[i, le_ind + i*3 + 2] += dz[i] / l[i]
+        dchords_dmesh[i, te_ind + i*3 + 2] -= dz[i] / l[i]
         
         partials['radius','mesh'] = np.matmul(dr_dchords,dchords_dmesh)
