@@ -10,7 +10,7 @@ class Test(unittest.TestCase):
 
     def test(self):
         surface = get_default_surfaces()[0]
-        
+
         comp = TotalLoads(surface=surface)
 
         run_test(self, comp, complex_flag=True)
@@ -19,13 +19,13 @@ class Test(unittest.TestCase):
         surface = get_default_surfaces()[0]
 
         comp = StructureWeightLoads(surface=surface)
-        
+
         group = Group()
 
         indep_var_comp = IndepVarComp()
 
         ny = surface['num_y']
-        
+
         nodesval = np.array([[0., 0., 0.],
                             [0., 1., 0.],
                             [0., 2., 0.],
@@ -38,6 +38,7 @@ class Test(unittest.TestCase):
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('load', comp, promotes=['*'])
 
-        run_test(self, group,  complex_flag=True)
+        run_test(self, group, complex_flag=True)
+
 if __name__ == '__main__':
     unittest.main()

@@ -28,7 +28,7 @@ class Test(unittest.TestCase):
         disp = np.zeros((ny, 6))
         for i in range(6):
             disp[:,i] = np.linspace(0,0.001,ny)
-        
+
         indep_var_comp.add_output('nodes', val=nodes, units='m')
         indep_var_comp.add_output('radius', val=radius, units='m')
         indep_var_comp.add_output('disp', val=disp, units='m')

@@ -13,13 +13,13 @@ class Test(unittest.TestCase):
         surface['strength_factor_for_upper_skin'] = 1.0
 
         comp = VonMisesWingbox(surface=surface)
-        
+
         group = Group()
 
         indep_var_comp = IndepVarComp()
 
         ny = surface['num_y']
-        
+
         nodesval = np.array([[0., 0., 0.],
                             [0., 1., 0.],
                             [0., 2., 0.],

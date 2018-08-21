@@ -11,7 +11,7 @@ class Test(unittest.TestCase):
         """
         This is for checking the partials.
         """
-        
+
         surface = get_default_surfaces()[0]
         surface['data_x_upper'] = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6], dtype = 'complex128')
 
@@ -28,7 +28,7 @@ class Test(unittest.TestCase):
         """
         This is for checking the computation.
         """
-        
+
         surface = get_default_surfaces()[0]
         surface['t_over_c_cp'] = np.array([0.1, 0.15, 0.2])
         surface['spar_thickness_cp'] = np.array([0.004, 0.008, 0.02])
@@ -36,7 +36,7 @@ class Test(unittest.TestCase):
         surface['fem_chords_cp'] = np.array([2., 3., 4.])
         surface['streamwise_chords_cp'] = np.array([3., 4., 5.])
         surface['fem_twists_cp'] = np.array([5., 3., 2.])/180.*np.pi
-        
+
         surface['data_x_upper'] = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6], dtype = 'complex128')
         surface['data_x_lower'] = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6], dtype = 'complex128')
         surface['data_y_upper'] = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541], dtype = 'complex128')
@@ -63,37 +63,37 @@ class Test(unittest.TestCase):
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['t_over_c_cp'], promotes_outputs=['t_over_c'])
-        
+
         prob.model.add_subsystem('skin_thickness_bsp', BsplinesComp(
             in_name='skin_thickness_cp', out_name='skin_thickness',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['skin_thickness_cp'], promotes_outputs=['skin_thickness'])
-            
+
         prob.model.add_subsystem('spar_thickness_bsp', BsplinesComp(
             in_name='spar_thickness_cp', out_name='spar_thickness',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['spar_thickness_cp'], promotes_outputs=['spar_thickness'])
-            
+
         prob.model.add_subsystem('fem_chords_bsp', BsplinesComp(
             in_name='fem_chords_cp', out_name='fem_chords',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['fem_chords_cp'], promotes_outputs=['fem_chords'])
-        
+
         prob.model.add_subsystem('streamwise_chords_bsp', BsplinesComp(
             in_name='streamwise_chords_cp', out_name='streamwise_chords',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['streamwise_chords_cp'], promotes_outputs=['streamwise_chords'])
-            
+
         prob.model.add_subsystem('fem_twists_bsp', BsplinesComp(
             in_name='fem_twists_cp', out_name='fem_twists',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['fem_twists_cp'], promotes_outputs=['fem_twists'])
-        
+
         comp = SectionPropertiesWingbox(surface=surface)
         prob.model.add_subsystem('sec_prop_wb', comp, promotes=['*'])
 
@@ -104,7 +104,7 @@ class Test(unittest.TestCase):
         # view_model(prob)
 
         prob.run_model()
-        
+
         # print( prob['A'] )
         # print( prob['A_enc'] )
         # print( prob['A_int'] )
@@ -135,7 +135,7 @@ class Test(unittest.TestCase):
         """
         This is an extreme nonphysical case (large twist angles) for checking the computation.
         """
-        
+
         surface = get_default_surfaces()[0]
         surface['t_over_c_cp'] = np.array([0.1, 0.15, 0.2])
         surface['spar_thickness_cp'] = np.array([0.004, 0.008, 0.02])
@@ -143,7 +143,7 @@ class Test(unittest.TestCase):
         surface['fem_chords_cp'] = np.array([2., 3., 4.])
         surface['streamwise_chords_cp'] = np.array([3., 4., 5.])
         surface['fem_twists_cp'] = np.array([5., 3., 2.])
-        
+
         surface['data_x_upper'] = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6], dtype = 'complex128')
         surface['data_x_lower'] = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6], dtype = 'complex128')
         surface['data_y_upper'] = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541], dtype = 'complex128')
@@ -170,37 +170,37 @@ class Test(unittest.TestCase):
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['t_over_c_cp'], promotes_outputs=['t_over_c'])
-        
+
         prob.model.add_subsystem('skin_thickness_bsp', BsplinesComp(
             in_name='skin_thickness_cp', out_name='skin_thickness',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['skin_thickness_cp'], promotes_outputs=['skin_thickness'])
-            
+
         prob.model.add_subsystem('spar_thickness_bsp', BsplinesComp(
             in_name='spar_thickness_cp', out_name='spar_thickness',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['spar_thickness_cp'], promotes_outputs=['spar_thickness'])
-            
+
         prob.model.add_subsystem('fem_chords_bsp', BsplinesComp(
             in_name='fem_chords_cp', out_name='fem_chords',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['fem_chords_cp'], promotes_outputs=['fem_chords'])
-        
+
         prob.model.add_subsystem('streamwise_chords_bsp', BsplinesComp(
             in_name='streamwise_chords_cp', out_name='streamwise_chords',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['streamwise_chords_cp'], promotes_outputs=['streamwise_chords'])
-            
+
         prob.model.add_subsystem('fem_twists_bsp', BsplinesComp(
             in_name='fem_twists_cp', out_name='fem_twists',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['fem_twists_cp'], promotes_outputs=['fem_twists'])
-        
+
         comp = SectionPropertiesWingbox(surface=surface)
         prob.model.add_subsystem('sec_prop_wb', comp, promotes=['*'])
 
@@ -211,7 +211,7 @@ class Test(unittest.TestCase):
         # view_model(prob)
 
         prob.run_model()
-        
+
         # print( prob['A'] )
         # print( prob['A_enc'] )
         # print( prob['A_int'] )
