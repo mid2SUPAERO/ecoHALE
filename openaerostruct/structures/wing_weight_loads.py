@@ -71,8 +71,8 @@ class StructureWeightLoads(ExplicitComponent):
         # Bending moments for consistency
         loads[:-1, 3] += -z_moments_for_each * deltas[: , 1] / element_lengths
         loads[1:, 3] += z_moments_for_each * deltas[: , 1] / element_lengths
-        
+
         loads[:-1, 4] += -z_moments_for_each * deltas[: , 0] / element_lengths
         loads[1:, 4] += z_moments_for_each * deltas[: , 0] / element_lengths
-        
+
         outputs['struct_weight_loads'] = loads

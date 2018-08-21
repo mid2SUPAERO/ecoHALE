@@ -48,6 +48,7 @@ install:
 # install openmdao
 - git clone https://github.com/OpenMDAO/openmdao.git;
 - cd openmdao;
+- git checkout c316b36;
 - pip install -e .;
 - cd ..;
 

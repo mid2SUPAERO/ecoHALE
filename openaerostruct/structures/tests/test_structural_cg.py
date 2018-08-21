@@ -18,7 +18,7 @@ class Test(unittest.TestCase):
 
         ny = surface['num_y']
 
-        indep_var_comp.add_output('nodes', val=np.ones((ny, 3)), units='m') 
+        indep_var_comp.add_output('nodes', val=np.ones((ny, 3)), units='m')
         indep_var_comp.add_output('structural_weight', val=1., units='N')
         indep_var_comp.add_output('element_weights', val=np.ones((ny-1)), units='N')
 
