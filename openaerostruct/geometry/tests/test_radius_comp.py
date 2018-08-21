@@ -29,7 +29,7 @@ class Test(unittest.TestCase):
         group.connect('indep_var_comp.mesh', 'radius.mesh')
         group.connect('indep_var_comp.t_over_c', 'radius.t_over_c')
 
-        run_test(self, group,tol=2e-6)
+        run_test(self, group)
 
 
 if __name__ == '__main__':
