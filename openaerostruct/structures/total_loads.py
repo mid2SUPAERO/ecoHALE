@@ -35,7 +35,6 @@ class TotalLoads(ExplicitComponent):
 
     def initialize(self):
         self.options.declare('surface', types=dict)
-        self.options.declare('struct_weight_relief', types=bool)
 
     def setup(self):
         self.surface = surface = self.options['surface']
