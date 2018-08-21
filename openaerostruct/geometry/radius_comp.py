@@ -35,22 +35,49 @@ class RadiusComp(ExplicitComponent):
         self.add_input('t_over_c', val=np.ones((self.ny-1)))
         self.add_output('radius', val=np.ones((self.ny - 1)), units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        arange  = np.arange(self.ny-1)
+        self.declare_partials('radius','t_over_c',rows=arange,cols=arange)
+        self.declare_partials('radius','mesh')
 
     def compute(self, inputs, outputs):
         outputs['radius'] = radii(inputs['mesh'], inputs['t_over_c'])
 
-    # def compute_partials(self, inputs, partials):
-    #     """
-    #     Obtain the radii of the FEM element based on local chord.
-    #     """
-    #     mesh = inputs['mesh']
-    #     t_c = self.options['surface']['t_over_c']
-    #     vectors = mesh[-1, :, :] - mesh[0, :, :]
-    #     chords = np.sqrt(np.sum(vectors**2, axis=1))
-    #     mean_chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
-    #     radii_output = t_c * mean_chords / 2.
-    # 
-    #     for iy in range(self.ny-1):
-    #         partials['radius', 'mesh'][iy, iy*3:(iy+1)*3] = -vectors[iy, :] / chords[iy] * t_c / 4
-    #         partials['radius', 'mesh'][iy, (iy+1)*3:(iy+2)*3] = -vectors[iy+1, :] / chords[iy+1] * t_c / 4
+    def compute_partials(self, inputs, partials):
+        """
+        Obtain the radii of the FEM element based on local chord.
+        """
+        mesh = inputs['mesh']
+        vectors = mesh[-1, :, :] - mesh[0, :, :]
+        chords = np.sqrt(np.sum(vectors**2, axis=1))
+        t_c = inputs['t_over_c']
+        mean_chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
+
+        dr_dtoc = mean_chords/2
+        partials['radius','t_over_c'] = dr_dtoc
+
+        dmean_dchords = np.zeros((self.ny-1,self.ny))
+        i,j = np.indices(dmean_dchords.shape)
+        dmean_dchords[i==j] = 0.5
+        dmean_dchords[i==j-1] = 0.5
+        dr_dmean = np.diag(t_c/2)
+        dr_dchords = np.squeeze(np.matmul(dr_dmean, dmean_dchords))
+
+        dchords_dmesh = np.zeros((self.ny,self.nx*self.ny*3))
+        for i in range(self.ny):
+            dx = mesh[0, i, 0] - mesh[-1, i, 0]
+            dy = mesh[0, i, 1] - mesh[-1, i, 1]
+            dz = mesh[0, i, 2] - mesh[-1, i, 2]
+
+            l = np.sqrt(dx**2 + dy**2 + dz**2)
+
+            le_ind = 0
+            te_ind = (self.nx - 1) * 3 * self.ny
+
+            dchords_dmesh[i, le_ind + i*3 + 0] += dx / l
+            dchords_dmesh[i, te_ind + i*3 + 0] -= dx / l
+            dchords_dmesh[i, le_ind + i*3 + 1] += dy / l
+            dchords_dmesh[i, te_ind + i*3 + 1] -= dy / l
+            dchords_dmesh[i, le_ind + i*3 + 2] += dz / l
+            dchords_dmesh[i, te_ind + i*3 + 2] -= dz / l
+        
+        partials['radius','mesh'] = np.matmul(dr_dchords,dchords_dmesh)
