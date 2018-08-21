@@ -77,6 +77,3 @@ class StructureWeightLoads(ExplicitComponent):
         loads[1:, 4] += z_moments_for_each * deltas[: , 0] / element_lengths
 
         outputs['struct_weight_loads'] = loads
-
-        print(loads)
-        exit()
