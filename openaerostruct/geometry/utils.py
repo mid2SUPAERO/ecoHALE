@@ -517,15 +517,13 @@ def gen_crm_mesh(num_x, num_y, span_cos_spacing=0., chord_cos_spacing=0., wing_t
     # That is just one half of the mesh and we later expect the full mesh,
     # even if we're using symmetry == True.
     # So here we mirror and stack the two halves of the wing.
-    left_half = mesh.copy()
-    left_half[:, :, 1] *= -1.
-    mesh = np.hstack((left_half[:, ::-1, :], mesh[:, 1:, :]))
+    full_mesh = getFullMesh(right_mesh=mesh)
 
     # If we need to add chordwise panels, do so
     if num_x > 2:
-        mesh = add_chordwise_panels(mesh, num_x, chord_cos_spacing)
+        full_mesh = add_chordwise_panels(full_mesh, num_x, chord_cos_spacing)
 
-    return mesh, eta, twist
+    return full_mesh, eta, twist
 
 
 def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
@@ -827,3 +825,62 @@ def write_FFD_file(surface, mx, my):
         f.write(z)
 
     return filename
+
+def writeMesh(mesh,filename):
+    """
+    Writes the OAS mesh in Tecplot .dat file format, for visualization and debugging purposes.
+
+    Parameters
+    ----------
+    mesh[nx,ny,3] : ndarray
+        The OAS mesh to be written.
+    filename : str
+        The file name including the .dat extension.
+    """
+    num_y = mesh.shape[0]
+    num_x = mesh.shape[1]
+    f = open(filename, 'w')
+    f.write('\t\t1\n')
+    f.write('\t\t%d\t\t%d\t\t%d\n' % (num_y, num_x, 1))
+
+    x = mesh[:, :, 0]
+    y = mesh[:, :, 1]
+    z = mesh[:, :, 2]
+
+    for dim in [x, y, z]:
+        for iy in range(num_x):
+            row = dim[:, iy]
+            for val in row:
+                f.write('\t{: 3.6f}'.format(val))
+            f.write('\n')
+    f.close()
+
+
+def getFullMesh(left_mesh=None, right_mesh=None):
+    """
+    For a symmetric wing, OAS only keeps and does computation on the left half.
+    This script mirros the OAS mesh and attaches it to the existing mesh to 
+    obtain the full mesh.
+
+    Parameters
+    ----------
+    left_mesh[nx,ny,3] or right_mesh : ndarray
+        The half mesh to be mirrored.
+    
+    Returns
+    -------
+    full_mesh[nx,2*ny-1,3] : ndarray
+        The computed full mesh.
+    """
+    if left_mesh is None and right_mesh is None:
+        raise ValueError("Either the left or right mesh need to be supplied.")
+    elif left_mesh is not None and right_mesh is not None:
+        raise ValueError("Please only provide either left or right mesh, not both.")
+    elif left_mesh is not None:
+        right_mesh = np.flip(left_mesh,axis=1).copy()
+        right_mesh[:,:,1] *= -1
+    else:
+        left_mesh = np.flip(right_mesh,axis=1).copy()
+        left_mesh[:,:,1] *= -1
+    full_mesh = np.concatenate((left_mesh,right_mesh[:,1:,:]),axis=1)
+    return full_mesh
