@@ -84,7 +84,7 @@ class Test(unittest.TestCase):
                     'original_wingbox_airfoil_t_over_c' : 0.12,
                     'c_max_t' : .38,       # chordwise location of maximum thickness
                     'with_viscous' : True,
-                    'with_wave' : False,     # if true, compute wave drag
+                    'with_wave' : True,     # if true, compute wave drag
 
                     # Structural values are based on aluminum 7075
                     'E' : 73.1e9,              # [Pa] Young's modulus
@@ -211,9 +211,13 @@ class Test(unittest.TestCase):
         #                         hierarchical=False,
         #                         print_arrays=True)
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112474.928281, 1e-5)
+        # print(prob['AS_point_0.fuelburn'][0])
+        # print(prob['wing.structural_weight'][0]/1.25)
+        # print(prob['AS_point_0.wing_perf.failure'][0])
+
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112532.399999, 1e-5)
         assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235533.421185, 1e-5)
-        assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 1.7064414, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 1.70644139941, 1e-5)
 
 
 if __name__ == '__main__':

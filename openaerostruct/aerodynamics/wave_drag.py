@@ -94,7 +94,7 @@ class WaveDrag(ExplicitComponent):
             chords = inputs['chords']
             CL = inputs['CL']
 
-            chords = np.mean((chords[:-1],chords[1:]))
+            chords = (chords[:-1] + chords[1:]) / 2.
             panel_areas = chords * inputs['cos_sweep']
             sum_panel_areas = np.sum(panel_areas)
             avg_cos_sweep = np.sum(actual_cos_sweep * panel_areas) / sum_panel_areas
