@@ -210,7 +210,7 @@ class Test(unittest.TestCase):
         #                         scaling=True,
         #                         hierarchical=False,
         #                         print_arrays=True)
-        
+
         # print(prob['AS_point_0.fuelburn'][0])
         # print(prob['wing.structural_weight'][0]/1.25)
 
