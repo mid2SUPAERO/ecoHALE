@@ -114,6 +114,7 @@ def get_default_surfaces():
                  'wing_weight_ratio' : 2.,
                  'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
                  'distributed_fuel_weight' : False,    # True to add the weight of the structure to the loads on the structure
+                 'Wf_reserve' : 10000.,
 
                  }
 
