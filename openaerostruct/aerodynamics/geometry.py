@@ -63,7 +63,6 @@ class VLMGeometry(ExplicitComponent):
         self.declare_partials('*', '*')
 
         if not fortran_flag:
-            self.declare_partials('normals', 'def_mesh', method='fd')
             self.declare_partials('S_ref', 'def_mesh', method='fd')
 
     def compute(self, inputs, outputs):
@@ -244,3 +243,88 @@ class VLMGeometry(ExplicitComponent):
             partials['chords', 'def_mesh'][i, te_ind + i*3 + 1] -= dy / l
             partials['chords', 'def_mesh'][i, le_ind + i*3 + 2] += dz / l
             partials['chords', 'def_mesh'][i, te_ind + i*3 + 2] -= dz / l
+
+        # Partial of f=normals w.r.t. to x=def_mesh
+        #   f has shape (nx-1, ny-1, 3)
+        #   x has shape (nx, ny, 3)
+
+        # Slow version
+        partials['normals', 'def_mesh'] = np.zeros_like(partials['normals', 'def_mesh'])
+
+        for i in range(nx-1):
+            for j in range(ny-1):
+                # Redo original computation
+                ll = mesh[i, j, :]      # leading-left node
+                lr = mesh[i, j+1, :]    # leading-right node
+                tl = mesh[i+1, j, :]    # trailing-left node
+                tr = mesh[i+1, j+1, :]  # trailing-right node
+
+                a = lr - tl
+                b = ll - tr
+                c = np.cross(a, b)
+                n = np.sqrt(np.sum(c**2))
+                # f = c / n
+
+                # Now let's work backwards to get derivative
+                # dfdc = (dcdc * n - c * dndc) / n**2
+                dcdc = np.eye(3)
+                dndc = c / n
+                dfdc = (dcdc * n - np.einsum('i,j', c, dndc)) / n**2
+
+                # dfdc is now a 3x3 jacobian with f along the rows and c along
+                # the columns
+
+                # The next step is to get dcda and dcdb, both of which will be
+                # 3x3 jacobians with c along the rows
+                dcda = np.array([[0, b[2], -b[1]],
+                                [-b[2], 0, b[0]],
+                                [b[1], -b[0], 0]])
+                dcdb = np.array([[0, -a[2], a[1]],
+                                [a[2], 0, -a[0]],
+                                [-a[1], a[0], 0]])
+
+                # Now let's do some matrix multiplication to get dfda and dfdb
+                dfda = np.einsum('ij,jk->ik', dfdc, dcda)
+                dfdb = np.einsum('ij,jk->ik', dfdc, dcdb)
+
+                # Now we need to get dadlr, dadtl, dbdll, and dbdtr and put them
+                # in the right indices of the big jacobian dfdx
+
+                # These are the indices of the three components of f for this
+                # i and j
+                if0 = (i*(ny-1)+j)*3
+                # if1 = (i*(ny-1)+j)*3+1
+                if2 = (i*(ny-1)+j)*3+2
+                # indf = [if0, if1, if2]
+
+                # Partial f w.r.t. lr
+                # partials['normals', 'def_mesh'][indf,(i*ny+j+1)*3] = dfda[:,0]
+                # partials['normals', 'def_mesh'][indf,(i*ny+j+1)*3+1] = dfda[:,1]
+                # partials['normals', 'def_mesh'][indf,(i*ny+j+1)*3+2] = dfda[:,2]
+                ix0 = (i*ny+j+1)*3
+                ix2 = (i*ny+j+1)*3+2
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfda[:,:]
+
+                # Partial f w.r.t. tl
+                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j)*3] = -dfda[:,0]
+                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j)*3+1] = -dfda[:,1]
+                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j)*3+2] = -dfda[:,2]
+                ix0 = ((i+1)*ny+j)*3
+                ix2 = ((i+1)*ny+j)*3+2
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfda[:,:]
+
+                # Partial f w.r.t. ll
+                # partials['normals', 'def_mesh'][indf,(i*ny+j)*3] = dfdb[:,0]
+                # partials['normals', 'def_mesh'][indf,(i*ny+j)*3+1] = dfdb[:,1]
+                # partials['normals', 'def_mesh'][indf,(i*ny+j)*3+2] = dfdb[:,2]
+                ix0 = (i*ny+j)*3
+                ix2 = (i*ny+j)*3+2
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfdb[:,:]
+
+                # Partial f w.r.t. tr
+                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j+1)*3] = -dfdb[:,0]
+                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j+1)*3+1] = -dfdb[:,1]
+                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j+1)*3+2] = -dfdb[:,2]
+                ix0 = ((i+1)*ny+j+1)*3
+                ix2 = ((i+1)*ny+j+1)*3+2
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfdb[:,:]
