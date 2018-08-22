@@ -41,26 +41,26 @@ class VonMisesWingbox(ExplicitComponent):
         self.ny = surface['num_y']
 
         self.add_input('nodes', val=np.zeros((self.ny, 3),
-                       dtype=complex))
+                       dtype=complex),units='m')
 
         self.add_input('disp', val=np.zeros((self.ny, 6),
-                       dtype=complex))
+                       dtype=complex),units='m')
 
-        self.add_input('Qz', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('Iz', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('J', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('A_enc', val=np.zeros((self.ny - 1), dtype=complex))
+        self.add_input('Qz', val=np.zeros((self.ny - 1), dtype=complex),units='m**3')
+        self.add_input('Iz', val=np.zeros((self.ny - 1), dtype=complex),units='m**4')
+        self.add_input('J', val=np.zeros((self.ny - 1), dtype=complex),units='m**4')
+        self.add_input('A_enc', val=np.zeros((self.ny - 1), dtype=complex),units='m**2')
 
-        self.add_input('spar_thickness', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('skin_thickness', val=np.zeros((self.ny - 1), dtype=complex))
+        self.add_input('spar_thickness', val=np.zeros((self.ny - 1), dtype=complex),units='m')
+        self.add_input('skin_thickness', val=np.zeros((self.ny - 1), dtype=complex),units='m')
 
-        self.add_input('htop', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('hbottom', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('hfront', val=np.zeros((self.ny - 1), dtype=complex))
-        self.add_input('hrear', val=np.zeros((self.ny - 1), dtype=complex))
+        self.add_input('htop', val=np.zeros((self.ny - 1), dtype=complex),units='m')
+        self.add_input('hbottom', val=np.zeros((self.ny - 1), dtype=complex),units='m')
+        self.add_input('hfront', val=np.zeros((self.ny - 1), dtype=complex),units='m')
+        self.add_input('hrear', val=np.zeros((self.ny - 1), dtype=complex),units='m')
 
         self.add_output('vonmises', val=np.zeros((self.ny-1, 4),
-                        dtype=complex))
+                        dtype=complex),units='N/m**2')
 
         self.E = surface['E']
         self.G = surface['G']

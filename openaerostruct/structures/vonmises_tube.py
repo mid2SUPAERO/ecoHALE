@@ -47,7 +47,7 @@ class VonMisesTube(ExplicitComponent):
         # self.x_gl = np.array([1, 0, 0],dtype=data_type)
 
         # TODO fix the sparsity declarations
-        self.declare_partials('*', '*', method='fd')
+        self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         data_type = float
@@ -91,7 +91,7 @@ class VonMisesTube(ExplicitComponent):
             outputs['vonmises'][ielem, 0] = np.sqrt(sxx0**2 + 3 * sxt**2)
             outputs['vonmises'][ielem, 1] = np.sqrt(sxx1**2 + 3 * sxt**2)
 
-    def _compute_partials(self, inputs, partials):
+    def compute_partials(self, inputs, partials):
 
         radius = inputs['radius']
         disp = inputs['disp']
@@ -268,16 +268,14 @@ class VonMisesTube(ExplicitComponent):
             partials['vonmises','radius'][idx+1,ielem] = dVm1dsxx1*dsxx1drad+dVm1dsxt*dsxtdrad
 
             idx2 = ielem*6
-            partials['vonmises','disp'][idx,idx2:idx2+12] = partials['vonmises','disp'][idx,idx2:idx2+12]+\
-                                                            (dVm0dsxx0*dsxx0dDisp+dVm0dsxt*dsxtdDisp )
-            partials['vonmises','disp'][idx+1,idx2:idx2+12] = partials['vonmises','disp'][idx+1,idx2:idx2+12]+\
-                                                              (dVm1dsxx1*dsxx1dDisp+dVm1dsxt*dsxtdDisp )
+            partials['vonmises','disp'][idx,idx2:idx2+12] = (dVm0dsxx0*dsxx0dDisp+dVm0dsxt*dsxtdDisp )
+            partials['vonmises','disp'][idx+1,idx2:idx2+12] = (dVm1dsxx1*dsxx1dDisp+dVm1dsxt*dsxtdDisp )
 
             # Compute terms for the nodes
             idx3 = ielem*3
 
-            partials['vonmises','nodes'][idx,idx3:idx3+3] = partials['vonmises','nodes'][idx,idx3:idx3+3]+dVm0dsxx0*dsxx0dP.dot(ddPdP0)+dVm0dsxt*dsxtdP.dot(ddPdP0)
-            partials['vonmises','nodes'][idx,idx3+3:idx3+6] = partials['vonmises','nodes'][idx,idx3+3:idx3+6] + dVm0dsxx0*dsxx0dP.dot(ddPdP1)+dVm0dsxt*dsxtdP.dot(ddPdP1)
+            partials['vonmises','nodes'][idx,idx3:idx3+3] = dVm0dsxx0*dsxx0dP.dot(ddPdP0)+dVm0dsxt*dsxtdP.dot(ddPdP0)
+            partials['vonmises','nodes'][idx,idx3+3:idx3+6] = dVm0dsxx0*dsxx0dP.dot(ddPdP1)+dVm0dsxt*dsxtdP.dot(ddPdP1)
 
-            partials['vonmises','nodes'][idx+1,idx3:idx3+3] = partials['vonmises','nodes'][idx+1,idx3:idx3+3]+dVm1dsxx1*dsxx1dP.dot(ddPdP0)+dVm1dsxt*dsxtdP.dot(ddPdP0)
-            partials['vonmises','nodes'][idx+1,idx3+3:idx3+6] = partials['vonmises','nodes'][idx+1,idx3+3:idx3+6] + dVm1dsxx1*dsxx1dP.dot(ddPdP1)+dVm1dsxt*dsxtdP.dot(ddPdP1)
+            partials['vonmises','nodes'][idx+1,idx3:idx3+3] = dVm1dsxx1*dsxx1dP.dot(ddPdP0)+dVm1dsxt*dsxtdP.dot(ddPdP0)
+            partials['vonmises','nodes'][idx+1,idx3+3:idx3+6] = dVm1dsxx1*dsxx1dP.dot(ddPdP1)+dVm1dsxt*dsxtdP.dot(ddPdP1)

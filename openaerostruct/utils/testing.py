@@ -59,14 +59,17 @@ def view_mat(mat1, mat2, key='Title', tol=1e-10):
     plt.suptitle(key)
     plt.show()
 
-def run_test(test_obj, comp, tol=1e-5, complex_flag=False,compact_print=True,method='fd',step=1e-6):
+def run_test(test_obj, comp, tol=1e-5, complex_flag=False ,compact_print=True, method='fd', step=1e-6, rtol=None):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
 
     prob.run_model()
 
-    check = prob.check_partials(compact_print=False)
+    if method=='cs':
+        step = 1e-40
+
+    check = prob.check_partials(compact_print=compact_print, method=method, step=step)
     # for comp in list(check.keys()):
     #     for key, subjac in iteritems(check[comp]):
     #         if subjac['magnitude'].fd > 1e-6:
@@ -75,6 +78,9 @@ def run_test(test_obj, comp, tol=1e-5, complex_flag=False,compact_print=True,met
     #             pass
     #         elif np.isnan(subjac['rel error'].forward):
     #             raise ValueError('Derivative magnitude is NaN')
+
+    if rtol is None:
+        rtol = tol
     assert_check_partials(check, atol=tol, rtol=tol)
 
 def get_default_surfaces():
