@@ -29,11 +29,11 @@ class Test(unittest.TestCase):
         nodesval = np.array([[0., 0., 0.],
                             [0., 1., 0.],
                             [0., 2., 0.],
-                            [0., 3., 0.]])
+                            [0., 3., 0.]],dtype=complex)
         element_weights_val = np.arange(ny-1)
 
-        indep_var_comp.add_output('nodes', val=nodesval)
-        indep_var_comp.add_output('element_weights', val=element_weights_val)
+        indep_var_comp.add_output('nodes', val=nodesval,units='m')
+        indep_var_comp.add_output('element_weights', val=element_weights_val,units='N')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('load', comp, promotes=['*'])
