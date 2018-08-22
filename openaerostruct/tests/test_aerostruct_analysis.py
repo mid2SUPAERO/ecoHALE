@@ -52,10 +52,11 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,
+                    'with_wave' : False,     # if true, compute wave drag
 
                     # Structural values are based on aluminum 7075
                     'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -64,7 +65,7 @@ class Test(unittest.TestCase):
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 2.,
-
+                    'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
@@ -77,7 +78,7 @@ class Test(unittest.TestCase):
         # Add problem information as an independent variables component
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
-        indep_var_comp.add_output('alpha', val=5.)
+        indep_var_comp.add_output('alpha', val=5., units='deg')
         indep_var_comp.add_output('M', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
@@ -138,6 +139,7 @@ class Test(unittest.TestCase):
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
                 prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
+                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.radius', com_name + '.radius')
@@ -145,7 +147,7 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.nodes', com_name + '.nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
                 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
-
+                prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
         # Set up the problem
         prob.setup()

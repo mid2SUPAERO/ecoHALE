@@ -60,10 +60,11 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
+                    'with_wave' : False,     # if true, compute wave drag
                     }
 
         surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
@@ -77,7 +78,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
-        indep_var_comp.add_output('alpha', val=np.ones(n_points)*6.64)
+        indep_var_comp.add_output('alpha', val=np.ones(n_points)*6.64, units='deg')
         indep_var_comp.add_output('M', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
@@ -123,6 +124,8 @@ class Test(unittest.TestCase):
                 # 'aero_states' group.
                 prob.model.connect(point_name + '.' + name + '_geom.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
+                prob.model.connect(point_name + '.' + name + '_geom.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
+
         prob.model.add_subsystem('multi_CD', MultiCD(n_points=n_points), promotes_outputs=['CD'])
 
         from openmdao.api import ScipyOptimizeDriver
@@ -143,10 +146,12 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
+        # print('gona check')
         # prob.run_model()
+        # prob.check_partials(compact_print=True)
+        # exit()
         prob.run_driver()
 
-        # prob.check_partials(compact_print=True)
 
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.45, 1e-6)
         assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03231556149303963, 1e-6)

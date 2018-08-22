@@ -29,8 +29,10 @@ class VortexMesh(ExplicitComponent):
 
                 rows = np.tile(vor_indices[:(nx-1), :ny, :].flatten(), 2)
                 rows = np.hstack((rows, vor_indices[-1  , :ny, :].flatten()))
-                rows = np.hstack((rows, np.tile(vor_indices[:(nx-1), ny:, :][:, ::-1, :].flatten(), 2)))
-                rows = np.hstack((rows, vor_indices[-1, ny:, :].flatten()))
+
+                rows = np.hstack((rows, np.tile(vor_indices[:(nx-1), ny:, [0, 2]][:, ::-1, :].flatten(), 2)))
+                rows = np.hstack((rows, vor_indices[-1, ny:, [0, 2]].flatten()[::-1]))
+
                 rows = np.hstack((rows, np.tile(vor_indices[:(nx-1), ny:, 1][:, ::-1].flatten(), 2)))
                 rows = np.hstack((rows, vor_indices[-1, ny:, 1].flatten()))
 
@@ -38,9 +40,11 @@ class VortexMesh(ExplicitComponent):
                     mesh_indices[:-1, :, :].flatten(),
                     mesh_indices[1:  , :, :].flatten(),
                     mesh_indices[-1  , :, :].flatten(),
-                    mesh_indices[:-1, :-1, :].flatten(),
-                    mesh_indices[1:  , :-1, :].flatten(),
-                    mesh_indices[-1  , :-1, :][::-1, :].flatten(),
+
+                    mesh_indices[:-1, :-1, [0, 2]].flatten(),
+                    mesh_indices[1:  , :-1, [0, 2]].flatten(),
+                    mesh_indices[-1  , :-1, [0, 2]][::-1, :].flatten(),
+
                     mesh_indices[:-1, :-1, 1].flatten(),
                     mesh_indices[1:  , :-1, 1].flatten(),
                     mesh_indices[-1  , :-1, 1][::-1].flatten(),
@@ -50,12 +54,14 @@ class VortexMesh(ExplicitComponent):
                     0.75 * np.ones((nx-1) * ny * 3),
                     0.25 * np.ones((nx-1) * ny * 3),
                     np.ones(ny * 3),  # back row
-                    0.75 * np.ones((nx-1) * (ny-1) * 3),
-                    0.25 * np.ones((nx-1) * (ny-1) * 3),
-                    np.ones((ny-1) * 3),  # back row
-                    -1.5 * np.ones((nx-1) * (ny-1)),
-                    -.5  * np.ones((nx-1) * (ny-1)),
-                    -2 * np.ones((ny-1)),  # back row
+
+                    0.75 * np.ones((nx-1) * (ny-1) * 2),
+                    0.25 * np.ones((nx-1) * (ny-1) * 2),
+                    np.ones((ny-1) * 2),  # back row
+
+                    -0.75 * np.ones((nx-1) * (ny-1)),
+                    -.25  * np.ones((nx-1) * (ny-1)),
+                    -np.ones((ny-1)),  # back row
                 ])
 
                 self.declare_partials(vortex_mesh_name, mesh_name, val=data, rows=rows, cols=cols)

@@ -63,10 +63,11 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
+                    'with_wave' : False,     # if true, compute wave drag
                     }
 
         surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
@@ -78,7 +79,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
-        indep_var_comp.add_output('alpha', val=6.64)
+        indep_var_comp.add_output('alpha', val=6.64, units='deg')
         indep_var_comp.add_output('M', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
@@ -127,6 +128,8 @@ class Test(unittest.TestCase):
                 # Perform the connections with the modified names within the
                 # 'aero_states' group.
                 prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
+
+                prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
 
         from openmdao.api import pyOptSparseDriver
         prob.driver = pyOptSparseDriver()

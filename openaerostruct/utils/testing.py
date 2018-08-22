@@ -7,7 +7,7 @@ import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat1, mat2,key,tol=1e-10):
+def view_mat(mat1, mat2, key='Title', tol=1e-10):
     """
     Helper function used to visually examine matrices. It plots mat1 and mat2 side by side,
     and shows the difference between the two.
@@ -20,14 +20,14 @@ def view_mat(mat1, mat2,key,tol=1e-10):
         The Jacobian computed by compute_partials
     key : str
         The name of the tuple (of, wrt) for which the Jacobian is computed
-    tol : float (Optional) 
+    tol : float (Optional)
         The tolerance, below which the two numbers are considered the same for
         plotting purposes.
 
     Returns
     -------
     CDw : float
-        Wave drag coefficient for the lifting surface computed using the 
+        Wave drag coefficient for the lifting surface computed using the
         Korn equation
     """
     import matplotlib.pyplot as plt
@@ -65,13 +65,16 @@ def run_test(obj, comp, tol=1e-5, complex_flag=False,compact_print=True,method='
     prob.setup(force_alloc_complex=complex_flag)
 
     prob.run_model()
-    check = prob.check_partials(compact_print=compact_print,method=method,step=step)
-    for key, subjac in iteritems(check[list(check.keys())[0]]):
-        if subjac['magnitude'].fd > 1e-6:
-            print('error',key,subjac['rel error'].forward,subjac['rel error'].reverse)
-            assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
-        elif np.isnan(subjac['magnitude'].fd):
-            raise ValueError('Derivative magnitude is NaN')
+
+    check = prob.check_partials(compact_print=True)
+    for comp in list(check.keys()):
+        for key, subjac in iteritems(check[comp]):
+            if subjac['magnitude'].fd > 1e-6:
+                assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
+            elif np.all(np.abs(subjac['J_fwd'] - subjac['J_fd'])) < tol:
+                pass
+            elif np.isnan(subjac['rel error'].forward):
+                raise ValueError('Derivative magnitude is NaN')
 
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
@@ -96,11 +99,11 @@ def get_default_surfaces():
                  # Airfoil properties for viscous drag calculation
                  'k_lam' : 0.05,         # percentage of chord with laminar
                                          # flow, used for viscous drag
-                 't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                 't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                  'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                          # thickness
                  'with_viscous' : True,  # if true, compute viscous drag
-                 'with_wave' : True, # if true, computes wave drag
+                 'with_wave' : False, # if true, computes wave drag
                  'fem_model_type' : 'tube',
 
                  # Structural values are based on aluminum 7075
@@ -109,9 +112,8 @@ def get_default_surfaces():
                  'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
                  'mrho' : 3.e3,          # [kg/m^3] material density
                  'fem_origin' : 0.35,    # normalized chordwise location of the spar
-                 't_over_c' : 0.15,      # maximum airfoil thickness
                  'wing_weight_ratio' : 2.,
-
+                 'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
                  }
 
     # Create a dictionary to store options about the mesh

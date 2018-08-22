@@ -54,10 +54,11 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,  # if true, compute viscous drag
+                    'with_wave' : False,     # if true, compute wave drag
                     }
 
         # Create the OpenMDAO problem
@@ -98,6 +99,8 @@ class Test(unittest.TestCase):
         # Perform the connections with the modified names within the
         # 'aero_states' group.
         prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
+
+        prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
 
         # Import the Scipy Optimizer and set the driver of the problem to use
         # it, which defaults to an SLSQP optimization method

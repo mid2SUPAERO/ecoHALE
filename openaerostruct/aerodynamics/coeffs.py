@@ -3,14 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
-
 class Coeffs(ExplicitComponent):
     """ Compute lift and drag coefficients for each individual lifting surface.
 
@@ -49,7 +41,14 @@ class Coeffs(ExplicitComponent):
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
 
-        self.declare_partials('*', '*')
+        self.declare_partials('CL1', 'L')
+        self.declare_partials('CDi', 'D')
+        self.declare_partials('CL1', 'v')
+        self.declare_partials('CDi', 'v')
+        self.declare_partials('CL1', 'rho')
+        self.declare_partials('CDi', 'rho')
+        self.declare_partials('CL1', 'S_ref')
+        self.declare_partials('CDi', 'S_ref')
 
     def compute(self, inputs, outputs):
         S_ref = inputs['S_ref']
@@ -79,6 +78,3 @@ class Coeffs(ExplicitComponent):
 
         partials['CL1', 'S_ref'] = -L / (0.5 * rho * v**2 * S_ref**2)
         partials['CDi', 'S_ref'] = -D / (0.5 * rho * v**2 * S_ref**2)
-
-        partials['CL1', 'D'] = 0.
-        partials['CDi', 'L'] = 0.

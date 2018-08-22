@@ -44,10 +44,10 @@ class Test(unittest.TestCase):
                     'yield' : 500.e6 / 2.5, # [Pa] yield stress divided by 2.5 for limiting case
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
-                    't_over_c' : 0.15,      # maximum airfoil thickness
+                    't_over_c_cp' : np.array([0.15]),      # maximum airfoil thickness
                     'thickness_cp' : np.ones((3)) * .0075,
                     'wing_weight_ratio' : 1.,
-
+                    'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
                     'exact_failure_constraint' : False,
                     }
 

@@ -1,16 +1,15 @@
 import unittest
 
-from openaerostruct.aerodynamics.assemble_aic import AssembleAIC
+from openaerostruct.aerodynamics.panel_forces import PanelForces
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
-@unittest.skipUnless(0, "This test is deprecated as the component has been replaced.")
 class Test(unittest.TestCase):
 
     def test(self):
         surfaces = get_default_surfaces()
 
-        comp = AssembleAIC(surfaces=surfaces)
+        comp = PanelForces(surfaces=surfaces)
 
         run_test(self, comp)
 

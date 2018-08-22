@@ -33,7 +33,7 @@ class Test(unittest.TestCase):
         surface['zshear_cp'] = np.zeros((5))
 
         surface['span'] = span
-        surface['t_over_c'] = .12
+        surface['t_over_c_cp'] = np.array([.12])
 
         comp = GeometryMesh(surface=surface)
 
