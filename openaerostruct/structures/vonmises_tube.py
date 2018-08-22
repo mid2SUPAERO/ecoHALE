@@ -166,13 +166,11 @@ class VonMisesTube(ExplicitComponent):
             #$$$$$$$$$$$$$$$$$$$$$$$$$$
             # Original code
             # $$$$$$$$$$$$
-            tmp = np.sqrt((r1y - r0y)**2 + (r1z - r0z)**2)
+            tmp = np.sqrt((r1y - r0y)**2 + (r1z - r0z)**2) + 1e-50 #added eps to avoid 0 disp singularity
             sxx0 = E * (u1x - u0x) / L + E * radius[ielem] / L * tmp
             sxx1 = E * (u0x - u1x) / L + E * radius[ielem] / L * tmp
             sxt = G * radius[ielem] * (r1x - r0x) / L
             # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-
 
             dtmpdr0y = 1/tmp * (r1y - r0y)*-1
             dtmpdr1y = 1/tmp * (r1y - r0y)
