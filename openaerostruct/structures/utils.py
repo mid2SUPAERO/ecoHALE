@@ -16,7 +16,6 @@ def norm(vec):
 def unit(vec):
     return vec / norm(vec)
 
-<<<<<<< HEAD
 def norm_d(vec):
     vec_d = vec/norm(vec)
     return vec_d

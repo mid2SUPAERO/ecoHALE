@@ -43,7 +43,8 @@ class StructuralCG(ExplicitComponent):
         self.add_input('element_weights', val=np.zeros((self.ny-1)), units='N')
         self.add_output('cg_location', val=np.zeros((3)), units='m')#, dtype=data_type))
 
-        self.declare_partials('*', '*', method='cs')
+        self.declare_partials('*', '*')
+        self.set_check_partial_options('*', method='cs', step=1e-40)
 
     def compute(self, inputs, outputs):
         nodes = inputs['nodes']
@@ -51,8 +52,15 @@ class StructuralCG(ExplicitComponent):
         element_weights = inputs['element_weights']
 
         # Calculate the center-of-gravity location of the spar elements only
-        center_of_elements = (nodes[1:, :] + nodes[:-1, :]) / 2.
-        cg_loc = np.sum(center_of_elements.T * element_weights, axis=1) / structural_weight
+        center_of_elements = ((nodes[1:, :] + nodes[:-1, :]) / 2.).T
+        cg_loc = center_of_elements.dot(element_weights) / structural_weight
+
+        # tmp = (nodes[1:, :] + nodes[:-1, :])
+        # print('nodes', nodes.imag/1e-40)
+        # print('tmp', tmp.real)
+        # print('tmp_norm', tmp_norm.real)
+        # print('dtmp', tmp.imag/1e-40)
+        # print()
 
         # If the tube is symmetric, double the computed weight and set the
         # y-location of the cg to 0, at the symmetry plane
@@ -62,7 +70,37 @@ class StructuralCG(ExplicitComponent):
 
         outputs['cg_location'] = cg_loc
 
-    def compute_partials(self, inputs, partials):
+    def compute_partials(self, inputs, J):
         nodes = inputs['nodes']
         structural_weight = inputs['structural_weight']
-        element_weights = inputs['element_weights']
+        element_weights = ew = inputs['element_weights']
+
+        center_of_elements = ((nodes[1:, :] + nodes[:-1, :]) / 2.).T
+
+        sum_coe_dot_ew = center_of_elements.dot(element_weights)
+
+        is_sym = self.surface['symmetry']
+
+
+        J['cg_location', 'structural_weight'] = -sum_coe_dot_ew/structural_weight**2
+        J['cg_location', 'element_weights'] = center_of_elements/structural_weight
+
+        #derivates with respect to nodes require special ninja math
+        n_nodes = self.ny*3
+        row = np.zeros(n_nodes)
+        for i in range(self.ny-1):
+            row[i*3] += ew[i]
+            row[i*3 + 3] += ew[i]
+        row /= structural_weight*2
+        for i in range(3):
+            J['cg_location', 'nodes'][i] = np.roll(row,i)
+
+        if is_sym:
+            J['cg_location', 'nodes'][1] *= 0
+            J['cg_location', 'nodes'] *= 2
+
+            J['cg_location', 'structural_weight'][1] = 0
+            J['cg_location', 'structural_weight'] *= 2
+
+            J['cg_location', 'element_weights'][1] = 0
+            J['cg_location', 'element_weights'] *= 2

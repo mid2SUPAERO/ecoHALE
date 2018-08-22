@@ -84,8 +84,11 @@ class Test(unittest.TestCase):
         prob.model.add_objective('wing.structural_weight', scaler=1e-5)
 
         # Set up the problem
-        prob.setup()
+        prob.setup(force_alloc_complex=True)
 
+        prob.run_model()
+        prob.check_partials(compact_print=False, method='fd')
+        exit()
         prob.run_driver()
 
         assert_rel_error(self, prob['wing.structural_weight'][0], 697377.8734430908, 1e-8)
