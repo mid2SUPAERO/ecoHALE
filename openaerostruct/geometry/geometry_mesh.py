@@ -8,7 +8,6 @@ from openaerostruct.geometry.utils import \
     sweep, dihedral, stretch, taper
 
 from openmdao.api import ExplicitComponent
-from openaerostruct.structures.utils import radii
 
 try:
     from openaerostruct.fortran import OAS_API
