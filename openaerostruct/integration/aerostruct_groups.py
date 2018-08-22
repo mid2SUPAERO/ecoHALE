@@ -65,9 +65,14 @@ class Aerostruct(Group):
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
+        if surface['fem_model_type'] == 'wingbox':
+            promotes = ['A_int']
+        else:
+            promotes = []
+
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'] + promotes,
             promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
 
 class CoupledAS(Group):
@@ -78,9 +83,15 @@ class CoupledAS(Group):
     def setup(self):
         surface = self.options['surface']
 
+        promotes = []
+        if surface['struct_weight_relief']:
+            promotes = ['nodes']
+        if surface['distributed_fuel_weight']:
+            promotes = ['nodes', 'load_factor']
+
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads', 'element_weights', 'nodes'], promotes_outputs=['disp'])
+            promotes_inputs=['K', 'forces', 'loads', 'element_weights'] + promotes, promotes_outputs=['disp'])
 
         self.add_subsystem('def_mesh',
             DisplacementTransfer(surface=surface),
@@ -179,7 +190,12 @@ class AerostructPoint(Group):
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
 
-            coupled.add_subsystem(name, coupled_AS_group)
+            if surface['distributed_fuel_weight']:
+                promotes = ['load_factor']
+            else:
+                promotes = []
+
+            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=promotes)
 
             # TODO: add this info to the options
             # prob.model.add_options(surface['name'] + 'yield_stress', surface['yield'])

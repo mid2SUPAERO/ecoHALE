@@ -95,6 +95,7 @@ class Test(unittest.TestCase):
                     # 'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1.25,
                     'struct_weight_relief' : True,    # True to add the weight of the structure to the loads on the structure
+                    'distributed_fuel_weight' : False,
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     }

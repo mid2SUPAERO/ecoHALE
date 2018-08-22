@@ -8,7 +8,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 
 from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 try:
     from openaerostruct.fortran import OAS_API
@@ -36,7 +36,7 @@ class Test(unittest.TestCase):
         """
         This is an opt problem that tests the wingbox model with wave drag and the fuel vol constraint
         """
-        
+
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 7,
                      'num_x' : 2,
@@ -99,6 +99,7 @@ class Test(unittest.TestCase):
                     # 'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1.25,
                     'struct_weight_relief' : True,
+                    'distributed_fuel_weight' : False,
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     'fuel_density' : 803.,
@@ -200,15 +201,13 @@ class Test(unittest.TestCase):
             #=======================================================================================
             prob.model.add_subsystem('fuel_vol_delta', WingboxFuelVolDelta(surface=surface))
             prob.model.connect('AS_point_0.fuelburn', 'fuel_vol_delta.fuelburn')
-            prob.model.connect('wing.nodes', 'fuel_vol_delta.nodes')
-            prob.model.connect('wing.A_int', 'fuel_vol_delta.A_int')
             #=======================================================================================
             #=======================================================================================
 
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
-        
+
         # from openmdao.api import pyOptSparseDriver
         # prob.driver = pyOptSparseDriver()
         # prob.driver.add_recorder(SqliteRecorder("cases.sql"))
@@ -241,7 +240,7 @@ class Test(unittest.TestCase):
         # view_model(prob)
 
         prob.run_driver()
-        
+
         # prob.check_partials(form='central', compact_print=True)
 
         # print(prob['AS_point_0.fuelburn'][0])

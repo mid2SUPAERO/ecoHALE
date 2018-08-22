@@ -8,14 +8,30 @@ import numpy as np
 
 class Test(unittest.TestCase):
 
-    def test(self):
+    def test_0(self):
         surface = get_default_surfaces()[0]
 
         comp = TotalLoads(surface=surface)
 
         run_test(self, comp, complex_flag=True)
 
-    def test2(self):
+    def test_1(self):
+        surface = get_default_surfaces()[0]
+        surface['struct_weight_relief'] = True
+
+        comp = TotalLoads(surface=surface)
+
+        run_test(self, comp, complex_flag=True)
+
+    def test_2(self):
+        surface = get_default_surfaces()[0]
+        surface['distributed_fuel_weight'] = True
+
+        comp = TotalLoads(surface=surface)
+
+        run_test(self, comp, complex_flag=True)
+
+    def test_3(self):
         surface = get_default_surfaces()[0]
 
         comp = StructureWeightLoads(surface=surface)

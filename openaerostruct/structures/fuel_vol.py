@@ -14,7 +14,7 @@ except:
 def norm(vec):
     return np.sqrt(np.sum(vec**2))
 
-class WingboxFuelVolDelta(ExplicitComponent):
+class WingboxFuelVol(ExplicitComponent):
     """
     Create a constraint to ensure the wingbox has enough internal volume to store the required fuel.
 
@@ -43,23 +43,21 @@ class WingboxFuelVolDelta(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('fuelburn', val=0., units='kg')
-        self.add_input('fuel_vols', val=np.zeros((self.ny-1)), units='m**3')
-        self.add_output('fuel_vol_delta', val=0., units='m**3')
+        self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
+        self.add_input('A_int', val=np.zeros((self.ny-1)), units='m**2')
+        self.add_output('fuel_vols', val=np.zeros((self.ny-1)), units='m**3')
 
         self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
-        fuel_weight = inputs['fuelburn']
-        reserves = self.surface['Wf_reserve']
-        fuel_density = self.surface['fuel_density']
-        vols = inputs['fuel_vols']
+        nodes = inputs['nodes']
 
-        if self.surface['symmetry'] == True:
-             fuel_weight /= 2.
-             reserves /= 2.
+        element_lengths = np.zeros(self.ny-1)
 
-        sum_vols = np.sum(vols)
+        for i in range(self.ny - 1):
+            element_lengths[i] = norm(nodes[i+1] - nodes[i])
 
-        # This is used for the fuel-volume constraint. It should be positive for fuel to fit.
-        outputs['fuel_vol_delta'] = sum_vols - (fuel_weight + reserves) / fuel_density
+        # Next we multiply the element lengths with the A_int for the internal volumes of the wingobox segments
+        vols = element_lengths * inputs['A_int']
+
+        outputs['fuel_vols'] = vols

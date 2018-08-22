@@ -113,6 +113,8 @@ def get_default_surfaces():
                  'fem_origin' : 0.35,    # normalized chordwise location of the spar
                  'wing_weight_ratio' : 2.,
                  'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
+                 'distributed_fuel_weight' : False,    # True to add the weight of the structure to the loads on the structure
+
                  }
 
     # Create a dictionary to store options about the mesh
