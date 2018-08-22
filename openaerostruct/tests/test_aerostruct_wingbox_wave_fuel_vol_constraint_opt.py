@@ -201,6 +201,7 @@ class Test(unittest.TestCase):
             #=======================================================================================
             prob.model.add_subsystem('fuel_vol_delta', WingboxFuelVolDelta(surface=surface))
             prob.model.connect('AS_point_0.fuelburn', 'fuel_vol_delta.fuelburn')
+            prob.model.connect('wing.struct_setup.fuel_vols', 'fuel_vol_delta.fuel_vols')
             #=======================================================================================
             #=======================================================================================
 

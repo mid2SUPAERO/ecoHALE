@@ -125,7 +125,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('a', val=295.07, units='m/s')
         indep_var_comp.add_output('load_factor', val=1.)
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
-        indep_var_comp.add_output('fuel_mass', val=90000., units='kg')
+        indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
 
         prob.model.add_subsystem('prob_vars',
              indep_var_comp,
@@ -243,7 +243,7 @@ class Test(unittest.TestCase):
         # Here we add the fuel volume constraint
         #=======================================================================================
         prob.model.add_constraint('fuel_vol_delta.fuel_vol_delta', lower=0.)
-        # prob.model.add_constraint('fuel_diff', equals=0.)
+        prob.model.add_constraint('fuel_diff', equals=0.)
         #=======================================================================================
         #=======================================================================================
 
@@ -257,11 +257,11 @@ class Test(unittest.TestCase):
 
         # prob.check_partials(form='central', compact_print=True)
 
-        # print(prob['AS_point_0.fuelburn'][0])
-        # print(prob['wing.structural_weight'][0]/1.25)
+        print(prob['AS_point_0.fuelburn'][0])
+        print(prob['wing.structural_weight'][0]/1.25)
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 85033.119351, 1e-5)
-        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 185666.261281, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 82864.2029262523, 1e-5)
+        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 154738.2470274435, 1e-5)
 
 
 if __name__ == '__main__':

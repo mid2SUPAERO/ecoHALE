@@ -33,12 +33,12 @@ class FuelLoads(ExplicitComponent):
         self.add_input('load_factor', val=1.)
         self.add_output('fuel_weight_loads', val=np.zeros((self.ny, 6)), units='N')
 
-        self.declare_partials('*', '*',  method='fd')
+        self.declare_partials('*', '*',  method='cs')
 
     def compute(self, inputs, outputs):
         nodes = inputs['nodes']
 
-        element_lengths = np.ones(self.ny - 1)
+        element_lengths = np.ones(self.ny - 1, dtype=complex)
         for i in range(self.ny - 1):
             element_lengths[i] = norm(nodes[i+1] - nodes[i])
 
@@ -62,7 +62,7 @@ class FuelLoads(ExplicitComponent):
         z_forces_for_each = z_weights / 2.
         z_moments_for_each = z_weights * element_lengths / 12. * (deltas[:, 0]**2 + deltas[:,1]**2)**0.5 / element_lengths
 
-        loads = outputs['fuel_weight_loads']
+        loads = np.zeros((self.ny, 6), dtype=complex)
 
         # Loads in z-direction
         loads[:-1, 2] = loads[:-1, 2] - z_forces_for_each

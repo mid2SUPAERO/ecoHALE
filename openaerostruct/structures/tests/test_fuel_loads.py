@@ -1,6 +1,6 @@
 import unittest
 
-from openmdao.api import Group, IndepVarComp
+from openmdao.api import Group, IndepVarComp, Problem
 from openaerostruct.structures.fuel_loads import FuelLoads
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 import numpy as np
