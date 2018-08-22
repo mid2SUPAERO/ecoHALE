@@ -244,13 +244,10 @@ class VLMGeometry(ExplicitComponent):
             partials['chords', 'def_mesh'][i, le_ind + i*3 + 2] += dz / l
             partials['chords', 'def_mesh'][i, te_ind + i*3 + 2] -= dz / l
 
+        partials['normals', 'def_mesh'] = np.zeros_like(partials['normals', 'def_mesh'])
         # Partial of f=normals w.r.t. to x=def_mesh
         #   f has shape (nx-1, ny-1, 3)
         #   x has shape (nx, ny, 3)
-
-        # Slow version
-        partials['normals', 'def_mesh'] = np.zeros_like(partials['normals', 'def_mesh'])
-
         for i in range(nx-1):
             for j in range(ny-1):
                 # Redo original computation
@@ -290,41 +287,27 @@ class VLMGeometry(ExplicitComponent):
                 # Now we need to get dadlr, dadtl, dbdll, and dbdtr and put them
                 # in the right indices of the big jacobian dfdx
 
-                # These are the indices of the three components of f for this
-                # i and j
+                # These are the indices of the first and last components of f
+                # for the current i and j
                 if0 = (i*(ny-1)+j)*3
-                # if1 = (i*(ny-1)+j)*3+1
                 if2 = (i*(ny-1)+j)*3+2
-                # indf = [if0, if1, if2]
 
                 # Partial f w.r.t. lr
-                # partials['normals', 'def_mesh'][indf,(i*ny+j+1)*3] = dfda[:,0]
-                # partials['normals', 'def_mesh'][indf,(i*ny+j+1)*3+1] = dfda[:,1]
-                # partials['normals', 'def_mesh'][indf,(i*ny+j+1)*3+2] = dfda[:,2]
-                ix0 = (i*ny+j+1)*3
-                ix2 = (i*ny+j+1)*3+2
+                ix0 = (i*ny+j+1)*3      # First index of lr for current i and j
+                ix2 = (i*ny+j+1)*3+2    # Last index of lr for current i and j
                 partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfda[:,:]
 
                 # Partial f w.r.t. tl
-                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j)*3] = -dfda[:,0]
-                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j)*3+1] = -dfda[:,1]
-                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j)*3+2] = -dfda[:,2]
-                ix0 = ((i+1)*ny+j)*3
-                ix2 = ((i+1)*ny+j)*3+2
+                ix0 = ((i+1)*ny+j)*3    # First index of tl for current i and j
+                ix2 = ((i+1)*ny+j)*3+2  # Last index of tl for current i and j
                 partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfda[:,:]
 
                 # Partial f w.r.t. ll
-                # partials['normals', 'def_mesh'][indf,(i*ny+j)*3] = dfdb[:,0]
-                # partials['normals', 'def_mesh'][indf,(i*ny+j)*3+1] = dfdb[:,1]
-                # partials['normals', 'def_mesh'][indf,(i*ny+j)*3+2] = dfdb[:,2]
-                ix0 = (i*ny+j)*3
-                ix2 = (i*ny+j)*3+2
+                ix0 = (i*ny+j)*3        # First index of ll for current i and j
+                ix2 = (i*ny+j)*3+2      # Last index of ll for current i and j
                 partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfdb[:,:]
 
                 # Partial f w.r.t. tr
-                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j+1)*3] = -dfdb[:,0]
-                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j+1)*3+1] = -dfdb[:,1]
-                # partials['normals', 'def_mesh'][indf,((i+1)*ny+j+1)*3+2] = -dfdb[:,2]
-                ix0 = ((i+1)*ny+j+1)*3
-                ix2 = ((i+1)*ny+j+1)*3+2
+                ix0 = ((i+1)*ny+j+1)*3   # First index of tr for current i and j
+                ix2 = ((i+1)*ny+j+1)*3+2 # Last index of tr for current i and j
                 partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfdb[:,:]
