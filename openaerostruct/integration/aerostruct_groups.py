@@ -133,6 +133,7 @@ class AerostructPoint(Group):
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
+        self.options.declare('user_specified_Sref', types=bool, default=False)
 
     def setup(self):
         surfaces = self.options['surfaces']
@@ -255,6 +256,6 @@ class AerostructPoint(Group):
         # Note that only the interesting results are promoted here; not all
         # of the parameters.
         self.add_subsystem('total_perf',
-                 TotalPerformance(surfaces=surfaces),
-                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor'],
+                 TotalPerformance(surfaces=surfaces,user_specified_Sref=self.options['user_specified_Sref']),
+                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'S_ref_total'],
                  promotes_outputs=['L_equals_W', 'fuelburn', 'CM', 'cg'])

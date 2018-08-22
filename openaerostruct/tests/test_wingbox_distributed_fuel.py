@@ -121,7 +121,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('rho', val=0.348, units='kg/m**3')
         indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
         indep_var_comp.add_output('R', val=14.307e6, units='m')
-        indep_var_comp.add_output('W0', val=(143000 - 2.5*11600 + 34000) + 15000,  units='kg')
+        indep_var_comp.add_output('W0', val=(143000 - 2.5*11600 + 34000) + surf_dict['Wf_reserve'],  units='kg')
         indep_var_comp.add_output('a', val=295.07, units='m/s')
         indep_var_comp.add_output('load_factor', val=1.)
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')

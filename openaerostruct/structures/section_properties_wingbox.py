@@ -31,25 +31,25 @@ class SectionPropertiesWingbox(ExplicitComponent):
         self.data_y_upper = surface['data_y_upper']
         self.data_y_lower = surface['data_y_lower']
 
-        self.add_input('streamwise_chords', val=np.ones((self.ny - 1), dtype = complex))
-        self.add_input('fem_chords', val=np.ones((self.ny - 1), dtype = complex))
-        self.add_input('fem_twists', val=np.ones((self.ny - 1),  dtype = complex))
+        self.add_input('streamwise_chords', val=np.ones((self.ny - 1), dtype = complex),units='m')
+        self.add_input('fem_chords', val=np.ones((self.ny - 1), dtype = complex),units='m')
+        self.add_input('fem_twists', val=np.ones((self.ny - 1),  dtype = complex),units='deg')
 
-        self.add_input('spar_thickness', val=np.ones((self.ny - 1), dtype = complex))
-        self.add_input('skin_thickness', val=np.ones((self.ny - 1),  dtype = complex))
+        self.add_input('spar_thickness', val=np.ones((self.ny - 1), dtype = complex),units='m')
+        self.add_input('skin_thickness', val=np.ones((self.ny - 1),  dtype = complex),units='m')
         self.add_input('t_over_c', val=np.ones((self.ny - 1),  dtype = complex))
 
-        self.add_output('A', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('A_enc', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('A_int', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('Iy', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('Qz', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('Iz', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('J', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('htop', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('hbottom', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('hfront', val=np.ones((self.ny - 1),  dtype = complex))
-        self.add_output('hrear', val=np.ones((self.ny - 1),  dtype = complex))
+        self.add_output('A', val=np.ones((self.ny - 1),  dtype = complex),units='m**2')
+        self.add_output('A_enc', val=np.ones((self.ny - 1),  dtype = complex),units='m**2')
+        self.add_output('A_int', val=np.ones((self.ny - 1),  dtype = complex),units='m**2')
+        self.add_output('Iy', val=np.ones((self.ny - 1),  dtype = complex),units='m**4')
+        self.add_output('Qz', val=np.ones((self.ny - 1),  dtype = complex),units='m**3')
+        self.add_output('Iz', val=np.ones((self.ny - 1),  dtype = complex),units='m**4')
+        self.add_output('J', val=np.ones((self.ny - 1),  dtype = complex),units='m**4')
+        self.add_output('htop', val=np.ones((self.ny - 1),  dtype = complex),units='m')
+        self.add_output('hbottom', val=np.ones((self.ny - 1),  dtype = complex),units='m')
+        self.add_output('hfront', val=np.ones((self.ny - 1),  dtype = complex),units='m')
+        self.add_output('hrear', val=np.ones((self.ny - 1),  dtype = complex),units='m')
 
         self.declare_partials('*', '*', method='cs')
 
