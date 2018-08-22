@@ -17,11 +17,13 @@ class TotalAeroPerformance(Group):
 
     def setup(self):
         surfaces = self.options['surfaces']
-
-        self.add_subsystem('sum_areas',
-             SumAreas(surfaces=surfaces),
-             promotes_inputs=['*S_ref'],
-             promotes_outputs=['S_ref_total'])
+        user_supplied_S_ref = False
+        
+        if not user_supplied_S_ref:
+            self.add_subsystem('sum_areas',
+                SumAreas(surfaces=surfaces),
+                promotes_inputs=['*S_ref'],
+                promotes_outputs=['S_ref_total'])
 
         self.add_subsystem('CL_CD',
                  TotalLiftDrag(surfaces=surfaces),

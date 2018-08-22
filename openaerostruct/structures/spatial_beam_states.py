@@ -24,7 +24,7 @@ class SpatialBeamStates(Group):
                  promotes_inputs=['loads', 'struct_weight_loads'], promotes_outputs=['total_loads'])
         self.add_subsystem('create_rhs',
                  CreateRHS(surface=surface),
-                 promotes_inputs=['total_loads', 'element_weights'], promotes_outputs=['forces'])
+                 promotes_inputs=['total_loads'], promotes_outputs=['forces'])
         self.add_subsystem('fem',
                  FEM(size=size),
                  promotes_inputs=['*'], promotes_outputs=['*'])
