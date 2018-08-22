@@ -2,6 +2,8 @@ from __future__ import division, print_function
 import numpy as np
 
 from openmdao.api import ExplicitComponent
+from openaerostruct.structures.utils import norm
+
 
 try:
     from openaerostruct.fortran import OAS_API
@@ -10,9 +12,6 @@ try:
 except:
     fortran_flag = False
     data_type = complex
-
-def norm(vec):
-    return np.sqrt(np.sum(vec**2))
 
 class StructureWeightLoads(ExplicitComponent):
     """
