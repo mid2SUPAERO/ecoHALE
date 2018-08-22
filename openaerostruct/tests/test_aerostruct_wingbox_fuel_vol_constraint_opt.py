@@ -36,7 +36,7 @@ class Test(unittest.TestCase):
         """
         This is an opt problem that tests the fuel volume constraint with the wingbox model
         """
-        
+
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 7,
                      'num_x' : 2,
@@ -208,7 +208,7 @@ class Test(unittest.TestCase):
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
-        
+
         # from openmdao.api import pyOptSparseDriver
         # prob.driver = pyOptSparseDriver()
         # # prob.driver.add_recorder(SqliteRecorder("cases.sql"))
@@ -241,7 +241,7 @@ class Test(unittest.TestCase):
         # view_model(prob)
 
         prob.run_driver()
-        
+
         # prob.check_partials(form='central', compact_print=True)
 
         # print(prob['AS_point_0.fuelburn'][0])
@@ -249,7 +249,7 @@ class Test(unittest.TestCase):
 
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 83622.1345013, 1e-5)
         assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 135056.487646, 1e-5)
-        assert_rel_error(self, prob['fuel_vol_delta.fuel_vol_delta'][0], 39.65663379, 1e-5)
+        assert_rel_error(self, prob['fuel_vol_delta.fuel_vol_delta'][0], 39.65663379, 1e-4)
 
 
 if __name__ == '__main__':
