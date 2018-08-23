@@ -3,13 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-except:
-    fortran_flag = False
 
-data_type = float
 np.random.seed(314)
 
 class VLMGeometry(ExplicitComponent):
@@ -62,8 +56,7 @@ class VLMGeometry(ExplicitComponent):
 
         self.declare_partials('*', '*')
 
-        if not fortran_flag:
-            self.declare_partials('S_ref', 'def_mesh', method='fd')
+        self.declare_partials('S_ref', 'def_mesh', method='cs')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']
@@ -150,29 +143,6 @@ class VLMGeometry(ExplicitComponent):
         nx = self.nx
         ny = self.ny
         mesh = inputs['def_mesh']
-
-        if fortran_flag:
-
-            normalsb = np.zeros((nx-1, ny-1, 3))
-            for i in range(nx-1):
-                for j in range(ny-1):
-                    for ind in range(3):
-                        normalsb[:, :, :] = 0.
-                        normalsb[i, j, ind] = 1.
-                        meshb, _, _ = OAS_API.oas_api.compute_normals_b(mesh, normalsb, 0.)
-                        partials['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
-
-            normalsb[:, :, :] = 0.
-            if self.surface['S_ref_type'] == 'wetted':
-                seed_mesh = mesh
-            elif self.surface['S_ref_type'] == 'projected':
-                seed_mesh = mesh.copy()
-                seed_mesh[:, :, 2] = 0.
-            meshb, _, _ = OAS_API.oas_api.compute_normals_b(seed_mesh, normalsb, 1.)
-
-            partials['S_ref', 'def_mesh'] = np.atleast_2d(meshb.flatten())
-            if self.surface['symmetry']:
-                partials['S_ref', 'def_mesh'] *= 2
 
         for iz, v in zip((0, ny*3), (.75, .25)):
             np.fill_diagonal(partials['b_pts', 'def_mesh'][:, iz:], v)

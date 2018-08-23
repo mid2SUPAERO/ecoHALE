@@ -3,13 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 class CreateRHS(ExplicitComponent):
     """

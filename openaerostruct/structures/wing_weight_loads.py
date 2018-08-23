@@ -5,14 +5,6 @@ from openmdao.api import ExplicitComponent
 from openaerostruct.structures.utils import norm
 
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
-
 class StructureWeightLoads(ExplicitComponent):
     """
     Compute the nodal loads from the weight of the wing structure to be applied to the wing
@@ -39,9 +31,9 @@ class StructureWeightLoads(ExplicitComponent):
         self.surface = surface = self.options['surface']
         self.ny = surface['num_y']
 
-        self.add_input('element_weights', val=np.zeros((self.ny-1),dtype=complex), units='N')
-        self.add_input('nodes', val=np.zeros((self.ny, 3),dtype=complex), units='m')
-        self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6),dtype=complex), units='N')
+        self.add_input('element_weights', val=np.zeros((self.ny-1), dtype=complex), units='N')
+        self.add_input('nodes', val=np.zeros((self.ny, 3), dtype=complex), units='m')
+        self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6), dtype=complex), units='N')
 
         self.declare_partials('*', '*',  method='cs')
 

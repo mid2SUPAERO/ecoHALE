@@ -6,13 +6,6 @@ import numpy as np
 from openmdao.api import ExplicitComponent
 from openaerostruct.structures.utils import radii
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 class RadiusComp(ExplicitComponent):
     """
@@ -80,5 +73,5 @@ class RadiusComp(ExplicitComponent):
         dchords_dmesh[i, te_ind + i*3 + 1] -= dy[i] / l[i]
         dchords_dmesh[i, le_ind + i*3 + 2] += dz[i] / l[i]
         dchords_dmesh[i, te_ind + i*3 + 2] -= dz[i] / l[i]
-        
+
         partials['radius','mesh'] = np.matmul(dr_dchords,dchords_dmesh)
