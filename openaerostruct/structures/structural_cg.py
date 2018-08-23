@@ -3,13 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 class StructuralCG(ExplicitComponent):
     """ Compute center-of-gravity location of the spar elements.
@@ -38,10 +31,10 @@ class StructuralCG(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')#, dtype=data_type))
+        self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('structural_weight', val=0., units='N')
         self.add_input('element_weights', val=np.zeros((self.ny-1)), units='N')
-        self.add_output('cg_location', val=np.zeros((3)), units='m')#, dtype=data_type))
+        self.add_output('cg_location', val=np.zeros((3)), units='m')
 
         self.declare_partials('*', '*')
         self.set_check_partial_options('*', method='cs', step=1e-40)
@@ -54,13 +47,6 @@ class StructuralCG(ExplicitComponent):
         # Calculate the center-of-gravity location of the spar elements only
         center_of_elements = ((nodes[1:, :] + nodes[:-1, :]) / 2.).T
         cg_loc = center_of_elements.dot(element_weights) / structural_weight
-
-        # tmp = (nodes[1:, :] + nodes[:-1, :])
-        # print('nodes', nodes.imag/1e-40)
-        # print('tmp', tmp.real)
-        # print('tmp_norm', tmp_norm.real)
-        # print('dtmp', tmp.imag/1e-40)
-        # print()
 
         # If the tube is symmetric, double the computed weight and set the
         # y-location of the cg to 0, at the symmetry plane
@@ -80,7 +66,6 @@ class StructuralCG(ExplicitComponent):
         sum_coe_dot_ew = center_of_elements.dot(element_weights)
 
         is_sym = self.surface['symmetry']
-
 
         J['cg_location', 'structural_weight'] = -sum_coe_dot_ew/structural_weight**2
         J['cg_location', 'element_weights'] = center_of_elements/structural_weight

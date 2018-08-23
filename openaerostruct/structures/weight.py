@@ -3,13 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 class Weight(ExplicitComponent):
     """ Compute total weight and center-of-gravity location of the spar elements.
@@ -38,8 +31,8 @@ class Weight(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('A', val=np.zeros((self.ny - 1)), units='m**2')#, dtype=data_type))
-        self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')#, dtype=data_type))
+        self.add_input('A', val=np.zeros((self.ny - 1)), units='m**2')
+        self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('load_factor', val=1.)
         self.add_output('structural_weight', val=0., units='N')
         self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')

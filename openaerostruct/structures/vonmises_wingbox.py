@@ -5,13 +5,6 @@ from openmdao.api import ExplicitComponent
 
 from openaerostruct.structures.utils import norm, unit
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 class VonMisesWingbox(ExplicitComponent):
     """ Compute the von Mises stress in each element.

@@ -11,13 +11,6 @@ from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructP
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
 # These should be for an airfoil with the chord scaled to 1.

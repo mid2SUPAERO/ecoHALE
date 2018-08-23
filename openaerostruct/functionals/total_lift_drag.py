@@ -3,14 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
-
 
 class TotalLiftDrag(ExplicitComponent):
     """
@@ -43,8 +35,6 @@ class TotalLiftDrag(ExplicitComponent):
             self.add_input(name + '_CL', val=1.)
             self.add_input(name + '_CD', val=1.)
             self.add_input(name + '_S_ref', val=1., units='m**2')
-            self.declare_partials('CL', name + '_CD', dependent=False)
-            self.declare_partials('CD', name + '_CL', dependent=False)
             self.declare_partials('CL', name + '_CL')
             self.declare_partials('CD', name + '_CD')
             self.declare_partials('CL', name + '_S_ref')
