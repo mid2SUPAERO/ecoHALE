@@ -3,7 +3,6 @@ import unittest
 from openaerostruct.functionals.center_of_gravity import CenterOfGravity
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
-@unittest.skipUnless(0, "Test is broken, derivatives are wrong.")
 class Test(unittest.TestCase):
 
     def test(self):
@@ -11,7 +10,7 @@ class Test(unittest.TestCase):
 
         comp = CenterOfGravity(surfaces=surfaces)
 
-        run_test(self, comp)
+        run_test(self, comp, compact_print=False)
 
 
 if __name__ == '__main__':
