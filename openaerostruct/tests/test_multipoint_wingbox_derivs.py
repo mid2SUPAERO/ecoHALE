@@ -142,7 +142,7 @@ class Test(unittest.TestCase):
             # Connect the parameters within the model for each aero point
 
             # Create the aero point group and add it to the model
-            AS_point = AerostructPoint(surfaces=surfaces)
+            AS_point = AerostructPoint(surfaces=surfaces, internally_connect_fuelburn=False)
 
             prob.model.add_subsystem(point_name, AS_point)
 
@@ -158,6 +158,8 @@ class Test(unittest.TestCase):
             prob.model.connect('a', point_name + '.a')
             prob.model.connect('empty_cg', point_name + '.empty_cg')
             prob.model.connect('load_factor', point_name + '.load_factor', src_indices=[i])
+            prob.model.connect('fuel_mass', point_name + '.total_perf.L_equals_W.fuelburn')
+            prob.model.connect('fuel_mass', point_name + '.total_perf.CG.fuelburn')
 
             for surface in surfaces:
 
