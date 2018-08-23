@@ -16,7 +16,50 @@ def norm(vec):
 def unit(vec):
     return vec / norm(vec)
 
-def radii(mesh, t_c):
+def norm_d(vec):
+    vec_d = vec/norm(vec)
+    return vec_d
+
+def unit_d(vec):
+    n_d = norm_d(vec)
+    normvec = norm(vec)
+    vec_d = np.outer((-vec/(normvec*normvec)),n_d)+1/normvec*np.eye(len(vec))
+
+    return vec_d
+
+# This is a limited cross product definition for 3 vectors
+def cross_d(a,b):
+    if not isinstance(a, np.ndarray) :
+        a = np.array(a)
+        if a.shape!=(3,):
+            raise ValueError('a must be a (3,) nd array')
+    if not isinstance(b, np.ndarray):
+        b = np.array(b)
+        if b.shape!=(3,):
+            raise ValueError('b must be a (3,) nd array')
+
+    dcda = np.zeros([3,3])
+    dcdb = np.zeros([3,3])
+
+    dcda[0,1]=b[2]
+    dcda[0,2]=-b[1]
+    dcda[1,0]=-b[2]
+    dcda[1,2]=b[0]
+    dcda[2,0]=b[1]
+    dcda[2,1]=-b[0]
+
+    dcdb[0,1]=-a[2]
+    dcdb[0,2]=a[1]
+    dcdb[1,0]=a[2]
+    dcdb[1,2]=-a[0]
+    dcdb[2,0]=-a[1]
+    dcdb[2,1]=a[0]
+
+    return dcda,dcdb
+
+
+def radii(mesh, t_c=0.15):
+
     """
     Obtain the radii of the FEM element based on local chord.
     """

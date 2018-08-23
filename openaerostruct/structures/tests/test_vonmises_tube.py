@@ -21,6 +21,7 @@ class Test(unittest.TestCase):
 
         #  define the spar with y out the wing
         nodes = np.zeros((ny, 3))
+        nodes[:,0] = np.linspace(0,0.01,ny)
         nodes[:,1] = np.linspace(0,1,ny)
 
         radius = 0.01*np.ones((ny - 1))
@@ -40,7 +41,7 @@ class Test(unittest.TestCase):
         group.connect('indep_var_comp.radius', 'vm_comp.radius')
         group.connect('indep_var_comp.disp', 'vm_comp.disp')
 
-        run_test(self, group)
+        run_test(self, group, complex_flag=True, compact_print=True, method='cs', step=1e-40, tol=2e-4, rtol=1e-8)
 
 
 if __name__ == '__main__':
