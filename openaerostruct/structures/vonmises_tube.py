@@ -50,11 +50,8 @@ class VonMisesTube(ExplicitComponent):
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        data_type = float
-        if self._outputs._vector_info._under_complex_step:
-            data_type = complex
-        self.T = np.zeros((3, 3),dtype=data_type)
-        self.x_gl = np.array([1, 0, 0],dtype=data_type)
+        self.T = np.zeros((3, 3),dtype=complex)
+        self.x_gl = np.array([1, 0, 0],dtype=complex)
         radius = inputs['radius']
         disp = inputs['disp']
         nodes = inputs['nodes']
