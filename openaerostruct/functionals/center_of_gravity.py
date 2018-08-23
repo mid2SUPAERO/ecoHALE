@@ -80,7 +80,7 @@ class CenterOfGravity(ExplicitComponent):
         # of all structural spars
         for surface in self.options['surfaces']:
             name = surface['name']
-            spar_cg += inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
+            spar_cg = spar_cg + inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
 
         # Compute the total cg of the aircraft based on the empty weight cg and
         # the structures cg. Here we assume the fuel weight is at the cg.
@@ -101,7 +101,7 @@ class CenterOfGravity(ExplicitComponent):
         # of all structural spars
         for surface in self.options['surfaces']:
             name = surface['name']
-            spar_cg += inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
+            spar_cg = spar_cg + inputs[name + '_cg_location'] * inputs[name + '_structural_weight']
 
         partials['cg', 'total_weight'] = -(W0_cg + spar_cg) / (tw - fb * g) ** 2
         partials['cg', 'fuelburn'] = g * (W0_cg + spar_cg) / (tw - fb * g) ** 2
