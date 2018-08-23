@@ -8,7 +8,8 @@ from openaerostruct.geometry.geometry_group import Geometry
 
 from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp
+from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 
 try:
     from openaerostruct.fortran import OAS_API
@@ -29,13 +30,18 @@ lower_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0
 upper_y = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541], dtype = 'complex128')
 lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515, -0.0524, -0.0532, -0.054, -0.0547, -0.0554, -0.056, -0.0565, -0.057, -0.0575, -0.0579, -0.0583, -0.0586, -0.0589, -0.0592, -0.0594, -0.0595, -0.0596, -0.0597, -0.0598, -0.0598, -0.0598, -0.0598, -0.0597, -0.0596, -0.0594, -0.0592, -0.0589, -0.0586, -0.0582, -0.0578, -0.0573, -0.0567, -0.0561, -0.0554, -0.0546, -0.0538, -0.0529, -0.0519, -0.0509, -0.0497, -0.0485, -0.0472, -0.0458, -0.0444], dtype = 'complex128')
 
-@unittest.skipUnless(fortran_flag, "Fortran is required.")
+# Always skip this for now until it's faster
+@unittest.skipUnless(0, "Skipping for now.")
 class Test(unittest.TestCase):
 
     def test(self):
+        """
+        This is an opt problem that tests the wingbox model with wave drag and the fuel vol constraint
+        """
+
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 5,
-                     'num_x' : 3,
+        mesh_dict = {'num_y' : 7,
+                     'num_x' : 2,
                      'wing_type' : 'CRM',
                      'symmetry' : True,
                      'num_twist_cp' : 6,
@@ -94,10 +100,12 @@ class Test(unittest.TestCase):
                     'strength_factor_for_upper_skin' : 1.0, # the yield stress is multiplied by this factor for the upper skin
                     # 'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1.25,
-                    'struct_weight_relief' : True,    # True to add the weight of the structure to the loads on the structure
-                    'distributed_fuel_weight' : False,
+                    'struct_weight_relief' : True,
+                    'distributed_fuel_weight' : True,
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
+                    'fuel_density' : 803.,
+                    'Wf_reserve' :15000.,
                     }
 
         surfaces = [surf_dict]
@@ -116,8 +124,9 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('R', val=14.307e6, units='m')
         indep_var_comp.add_output('W0', val=(143000 - 2.5*11600 + 34000) + 15000,  units='kg')
         indep_var_comp.add_output('a', val=295.07, units='m/s')
-        indep_var_comp.add_output('load_factor', val=1.)
+        indep_var_comp.add_output('load_factor', val=np.array([1., 2.5]))
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
+        indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
 
         prob.model.add_subsystem('prob_vars',
              indep_var_comp,
@@ -136,7 +145,7 @@ class Test(unittest.TestCase):
             prob.model.add_subsystem(name, aerostruct_group)
 
         # Loop through and add a certain number of aero points
-        for i in range(1):
+        for i in range(2):
 
             point_name = 'AS_point_{}'.format(i)
             # Connect the parameters within the model for each aero point
@@ -157,11 +166,13 @@ class Test(unittest.TestCase):
             prob.model.connect('W0', point_name + '.W0')
             prob.model.connect('a', point_name + '.a')
             prob.model.connect('empty_cg', point_name + '.empty_cg')
-            prob.model.connect('load_factor', point_name + '.load_factor')
+            prob.model.connect('load_factor', point_name + '.load_factor', src_indices=[i])
 
             for surface in surfaces:
 
-                prob.model.connect('load_factor', name + '.load_factor')
+                if i==0:
+                    prob.model.connect('load_factor', name + '.load_factor', src_indices=[i])
+                prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 
                 com_name = point_name + '.' + name + '_perf.'
                 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
@@ -190,35 +201,80 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
                 prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
+        #=======================================================================================
+        # Here we add the fuel volume constraint componenet to the model
+        #=======================================================================================
+        prob.model.add_subsystem('fuel_vol_delta', WingboxFuelVolDelta(surface=surface))
+        prob.model.connect('wing.struct_setup.fuel_vols', 'fuel_vol_delta.fuel_vols')
+
+        prob.model.connect('AS_point_0.fuelburn', 'fuel_vol_delta.fuelburn')
+        prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_0.coupled.wing.struct_states.fuel_vols')
+        prob.model.connect('fuel_mass', 'AS_point_0.coupled.wing.struct_states.fuel_mass')
+
+        prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
+        prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
+
+        comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
+        prob.model.add_subsystem('fuel_diff', comp,
+            promotes_inputs=['fuel_mass'],
+            promotes_outputs=['fuel_diff'])
+        prob.model.connect('AS_point_0.fuelburn', 'fuel_diff.fuelburn')
+
+        comp = ExecComp('fuel_diff_25 = (fuel_mass - fuelburn) / fuelburn')
+        prob.model.add_subsystem('fuel_diff_25', comp,
+            promotes_inputs=['fuel_mass'],
+            promotes_outputs=['fuel_diff_25'])
+        prob.model.connect('AS_point_1.fuelburn', 'fuel_diff_25.fuelburn')
+        #=======================================================================================
+        #=======================================================================================
+
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
 
+        # from openmdao.api import pyOptSparseDriver
+        # prob.driver = pyOptSparseDriver()
+        # prob.driver.add_recorder(SqliteRecorder("cases.sql"))
+        # prob.driver.options['optimizer'] = "SNOPT"
+        # prob.driver.opt_settings['Major optimality tolerance'] = 1e-6
+        # prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
+        # prob.driver.opt_settings['Major iterations limit'] = 200
+
+        prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
+
+        prob.model.add_design_var('wing.twist_cp', lower=-15., upper=15., scaler=0.1)
+        prob.model.add_design_var('wing.spar_thickness_cp', lower=0.003, upper=0.1, scaler=1e2)
+        prob.model.add_design_var('wing.skin_thickness_cp', lower=0.003, upper=0.1, scaler=1e2)
+        prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.07, upper=0.2, scaler=10.)
+        prob.model.add_design_var('fuel_mass', lower=0., upper=2e5, scaler=1e-5)
+
+        prob.model.add_constraint('AS_point_0.total_perf.CL', equals=0.5)
+        prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
+
+        #=======================================================================================
+        # Here we add the fuel volume constraint
+        #=======================================================================================
+        prob.model.add_constraint('fuel_vol_delta.fuel_vol_delta', lower=0.)
+        prob.model.add_constraint('fuel_diff', equals=0.)
+        prob.model.add_constraint('fuel_diff_25', equals=0.)
+        #=======================================================================================
+        #=======================================================================================
+
         # Set up the problem
         prob.setup()
-        #
+
         # from openmdao.api import view_model
         # view_model(prob)
 
-        prob.run_model()
+        prob.run_driver()
 
-        # prob.model.list_outputs(values=True,
-        #                         implicit=False,
-        #                         units=True,
-        #                         shape=True,
-        #                         bounds=True,
-        #                         residuals=True,
-        #                         scaling=True,
-        #                         hierarchical=False,
-        #                         print_arrays=True)
+        # prob.check_partials(form='central', compact_print=True)
 
-        # print(prob['AS_point_0.fuelburn'][0])
-        # print(prob['wing.structural_weight'][0]/1.25)
-        # print(prob['AS_point_0.wing_perf.failure'][0])
+        print(prob['AS_point_0.fuelburn'][0])
+        print(prob['wing.structural_weight'][0]/1.25)
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112532.399999, 1e-5)
-        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235533.421185, 1e-5)
-        assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 1.70644139941, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 82864.2029262523, 1e-5)
+        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 154738.2470274435, 1e-5)
 
 
 if __name__ == '__main__':

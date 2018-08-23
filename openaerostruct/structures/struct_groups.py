@@ -53,9 +53,15 @@ class SpatialBeamAlone(Group):
             promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
             promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
 
+        promotes = []
+        if surface['struct_weight_relief']:
+            promotes = promotes + list(set(['nodes', 'element_weights']))
+        if surface['distributed_fuel_weight']:
+            promotes = promotes + list(set(['nodes', 'load_factor']))
+
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads', 'element_weights', 'nodes'],
+            promotes_inputs=['K', 'forces', 'loads'] + promotes,
             promotes_outputs=['disp'])
 
         self.add_subsystem('struct_funcs',

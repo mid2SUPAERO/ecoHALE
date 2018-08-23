@@ -3,6 +3,7 @@ from openaerostruct.structures.compute_nodes import ComputeNodes
 from openaerostruct.structures.assemble_k import AssembleK
 from openaerostruct.structures.weight import Weight
 from openaerostruct.structures.structural_cg import StructuralCG
+from openaerostruct.structures.fuel_vol import WingboxFuelVol
 
 
 class SpatialBeamSetup(Group):
@@ -32,3 +33,9 @@ class SpatialBeamSetup(Group):
             StructuralCG(surface=surface),
             promotes_inputs=['nodes', 'structural_weight', 'element_weights'],
             promotes_outputs=['cg_location'])
+
+        if surface['fem_model_type'] == 'wingbox':
+            self.add_subsystem('fuel_vol',
+                WingboxFuelVol(surface=surface),
+                promotes_inputs=['nodes', 'A_int'],
+                promotes_outputs=['fuel_vols'])

@@ -46,6 +46,7 @@ class Test(unittest.TestCase):
                     'thickness_cp' : np.ones((3)) * .1,
                     'wing_weight_ratio' : 2.,
                     'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
+                    'distributed_fuel_weight' : False,
                     'exact_failure_constraint' : False,
                     }
 

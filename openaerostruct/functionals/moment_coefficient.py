@@ -67,10 +67,9 @@ class MomentCoefficient(ExplicitComponent):
         self.add_output('CM', val=np.ones((3)))
 
         self.declare_partials('*', '*')
-        self.set_check_partial_options('*', step_calc = 'rel', step = 1E-5)
 
         if not fortran_flag:
-            self.declare_partials('*', '*', method='fd')
+            self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
         rho = inputs['rho']
@@ -118,7 +117,7 @@ class MomentCoefficient(ExplicitComponent):
                 # arm and the section forces
                 moment = np.zeros((ny - 1, 3))
                 for ind in range(nx-1):
-                    moment += np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
+                    moment = moment + np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
                 # If the surface is symmetric, set the x- and z-direction moments
                 # to 0 and double the y-direction moment
@@ -126,13 +125,13 @@ class MomentCoefficient(ExplicitComponent):
                     moment[:, 0] = 0.
                     moment[:, 1] *= 2
                     moment[:, 2] = 0.
-                M += np.sum(moment, axis=0)
+                M = M + np.sum(moment, axis=0)
 
             # For the first (main) lifting surface, we save the MAC to correctly
             # normalize CM
             if j == 0:
                 self.MAC_wing = MAC
-            S_ref_tot += S_ref
+            S_ref_tot = S_ref_tot + S_ref
 
         self.M = M
 
