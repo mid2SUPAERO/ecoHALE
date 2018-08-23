@@ -45,7 +45,6 @@ class FuelLoads(ExplicitComponent):
         # And we also need the deltas between consecutive nodes
         deltas = nodes[1:, :] - nodes[:-1, :]
 
-        # TODO: add fuel_reserve
         # Fuel weight
         fuel_weight = (inputs['fuel_mass'] + self.surface['Wf_reserve']) * 9.81 * inputs['load_factor']
 

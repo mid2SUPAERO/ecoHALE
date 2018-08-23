@@ -46,7 +46,7 @@ class Test(unittest.TestCase):
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('vonmises_wingbox', comp, promotes=['*'])
 
-        run_test(self, group,  complex_flag=True, step=1e-8, tol=2e-5, compact_print=True)
+        run_test(self, group,  complex_flag=True, step=1e-8, atol=2e-5, compact_print=True)
 
 
 if __name__ == '__main__':

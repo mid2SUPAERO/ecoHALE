@@ -41,7 +41,7 @@ class Test(unittest.TestCase):
         group.connect('indep_var_comp.radius', 'vm_comp.radius')
         group.connect('indep_var_comp.disp', 'vm_comp.disp')
 
-        run_test(self, group, complex_flag=True, compact_print=True, method='cs', step=1e-40, tol=2e-4, rtol=1e-8)
+        run_test(self, group, complex_flag=True, compact_print=True, method='cs', step=1e-40, atol=2e-4, rtol=1e-8)
 
 
 if __name__ == '__main__':
