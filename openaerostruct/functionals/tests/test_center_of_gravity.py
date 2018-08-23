@@ -10,7 +10,7 @@ class Test(unittest.TestCase):
 
         comp = CenterOfGravity(surfaces=surfaces)
 
-        run_test(self, comp, compact_print=False)
+        run_test(self, comp, compact_print=True)
 
 
 if __name__ == '__main__':
