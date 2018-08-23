@@ -31,12 +31,29 @@ class StructuralCG(ExplicitComponent):
 
         self.ny = surface['num_y']
 
+        # Setup Inputs
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('structural_weight', val=0., units='N')
         self.add_input('element_weights', val=np.zeros((self.ny-1)), units='N')
+        
+        # Setup Outputs
         self.add_output('cg_location', val=np.zeros((3)), units='m')
-
-        self.declare_partials('*', '*')
+        
+        # Setup Partials
+        self.declare_partials(of='cg_location', wrt='structural_weight')
+        self.declare_partials(of='cg_location', wrt='element_weights')
+        # Setup Sparce Matrix
+        dimensions = 3
+        cols_const = np.arange(0,self.ny*dimensions,dimensions)
+        rows = np.empty(self.ny*dimensions)
+        cols = np.empty(self.ny*dimensions)
+        for i in range(dimensions):
+            rows[i*self.ny:i*self.ny+self.ny]=i
+            cols[i*self.ny:i*self.ny+self.ny]=cols_const+i
+            
+        self.declare_partials(of='cg_location', wrt='nodes', rows=rows, cols=cols)
+        
+        # Check partials options
         self.set_check_partial_options('*', method='cs', step=1e-40)
 
     def compute(self, inputs, outputs):
@@ -57,6 +74,7 @@ class StructuralCG(ExplicitComponent):
         outputs['cg_location'] = cg_loc
 
     def compute_partials(self, inputs, J):
+        ny = self.ny
         nodes = inputs['nodes']
         structural_weight = inputs['structural_weight']
         element_weights = ew = inputs['element_weights']
@@ -71,17 +89,15 @@ class StructuralCG(ExplicitComponent):
         J['cg_location', 'element_weights'] = center_of_elements/structural_weight
 
         #derivates with respect to nodes require special ninja math
-        n_nodes = self.ny*3
-        row = np.zeros(n_nodes)
-        for i in range(self.ny-1):
-            row[i*3] += ew[i]
-            row[i*3 + 3] += ew[i]
-        row /= structural_weight*2
-        for i in range(3):
-            J['cg_location', 'nodes'][i] = np.roll(row,i)
-
+        values = np.zeros(ny)
+        values[0:ny-1] = ew
+        values[1:ny] += ew
+        values /= 2*structural_weight
+        dimensions = 3
+        
+        J['cg_location', 'nodes'] = np.tile(values,dimensions)
         if is_sym:
-            J['cg_location', 'nodes'][1] *= 0
+            J['cg_location', 'nodes'][ny:2*ny] = 0
             J['cg_location', 'nodes'] *= 2
 
             J['cg_location', 'structural_weight'][1] = 0
