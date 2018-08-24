@@ -56,7 +56,7 @@ install:
 
 script:
 - if [ "$FORTRAN" ]; then
-    cd openaerostruct/fortran; make; cd ../..;
+    cd openaerostruct/fortran; cp config/config-LINUX.mk config/config.mk; make; cd ../..;
   fi
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - testflo -n 1 openaerostruct --coverage --coverpkg openaerostruct --cover-omit \*tests/\* --cover-omit \*docs/\*;

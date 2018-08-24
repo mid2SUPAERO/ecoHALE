@@ -7,7 +7,7 @@ import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat1, mat2, key='Title', tol=1e-10):
+def view_mat(mat1, mat2, key='Title', tol=1e-10):  # pragma: no cover
     """
     Helper function used to visually examine matrices. It plots mat1 and mat2 side by side,
     and shows the difference between the two.
