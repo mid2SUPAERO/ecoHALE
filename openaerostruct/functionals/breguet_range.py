@@ -48,9 +48,10 @@ class BreguetRange(ExplicitComponent):
         self.add_output('fuelburn', val=1., units='kg')
 
         self.declare_partials('*', '*')
-        self.set_check_partial_options(wrt='*', method='fd', form='central')
+        self.set_check_partial_options(wrt='*', method='cs', step=1e-30)
 
     def compute(self, inputs, outputs):
+        print('BR load fac', inputs['load_factor'])
 
         g = 9.80665 * inputs['load_factor']
         CT = inputs['CT']

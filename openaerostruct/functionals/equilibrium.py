@@ -35,13 +35,13 @@ class Equilibrium(ExplicitComponent):
             self.declare_partials('L_equals_W',name+'_structural_weight')
             self.declare_partials('total_weight',name+'_structural_weight')
 
-        self.add_input('fuelburn', val=1., units='kg')
-        self.add_input('W0', val=1., units='kg')
+        self.add_input('fuelburn', val=123., units='kg')
+        self.add_input('W0', val=1000., units='kg')
         self.add_input('load_factor', val=1.05)
 
         self.add_input('CL', val=0.7)
 
-        self.add_input('S_ref_total', val=1.5, units='m**2')
+        self.add_input('S_ref_total', val=15., units='m**2')
         self.add_input('v', val=100., units='m/s')
         self.add_input('rho', val=1.2, units='kg/m**3')
 
@@ -59,8 +59,6 @@ class Equilibrium(ExplicitComponent):
         self.declare_partials('total_weight','W0')
         self.declare_partials('total_weight','fuelburn')
         self.declare_partials('total_weight','load_factor')
-
-        self.set_check_partial_options(wrt='*', method='fd', form='central')
 
     def compute(self, inputs, outputs):
 
