@@ -3,13 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 class NonIntersectingThickness(ExplicitComponent):
     """
@@ -46,9 +39,9 @@ class NonIntersectingThickness(ExplicitComponent):
         self.add_input('radius', val=np.zeros((self.ny-1)), units='m')
         self.add_output('thickness_intersects', val=np.zeros((self.ny-1)), units='m')
 
-        mat = np.eye(self.ny-1)
-        self.declare_partials('thickness_intersects', 'thickness', val=mat)
-        self.declare_partials('thickness_intersects', 'radius', val=-mat)
+        arange = np.arange(self.ny-1)
+        self.declare_partials('thickness_intersects', 'thickness', rows=arange, cols=arange, val=1.)
+        self.declare_partials('thickness_intersects', 'radius', rows=arange, cols=arange, val=-1.)
 
     def compute(self, inputs, outputs):
         outputs['thickness_intersects'] = inputs['thickness'] - inputs['radius']

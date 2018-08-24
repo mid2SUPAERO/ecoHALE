@@ -1,4 +1,4 @@
-from openmdao.api import Group, LinearRunOnce
+from openmdao.api import Group, LinearRunOnce, DirectSolver
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -9,6 +9,7 @@ class AeroPoint(Group):
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
+        self.options.declare('user_specified_Sref', types=bool, default=False)
 
     def setup(self):
         surfaces = self.options['surfaces']
@@ -66,6 +67,6 @@ class AeroPoint(Group):
                     promotes_inputs=["v", "alpha", "M", "re", "rho"])
 
         self.add_subsystem('total_perf',
-            TotalAeroPerformance(surfaces=surfaces),
+            TotalAeroPerformance(surfaces=surfaces,user_specified_Sref=self.options['user_specified_Sref']),
             promotes_inputs=['v', 'rho', 'cg', 'S_ref_total'],
             promotes_outputs=['CM', 'CL', 'CD'])

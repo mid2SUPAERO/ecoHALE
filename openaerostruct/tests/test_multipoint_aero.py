@@ -3,15 +3,7 @@ from openmdao.utils.assert_utils import assert_rel_error
 import numpy as np
 import unittest
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
-@unittest.skipUnless(fortran_flag, "Fortran is required.")
 class Test(unittest.TestCase):
 
     def test(self):
@@ -146,10 +138,12 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
+        # print('gona check')
         # prob.run_model()
+        # prob.check_partials(compact_print=True)
+        # exit()
         prob.run_driver()
 
-        # prob.check_partials(compact_print=True)
 
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.45, 1e-6)
         assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03231556149303963, 1e-6)

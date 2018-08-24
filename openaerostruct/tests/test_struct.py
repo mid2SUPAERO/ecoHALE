@@ -45,7 +45,8 @@ class Test(unittest.TestCase):
                     't_over_c_cp' : np.array([0.15]),      # maximum airfoil thickness
                     'thickness_cp' : np.ones((3)) * .1,
                     'wing_weight_ratio' : 2.,
-
+                    'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
+                    'distributed_fuel_weight' : False,
                     'exact_failure_constraint' : False,
                     }
 
@@ -70,13 +71,14 @@ class Test(unittest.TestCase):
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['disp'] = True
+        prob.driver.options['tol'] = 1e-9
 
         recorder = SqliteRecorder('struct.db')
         prob.driver.add_recorder(recorder)
         prob.driver.recording_options['record_derivatives'] = True
 
         # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+        prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, ref=1e-1)
         prob.model.add_constraint('wing.failure', upper=0.)
         prob.model.add_constraint('wing.thickness_intersects', upper=0.)
 
@@ -84,8 +86,11 @@ class Test(unittest.TestCase):
         prob.model.add_objective('wing.structural_weight', scaler=1e-5)
 
         # Set up the problem
-        prob.setup()
+        prob.setup(force_alloc_complex=False)
 
+        # prob.run_model()
+        # prob.check_partials(compact_print=False, method='fd')
+        # exit()
         prob.run_driver()
 
         assert_rel_error(self, prob['wing.structural_weight'][0], 697377.8734430908, 1e-8)

@@ -66,7 +66,8 @@ class Test(unittest.TestCase):
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1.,
-
+                    'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
+                    'distributed_fuel_weight' : False,
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
@@ -139,7 +140,6 @@ class Test(unittest.TestCase):
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
-                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.radius', com_name + '.radius')
@@ -173,7 +173,7 @@ class Test(unittest.TestCase):
         prob.run_driver()
 
         assert_rel_error(self, prob['AS_point_0.wing_perf.CL'][0], 0.469152412337, 1e-6)
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 95396.2868311, 1e-6)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 95396.2868311, 1.5e-6)
         assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 0., 1e-6)
         assert_rel_error(self, prob['AS_point_0.CM'][1], -0.13357819566, 1e-4)
 

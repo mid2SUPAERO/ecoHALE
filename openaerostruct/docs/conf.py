@@ -1,27 +1,19 @@
 # -*- coding: utf-8 -*-
 # This file is execfile()d with the current directory set to its
 # containing dir.
-import sys
 import os
+import sys
+import openmdao
 import importlib
 from mock import Mock
 from openmdao.docs.config_params import MOCK_MODULES
-#from openaerostruct.docs._utils.patch import do_monkeypatch
-#from openaerostruct.docs._utils.generate_sourcedocs import generate_docs
-from openmdao.docs._utils.patch import do_monkeypatch
-from openmdao.docs._utils.generate_sourcedocs import generate_docs
 
-# import openaerostruct
-# openaerostruct_path = os.path.split(os.path.abspath(openaerostruct.__file__))[0]
-# sys.path.insert(0, os.path.join(openaerostruct_path, 'docs', '_exts'))
-import openmdao
+from openmdao.docutils import do_monkeypatch, generate_docs, embed_code, embed_options, embed_compare
+
 openmdao_path = os.path.split(os.path.abspath(openmdao.__file__))[0]
 sys.path.insert(0, os.path.join(openmdao_path, 'docs', '_exts'))
-
-
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('.'))
-
 
 # Only mock the ones that don't import.
 for mod_name in MOCK_MODULES:
@@ -30,9 +22,7 @@ for mod_name in MOCK_MODULES:
     except ImportError:
         sys.modules[mod_name] = Mock()
 
-
 do_monkeypatch()
-
 
 # -- General configuration ------------------------------------------------
 

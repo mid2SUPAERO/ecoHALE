@@ -98,10 +98,10 @@ class LoadTransfer(ExplicitComponent):
             # Compute the loads based on the xyz forces and the computed moments
             loads = np.zeros((self.ny, 6))
             sec_forces_sum = np.sum(sec_forces, axis=0)
-            loads[:-1, :3] += 0.5 * sec_forces_sum[:, :]
-            loads[ 1:, :3] += 0.5 * sec_forces_sum[:, :]
-            loads[:-1, 3:] += 0.5 * moment
-            loads[ 1:, 3:] += 0.5 * moment
+            loads[:-1, :3] = loads[:-1, :3] + 0.5 * sec_forces_sum[:, :]
+            loads[ 1:, :3] = loads[ 1:, :3] + 0.5 * sec_forces_sum[:, :]
+            loads[:-1, 3:] = loads[:-1, 3:] + 0.5 * moment
+            loads[ 1:, 3:] = loads[ 1:, 3:] + 0.5 * moment
 
         outputs['loads'] = loads
 

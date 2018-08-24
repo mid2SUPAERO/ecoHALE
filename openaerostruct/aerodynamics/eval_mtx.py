@@ -172,6 +172,7 @@ class EvalVelMtx(ExplicitComponent):
                 ])
                 self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
 
+
             self.declare_partials(vel_mtx_name, 'alpha', method='fd')
             self.add_output(vel_mtx_name, shape=(num_eval_points, nx - 1, ny - 1, 3), units='1/m')
             self.set_check_partial_options(wrt='*', method='fd')

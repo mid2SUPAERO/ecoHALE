@@ -10,13 +10,6 @@ from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructP
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = complex
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
 # These should be for an airfoil with the chord scaled to 1.
@@ -29,7 +22,6 @@ lower_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0
 upper_y = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541], dtype = 'complex128')
 lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515, -0.0524, -0.0532, -0.054, -0.0547, -0.0554, -0.056, -0.0565, -0.057, -0.0575, -0.0579, -0.0583, -0.0586, -0.0589, -0.0592, -0.0594, -0.0595, -0.0596, -0.0597, -0.0598, -0.0598, -0.0598, -0.0598, -0.0597, -0.0596, -0.0594, -0.0592, -0.0589, -0.0586, -0.0582, -0.0578, -0.0573, -0.0567, -0.0561, -0.0554, -0.0546, -0.0538, -0.0529, -0.0519, -0.0509, -0.0497, -0.0485, -0.0472, -0.0458, -0.0444], dtype = 'complex128')
 
-@unittest.skipUnless(fortran_flag, "Fortran is required.")
 class Test(unittest.TestCase):
 
     def test(self):
@@ -84,7 +76,7 @@ class Test(unittest.TestCase):
                     'original_wingbox_airfoil_t_over_c' : 0.12,
                     'c_max_t' : .38,       # chordwise location of maximum thickness
                     'with_viscous' : True,
-                    'with_wave' : False,     # if true, compute wave drag
+                    'with_wave' : True,     # if true, compute wave drag
 
                     # Structural values are based on aluminum 7075
                     'E' : 73.1e9,              # [Pa] Young's modulus
@@ -94,7 +86,8 @@ class Test(unittest.TestCase):
                     'strength_factor_for_upper_skin' : 1.0, # the yield stress is multiplied by this factor for the upper skin
                     # 'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1.25,
-
+                    'struct_weight_relief' : True,    # True to add the weight of the structure to the loads on the structure
+                    'distributed_fuel_weight' : False,
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
@@ -168,6 +161,7 @@ class Test(unittest.TestCase):
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
                 prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
+                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.nodes', com_name + 'nodes')
@@ -210,8 +204,13 @@ class Test(unittest.TestCase):
         #                         hierarchical=False,
         #                         print_arrays=True)
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 114321.532838, 1e-5)
+        # print(prob['AS_point_0.fuelburn'][0])
+        # print(prob['wing.structural_weight'][0]/1.25)
+        # print(prob['AS_point_0.wing_perf.failure'][0])
+
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112532.399999, 1e-5)
         assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235533.421185, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 1.70644139941, 1e-5)
 
 
 if __name__ == '__main__':

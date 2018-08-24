@@ -61,13 +61,18 @@ class Aerostruct(Group):
             self.add_subsystem('wingbox_group',
                 WingboxGroup(surface=surface),
                 promotes_inputs=['mesh', 't_over_c'],
-                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
+                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
+        if surface['fem_model_type'] == 'wingbox':
+            promotes = ['A_int']
+        else:
+            promotes = []
+
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'] + promotes,
             promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
 
 class CoupledAS(Group):
@@ -78,9 +83,15 @@ class CoupledAS(Group):
     def setup(self):
         surface = self.options['surface']
 
+        promotes = []
+        if surface['struct_weight_relief']:
+            promotes = promotes + list(set(['nodes', 'element_weights']))
+        if surface['distributed_fuel_weight']:
+            promotes = promotes + list(set(['nodes', 'load_factor']))
+
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads', 'element_weights'], promotes_outputs=['disp'])
+            promotes_inputs=['K', 'forces', 'loads'] + promotes, promotes_outputs=['disp'])
 
         self.add_subsystem('def_mesh',
             DisplacementTransfer(surface=surface),
@@ -122,6 +133,8 @@ class AerostructPoint(Group):
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
+        self.options.declare('user_specified_Sref', types=bool, default=False)
+        self.options.declare('internally_connect_fuelburn', types=bool, default=True)
 
     def setup(self):
         surfaces = self.options['surfaces']
@@ -179,7 +192,12 @@ class AerostructPoint(Group):
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
 
-            coupled.add_subsystem(name, coupled_AS_group)
+            if surface['distributed_fuel_weight']:
+                promotes = ['load_factor']
+            else:
+                promotes = []
+
+            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=promotes)
 
             # TODO: add this info to the options
             # prob.model.add_options(surface['name'] + 'yield_stress', surface['yield'])
@@ -239,6 +257,8 @@ class AerostructPoint(Group):
         # Note that only the interesting results are promoted here; not all
         # of the parameters.
         self.add_subsystem('total_perf',
-                 TotalPerformance(surfaces=surfaces),
-                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor'],
+                 TotalPerformance(surfaces=surfaces,
+                 user_specified_Sref=self.options['user_specified_Sref'],
+                 internally_connect_fuelburn=self.options['internally_connect_fuelburn']),
+                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'S_ref_total'],
                  promotes_outputs=['L_equals_W', 'fuelburn', 'CM', 'cg'])

@@ -3,13 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-except:
-    fortran_flag = False
 
-data_type = float
 np.random.seed(314)
 
 class VLMGeometry(ExplicitComponent):
@@ -62,9 +56,7 @@ class VLMGeometry(ExplicitComponent):
 
         self.declare_partials('*', '*')
 
-        if not fortran_flag:
-            self.declare_partials('normals', 'def_mesh', method='fd')
-            self.declare_partials('S_ref', 'def_mesh', method='fd')
+        self.declare_partials('S_ref', 'def_mesh', method='cs')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']
@@ -122,7 +114,7 @@ class VLMGeometry(ExplicitComponent):
                 axis=2)
 
             proj_norms = np.sqrt(np.sum(proj_normals**2, axis=2))
-            for j in xrange(3):
+            for j in range(3):
                 proj_normals[:, :, j] /= proj_norms
 
             S_ref = 0.5 * np.sum(proj_norms)
@@ -151,29 +143,6 @@ class VLMGeometry(ExplicitComponent):
         nx = self.nx
         ny = self.ny
         mesh = inputs['def_mesh']
-
-        if fortran_flag:
-
-            normalsb = np.zeros((nx-1, ny-1, 3))
-            for i in range(nx-1):
-                for j in range(ny-1):
-                    for ind in range(3):
-                        normalsb[:, :, :] = 0.
-                        normalsb[i, j, ind] = 1.
-                        meshb, _, _ = OAS_API.oas_api.compute_normals_b(mesh, normalsb, 0.)
-                        partials['normals', 'def_mesh'][i*(ny-1)*3 + j*3 + ind, :] = meshb.flatten()
-
-            normalsb[:, :, :] = 0.
-            if self.surface['S_ref_type'] == 'wetted':
-                seed_mesh = mesh
-            elif self.surface['S_ref_type'] == 'projected':
-                seed_mesh = mesh.copy()
-                seed_mesh[:, :, 2] = 0.
-            meshb, _, _ = OAS_API.oas_api.compute_normals_b(seed_mesh, normalsb, 1.)
-
-            partials['S_ref', 'def_mesh'] = np.atleast_2d(meshb.flatten())
-            if self.surface['symmetry']:
-                partials['S_ref', 'def_mesh'] *= 2
 
         for iz, v in zip((0, ny*3), (.75, .25)):
             np.fill_diagonal(partials['b_pts', 'def_mesh'][:, iz:], v)
@@ -244,3 +213,71 @@ class VLMGeometry(ExplicitComponent):
             partials['chords', 'def_mesh'][i, te_ind + i*3 + 1] -= dy / l
             partials['chords', 'def_mesh'][i, le_ind + i*3 + 2] += dz / l
             partials['chords', 'def_mesh'][i, te_ind + i*3 + 2] -= dz / l
+
+        partials['normals', 'def_mesh'] = np.zeros_like(partials['normals', 'def_mesh'])
+        # Partial of f=normals w.r.t. to x=def_mesh
+        #   f has shape (nx-1, ny-1, 3)
+        #   x has shape (nx, ny, 3)
+        for i in range(nx-1):
+            for j in range(ny-1):
+                # Redo original computation
+                ll = mesh[i, j, :]      # leading-left node
+                lr = mesh[i, j+1, :]    # leading-right node
+                tl = mesh[i+1, j, :]    # trailing-left node
+                tr = mesh[i+1, j+1, :]  # trailing-right node
+
+                a = lr - tl
+                b = ll - tr
+                c = np.cross(a, b)
+                n = np.sqrt(np.sum(c**2))
+                # f = c / n
+
+                # Now let's work backwards to get derivative
+                # dfdc = (dcdc * n - c * dndc) / n**2
+                dcdc = np.eye(3)
+                dndc = c / n
+                dfdc = (dcdc * n - np.einsum('i,j', c, dndc)) / n**2
+
+                # dfdc is now a 3x3 jacobian with f along the rows and c along
+                # the columns
+
+                # The next step is to get dcda and dcdb, both of which will be
+                # 3x3 jacobians with c along the rows
+                dcda = np.array([[0, b[2], -b[1]],
+                                [-b[2], 0, b[0]],
+                                [b[1], -b[0], 0]])
+                dcdb = np.array([[0, -a[2], a[1]],
+                                [a[2], 0, -a[0]],
+                                [-a[1], a[0], 0]])
+
+                # Now let's do some matrix multiplication to get dfda and dfdb
+                dfda = np.einsum('ij,jk->ik', dfdc, dcda)
+                dfdb = np.einsum('ij,jk->ik', dfdc, dcdb)
+
+                # Now we need to get dadlr, dadtl, dbdll, and dbdtr and put them
+                # in the right indices of the big jacobian dfdx
+
+                # These are the indices of the first and last components of f
+                # for the current i and j
+                if0 = (i*(ny-1)+j)*3
+                if2 = (i*(ny-1)+j)*3+2
+
+                # Partial f w.r.t. lr
+                ix0 = (i*ny+j+1)*3      # First index of lr for current i and j
+                ix2 = (i*ny+j+1)*3+2    # Last index of lr for current i and j
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfda[:,:]
+
+                # Partial f w.r.t. tl
+                ix0 = ((i+1)*ny+j)*3    # First index of tl for current i and j
+                ix2 = ((i+1)*ny+j)*3+2  # Last index of tl for current i and j
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfda[:,:]
+
+                # Partial f w.r.t. ll
+                ix0 = (i*ny+j)*3        # First index of ll for current i and j
+                ix2 = (i*ny+j)*3+2      # Last index of ll for current i and j
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfdb[:,:]
+
+                # Partial f w.r.t. tr
+                ix0 = ((i+1)*ny+j+1)*3   # First index of tr for current i and j
+                ix2 = ((i+1)*ny+j+1)*3+2 # Last index of tr for current i and j
+                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfdb[:,:]

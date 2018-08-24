@@ -2,12 +2,12 @@ from openmdao.api import Problem, Group, IndepVarComp, view_model
 
 from six import iteritems
 from numpy.testing import assert_almost_equal
-from openmdao.utils.assert_utils import assert_rel_error
+from openmdao.utils.assert_utils import assert_rel_error, assert_check_partials
 import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat1, mat2,key,tol=1e-10):
+def view_mat(mat1, mat2, key='Title', tol=1e-10):
     """
     Helper function used to visually examine matrices. It plots mat1 and mat2 side by side,
     and shows the difference between the two.
@@ -20,14 +20,14 @@ def view_mat(mat1, mat2,key,tol=1e-10):
         The Jacobian computed by compute_partials
     key : str
         The name of the tuple (of, wrt) for which the Jacobian is computed
-    tol : float (Optional) 
+    tol : float (Optional)
         The tolerance, below which the two numbers are considered the same for
         plotting purposes.
 
     Returns
     -------
     CDw : float
-        Wave drag coefficient for the lifting surface computed using the 
+        Wave drag coefficient for the lifting surface computed using the
         Korn equation
     """
     import matplotlib.pyplot as plt
@@ -59,19 +59,19 @@ def view_mat(mat1, mat2,key,tol=1e-10):
     plt.suptitle(key)
     plt.show()
 
-def run_test(obj, comp, tol=1e-5, complex_flag=False):
+def run_test(test_obj, comp, complex_flag=False, compact_print=True, method='fd', step=1e-6, atol=1e-5, rtol=1e-5):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
 
     prob.run_model()
-    check = prob.check_partials(compact_print=True)
-    for key, subjac in iteritems(check[list(check.keys())[0]]):
-        if subjac['magnitude'].fd > 1e-6:
-            assert_rel_error(obj, subjac['rel error'].forward, 0., tol)
-            assert_rel_error(obj, subjac['rel error'].reverse, 0., tol)
-        elif np.isnan(subjac['magnitude'].fd):
-            raise ValueError('Derivative magnitude is NaN')
+
+    if method=='cs':
+        step = 1e-40
+
+    check = prob.check_partials(compact_print=compact_print, method=method, step=step)
+
+    assert_check_partials(check, atol=atol, rtol=rtol)
 
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
@@ -110,6 +110,9 @@ def get_default_surfaces():
                  'mrho' : 3.e3,          # [kg/m^3] material density
                  'fem_origin' : 0.35,    # normalized chordwise location of the spar
                  'wing_weight_ratio' : 2.,
+                 'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
+                 'distributed_fuel_weight' : False,    # True to add the weight of the structure to the loads on the structure
+                 'Wf_reserve' : 10000.,
 
                  }
 

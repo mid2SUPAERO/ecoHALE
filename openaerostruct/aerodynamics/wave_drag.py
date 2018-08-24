@@ -50,7 +50,7 @@ class WaveDrag(ExplicitComponent):
         self.add_input('widths', val=np.arange((ny-1))+1., units='m') # set to np.arange so that d_CDw_d_chords is nonzero
         self.add_input('CL', val=0.33)
         self.add_input('chords', val=np.ones((ny)), units='m')
-        self.add_input('t_over_c', val=np.ones((ny-1)))
+        self.add_input('t_over_c', val=np.arange((ny-1)))
         self.add_output('CDw', val=0.)
 
         self.declare_partials('CDw', '*')
@@ -94,12 +94,12 @@ class WaveDrag(ExplicitComponent):
             chords = inputs['chords']
             CL = inputs['CL']
 
-            chords = np.mean((chords[:-1],chords[1:]))
+            chords = (chords[:-1] + chords[1:]) / 2.
             panel_areas = chords * inputs['cos_sweep']
             sum_panel_areas = np.sum(panel_areas)
             avg_cos_sweep = np.sum(actual_cos_sweep * panel_areas) / sum_panel_areas
             avg_t_over_c = np.sum(t_over_c * panel_areas) / sum_panel_areas
-            
+
             MDD = 0.95 / avg_cos_sweep - avg_t_over_c / avg_cos_sweep**2 - CL / (10*avg_cos_sweep**3)
             Mcrit = MDD - (0.1 / 80.)**(1./3.)
 
@@ -109,23 +109,28 @@ class WaveDrag(ExplicitComponent):
                 dMDDdavg = (-10*self.ka*avg_cos_sweep**2 + 20*avg_t_over_c*avg_cos_sweep+3*CL)/(10*avg_cos_sweep**4)
                 dMDDdtoc = -1./(avg_cos_sweep**2)
                 dtocavgdtoc = panel_areas / sum_panel_areas
+
                 ccos = np.sum(cos_sweep*chords)
                 ccos2w = np.sum(chords*cos_sweep**2/widths)
+
                 davgdcos = 2*chords*cos_sweep/widths/ccos - chords*ccos2w/ccos**2
+                dtocdcos = chords*t_over_c/ccos - chords*np.sum(chords*cos_sweep*t_over_c)/ccos**2
                 davgdw = -1*chords*cos_sweep**2/widths**2/ccos
                 davgdc = cos_sweep**2/widths/ccos - cos_sweep*ccos2w/ccos**2
-                #davgdc = np.atleast_2d(davgdc)
+                dtocdc = t_over_c*cos_sweep/ccos - cos_sweep*np.sum(chords*cos_sweep*t_over_c)/ccos**2
+
                 dcdchords = np.zeros((ny-1,ny))
                 i,j = np.indices(dcdchords.shape)
                 dcdchords[i==j] = 0.5
                 dcdchords[i==j-1] = 0.5
 
-
                 partials['CDw','M'] = -1*dCDwdMDD
                 partials['CDw','CL'] = dCDwdMDD * dMDDdCL
                 partials['CDw','widths'] = dCDwdMDD * dMDDdavg * davgdw
-                partials['CDw','cos_sweep'] = dCDwdMDD * dMDDdavg * davgdcos
-                partials['CDw','chords'] = dCDwdMDD * dMDDdavg * np.matmul(davgdc, dcdchords)
+                partials['CDw','cos_sweep'] = dCDwdMDD * dMDDdavg * davgdcos \
+                                              + dCDwdMDD * dMDDdtoc * dtocdcos
+                partials['CDw','chords'] = dCDwdMDD * dMDDdavg * np.matmul(davgdc, dcdchords) \
+                                           + dCDwdMDD * dMDDdtoc * np.matmul(dtocdc, dcdchords)
                 partials['CDw', 't_over_c'] = dCDwdMDD * dMDDdtoc * dtocavgdtoc
 
 
