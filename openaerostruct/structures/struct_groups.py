@@ -55,7 +55,7 @@ class SpatialBeamAlone(Group):
 
         promotes = []
         if surface['struct_weight_relief']:
-            promotes = promotes + list(set(['nodes', 'element_weights']))
+            promotes = promotes + list(set(['nodes', 'element_weights', 'load_factor']))
         if surface['distributed_fuel_weight']:
             promotes = promotes + list(set(['nodes', 'load_factor']))
 
