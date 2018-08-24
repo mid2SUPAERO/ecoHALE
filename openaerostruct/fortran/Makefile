@@ -8,7 +8,7 @@ default:
 	echo "config/defaults/ directory to the config/ directory and  "; \
 	echo "rename to config.mk. For example:"; \
 	echo " ";\
-	echo "  cp config/defaults/config.LINUX_INTEL.mk config/config.mk"; \
+	echo "  cp config/config-LINUX.mk config/config.mk"; \
 	echo " ";\
 	echo "The modify this config file as required. With the config file specified, rerun "; \
 	echo "'make' and the build will start"; \
