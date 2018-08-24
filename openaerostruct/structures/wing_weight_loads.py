@@ -33,13 +33,14 @@ class StructureWeightLoads(ExplicitComponent):
 
         self.add_input('element_weights', val=np.zeros((self.ny-1), dtype=complex), units='N')
         self.add_input('nodes', val=np.zeros((self.ny, 3), dtype=complex), units='m')
+        self.add_input('load_factor', val=1.05)
         self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6), dtype=complex), units='N')
 
         self.declare_partials('*', '*',  method='cs')
 
     def compute(self, inputs, outputs):
 
-        struct_weights = inputs['element_weights']
+        struct_weights = inputs['element_weights'] * inputs['load_factor']
         nodes = inputs['nodes']
 
         element_lengths = np.ones(self.ny - 1, dtype=complex)

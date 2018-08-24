@@ -162,6 +162,7 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
                 prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
                 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
+                prob.model.connect('load_factor', point_name + '.coupled.' + name + '.load_factor')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.nodes', com_name + 'nodes')
@@ -204,9 +205,9 @@ class Test(unittest.TestCase):
         #                         hierarchical=False,
         #                         print_arrays=True)
 
-        # print(prob['AS_point_0.fuelburn'][0])
-        # print(prob['wing.structural_weight'][0]/1.25)
-        # print(prob['AS_point_0.wing_perf.failure'][0])
+        print(prob['AS_point_0.fuelburn'][0])
+        print(prob['wing.structural_weight'][0]/1.25)
+        print(prob['AS_point_0.wing_perf.failure'][0])
 
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112532.399999, 1e-5)
         assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 235533.421185, 1e-5)
