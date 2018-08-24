@@ -164,6 +164,7 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
                 prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
                 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
+                # prob.model.connect('load_factor', point_name + '.coupled.' + name + '.load_factor')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.nodes', com_name + 'nodes')
