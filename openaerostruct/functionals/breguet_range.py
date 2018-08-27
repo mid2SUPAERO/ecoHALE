@@ -36,18 +36,19 @@ class BreguetRange(ExplicitComponent):
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
 
-        self.add_input('CT', val=1., units='1/s')
-        self.add_input('CL', val=1.)
-        self.add_input('CD', val=1.)
-        self.add_input('a', val=1., units='m/s')
-        self.add_input('R', val=1., units='m')
-        self.add_input('M', val=1.)
-        self.add_input('W0', val=1., units='kg')
-        self.add_input('load_factor', val=1.)
+        self.add_input('CT', val=0.25, units='1/s')
+        self.add_input('CL', val=0.7)
+        self.add_input('CD', val=0.02)
+        self.add_input('a', val=100., units='m/s')
+        self.add_input('R', val=3000., units='m')
+        self.add_input('M', val=1.2)
+        self.add_input('W0', val=200., units='kg')
+        self.add_input('load_factor', val=1.05)
 
         self.add_output('fuelburn', val=1., units='kg')
 
         self.declare_partials('*', '*')
+        self.set_check_partial_options(wrt='*', method='cs', step=1e-30)
 
     def compute(self, inputs, outputs):
 
@@ -68,10 +69,10 @@ class BreguetRange(ExplicitComponent):
         CL = inputs['CL']
         CD = inputs['CD']
 
-        fuelburn = (W0 + Ws) * (np.exp(R * CT / a / M * CD / CL) - 1)
+        fuelburn = (W0 + Ws * inputs['load_factor']) * (np.exp(R * CT / a / M * CD / CL) - 1)
 
         # Convert fuelburn from N to kg
-        outputs['fuelburn'] = fuelburn / g
+        outputs['fuelburn'] = fuelburn / 9.80665
 
     def compute_partials(self, inputs, partials):
 
@@ -90,31 +91,31 @@ class BreguetRange(ExplicitComponent):
         CL = inputs['CL']
         CD = inputs['CD']
 
-        dfb_dCL = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dCL = -(W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M * CD / CL ** 2
-        dfb_dCD = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dCD = (W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M / CL
-        dfb_dCT = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dCT = (W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
             * R / a / M / CL * CD
-        dfb_dR = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dR = (W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
             / a / M / CL * CD * CT
-        dfb_da = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_da = -(W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a**2 / M * CD / CL
-        dfb_dM = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dM = -(W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M**2 * CD / CL
 
         dfb_dW = np.exp(R * CT / a / M * CD / CL) - 1
 
-        partials['fuelburn', 'CL'] = dfb_dCL / g
-        partials['fuelburn', 'CD'] = dfb_dCD / g
-        partials['fuelburn', 'CT'] = dfb_dCT / g
-        partials['fuelburn', 'a'] = dfb_da / g
-        partials['fuelburn', 'R'] = dfb_dR / g
-        partials['fuelburn', 'M'] = dfb_dM / g
-        partials['fuelburn', 'W0'] = dfb_dW
-        partials['fuelburn', 'load_factor'] = - Ws * dfb_dW / 9.80665 / inputs['load_factor']**2
+        partials['fuelburn', 'CL'] = dfb_dCL / 9.80665
+        partials['fuelburn', 'CD'] = dfb_dCD / 9.80665
+        partials['fuelburn', 'CT'] = dfb_dCT / 9.80665
+        partials['fuelburn', 'a'] = dfb_da / 9.80665
+        partials['fuelburn', 'R'] = dfb_dR / 9.80665
+        partials['fuelburn', 'M'] = dfb_dM / 9.80665
+        partials['fuelburn', 'W0'] = dfb_dW * inputs['load_factor']
+        partials['fuelburn', 'load_factor'] = (W0 / inputs['load_factor'] + Ws) * dfb_dW / 9.80665
 
         for surface in self.options['surfaces']:
             name = surface['name']
             inp_name = name + '_structural_weight'
-            partials['fuelburn', inp_name] = dfb_dW / g
+            partials['fuelburn', inp_name] = dfb_dW / 9.80665 * inputs['load_factor']

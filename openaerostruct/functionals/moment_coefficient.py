@@ -3,14 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-try:
-    from openaerostruct.fortran import OAS_API
-    fortran_flag = True
-    data_type = float
-except:
-    fortran_flag = False
-    data_type = float
-
 
 class MomentCoefficient(ExplicitComponent):
     """
@@ -66,10 +58,7 @@ class MomentCoefficient(ExplicitComponent):
 
         self.add_output('CM', val=np.ones((3)))
 
-        self.declare_partials('*', '*')
-
-        if not fortran_flag:
-            self.declare_partials('*', '*', method='cs')
+        self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
         rho = inputs['rho']
@@ -102,30 +91,24 @@ class MomentCoefficient(ExplicitComponent):
             if surface['symmetry']:
                 MAC *= 2
 
-            if fortran_flag:
-                M_tmp = OAS_API.oas_api.momentcalc(b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'])
-                M += M_tmp
+            # Get the moment arm acting on each panel, relative to the cg
+            pts = (inputs[name + '_b_pts'][:, 1:, :] + \
+                inputs[name + '_b_pts'][:, :-1, :]) / 2
+            diff = (pts - cg) / MAC
 
-            else:
+            # Compute the moment based on the previously computed moment
+            # arm and the section forces
+            moment = np.zeros((ny - 1, 3))
+            for ind in range(nx-1):
+                moment = moment + np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
-                # Get the moment arm acting on each panel, relative to the cg
-                pts = (inputs[name + '_b_pts'][:, 1:, :] + \
-                    inputs[name + '_b_pts'][:, :-1, :]) / 2
-                diff = (pts - cg) / MAC
-
-                # Compute the moment based on the previously computed moment
-                # arm and the section forces
-                moment = np.zeros((ny - 1, 3))
-                for ind in range(nx-1):
-                    moment = moment + np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
-
-                # If the surface is symmetric, set the x- and z-direction moments
-                # to 0 and double the y-direction moment
-                if surface['symmetry']:
-                    moment[:, 0] = 0.
-                    moment[:, 1] *= 2
-                    moment[:, 2] = 0.
-                M = M + np.sum(moment, axis=0)
+            # If the surface is symmetric, set the x- and z-direction moments
+            # to 0 and double the y-direction moment
+            if surface['symmetry']:
+                moment[:, 0] = 0.
+                moment[:, 1] *= 2
+                moment[:, 2] = 0.
+            M = M + np.sum(moment, axis=0)
 
             # For the first (main) lifting surface, we save the MAC to correctly
             # normalize CM
@@ -137,76 +120,3 @@ class MomentCoefficient(ExplicitComponent):
 
         # Compute the normalized CM
         outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * inputs['S_ref_total'] * self.MAC_wing)
-
-    if fortran_flag:
-        def compute_partials(self, inputs, partials):
-            cg = inputs['cg']
-            rho = inputs['rho']
-            v = inputs['v']
-
-            # Here we just use the reverse mode AD results to compute the
-            # Jacobian since we'll always have much fewer outputs than inputs
-            for j in range(3):
-                CMb = np.zeros((3))
-                CMb[j] = 1.
-
-                partials['CM', 'cg'][j, :] = 0.
-                partials['CM', 'rho'][j] = 0.
-                partials['CM', 'v'][j] = 0.
-
-                for i, surface in enumerate(self.options['surfaces']):
-                    name = surface['name']
-                    ny = surface['num_y']
-
-                    b_pts = inputs[name + '_b_pts']
-                    widths = inputs[name + '_widths']
-                    chords = inputs[name + '_chords']
-                    S_ref = inputs[name + '_S_ref']
-                    sec_forces = inputs[name + '_sec_forces']
-
-                    if i == 0:
-                        panel_chords = (chords[1:] + chords[:-1]) / 2.
-                        MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
-                        if surface['symmetry']:
-                            MAC *= 2
-                        temp1 = inputs['S_ref_total'] * MAC
-                        temp0 = 0.5 * rho * v**2
-                        temp = temp0 * temp1
-                        tempb = np.sum(-(self.M * CMb / temp)) / temp
-                        Mb = CMb / temp
-                        Mb_master = Mb.copy()
-                        partials['CM', 'rho'][j] += v**2*temp1*0.5*tempb
-                        partials['CM', 'v'][j] += 0.5*rho*temp1*2*v*tempb
-                        macb = temp0 * inputs['S_ref_total'] * tempb
-                        if surface['symmetry']:
-                            macb *= 2
-                        chordsb = np.zeros((ny))
-                        tempb0 = macb / S_ref
-                        panel_chordsb = 2*panel_chords*widths*tempb0
-                        widthsb = panel_chords**2*tempb0
-                        sb = -np.sum(panel_chords**2*widths)*tempb0/S_ref
-                        chordsb[1:] += panel_chordsb/2.
-                        chordsb[:-1] += panel_chordsb/2.
-                        cb = chordsb
-                        wb = widthsb
-
-                    else:
-                        cb = 0.
-                        wb = 0.
-                        sb = 0.
-                        Mb = Mb_master.copy()
-
-                    bptsb, cgb, chordsb, widthsb, S_refb, sec_forcesb, _ = \
-                        OAS_API.oas_api.momentcalc_b(
-                            b_pts, cg, chords, widths, S_ref, sec_forces, surface['symmetry'], Mb)
-
-                    partials['CM', 'cg'][j, :] += cgb
-                    partials['CM', name + '_b_pts'][j, :] = bptsb.flatten()
-                    partials['CM', name + '_chords'][j, :] = chordsb + cb
-                    partials['CM', name + '_widths'][j, :] = widthsb + wb
-                    partials['CM', name + '_sec_forces'][j, :] = sec_forcesb.flatten()
-                    partials['CM', name + '_S_ref'][j, :] = S_refb + sb
-
-            # Need to recompute M
-            self.compute(inputs, {})
-            partials['CM', 'S_ref_total'] = -self.M / (0.5 * rho * inputs['v']**2 * inputs['S_ref_total']**2 * self.MAC_wing)

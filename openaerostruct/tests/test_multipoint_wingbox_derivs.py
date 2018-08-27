@@ -95,8 +95,8 @@ class Test(unittest.TestCase):
                     'distributed_fuel_weight' : True,
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
-                    'fuel_density' : 803.,
-                    'Wf_reserve' :15000.,
+                    'fuel_density' : 803.,      # [kg/m^3] fuel density (only needed if the fuel-in-wing volume constraint is used)
+                    'Wf_reserve' :15000.,       # [kg] reserve fuel mass
                     }
 
         surfaces = [surf_dict]
@@ -113,7 +113,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('rho', val=0.348, units='kg/m**3')
         indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
         indep_var_comp.add_output('R', val=14.307e6, units='m')
-        indep_var_comp.add_output('W0', val=(143000 - 2.5*11600 + 34000) + 15000,  units='kg')
+        indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
         indep_var_comp.add_output('a', val=295.07, units='m/s')
         indep_var_comp.add_output('load_factor', val=np.array([1., 2.5]))
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
@@ -142,7 +142,7 @@ class Test(unittest.TestCase):
             # Connect the parameters within the model for each aero point
 
             # Create the aero point group and add it to the model
-            AS_point = AerostructPoint(surfaces=surfaces)
+            AS_point = AerostructPoint(surfaces=surfaces, internally_connect_fuelburn=False)
 
             prob.model.add_subsystem(point_name, AS_point)
 
@@ -158,6 +158,8 @@ class Test(unittest.TestCase):
             prob.model.connect('a', point_name + '.a')
             prob.model.connect('empty_cg', point_name + '.empty_cg')
             prob.model.connect('load_factor', point_name + '.load_factor', src_indices=[i])
+            prob.model.connect('fuel_mass', point_name + '.total_perf.L_equals_W.fuelburn')
+            prob.model.connect('fuel_mass', point_name + '.total_perf.CG.fuelburn')
 
             for surface in surfaces:
 

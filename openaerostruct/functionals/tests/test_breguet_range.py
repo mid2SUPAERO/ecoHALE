@@ -11,7 +11,7 @@ class Test(unittest.TestCase):
 
         comp = BreguetRange(surfaces=surfaces)
 
-        run_test(self, comp)
+        run_test(self, comp, complex_flag=True)
 
 
 if __name__ == '__main__':
