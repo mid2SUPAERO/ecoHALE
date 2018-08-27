@@ -19,7 +19,7 @@ class Weight(ExplicitComponent):
     structural_weight : float
         Weight of the structural spar.
     elmenet_weight[ny-1] : float
-        weight of each elemnet 
+        weight of each elemnet
 
     """
 
@@ -34,13 +34,13 @@ class Weight(ExplicitComponent):
         self.add_input('A', val=np.ones((self.ny - 1)), units='m**2')
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('load_factor', val=1.)
-        
+
         self.add_output('structural_weight', val=0., units='N')
         self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')
 
         self.declare_partials('structural_weight', ['A','nodes','load_factor'])
 
-        
+
         self.declare_partials('element_weights', 'load_factor')
         row_col = np.arange(self.ny-1, dtype=int)
         self.declare_partials('element_weights','A', rows=row_col, cols=row_col)
@@ -51,11 +51,9 @@ class Weight(ExplicitComponent):
         for i in range (ny-1):
             rows[i*dimensions*2:(i+1)*dimensions*2] = i
             cols[i*dimensions*2:(i+1)*dimensions*2] = np.linspace(i*dimensions,i*dimensions+(dimensions*2-1),dimensions*2)
-        print('rows',rows)
-        print('cols',cols)
         self.declare_partials('element_weights','nodes', rows=rows, cols=cols)
-        
-        #self.set_check_partial_options('*', method='cs', step=1e-40)
+
+        self.set_check_partial_options('*', method='cs', step=1e-40)
 
     def compute(self, inputs, outputs):
         A = inputs['A']
@@ -65,7 +63,11 @@ class Weight(ExplicitComponent):
         lf = inputs['load_factor']
 
         # Calculate the volume and weight of the structure
-        element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
+        # element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
+        #JSG: np.linalg.norm is not complex-safe, so implemeting this a different way
+        tmp = nodes[1:, :] - nodes[:-1, :]
+        element_volumes = np.sqrt(np.sum(tmp**2, axis=1)) * A
+
         # nodes[1:, :] - nodes[:-1, :] this is the delta array of the differents between the points
         element_weights = element_volumes * mrho * 9.81 * wwr * lf
         weight = np.sum(element_weights)
@@ -90,15 +92,10 @@ class Weight(ExplicitComponent):
 
         # Calculate the volume and weight of the structure
         const0 = nodes[1:, :] - nodes[:-1, :]
-        print('cost0',const0)
         const1 = np.linalg.norm(const0, axis=1)
-        print('const1',const1)
-        print('A',A)
         element_volumes = const1 * A
-        print('element_volumes',element_volumes)
         volume = np.sum(element_volumes)
         const2 = mrho * 9.81 * wwr * lf
-        print('const2',const2)
         weight = volume * const2
 
         # First we will solve for dweight_dA
@@ -134,23 +131,21 @@ class Weight(ExplicitComponent):
 
         # Store the flattened array in the jacobian dictionary
         partials['structural_weight', 'nodes'] = nodesb.reshape(1, -1)
-        
+
         # Element_weight Partials
         partials['element_weights','A'] = const1 * const2
         partials['element_weights','load_factor'] = const1 * A * mrho * 9.81 * wwr
-        
+
         precalc = np.sum(np.power(const0,2),axis=1)
-        print('precalc',precalc)
         d__dprecalc = 0.5 * precalc**(-.5)
-        print('d__dprecalc',d__dprecalc)
-        
+
         dimensions = 3
         for i in range(ny-1):
-            first_part = const0[i,:] * d__dprecalc[i] * 2 * (-1) * A[i] * const2 
+            first_part = const0[i,:] * d__dprecalc[i] * 2 * (-1) * A[i] * const2
             second_part = const0[i,:] * d__dprecalc[i] * 2 * A[i] * const2
             partials['element_weights', 'nodes'][i*dimensions*2:(i+1)*dimensions*2] = np.append(first_part,second_part)
-            
-        #dew__dprecalc = 
-        
-        
-        
+
+        #dew__dprecalc =
+
+
+
