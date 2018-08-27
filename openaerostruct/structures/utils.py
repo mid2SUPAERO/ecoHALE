@@ -10,8 +10,8 @@ except:
     fortran_flag = False
     data_type = complex
 
-def norm(vec):
-    return np.sqrt(np.sum(vec**2))
+def norm(vec, axis=None):
+    return np.sqrt(np.sum(vec**2, axis=axis))
 
 def unit(vec):
     return vec / norm(vec)

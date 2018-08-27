@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import numpy as np
 
 from openmdao.api import ExplicitComponent
+from openaerostruct.structures.utils import norm
 
 
 class Weight(ExplicitComponent):
@@ -63,12 +64,9 @@ class Weight(ExplicitComponent):
         lf = inputs['load_factor']
 
         # Calculate the volume and weight of the structure
-        # element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
-        #JSG: np.linalg.norm is not complex-safe, so implemeting this a different way
-        tmp = nodes[1:, :] - nodes[:-1, :]
-        element_volumes = np.sqrt(np.sum(tmp**2, axis=1)) * A
+        element_volumes = norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
 
-        # nodes[1:, :] - nodes[:-1, :] this is the delta array of the differents between the points
+        # nodes[1:, :] - nodes[:-1, :] this is the delta array of the different between the points
         element_weights = element_volumes * mrho * 9.81 * wwr * lf
         weight = np.sum(element_weights)
 

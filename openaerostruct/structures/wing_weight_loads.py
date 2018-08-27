@@ -47,9 +47,12 @@ class StructureWeightLoads(ExplicitComponent):
         for i in range(self.ny - 1):
             element_lengths[i] = norm(nodes[i+1] - nodes[i])
 
+        print(nodes.shape)
+        print(element_lengths)
         # And we also need the deltas between consecutive nodes
         deltas = nodes[1:, :] - nodes[:-1, :]
-
+        print(deltas)
+        exit()
         # Assume weight coincides with the elastic axis
         z_forces_for_each = struct_weights / 2.
         z_moments_for_each = struct_weights * element_lengths / 12. \
