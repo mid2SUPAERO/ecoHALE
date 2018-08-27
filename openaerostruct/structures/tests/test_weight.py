@@ -24,7 +24,7 @@ class Test(unittest.TestCase):
         group.add_subsystem('ivc', ivc, promotes=['*'])
         group.add_subsystem('comp', comp, promotes=['*'])
 
-        run_test(self, group)
+        run_test(self, group, compact_print=False, complex_flag=True)
 
 
 if __name__ == '__main__':
