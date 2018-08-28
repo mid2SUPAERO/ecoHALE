@@ -121,8 +121,6 @@ class EvalVelMtx(ExplicitComponent):
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
 
-            # TODO: these derivatives for the symmetry case are not correct.
-            # Using cs for now.
             if surface['symmetry']:
                 self.add_input(vectors_name, shape=(num_eval_points, nx, 2*ny-1, 3), units='m')
 
@@ -249,9 +247,6 @@ class EvalVelMtx(ExplicitComponent):
                 outputs[vel_mtx_name][:, -1:, :, :] += result1
                 outputs[vel_mtx_name][:, -1:, :, :] -= result2
                 outputs[vel_mtx_name][:, -1:, :, :] += result3
-
-    ### This is currently commented out because we don't have the analytic derivatives
-    ### figured out for the symmetry==True case.
 
     def compute_partials(self, inputs, partials):
         surfaces = self.options['surfaces']

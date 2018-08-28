@@ -3,7 +3,6 @@ import unittest
 from openaerostruct.aerodynamics.eval_mtx import EvalVelMtx
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
-z
 class Test(unittest.TestCase):
 
     def test(self):
