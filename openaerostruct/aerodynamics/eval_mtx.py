@@ -129,18 +129,16 @@ class EvalVelMtx(ExplicitComponent):
                 vel_mtx_indices = np.arange(num_eval_points * (nx - 1) * (ny - 1) * 3).reshape(
                     (num_eval_points, nx - 1, ny - 1, 3))
 
-                rows = np.tile(np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(), 8)
+                base = np.tile(np.repeat(np.arange(3), 3), ny-1)
+                block1 = base + np.repeat(3*np.arange(ny-1), 9)
+                block2 = base + np.flip(np.repeat(3*np.arange(ny-1), 9), axis=0)
+                block3 = np.concatenate([block1, block2])
+                block4 = np.tile(block3, nx-1)
+                block5 = block4 + np.repeat(3*(ny-1)*np.arange(nx-1), len(block3))
+                block6 = np.tile(block5, num_eval_points)
+                row = block6 + np.repeat(3*(ny-1)*(nx-1)*np.arange(num_eval_points), len(block5))
 
-                cols = np.concatenate([
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, :ny-1, :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, -2:ny-2:-1, :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , :ny-1, :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , -2:ny-2:-1, :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 1:ny  , :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, -1:ny-1:-1 , :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 1:ny  , :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , -1:ny-1:-1 , :], np.ones(3, int)).flatten(),
-                ])
+                rows = np.tile(row, 4)
 
             else:
                 self.add_input(vectors_name, shape=(num_eval_points, nx, ny, 3), units='m')
@@ -152,19 +150,18 @@ class EvalVelMtx(ExplicitComponent):
 
                 rows = np.tile(np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(), 4)
 
-                cols = np.concatenate([
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 0:-1, :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 0:-1, :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 1:  , :], np.ones(3, int)).flatten(),
-                    np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 1:  , :], np.ones(3, int)).flatten(),
-                ])
+            cols = np.concatenate([
+                np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 0:-1, :], np.ones(3, int)).flatten(),
+                np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 0:-1, :], np.ones(3, int)).flatten(),
+                np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 1:  , :], np.ones(3, int)).flatten(),
+                np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 1:  , :], np.ones(3, int)).flatten(),
+            ])
 
             self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
 
-
             self.declare_partials(vel_mtx_name, 'alpha', method='fd')
             self.add_output(vel_mtx_name, shape=(num_eval_points, nx - 1, ny - 1, 3), units='1/m')
-            self.set_check_partial_options(wrt='*', method='fd')
+            self.set_check_partial_options(wrt='*', method='cs')
 
     def compute(self, inputs, outputs):
         surfaces = self.options['surfaces']
@@ -278,47 +275,47 @@ class EvalVelMtx(ExplicitComponent):
                     np.ones((num_eval_points, 1, 2*(ny - 1))),
                     np.eye(3))
 
-                derivs = np.zeros((8, num_eval_points, nx - 1, ny - 1, 3, 3))
+                derivs = np.zeros((4, num_eval_points, nx - 1, 2*(ny - 1), 3, 3))
 
                 # front vortex
                 r1 = inputs[vectors_name][:, 0:-1, 1:  , :]
                 r2 = inputs[vectors_name][:, 0:-1, 0:-1, :]
                 d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
                 d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
-                derivs[4, :, :, :, :, :] += d1[:, :, :ny-1, :, :]
-                derivs[0, :, :, :, :, :] += d2[:, :, :ny-1, :, :]
-                derivs[5, :, :, :, :, :] += d1[:, :, ny-1:, :, :]
-                derivs[1, :, :, :, :, :] += d2[:, :, ny-1:, :, :]
+                derivs[2, :, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs[0, :, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs[2, :, :, ny-1:, :, :] += d1[:, :, ny-1:, :, :]
+                derivs[0, :, :, ny-1:, :, :] += d2[:, :, ny-1:, :, :]
 
                 # right vortex
                 r1 = inputs[vectors_name][:, 0:-1, 0:-1, :]
                 r2 = inputs[vectors_name][:, 1:  , 0:-1, :]
                 d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
                 d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
-                derivs[0, :, :, :, :, :] += d1[:, :, :ny-1, :, :]
-                derivs[2, :, :, :, :, :] += d2[:, :, :ny-1, :, :]
-                derivs[1, :, :, :, :] += d1[:, :, ny-1:, :, :]
-                derivs[3, :, :, :, :] += d2[:, :, ny-1:, :, :]
+                derivs[0, :, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs[1, :, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs[0, :, :, ny-1:, :] += d1[:, :, ny-1:, :, :]
+                derivs[1, :, :, ny-1:, :] += d2[:, :, ny-1:, :, :]
 
                 # rear vortex
                 r1 = inputs[vectors_name][:, 1:  , 0:-1, :]
                 r2 = inputs[vectors_name][:, 1:  , 1:  , :]
                 d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
                 d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
-                derivs[2, :, :, :, :, :] += d1[:, :, :ny-1, :, :]
-                derivs[6, :, :, :, :, :] += d2[:, :, :ny-1, :, :]
-                derivs[3, :, :, :, :] += d1[:, :, ny-1:, :, :]
-                derivs[7, :, :, :, :] += d2[:, :, ny-1:, :, :]
+                derivs[1, :, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs[3, :, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs[1, :, :, ny-1:, :] += d1[:, :, ny-1:, :, :]
+                derivs[3, :, :, ny-1:, :] += d2[:, :, ny-1:, :, :]
 
                 # left vortex
                 r1 = inputs[vectors_name][:, 1:  , 1:  , :]
                 r2 = inputs[vectors_name][:, 0:-1, 1:  , :]
                 d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
                 d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
-                derivs[6, :, :, :, :, :] += d1[:, :, :ny-1, :, :]
-                derivs[4, :, :, :, :, :] += d2[:, :, :ny-1, :, :]
-                derivs[7, :, :, :, :] += d1[:, :, ny-1:, :, :]
-                derivs[5, :, :, :, :] += d2[:, :, ny-1:, :, :]
+                derivs[3, :, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs[2, :, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs[3, :, :, ny-1:, :] += d1[:, :, ny-1:, :, :]
+                derivs[2, :, :, ny-1:, :] += d2[:, :, ny-1:, :, :]
 
                 #----------------- last row -----------------
 
@@ -328,14 +325,14 @@ class EvalVelMtx(ExplicitComponent):
                 d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
                 d3 = compute_semi_infinite_vortex_deriv(u, r1, trailing_array)
                 d4 = compute_semi_infinite_vortex_deriv(u, r2, trailing_array)
-                derivs[6, :, -1:, :, :] += d1[:, :, :ny-1, :, :]
-                derivs[2, :, -1:, :, :] += d2[:, :, :ny-1, :, :]
-                derivs[6, :, -1:, :, :] -= d3[:, :, :ny-1, :, :]
-                derivs[2, :, -1:, :, :] += d4[:, :, :ny-1, :, :]
-                derivs[7, :, -1:, :, :] += d1[:, :, ny-1:, :, :]
-                derivs[3, :, -1:, :, :] += d2[:, :, ny-1:, :, :]
-                derivs[7, :, -1:, :, :] -= d3[:, :, ny-1:, :, :]
-                derivs[3, :, -1:, :, :] += d4[:, :, ny-1:, :, :]
+                derivs[3, :, -1:, :ny-1, :] += d1[:, :, :ny-1, :, :]
+                derivs[1, :, -1:, :ny-1, :] += d2[:, :, :ny-1, :, :]
+                derivs[3, :, -1:, :ny-1, :] -= d3[:, :, :ny-1, :, :]
+                derivs[1, :, -1:, :ny-1, :] += d4[:, :, :ny-1, :, :]
+                derivs[3, :, -1:, ny-1:, :] += d1[:, :, ny-1:, :, :]
+                derivs[1, :, -1:, ny-1:, :] += d2[:, :, ny-1:, :, :]
+                derivs[3, :, -1:, ny-1:, :] -= d3[:, :, ny-1:, :, :]
+                derivs[1, :, -1:, ny-1:, :] += d4[:, :, ny-1:, :, :]
 
             else:
                 u = np.einsum('ijk,l->ijkl',

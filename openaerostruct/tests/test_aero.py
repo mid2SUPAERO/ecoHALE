@@ -120,7 +120,7 @@ class Test(unittest.TestCase):
         # Set up and run the optimization problem
         prob.setup()
         prob.run_model()
-        # prob.check_partials(compact_print=True)
+        J = prob.check_partials(includes=['*assy_f*'])
         # exit()
         prob.run_driver()
 

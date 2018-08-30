@@ -9,7 +9,7 @@ class Test(unittest.TestCase):
     def test(self):
         surfaces = get_default_surfaces()
 
-        comp = EvalVelMtx(surfaces=surfaces, num_eval_points=2, eval_name='test_name')
+        comp = EvalVelMtx(surfaces=surfaces, num_eval_points=1, eval_name='test_name')
 
         run_test(self, comp)
 
