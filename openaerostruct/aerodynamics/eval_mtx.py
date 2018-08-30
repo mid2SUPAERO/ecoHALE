@@ -321,8 +321,8 @@ class EvalVelMtx(ExplicitComponent):
 
                 r1 = inputs[vectors_name][:, -1:, 1:  , :]
                 r2 = inputs[vectors_name][:, -1:, 0:-1, :]
-                d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
-                d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
+                d1 = compute_finite_vortex_deriv1(r1, r2, trailing_array)
+                d2 = compute_finite_vortex_deriv2(r1, r2, trailing_array)
                 d3 = compute_semi_infinite_vortex_deriv(u, r1, trailing_array)
                 d4 = compute_semi_infinite_vortex_deriv(u, r2, trailing_array)
                 derivs[3, :, -1:, :ny-1, :] += d1[:, :, :ny-1, :, :]
