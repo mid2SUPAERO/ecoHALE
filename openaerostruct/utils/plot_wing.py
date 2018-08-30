@@ -102,10 +102,10 @@ class Display(object):
 
         # figure out if this is an optimization and what the objective is
         obj_keys = last_case.get_objectives()
-        try: # if its not an empty list
-            self.obj_key = obj_keys.keys[0]
+        if obj_keys.keys(): # if its not an empty list
             self.opt = True
-        except (IndexError, TypeError):
+            self.obj_key = list(obj_keys.keys())[0]
+        else:
             self.opt = False
 
         self.twist = []
