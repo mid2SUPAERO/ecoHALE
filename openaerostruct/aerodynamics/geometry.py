@@ -40,21 +40,61 @@ class VLMGeometry(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
+        self.ny = ny = surface['num_y']
+        self.nx = nx = surface['num_x']
 
-        self.add_input('def_mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
+        self.add_input('def_mesh', val=np.zeros((nx, ny, 3)), units='m')
 
-        self.add_output('b_pts', val=np.random.random((self.nx-1, self.ny, 3)), units='m')
-        self.add_output('c_pts', val=np.zeros((self.nx-1, self.ny-1, 3)), units='m')
-        self.add_output('widths', val=np.ones((self.ny-1)), units='m')
-        self.add_output('cos_sweep', val=np.zeros((self.ny-1)), units='m')
-        self.add_output('lengths', val=np.zeros((self.ny)), units='m')
-        self.add_output('chords', val=np.zeros((self.ny)), units='m')
-        self.add_output('normals', val=np.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output('b_pts', val=np.random.random((nx-1, ny, 3)), units='m')
+        self.add_output('c_pts', val=np.zeros((nx-1, ny-1, 3)), units='m')
+        self.add_output('widths', val=np.ones((ny-1)), units='m')
+        self.add_output('cos_sweep', val=np.zeros((ny-1)), units='m')
+        self.add_output('lengths', val=np.zeros((ny)), units='m')
+        self.add_output('chords', val=np.zeros((ny)), units='m')
+        self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=1., units='m**2')
 
         self.declare_partials('*', '*')
+
+        size = (nx-1) * ny * 3
+        base = np.arange(size)
+        rows = np.tile(base, 2)
+        cols = rows + np.repeat([0, ny*3], len(base))
+        val = np.empty((2*size, ))
+        val[:size] = 0.75
+        val[size:] = 0.25
+
+        self.declare_partials('b_pts', 'def_mesh', rows=rows, cols=cols, val=val)
+
+        size = (nx-1) * (ny-1) * 3
+        base = np.arange(size)
+        rows = np.tile(base, 4)
+        cols = rows + np.repeat([0, 3, ny*3, (ny+1)*3], len(base))
+        val = np.empty((4*size, ))
+        val[:2*size] = 0.125
+        val[2*size:] = 0.375
+
+        self.declare_partials('c_pts', 'def_mesh', rows=rows, cols=cols, val=val)
+
+        size = ny - 1
+        base = np.arange(size)
+        rows = np.tile(base, 12)
+        col = np.tile(3*base, 6) + np.repeat(np.arange(6), len(base))
+        cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
+
+        self.declare_partials('widths', 'def_mesh', rows=rows, cols=cols)
+
+        rows = np.tile(base, 8)
+        col = np.tile(3*base, 4) + np.repeat([1, 2, 4, 5], len(base))
+        cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
+
+        self.declare_partials('cos_sweep', 'def_mesh', rows=rows, cols=cols)
+
+        size = ny
+        base = np.arange(size)
+        rows = np.tile(base, (nx-1) * 6)
+
+        self.declare_partials('lengths', 'def_mesh', rows=rows, cols=cols)
 
         self.declare_partials('S_ref', 'def_mesh', method='cs')
 
@@ -144,15 +184,6 @@ class VLMGeometry(ExplicitComponent):
         ny = self.ny
         mesh = inputs['def_mesh']
 
-        for iz, v in zip((0, ny*3), (.75, .25)):
-            np.fill_diagonal(partials['b_pts', 'def_mesh'][:, iz:], v)
-
-        for iz, v in zip((0, 3, ny*3, (ny+1)*3),
-                         (.125, .125, .375, .375)):
-            for ix in range(nx-1):
-                np.fill_diagonal(partials['c_pts', 'def_mesh']
-                    [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
-
         # Compute the widths of each panel at the quarter-chord line
         quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
         widths = np.linalg.norm(quarter_chord[1:, :] - quarter_chord[:-1, :], axis=1)
@@ -160,27 +191,13 @@ class VLMGeometry(ExplicitComponent):
         # Compute the cosine of the sweep angle of each panel
         cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1)
 
-        partials['widths', 'def_mesh'] = np.zeros_like(partials['widths', 'def_mesh'])
-        partials['cos_sweep', 'def_mesh'] = np.zeros_like(partials['cos_sweep', 'def_mesh'])
-        gap = [0, (nx-1)*ny*3]
-        factor = [0.75, 0.25]
-        for i in range(ny-1):
-            w = widths[i]
-            cos_sweep = cos_sweep_array[i]
-            dx = (quarter_chord[i+1, 0] - quarter_chord[i, 0])
-            dy = (quarter_chord[i+1, 1] - quarter_chord[i, 1])
-            dz = (quarter_chord[i+1, 2] - quarter_chord[i, 2])
-            for j in range(2):
-                partials['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
-                partials['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w
-                partials['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j] / w
-                partials['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j] / w
-                partials['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j] / w
-                partials['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j] / w
-                partials['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] -= dy / cos_sweep * factor[j]
-                partials['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy / cos_sweep * factor[j]
-                partials['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] -= dz / cos_sweep * factor[j]
-                partials['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz / cos_sweep * factor[j]
+        delta = np.diff(quarter_chord, axis=0).T
+        d1 = delta / widths
+        partials['widths', 'def_mesh'] = np.outer([-0.75, 0.75, -0.25, 0.25],
+                                                  d1.flatten()).flatten()
+        d1 = delta[1:, :] / cos_sweep_array
+        partials['cos_sweep', 'def_mesh'] = np.outer([-0.75, 0.75, -0.25, 0.25],
+                                                     d1.flatten()).flatten()
 
         partials['lengths', 'def_mesh'] = np.zeros_like(partials['lengths', 'def_mesh'])
         for i in range(ny):
