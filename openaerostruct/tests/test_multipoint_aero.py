@@ -13,7 +13,7 @@ class Test(unittest.TestCase):
         from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
         from openaerostruct.aerodynamics.aero_groups import AeroPoint
-        from openaerostruct.integration.multipoint_comps import MultiCD, GeomMatch
+        from openaerostruct.integration.multipoint_comps import MultiCD
 
         from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
 
