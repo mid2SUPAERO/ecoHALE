@@ -19,11 +19,12 @@ class Test(unittest.TestCase):
         from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 
         from openaerostruct.aerodynamics.aero_groups import AeroPoint
-        from openaerostruct.integration.multipoint_comps import MultiCD, GeomMatch
+        from openaerostruct.integration.multipoint_comps import MultiCD
 
         from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, ExplicitComponent# TODO, SqliteRecorder, CaseReader, profile
         from openmdao.devtools import iprofile
         from openmdao.api import view_model
+        from openmdao.utils.assert_utils import assert_check_partials
         from pygeo import DVGeometry
 
         # Create a dictionary to store options about the surface
@@ -122,7 +123,6 @@ class Test(unittest.TestCase):
 
                 name = surface['name']
                 prob.model.connect(point_name + '.CD', 'multi_CD.' + str(i) + '_CD')
-                prob.model.connect(point_name + '.wing_geom.shape', 'geom_match.' + str(i) + '_shape')
 
                 # Connect the mesh from the geometry component to the analysis point
                 prob.model.connect(point_name + '.' + name + '_geom.mesh', point_name + '.' + name + '.def_mesh')
@@ -130,11 +130,10 @@ class Test(unittest.TestCase):
                 # Perform the connections with the modified names within the
                 # 'aero_states' group.
                 prob.model.connect(point_name + '.' + name + '_geom.mesh', point_name + '.aero_states.' + name + '_def_mesh')
-                
+
                 prob.model.connect(point_name + '.' + name + '_geom.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
 
         prob.model.add_subsystem('multi_CD', MultiCD(n_points=n_points), promotes_outputs=['CD'])
-        prob.model.add_subsystem('geom_match', GeomMatch(n_points=n_points, mx=surf_dict['mx'], my=surf_dict['my']), promotes_outputs=['shape_diff'])
 
         from openmdao.api import pyOptSparseDriver
         prob.driver = pyOptSparseDriver()
@@ -151,23 +150,16 @@ class Test(unittest.TestCase):
         prob.model.add_design_var('aero_point_1.wing_geom.shape', lower=-3, upper=2)
         prob.model.add_constraint('aero_point_1.wing_perf.CL', equals=0.5)
 
-        prob.model.add_constraint('shape_diff', equals=0., indices=range(surf_dict['my'] * (n_points - 1) * 1), linear=True)
-        # prob.model.add_constraint('shape_diff', equals=0., linear=True)
-
         prob.model.add_objective('CD', scaler=1e4)
 
         # Set up the problem
         prob.setup()
 
-        # prob.run_model()
-        prob.run_driver()
+        prob.run_model()
 
-        # prob.check_partials(compact_print=True)
-
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.45, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03229527496681374, 1e-6)
-        assert_rel_error(self, prob['aero_point_1.wing_perf.CL'][0], 0.5, 1e-6)
-        assert_rel_error(self, prob['aero_point_1.wing_perf.CD'][0], 0.033767398588947985, 1e-6)
+        # Check the partials at this point in the design space
+        data = prob.check_partials(compact_print=True, out_stream=None, method='cs', step=1e-40)
+        assert_check_partials(data, atol=1e20, rtol=1e-6)
 
 if __name__ == '__main__':
     unittest.main()
