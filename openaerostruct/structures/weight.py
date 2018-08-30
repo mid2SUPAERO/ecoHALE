@@ -18,8 +18,8 @@ class Weight(ExplicitComponent):
     -------
     structural_weight : float
         Weight of the structural spar.
-    cg_location[3] : numpy array
-        Location of the structural spar's cg.
+    elmenet_weight[ny-1] : float
+        weight of each elemnet
 
     """
 
@@ -31,31 +31,53 @@ class Weight(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('A', val=np.zeros((self.ny - 1)), units='m**2')
+        self.add_input('A', val=np.ones((self.ny - 1)), units='m**2')
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('load_factor', val=1.)
+
         self.add_output('structural_weight', val=0., units='N')
         self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')
 
-        self.declare_partials('*', '*')
+        self.declare_partials('structural_weight', ['A','nodes','load_factor'])
 
-        self.declare_partials('element_weights', '*', method='fd')
+
+        self.declare_partials('element_weights', 'load_factor')
+        row_col = np.arange(self.ny-1, dtype=int)
+        self.declare_partials('element_weights','A', rows=row_col, cols=row_col)
+        ny = self.ny
+        dimensions = 3
+        rows=np.empty((dimensions*2*(ny-1)))
+        cols=np.empty((dimensions*2*(ny-1)))
+        for i in range (ny-1):
+            rows[i*dimensions*2:(i+1)*dimensions*2] = i
+            cols[i*dimensions*2:(i+1)*dimensions*2] = np.linspace(i*dimensions,i*dimensions+(dimensions*2-1),dimensions*2)
+        self.declare_partials('element_weights','nodes', rows=rows, cols=cols)
+
+        self.set_check_partial_options('*', method='cs', step=1e-40)
 
     def compute(self, inputs, outputs):
         A = inputs['A']
         nodes = inputs['nodes']
+        mrho = self.surface['mrho']
+        wwr = self.surface['wing_weight_ratio']
+        lf = inputs['load_factor']
 
         # Calculate the volume and weight of the structure
-        element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
-        element_weights = element_volumes * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
+        # element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
+        #JSG: np.linalg.norm is not complex-safe, so implemeting this a different way
+        tmp = nodes[1:, :] - nodes[:-1, :]
+        element_volumes = np.sqrt(np.sum(tmp**2, axis=1)) * A
+
+        # nodes[1:, :] - nodes[:-1, :] this is the delta array of the differents between the points
+        element_weights = element_volumes * mrho * 9.81 * wwr * lf
         weight = np.sum(element_weights)
-        volume = np.sum(element_volumes)
 
         # If the tube is symmetric, double the computed weight and set the
         # y-location of the cg to 0, at the symmetry plane
         if self.surface['symmetry']:
             weight *= 2.
 
+        #outputs['structural_weight'] = weight
         outputs['structural_weight'] = weight
         outputs['element_weights'] = element_weights
 
@@ -63,18 +85,25 @@ class Weight(ExplicitComponent):
 
         A = inputs['A']
         nodes = inputs['nodes']
+        mrho = self.surface['mrho']
+        wwr = self.surface['wing_weight_ratio']
+        ny = self.ny
+        lf = inputs['load_factor']
 
         # Calculate the volume and weight of the structure
-        element_volumes = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
+        const0 = nodes[1:, :] - nodes[:-1, :]
+        const1 = np.linalg.norm(const0, axis=1)
+        element_volumes = const1 * A
         volume = np.sum(element_volumes)
-        weight = volume * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
+        const2 = mrho * 9.81 * wwr * lf
+        weight = volume * const2
 
         # First we will solve for dweight_dA
         # Calculate the volume and weight of the total structure
-        norms = np.linalg.norm(nodes[1:, :] - nodes[:-1, :], axis=1).reshape(1, -1)
+        norms = const1.reshape(1, -1)
 
         # Multiply by the material density and force of gravity
-        dweight_dA = norms * self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
+        dweight_dA = norms * const2
 
         # Account for symmetry
         if self.surface['symmetry']:
@@ -87,12 +116,12 @@ class Weight(ExplicitComponent):
         # Here we're using results from AD to compute the derivative
         # Initialize the reverse seeds.
         nodesb = np.zeros(nodes.shape)
-        tempb = (nodes[1:, :] - nodes[:-1, :]) * (A / norms).reshape(-1, 1)
+        tempb = (const0) * (A / norms).reshape(-1, 1)
         nodesb[1:, :] += tempb
         nodesb[:-1, :] -= tempb
 
         # Apply the multipliers for material properties and symmetry
-        nodesb *= self.surface['mrho'] * 9.81 * self.surface['wing_weight_ratio'] * inputs['load_factor']
+        nodesb *= mrho * 9.81 * wwr * lf
 
         if self.surface['symmetry']:
             nodesb *= 2.
@@ -102,3 +131,21 @@ class Weight(ExplicitComponent):
 
         # Store the flattened array in the jacobian dictionary
         partials['structural_weight', 'nodes'] = nodesb.reshape(1, -1)
+
+        # Element_weight Partials
+        partials['element_weights','A'] = const1 * const2
+        partials['element_weights','load_factor'] = const1 * A * mrho * 9.81 * wwr
+
+        precalc = np.sum(np.power(const0,2),axis=1)
+        d__dprecalc = 0.5 * precalc**(-.5)
+
+        dimensions = 3
+        for i in range(ny-1):
+            first_part = const0[i,:] * d__dprecalc[i] * 2 * (-1) * A[i] * const2
+            second_part = const0[i,:] * d__dprecalc[i] * 2 * A[i] * const2
+            partials['element_weights', 'nodes'][i*dimensions*2:(i+1)*dimensions*2] = np.append(first_part,second_part)
+
+        #dew__dprecalc =
+
+
+

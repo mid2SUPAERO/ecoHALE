@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('structural_cg', comp, promotes=['*'])
 
-        run_test(self, group, complex_flag=True)
+        run_test(self, group, complex_flag=True, compact_print=False)
 
 if __name__ == '__main__':
     unittest.main()
