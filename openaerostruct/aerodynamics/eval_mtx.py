@@ -149,12 +149,13 @@ class EvalVelMtx(ExplicitComponent):
 
                 # Layout logic includes some duplicate entries due to symmetry. Find and remove them.
                 nn = len(rows) // 2
-                idx_2 = [v for v in zip(rows[nn:], cols[nn:])]
                 to_remove = []
+                r = rows[nn:]
+                c = cols[nn:]
                 for j in np.arange(nn):
-                    if (rows[j], cols[j]) in idx_2:
+                    duplicated_entry = np.where((r == rows[j]) & (c == cols[j]))[0]
+                    if duplicated_entry:
                         to_remove.append(j)
-
                 for j in reversed(to_remove):
                     rows = np.delete(rows, j)
                     cols = np.delete(cols, j)
