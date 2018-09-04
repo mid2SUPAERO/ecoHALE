@@ -76,6 +76,7 @@ class Test(unittest.TestCase):
         recorder = SqliteRecorder('struct.db')
         prob.driver.add_recorder(recorder)
         prob.driver.recording_options['record_derivatives'] = True
+        prob.driver.recording_options['includes'] = ['*']
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, ref=1e-1)
