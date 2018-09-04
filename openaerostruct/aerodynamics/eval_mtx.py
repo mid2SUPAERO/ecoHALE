@@ -126,8 +126,6 @@ class EvalVelMtx(ExplicitComponent):
 
                 vectors_indices = np.arange(num_eval_points * nx * (2*ny-1) * 3).reshape(
                     (num_eval_points, nx, (2*ny-1), 3))
-                vel_mtx_indices = np.arange(num_eval_points * (nx - 1) * (ny - 1) * 3).reshape(
-                    (num_eval_points, nx - 1, ny - 1, 3))
 
                 base = np.tile(np.repeat(np.arange(3), 3), ny-1)
                 block1 = base + np.repeat(3*np.arange(ny-1), 9)
@@ -149,16 +147,14 @@ class EvalVelMtx(ExplicitComponent):
 
                 # Layout logic includes some duplicate entries due to symmetry. Find and remove them.
                 nn = len(rows) // 2
-                to_remove = []
-                r = rows[nn:]
-                c = cols[nn:]
-                for j in np.arange(nn):
-                    duplicated_entry = np.where((r == rows[j]) & (c == cols[j]))[0]
-                    if duplicated_entry:
-                        to_remove.append(j)
-                for j in reversed(to_remove):
-                    rows = np.delete(rows, j)
-                    cols = np.delete(cols, j)
+
+                # Determine the repeated indices and store them in an array
+                inds = np.arange(nn).reshape((-1, 9))
+                to_remove = inds[(ny-1)::2*(ny-1)].flatten()
+
+                # Actually remove the duplicate entries
+                rows = np.delete(rows, to_remove)
+                cols = np.delete(cols, to_remove)
 
             else:
                 self.add_input(vectors_name, shape=(num_eval_points, nx, ny, 3), units='m')
