@@ -198,7 +198,8 @@ class VLMGeometry(ExplicitComponent):
         widths = np.linalg.norm(quarter_chord[1:, :] - quarter_chord[:-1, :], axis=1)
 
         # Compute the cosine of the sweep angle of each panel
-        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1)
+        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1, 2]] - \
+                                         quarter_chord[:-1, [1, 2]], axis=1)
 
         delta = np.diff(quarter_chord, axis=0).T
         d1 = delta / widths
@@ -211,9 +212,7 @@ class VLMGeometry(ExplicitComponent):
         partials['lengths', 'def_mesh'][:] = 0.0
         dmesh = np.diff(mesh, axis=0)
         l = np.sqrt(np.sum(dmesh**2, axis=2))
-        dmesh[:, :, 0] /= l
-        dmesh[:, :, 1] /= l
-        dmesh[:, :, 2] /= l
+        dmesh = dmesh / l[:, :, np.newaxis]
         derivs = np.transpose(dmesh, axes=[0, 2, 1]).flatten()
         nn = len(derivs)
         partials['lengths', 'def_mesh'][:nn] -= derivs
@@ -228,25 +227,26 @@ class VLMGeometry(ExplicitComponent):
         # Partial of f=normals w.r.t. to x=def_mesh
         #   f has shape (nx-1, ny-1, 3)
         #   x has shape (nx, ny, 3)
+
+        aa = mesh[:-1, 1:, :] - mesh[1:, :-1, :]
+        bb = mesh[:-1, :-1, :] - mesh[1:, 1:, :]
+        normals = np.cross(aa, bb, axis=2)
+        norms = np.sqrt(np.sum(normals**2, axis=2))
+        dndc = normals / norms[:, :, np.newaxis]
+        term = np.einsum('ijk,ijl->ijkl', normals, dndc)
         for i in range(nx-1):
             for j in range(ny-1):
-                # Redo original computation
-                ll = mesh[i, j, :]      # leading-left node
-                lr = mesh[i, j+1, :]    # leading-right node
-                tl = mesh[i+1, j, :]    # trailing-left node
-                tr = mesh[i+1, j+1, :]  # trailing-right node
 
-                a = lr - tl
-                b = ll - tr
-                c = np.cross(a, b)
-                n = np.sqrt(np.sum(c**2))
+                a = aa[i, j]
+                b = bb[i, j]
+                c = normals[i, j]
+                n = norms[i, j]
                 # f = c / n
 
                 # Now let's work backwards to get derivative
                 # dfdc = (dcdc * n - c * dndc) / n**2
                 dcdc = np.eye(3)
-                dndc = c / n
-                dfdc = (dcdc * n - np.einsum('i,j', c, dndc)) / n**2
+                dfdc = (dcdc * n - term[i, j]) / n**2
 
                 # dfdc is now a 3x3 jacobian with f along the rows and c along
                 # the columns
