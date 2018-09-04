@@ -85,10 +85,10 @@ class DisplacementTransfer(ExplicitComponent):
                                          inputs['mesh'] - ref_curve)
 
     def compute_partials(self, inputs, partials):
-        partials['def_mesh', 'ref_curve'] = -np.einsum('i,jlk->ijkl',
+        partials['def_mesh', 'ref_curve'] = -np.einsum('i,jlk->ijlk',
             np.ones(self.nx), inputs['transformation_matrix']).flatten()
 
-        partials['def_mesh', 'mesh'] = np.einsum('i,jlk->ijkl',
+        partials['def_mesh', 'mesh'] = np.einsum('i,jlk->ijlk',
             np.ones(self.nx), inputs['transformation_matrix']).flatten()
         partials['def_mesh', 'mesh'] += np.tile(np.eye(3), self.nx * self.ny).flatten(order='F')
 

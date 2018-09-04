@@ -13,6 +13,8 @@ from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOp
 from openmdao.utils.assert_utils import assert_check_partials
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 
+from openaerostruct.utils.testing import view_mat
+
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
 # These should be for an airfoil with the chord scaled to 1.
@@ -256,12 +258,9 @@ class Test(unittest.TestCase):
         # only care about relative error
         data = prob.check_partials(compact_print=True, out_stream=None, method='cs', step=1e-40)
 
-        for key, subjac in iteritems(data[list(data.keys())[0]]):
-            view_mat(subjac['J_fd'],subjac['J_fwd'],key)
-
         assert_check_partials(data, atol=1e20, rtol=1e-6)
 
-        # Run the optimizer for 5 iterations
+        # Run the optimizer for 2 iterations
         prob.run_driver()
 
         # Check the partials at this point in the design space
