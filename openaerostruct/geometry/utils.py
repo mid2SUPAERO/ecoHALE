@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+import warnings
 import numpy as np
 from numpy import cos, sin, tan
 
@@ -60,7 +61,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
 
     rad_theta_y = theta_y * np.pi / 180.
 
-    mats = np.zeros((ny, 3, 3), dtype="complex")
+    mats = np.zeros((ny, 3, 3), dtype=type(rad_theta_y[0]))
     mats[:, 0, 0] = cos(rad_theta_y)
     mats[:, 0, 2] = sin(rad_theta_y)
     mats[:, 1, 0] = sin(rad_theta_x)*sin(rad_theta_y)
@@ -859,14 +860,14 @@ def writeMesh(mesh,filename):
 def getFullMesh(left_mesh=None, right_mesh=None):
     """
     For a symmetric wing, OAS only keeps and does computation on the left half.
-    This script mirros the OAS mesh and attaches it to the existing mesh to 
+    This script mirros the OAS mesh and attaches it to the existing mesh to
     obtain the full mesh.
 
     Parameters
     ----------
     left_mesh[nx,ny,3] or right_mesh : ndarray
         The half mesh to be mirrored.
-    
+
     Returns
     -------
     full_mesh[nx,2*ny-1,3] : ndarray

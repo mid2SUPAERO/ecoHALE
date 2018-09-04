@@ -33,33 +33,27 @@ class VonMisesWingbox(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('nodes', val=np.zeros((self.ny, 3),
-                       dtype=complex),units='m')
+        self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
 
-        self.add_input('disp', val=np.zeros((self.ny, 6),
-                       dtype=complex),units='m')
+        self.add_input('disp', val=np.zeros((self.ny, 6)), units='m')
 
-        self.add_input('Qz', val=np.zeros((self.ny - 1), dtype=complex),units='m**3')
-        self.add_input('Iz', val=np.zeros((self.ny - 1), dtype=complex),units='m**4')
-        self.add_input('J', val=np.zeros((self.ny - 1), dtype=complex),units='m**4')
-        self.add_input('A_enc', val=np.zeros((self.ny - 1), dtype=complex),units='m**2')
+        self.add_input('Qz', val=np.zeros((self.ny - 1)), units='m**3')
+        self.add_input('Iz', val=np.zeros((self.ny - 1)), units='m**4')
+        self.add_input('J', val=np.zeros((self.ny - 1)), units='m**4')
+        self.add_input('A_enc', val=np.zeros((self.ny - 1)), units='m**2')
 
-        self.add_input('spar_thickness', val=np.zeros((self.ny - 1), dtype=complex),units='m')
-        self.add_input('skin_thickness', val=np.zeros((self.ny - 1), dtype=complex),units='m')
+        self.add_input('spar_thickness', val=np.zeros((self.ny - 1)), units='m')
+        self.add_input('skin_thickness', val=np.zeros((self.ny - 1)), units='m')
 
-        self.add_input('htop', val=np.zeros((self.ny - 1), dtype=complex),units='m')
-        self.add_input('hbottom', val=np.zeros((self.ny - 1), dtype=complex),units='m')
-        self.add_input('hfront', val=np.zeros((self.ny - 1), dtype=complex),units='m')
-        self.add_input('hrear', val=np.zeros((self.ny - 1), dtype=complex),units='m')
+        self.add_input('htop', val=np.zeros((self.ny - 1)), units='m')
+        self.add_input('hbottom', val=np.zeros((self.ny - 1)), units='m')
+        self.add_input('hfront', val=np.zeros((self.ny - 1)), units='m')
+        self.add_input('hrear', val=np.zeros((self.ny - 1)), units='m')
 
-        self.add_output('vonmises', val=np.zeros((self.ny-1, 4),
-                        dtype=complex),units='N/m**2')
+        self.add_output('vonmises', val=np.zeros((self.ny-1, 4)),units='N/m**2')
 
         self.E = surface['E']
         self.G = surface['G']
-
-        self.T = np.zeros((3, 3), dtype=complex)
-        self.x_gl = np.array([1, 0, 0], dtype=complex)
 
         self.tssf = top_skin_strength_factor = surface['strength_factor_for_upper_skin']
 
@@ -80,13 +74,16 @@ class VonMisesWingbox(ExplicitComponent):
         skin_thickness = inputs['skin_thickness']
         vonmises = outputs['vonmises']
 
-        T = self.T
+        # Only use complex type for these arrays if we're using cs to check derivs
+        dtype = type(disp[0, 0])
+        T = np.zeros((3, 3), dtype=dtype)
+        x_gl = np.array([1, 0, 0], dtype=dtype)
+
         E = self.E
         G = self.G
-        x_gl = self.x_gl
 
         num_elems = self.ny - 1
-        for ielem in range(self.ny-1):
+        for ielem in range(num_elems):
 
             P0 = nodes[ielem, :]
             P1 = nodes[ielem+1, :]
@@ -104,7 +101,6 @@ class VonMisesWingbox(ExplicitComponent):
             r0x, r0y, r0z = T.dot(disp[ielem, 3:])
             u1x, u1y, u1z = T.dot(disp[ielem+1, :3])
             r1x, r1y, r1z = T.dot(disp[ielem+1, 3:])
-
 
             axial_stress = E * (u1x - u0x) / L      # this is stress = modulus * strain; positive is tensile
             torsion_stress = G * J[ielem] / L * (r1x - r0x) / 2 / spar_thickness[ielem] / A_enc[ielem]   # this is Torque / (2 * thickness_min * Area_enclosed)

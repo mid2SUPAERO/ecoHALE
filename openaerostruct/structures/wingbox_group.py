@@ -34,7 +34,7 @@ class WingboxGroup(Group):
             # Add bspline components for active bspline geometric variables.
             self.add_subsystem('spar_thickness_bsp', BsplinesComp(
                 in_name='spar_thickness_cp', out_name='spar_thickness',
-                num_control_points=n_cp, num_points=int(ny-1),
+                num_control_points=n_cp, num_points=int(ny-1), units='m',
                 bspline_order=min(n_cp, 4), distribution='uniform'),
                 promotes_inputs=['spar_thickness_cp'], promotes_outputs=['spar_thickness'])
             indep_var_comp.add_output('spar_thickness_cp', val=surface['spar_thickness_cp'], units='m')
@@ -44,7 +44,7 @@ class WingboxGroup(Group):
             # Add bspline components for active bspline geometric variables.
             self.add_subsystem('skin_thickness_bsp', BsplinesComp(
                 in_name='skin_thickness_cp', out_name='skin_thickness',
-                num_control_points=n_cp, num_points=int(ny-1),
+                num_control_points=n_cp, num_points=int(ny-1), units='m',
                 bspline_order=min(n_cp, 4), distribution='uniform'),
                 promotes_inputs=['skin_thickness_cp'], promotes_outputs=['skin_thickness'])
             indep_var_comp.add_output('skin_thickness_cp', val=surface['skin_thickness_cp'], units='m')
