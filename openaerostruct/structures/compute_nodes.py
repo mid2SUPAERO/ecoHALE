@@ -29,8 +29,8 @@ class ComputeNodes(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
+        ny = surface['num_y']
+        nx = surface['num_x']
 
         if surface['fem_model_type'] == 'tube':
             self.fem_origin = surface['fem_origin']
@@ -43,18 +43,25 @@ class ComputeNodes(ExplicitComponent):
                                x_upper[-1] * (y_upper[-1] - y_lower[-1])) / \
                              ((y_upper[0]  -  y_lower[0]) + (y_upper[-1] - y_lower[-1]))
 
-        self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')#, dtype=data_type))
-        self.add_output('nodes', val=np.zeros((self.ny, 3)), units='m')#, dtype=data_type))
+        self.add_input('mesh', val=np.zeros((nx, ny, 3)), units='m')#, dtype=data_type))
+        self.add_output('nodes', val=np.zeros((ny, 3)), units='m')#, dtype=data_type))
 
         w = self.fem_origin
-        n = self.ny * 3
+        n = ny * 3
 
-        nodes_mesh = np.zeros((n, n * self.nx))
+        nodes_mesh = np.zeros((n, n * nx))
 
         nodes_mesh[:n, :n] = np.eye(n) * (1-w)
         nodes_mesh[:n, -n:] = np.eye(n) * w
 
-        self.declare_partials('nodes', 'mesh', val=nodes_mesh)
+        data = np.zeros((2 * n))
+        data[:n] = 1 - w
+        data[n:] = w
+
+        rows = np.hstack((np.arange(n), np.arange(n)))
+        cols = np.hstack((np.arange(n), np.arange(n) + (nx - 1) * n))
+
+        self.declare_partials('nodes', 'mesh', rows=rows, cols=cols, val=data)
 
     def compute(self, inputs, outputs):
         w = self.fem_origin

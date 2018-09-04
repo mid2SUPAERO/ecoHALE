@@ -13,7 +13,7 @@ class Test(unittest.TestCase):
 
         comp = EvalVelMtx(surfaces=surfaces, num_eval_points=2, eval_name='test_name')
 
-        run_test(self, comp)
+        run_test(self, comp, complex_flag=True)
 
     def test_assembled_jac(self):
         surfaces = get_default_surfaces()
@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
         prob.model.linear_solver = DirectSolver(assemble_jac=True)
         prob.model.options['assembled_jac_type'] = 'csc'
 
-        prob.setup()
+        prob.setup(force_alloc_complex=True)
 
         prob.run_model()
 
