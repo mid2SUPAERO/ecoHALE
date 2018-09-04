@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+import warnings
 import numpy as np
 from numpy import cos, sin, tan
 
@@ -60,7 +61,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
 
     rad_theta_y = theta_y * np.pi / 180.
 
-    mats = np.zeros((ny, 3, 3), dtype="complex")
+    mats = np.zeros((ny, 3, 3), dtype=type(rad_theta_y[0]))
     mats[:, 0, 0] = cos(rad_theta_y)
     mats[:, 0, 2] = sin(rad_theta_y)
     mats[:, 1, 0] = sin(rad_theta_x)*sin(rad_theta_y)

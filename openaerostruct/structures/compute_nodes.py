@@ -43,23 +43,20 @@ class ComputeNodes(ExplicitComponent):
                                x_upper[-1] * (y_upper[-1] - y_lower[-1])) / \
                              ((y_upper[0]  -  y_lower[0]) + (y_upper[-1] - y_lower[-1]))
 
-        self.add_input('mesh', val=np.zeros((nx, ny, 3)), units='m')#, dtype=data_type))
-        self.add_output('nodes', val=np.zeros((ny, 3)), units='m')#, dtype=data_type))
+        self.add_input('mesh', val=np.zeros((nx, ny, 3)), units='m')
+        self.add_output('nodes', val=np.zeros((ny, 3)), units='m')
 
         w = self.fem_origin
         n = ny * 3
-
-        nodes_mesh = np.zeros((n, n * nx))
-
-        nodes_mesh[:n, :n] = np.eye(n) * (1-w)
-        nodes_mesh[:n, -n:] = np.eye(n) * w
 
         data = np.zeros((2 * n))
         data[:n] = 1 - w
         data[n:] = w
 
-        rows = np.hstack((np.arange(n), np.arange(n)))
-        cols = np.hstack((np.arange(n), np.arange(n) + (nx - 1) * n))
+        arange = np.arange(n)
+
+        rows = np.hstack((arange, arange))
+        cols = np.hstack((arange, arange + (nx - 1) * n))
 
         self.declare_partials('nodes', 'mesh', rows=rows, cols=cols, val=data)
 

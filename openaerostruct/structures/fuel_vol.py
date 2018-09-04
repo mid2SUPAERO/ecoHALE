@@ -45,7 +45,7 @@ class WingboxFuelVol(ExplicitComponent):
     def compute(self, inputs, outputs):
         nodes = inputs['nodes']
 
-        element_lengths = np.zeros(self.ny-1)
+        element_lengths = np.zeros(self.ny-1, dtype=type(nodes[0, 0]))
 
         for i in range(self.ny - 1):
             element_lengths[i] = norm(nodes[i+1] - nodes[i])

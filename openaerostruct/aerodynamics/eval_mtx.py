@@ -150,7 +150,6 @@ class EvalVelMtx(ExplicitComponent):
 
                 # Determine the repeated indices and store them in an array
                 inds = np.arange(nn).reshape((-1, 9))
-                print(inds)
                 to_remove = inds[(ny-1)::2*(ny-1)].flatten()
 
                 # Actually remove the duplicate entries
