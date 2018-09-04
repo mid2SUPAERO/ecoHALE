@@ -92,9 +92,17 @@ class VLMGeometry(ExplicitComponent):
 
         size = ny
         base = np.arange(size)
-        rows = np.tile(base, (nx-1) * 6)
+        rows = np.tile(base, nx * 3)
+        col = np.tile(3*base, 3) + np.repeat(np.arange(3), len(base))
+        cols = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), len(col))
 
         self.declare_partials('lengths', 'def_mesh', rows=rows, cols=cols)
+
+        rows = np.tile(base, 6)
+        col = np.tile(3*base, 3) + np.repeat(np.arange(3), len(base))
+        cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
+
+        self.declare_partials('chords', 'def_mesh', rows=rows, cols=cols)
 
         self.declare_partials('S_ref', 'def_mesh', method='cs')
 
@@ -199,37 +207,21 @@ class VLMGeometry(ExplicitComponent):
         partials['cos_sweep', 'def_mesh'] = np.outer([-0.75, 0.75, -0.25, 0.25],
                                                      d1.flatten()).flatten()
 
-        partials['lengths', 'def_mesh'] = np.zeros_like(partials['lengths', 'def_mesh'])
-        for i in range(ny):
-            dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
-            dy = mesh[1:, i, 1] - mesh[:-1, i, 1]
-            dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
-            for j in range(nx-1):
-                l = np.sqrt(dx[j]**2 + dy[j]**2 + dz[j]**2)
-                partials['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
-                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
-                partials['lengths', 'def_mesh'][i, (j*ny+i)*3 + 1] -= dy[j] / l
-                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 1] += dy[j] / l
-                partials['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
-                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] += dz[j] / l
+        dmesh = np.diff(mesh, axis=0)
+        l = np.sqrt(np.sum(dmesh**2, axis=2))
+        dmesh[:, :, 0] /= l
+        dmesh[:, :, 1] /= l
+        dmesh[:, :, 2] /= l
+        derivs = dmesh.T.flatten()
+        nn = len(derivs)
+        nf = len(partials['lengths', 'def_mesh'])
+        partials['lengths', 'def_mesh'][:nn] -= derivs
+        partials['lengths', 'def_mesh'][nf-nn:] += derivs
 
-        partials['chords', 'def_mesh'] = np.zeros_like(partials['chords', 'def_mesh'])
-        for i in range(ny):
-            dx = mesh[0, i, 0] - mesh[-1, i, 0]
-            dy = mesh[0, i, 1] - mesh[-1, i, 1]
-            dz = mesh[0, i, 2] - mesh[-1, i, 2]
-
-            l = np.sqrt(dx**2 + dy**2 + dz**2)
-
-            le_ind = 0
-            te_ind = (nx - 1) * 3 * ny
-
-            partials['chords', 'def_mesh'][i, le_ind + i*3 + 0] += dx / l
-            partials['chords', 'def_mesh'][i, te_ind + i*3 + 0] -= dx / l
-            partials['chords', 'def_mesh'][i, le_ind + i*3 + 1] += dy / l
-            partials['chords', 'def_mesh'][i, te_ind + i*3 + 1] -= dy / l
-            partials['chords', 'def_mesh'][i, le_ind + i*3 + 2] += dz / l
-            partials['chords', 'def_mesh'][i, te_ind + i*3 + 2] -= dz / l
+        dfullmesh = mesh[0, :] - mesh[-1, :]
+        l = np.sqrt(np.sum(dfullmesh**2, axis=1))
+        derivs = (dfullmesh.T/l).flatten()
+        partials['chords', 'def_mesh'] = np.concatenate([derivs, -derivs])
 
         partials['normals', 'def_mesh'] = np.zeros_like(partials['normals', 'def_mesh'])
         # Partial of f=normals w.r.t. to x=def_mesh
