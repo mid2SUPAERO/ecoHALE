@@ -1,8 +1,8 @@
 from openmdao.api import IndepVarComp, Group
 from openaerostruct.transfer.compute_ref_curve import ComputeRefCurve
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
+# from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
+from openaerostruct.transfer.new_displacement_transfer import DisplacementTransfer
 from openaerostruct.transfer.compute_transformation_matrix import ComputeTransformationMatrix
-
 
 
 class DisplacementTransferGroup(Group):
