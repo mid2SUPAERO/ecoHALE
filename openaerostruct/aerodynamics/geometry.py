@@ -215,8 +215,8 @@ class VLMGeometry(ExplicitComponent):
         derivs = dmesh.T.flatten()
         nn = len(derivs)
         nf = len(partials['lengths', 'def_mesh'])
-        partials['lengths', 'def_mesh'][:nn] -= derivs
-        partials['lengths', 'def_mesh'][nf-nn:] += derivs
+        partials['lengths', 'def_mesh'][:nn] = -derivs
+        partials['lengths', 'def_mesh'][nf-nn:] = +derivs
 
         dfullmesh = mesh[0, :] - mesh[-1, :]
         l = np.sqrt(np.sum(dfullmesh**2, axis=1))
