@@ -45,19 +45,9 @@ class DisplacementTransfer(ExplicitComponent):
         self.ny = surface['num_y']
         self.nx = surface['num_x']
 
-        if surface['fem_model_type'] == 'tube':
-            self.fem_origin = surface['fem_origin']
-        else:
-            y_upper = surface['data_y_upper']
-            x_upper = surface['data_x_upper']
-            y_lower = surface['data_y_lower']
-
-            self.fem_origin = (x_upper[0]  * (y_upper[0]  - y_lower[0]) +
-                               x_upper[-1] * (y_upper[-1] - y_lower[-1])) / \
-                             ((y_upper[0]  -  y_lower[0]) + (y_upper[-1] - y_lower[-1]))
-
         self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
         self.add_input('disp', val=np.zeros((self.ny, 6)), units='m')
+        self.add_input('transformation_matrix', val=np.zeros((self.ny, 3, 3)))
         self.add_input('ref_curve', val=np.zeros((self.ny, 3)), units='m')
 
         self.add_output('def_mesh', val=np.random.random_sample((self.nx, self.ny, 3)), units='m')
@@ -67,9 +57,6 @@ class DisplacementTransfer(ExplicitComponent):
     def compute(self, inputs, outputs):
         mesh = inputs['mesh']
         disp = inputs['disp']
-
-        # Get the location of the spar within the wing and save as w
-        w = self.fem_origin
 
         # Get the location of the spar
         ref_curve = inputs['ref_curve']
