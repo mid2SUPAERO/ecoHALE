@@ -121,8 +121,6 @@ class EvalVelMtx(ExplicitComponent):
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
             vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
 
-            # TODO: these derivatives for the symmetry case are not correct.
-            # Using cs for now.
             if surface['symmetry']:
                 self.add_input(vectors_name, shape=(num_eval_points, nx, 2*ny-1, 3), units='m')
 
@@ -131,16 +129,17 @@ class EvalVelMtx(ExplicitComponent):
                 vel_mtx_indices = np.arange(num_eval_points * (nx - 1) * (ny - 1) * 3).reshape(
                     (num_eval_points, nx - 1, ny - 1, 3))
 
-                rows = np.concatenate([
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                ])
+                base = np.tile(np.repeat(np.arange(3), 3), ny-1)
+                block1 = base + np.repeat(3*np.arange(ny-1), 9)
+                block2 = base + np.flip(np.repeat(3*np.arange(ny-1), 9), axis=0)
+                block3 = np.concatenate([block1, block2])
+                block4 = np.tile(block3, nx-1)
+                block5 = block4 + np.repeat(3*(ny-1)*np.arange(nx-1), len(block3))
+                block6 = np.tile(block5, num_eval_points)
+                row = block6 + np.repeat(3*(ny-1)*(nx-1)*np.arange(num_eval_points), len(block5))
+
+                rows = np.tile(row, 4)
+
                 cols = np.concatenate([
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 0:-1, :], np.ones(3, int)).flatten(),
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 0:-1, :], np.ones(3, int)).flatten(),
@@ -148,8 +147,19 @@ class EvalVelMtx(ExplicitComponent):
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 1:  , :], np.ones(3, int)).flatten(),
                 ])
 
-                self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
-                self.declare_partials(vel_mtx_name, vectors_name, method='fd')
+                # Layout logic includes some duplicate entries due to symmetry. Find and remove them.
+                nn = len(rows) // 2
+                to_remove = []
+                r = rows[nn:]
+                c = cols[nn:]
+                for j in np.arange(nn):
+                    duplicated_entry = np.where((r == rows[j]) & (c == cols[j]))[0]
+                    if duplicated_entry:
+                        to_remove.append(j)
+                for j in reversed(to_remove):
+                    rows = np.delete(rows, j)
+                    cols = np.delete(cols, j)
+
             else:
                 self.add_input(vectors_name, shape=(num_eval_points, nx, ny, 3), units='m')
 
@@ -158,25 +168,20 @@ class EvalVelMtx(ExplicitComponent):
                 vel_mtx_indices = np.arange(num_eval_points * (nx - 1) * (ny - 1) * 3).reshape(
                     (num_eval_points, nx - 1, ny - 1, 3))
 
-                rows = np.concatenate([
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                    np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(),
-                ])
+                rows = np.tile(np.einsum('ijkl,m->ijklm', vel_mtx_indices, np.ones(3, int)).flatten(), 4)
+
                 cols = np.concatenate([
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 0:-1, :], np.ones(3, int)).flatten(),
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 0:-1, :], np.ones(3, int)).flatten(),
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 0:-1, 1:  , :], np.ones(3, int)).flatten(),
                     np.einsum('ijkm,l->ijklm', vectors_indices[:, 1:  , 1:  , :], np.ones(3, int)).flatten(),
                 ])
-                self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
-                self.declare_partials(vel_mtx_name, vectors_name, method='fd')
 
+            self.declare_partials(vel_mtx_name, vectors_name, rows=rows, cols=cols)
 
             self.declare_partials(vel_mtx_name, 'alpha', method='fd')
             self.add_output(vel_mtx_name, shape=(num_eval_points, nx - 1, ny - 1, 3), units='1/m')
-            self.set_check_partial_options(wrt='*', method='fd')
+            self.set_check_partial_options(wrt='*', method='cs')
 
     def compute(self, inputs, outputs):
         surfaces = self.options['surfaces']
@@ -243,10 +248,11 @@ class EvalVelMtx(ExplicitComponent):
 
             r1 = inputs[vectors_name][:, -1:, 1:  , :]
             r2 = inputs[vectors_name][:, -1:, 0:-1, :]
+            result1 = compute_finite_vortex(r1, r2)
+            result2 = compute_semi_infinite_vortex(u, r1)
+            result3 = compute_semi_infinite_vortex(u, r2)
+
             if surface['symmetry']:
-                result1 = compute_finite_vortex(r1, r2)
-                result2 = compute_semi_infinite_vortex(u, r1)
-                result3 = compute_semi_infinite_vortex(u, r2)
                 res1 = result1[:, :, :ny-1, :]
                 res1 += result1[:, :, ny-1:, :][:, :, ::-1, :]
                 res2 = result2[:, :, :ny-1, :]
@@ -255,132 +261,168 @@ class EvalVelMtx(ExplicitComponent):
                 res3 += result3[:, :, ny-1:, :][:, :, ::-1, :]
                 outputs[vel_mtx_name][:, -1:, :, :] += res1 - res2 + res3
             else:
-                outputs[vel_mtx_name][:, -1:, :, :] += compute_finite_vortex(r1, r2)
-                outputs[vel_mtx_name][:, -1:, :, :] -= compute_semi_infinite_vortex(u, r1)
-                outputs[vel_mtx_name][:, -1:, :, :] += compute_semi_infinite_vortex(u, r2)
+                outputs[vel_mtx_name][:, -1:, :, :] += result1
+                outputs[vel_mtx_name][:, -1:, :, :] -= result2
+                outputs[vel_mtx_name][:, -1:, :, :] += result3
 
-    ### This is currently commented out because we don't have the analytic derivatives
-    ### figured out for the symmetry==True case.
+    def compute_partials(self, inputs, partials):
+        surfaces = self.options['surfaces']
+        eval_name = self.options['eval_name']
+        num_eval_points = self.options['num_eval_points']
 
-    # def compute_partials(self, inputs, partials):
-    #     surfaces = self.options['surfaces']
-    #     eval_name = self.options['eval_name']
-    #     num_eval_points = self.options['num_eval_points']
-    #
-    #     for surface in surfaces:
-    #         nx = surface['num_x']
-    #         ny = surface['num_y']
-    #         name = surface['name']
-    #
-    #         vectors_name = '{}_{}_vectors'.format(name, eval_name)
-    #         vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
-    #
-    #         alpha = inputs['alpha'][0]
-    #         cosa = np.cos(alpha * np.pi / 180.)
-    #         sina = np.sin(alpha * np.pi / 180.)
-    #
-    #         if surface['symmetry']:
-    #             u = np.einsum('ijk,l->ijkl',
-    #                 np.ones((num_eval_points, 1, 2*(ny - 1))),
-    #                 np.array([cosa, 0, sina]))
-    #
-    #             deriv_array = np.einsum('...,ij->...ij',
-    #                 np.ones((num_eval_points, nx - 1, 2*(ny - 1))),
-    #                 np.eye(3))
-    #             trailing_array = np.einsum('...,ij->...ij',
-    #                 np.ones((num_eval_points, 1, 2*(ny - 1))),
-    #                 np.eye(3))
-    #
-    #             derivs = np.zeros((4, num_eval_points, nx - 1, 2*(ny - 1), 3, 3))
-    #
-    #             # front vortex
-    #             r1 = inputs[vectors_name][:, 0:-1, 1:  , :]
-    #             r2 = inputs[vectors_name][:, 0:-1, 0:-1, :]
-    #             derivs[2, :, :, :ny-1, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[0, :, :, :ny-1, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[2, :, :, ny-1:, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, ny-1:, :, :][:, :, ::-1]
-    #             derivs[0, :, :, ny-1:, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, ny-1:, :, :][:, :, ::-1]
-    #
-    #             # right vortex
-    #             r1 = inputs[vectors_name][:, 0:-1, 0:-1, :]
-    #             r2 = inputs[vectors_name][:, 1:  , 0:-1, :]
-    #             derivs[0, :, :, :ny-1, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[1, :, :, :ny-1, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[0, :, :, ny-1:, :][:, :, ::-1] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, ny-1:, :, :]
-    #             derivs[1, :, :, ny-1:, :][:, :, ::-1] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, ny-1:, :, :]
-    #
-    #             # rear vortex
-    #             r1 = inputs[vectors_name][:, 1:  , 0:-1, :]
-    #             r2 = inputs[vectors_name][:, 1:  , 1:  , :]
-    #             derivs[1, :, :, :ny-1, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[3, :, :, :ny-1, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[1, :, :, ny-1:, :][:, :, ::-1] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, ny-1:, :, :]
-    #             derivs[3, :, :, ny-1:, :][:, :, ::-1] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, ny-1:, :, :]
-    #
-    #             # left vortex
-    #             r1 = inputs[vectors_name][:, 1:  , 1:  , :]
-    #             r2 = inputs[vectors_name][:, 0:-1, 1:  , :]
-    #             derivs[3, :, :, :ny-1, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[2, :, :, :ny-1, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-    #             derivs[3, :, :, ny-1:, :][:, :, ::-1] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, ny-1:, :, :]
-    #             derivs[2, :, :, ny-1:, :][:, :, ::-1] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, ny-1:, :, :]
-    #
-    #             ----------------- last row -----------------
-    #
-    #             r1 = inputs[vectors_name][:, -1:, 1:  , :]
-    #             r2 = inputs[vectors_name][:, -1:, 0:-1, :]
-    #             derivs[3, :, -1:, :, :] += compute_finite_vortex_deriv1(r1, r2, trailing_array)
-    #             derivs[1, :, -1:, :, :] += compute_finite_vortex_deriv2(r1, r2, trailing_array)
-    #             derivs[3, :, -1:, :, :] -= compute_semi_infinite_vortex_deriv(u, r1, trailing_array)
-    #             derivs[1, :, -1:, :, :] += compute_semi_infinite_vortex_deriv(u, r2, trailing_array)
-    #
-    #             partials[vel_mtx_name, vectors_name] = derivs.flatten()
-    #
-    #         else:
-    #             u = np.einsum('ijk,l->ijkl',
-    #                 np.ones((num_eval_points, 1, ny - 1)),
-    #                 np.array([cosa, 0, sina]))
-    #
-    #             deriv_array = np.einsum('...,ij->...ij',
-    #                 np.ones((num_eval_points, nx - 1, ny - 1)),
-    #                 np.eye(3))
-    #             trailing_array = np.einsum('...,ij->...ij',
-    #                 np.ones((num_eval_points, 1, ny - 1)),
-    #                 np.eye(3))
-    #
-    #             derivs = np.zeros((4, num_eval_points, nx - 1, ny - 1, 3, 3))
-    #
-    #             # front vortex
-    #             r1 = inputs[vectors_name][:, 0:-1, 1:  , :]
-    #             r2 = inputs[vectors_name][:, 0:-1, 0:-1, :]
-    #             derivs[2, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
-    #             derivs[0, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
-    #
-    #             # right vortex
-    #             r1 = inputs[vectors_name][:, 0:-1, 0:-1, :]
-    #             r2 = inputs[vectors_name][:, 1:  , 0:-1, :]
-    #             derivs[0, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
-    #             derivs[1, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
-    #
-    #             # rear vortex
-    #             r1 = inputs[vectors_name][:, 1:  , 0:-1, :]
-    #             r2 = inputs[vectors_name][:, 1:  , 1:  , :]
-    #             derivs[1, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
-    #             derivs[3, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
-    #
-    #             # left vortex
-    #             r1 = inputs[vectors_name][:, 1:  , 1:  , :]
-    #             r2 = inputs[vectors_name][:, 0:-1, 1:  , :]
-    #             derivs[3, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
-    #             derivs[2, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
-    #
-    #             # ----------------- last row -----------------
-    #
-    #             r1 = inputs[vectors_name][:, -1:, 1:  , :]
-    #             r2 = inputs[vectors_name][:, -1:, 0:-1, :]
-    #             derivs[3, :, -1:, :, :] += compute_finite_vortex_deriv1(r1, r2, trailing_array)
-    #             derivs[1, :, -1:, :, :] += compute_finite_vortex_deriv2(r1, r2, trailing_array)
-    #             derivs[3, :, -1:, :, :] -= compute_semi_infinite_vortex_deriv(u, r1, trailing_array)
-    #             derivs[1, :, -1:, :, :] += compute_semi_infinite_vortex_deriv(u, r2, trailing_array)
-    #
-    #             partials[vel_mtx_name, vectors_name] = derivs.flatten()
+        for surface in surfaces:
+            nx = surface['num_x']
+            ny = surface['num_y']
+            name = surface['name']
+
+            vectors_name = '{}_{}_vectors'.format(name, eval_name)
+            vel_mtx_name = '{}_{}_vel_mtx'.format(name, eval_name)
+
+            alpha = inputs['alpha'][0]
+            cosa = np.cos(alpha * np.pi / 180.)
+            sina = np.sin(alpha * np.pi / 180.)
+
+            if surface['symmetry']:
+
+                u = np.einsum('ijk,l->ijkl',
+                    np.ones((num_eval_points, 1, 2*(ny - 1))),
+                    np.array([cosa, 0, sina]))
+
+                deriv_array = np.einsum('...,ij->...ij',
+                    np.ones((num_eval_points, nx - 1, 2*(ny - 1))),
+                    np.eye(3))
+                trailing_array = np.einsum('...,ij->...ij',
+                    np.ones((num_eval_points, 1, 2*(ny - 1))),
+                    np.eye(3))
+
+                derivs0 = np.zeros((num_eval_points, nx - 1, 2*(ny - 1) - 1, 3, 3))
+                derivs1 = np.zeros((num_eval_points, nx - 1, 2*(ny - 1) - 1, 3, 3))
+                derivs2 = np.zeros((num_eval_points, nx - 1, 2*(ny - 1), 3, 3))
+                derivs3 = np.zeros((num_eval_points, nx - 1, 2*(ny - 1), 3, 3))
+
+                # front vortex
+                r1 = inputs[vectors_name][:, 0:-1, 1:  , :]
+                r2 = inputs[vectors_name][:, 0:-1, 0:-1, :]
+                d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
+                derivs2[:, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs0[:, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs2[:, :, ny-1:, :, :] += d1[:, :, ny-1:, :, :]
+                derivs0[:, :, ny-1:, :, :] += d2[:, :, ny:, :, :]
+
+                # Formerly duplicated location
+                derivs2[:, :, ny-2, :, :] += d2[:, :, ny-1, :, :]
+
+                # right vortex
+                r1 = inputs[vectors_name][:, 0:-1, 0:-1, :]
+                r2 = inputs[vectors_name][:, 1:  , 0:-1, :]
+                d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
+                derivs0[:, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs1[:, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs0[:, :, ny-1:, :, :] += d1[:, :, ny:, :, :]
+                derivs1[:, :, ny-1:, :] += d2[:, :, ny:, :, :]
+
+                # Formerly duplicated location
+                derivs2[:, :, ny-2, :, :] += d1[:, :, ny-1, :, :]
+                derivs3[:, :, ny-2, :, :] += d2[:, :, ny-1, :, :]
+
+                # rear vortex
+                r1 = inputs[vectors_name][:, 1:  , 0:-1, :]
+                r2 = inputs[vectors_name][:, 1:  , 1:  , :]
+                d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
+                derivs1[:, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs3[:, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs1[:, :, ny-1:, :] += d1[:, :, ny:, :, :]
+                derivs3[:, :, ny-1:, :] += d2[:, :, ny-1:, :, :]
+
+                # Formerly duplicated location
+                derivs3[:, :, ny-2, :, :] += d1[:, :, ny-1, :, :]
+
+                # left vortex
+                r1 = inputs[vectors_name][:, 1:  , 1:  , :]
+                r2 = inputs[vectors_name][:, 0:-1, 1:  , :]
+                d1 = compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                d2 = compute_finite_vortex_deriv2(r1, r2, deriv_array)
+                derivs3[:, :, :ny-1, :, :] += d1[:, :, :ny-1, :, :]
+                derivs2[:, :, :ny-1, :, :] += d2[:, :, :ny-1, :, :]
+                derivs3[:, :, ny-1:, :] += d1[:, :, ny-1:, :, :]
+                derivs2[:, :, ny-1:, :] += d2[:, :, ny-1:, :, :]
+
+                #----------------- last row -----------------
+
+                r1 = inputs[vectors_name][:, -1:, 1:  , :]
+                r2 = inputs[vectors_name][:, -1:, 0:-1, :]
+                d1 = compute_finite_vortex_deriv1(r1, r2, trailing_array)
+                d2 = compute_finite_vortex_deriv2(r1, r2, trailing_array)
+                d3 = compute_semi_infinite_vortex_deriv(u, r1, trailing_array)
+                d4 = compute_semi_infinite_vortex_deriv(u, r2, trailing_array)
+                derivs3[:, -1:, :ny-1, :] += d1[:, :, :ny-1, :, :]
+                derivs1[:, -1:, :ny-1, :] += d2[:, :, :ny-1, :, :]
+                derivs3[:, -1:, :ny-1, :] -= d3[:, :, :ny-1, :, :]
+                derivs1[:, -1:, :ny-1, :] += d4[:, :, :ny-1, :, :]
+                derivs3[:, -1:, ny-1:, :] += d1[:, :, ny-1:, :, :]
+                derivs1[:, -1:, ny-1:, :] += d2[:, :, ny:, :, :]
+                derivs3[:, -1:, ny-1:, :] -= d3[:, :, ny-1:, :, :]
+                derivs1[:, -1:, ny-1:, :] += d4[:, :, ny:, :, :]
+
+                # Formerly duplicated location
+                derivs3[:, -1:, ny-2, :, :] += d2[:, :, ny-1, :, :]
+                derivs3[:, -1:, ny-2, :, :] += d4[:, :, ny-1, :, :]
+
+                partials[vel_mtx_name, vectors_name] = np.concatenate([
+                    derivs0.flatten(),
+                    derivs1.flatten(),
+                    derivs2.flatten(),
+                    derivs3.flatten(),
+                ])
+
+            else:
+                u = np.einsum('ijk,l->ijkl',
+                    np.ones((num_eval_points, 1, ny - 1)),
+                    np.array([cosa, 0, sina]))
+
+                deriv_array = np.einsum('...,ij->...ij',
+                    np.ones((num_eval_points, nx - 1, ny - 1)),
+                    np.eye(3))
+                trailing_array = np.einsum('...,ij->...ij',
+                    np.ones((num_eval_points, 1, ny - 1)),
+                    np.eye(3))
+
+                derivs = np.zeros((4, num_eval_points, nx - 1, ny - 1, 3, 3))
+
+                # front vortex
+                r1 = inputs[vectors_name][:, 0:-1, 1:  , :]
+                r2 = inputs[vectors_name][:, 0:-1, 0:-1, :]
+                derivs[2, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                derivs[0, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
+
+                # right vortex
+                r1 = inputs[vectors_name][:, 0:-1, 0:-1, :]
+                r2 = inputs[vectors_name][:, 1:  , 0:-1, :]
+                derivs[0, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                derivs[1, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
+
+                # rear vortex
+                r1 = inputs[vectors_name][:, 1:  , 0:-1, :]
+                r2 = inputs[vectors_name][:, 1:  , 1:  , :]
+                derivs[1, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                derivs[3, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
+
+                # left vortex
+                r1 = inputs[vectors_name][:, 1:  , 1:  , :]
+                r2 = inputs[vectors_name][:, 0:-1, 1:  , :]
+                derivs[3, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
+                derivs[2, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
+
+                # ----------------- last row -----------------
+
+                r1 = inputs[vectors_name][:, -1:, 1:  , :]
+                r2 = inputs[vectors_name][:, -1:, 0:-1, :]
+                derivs[3, :, -1:, :, :] += compute_finite_vortex_deriv1(r1, r2, trailing_array)
+                derivs[1, :, -1:, :, :] += compute_finite_vortex_deriv2(r1, r2, trailing_array)
+                derivs[3, :, -1:, :, :] -= compute_semi_infinite_vortex_deriv(u, r1, trailing_array)
+                derivs[1, :, -1:, :, :] += compute_semi_infinite_vortex_deriv(u, r2, trailing_array)
+
+                partials[vel_mtx_name, vectors_name] = derivs.flatten()
