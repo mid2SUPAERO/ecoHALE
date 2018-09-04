@@ -14,8 +14,8 @@ class ComputeTransformationMatrix(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        ny = surface['num_y']
-        nx = surface['num_x']
+        ny = self.ny = surface['num_y']
+        nx = self.nx = surface['num_x']
 
         self.add_input('disp', val=np.zeros((ny, 6)), units='m')
         self.add_output('transformation_matrix', shape=(ny, 3, 3))
@@ -63,7 +63,7 @@ class ComputeTransformationMatrix(ExplicitComponent):
         ry = inputs['disp'][:, 4]
         rz = inputs['disp'][:, 5]
 
-        derivs = partials['transformation_matrix', 'disp'].reshape((ny, 3, 3, 3))
+        derivs = partials['transformation_matrix', 'disp'].reshape((self.ny, 3, 3, 3))
         derivs[:, :, :, :] = 0.
 
         derivs[:, 1, 1, 0] -= np.sin(rx)
