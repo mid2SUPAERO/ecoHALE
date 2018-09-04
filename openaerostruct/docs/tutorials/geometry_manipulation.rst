@@ -152,7 +152,7 @@ Explanation of design variables
 
 We currently have eight design variables, which we will detail below. Sweep, taper, and dihedral each have one design variable defined for a single lifting surface, while twist, chord, xshear, zshear, thickness, and radius are arrays that contain values for specific spanwise locations along the surface.
 
-Instead of directly controlling the nodal mesh points for the design variables defined as arrays along the span, we use vary b-spline control points which influence a b-spline interpolation.
+Instead of directly controlling the nodal mesh points for the design variables defined as arrays along the span, we vary b-spline control points which influence a b-spline interpolation.
 For example, in the figure below, we control the green points as our design variables, which are the b-spline knots.
 The blue curve is interpolated from the green points and the blue curve is what would modify the aerodynamic mesh.
 In this way we can choose the number of design variables independently of the fidelity of the aerodynamic mesh.
@@ -258,3 +258,10 @@ For example, you could have a case with a main wing surface and a tail surface a
 Most components operate only on one lifting surface without regard for the others in the problem.
 Only two components need to have information from all lifting surfaces -- `AssembleAIC` and `VLMForces`.
 `AssembleAIC` considers all lifting surfaces when it constructs the aerodynamic influence coefficient (AIC) matrix.
+
+Utility Scripts
+---------------
+A few useful scripts can be found in geometry/utils.py, such as 
+:py:meth:`writing the mesh to a Tecplot file <openaerostruct.geometry.utils.writeMesh>`
+and
+:py:meth:`mirroring half-meshes to obtain the full mesh <openaerostruct.geometry.utils.getFullMesh>`.
