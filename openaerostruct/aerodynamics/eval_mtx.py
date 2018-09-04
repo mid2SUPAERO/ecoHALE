@@ -265,6 +265,7 @@ class EvalVelMtx(ExplicitComponent):
         surfaces = self.options['surfaces']
         eval_name = self.options['eval_name']
         num_eval_points = self.options['num_eval_points']
+
         for surface in surfaces:
             nx = surface['num_x']
             ny = surface['num_y']
@@ -377,6 +378,7 @@ class EvalVelMtx(ExplicitComponent):
                 u = np.einsum('ijk,l->ijkl',
                     np.ones((num_eval_points, 1, ny - 1)),
                     np.array([cosa, 0, sina]))
+
                 deriv_array = np.einsum('...,ij->...ij',
                     np.ones((num_eval_points, nx - 1, ny - 1)),
                     np.eye(3))
@@ -391,16 +393,19 @@ class EvalVelMtx(ExplicitComponent):
                 r2 = inputs[vectors_name][:, 0:-1, 0:-1, :]
                 derivs[2, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
                 derivs[0, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
+
                 # right vortex
                 r1 = inputs[vectors_name][:, 0:-1, 0:-1, :]
                 r2 = inputs[vectors_name][:, 1:  , 0:-1, :]
                 derivs[0, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
                 derivs[1, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
+
                 # rear vortex
                 r1 = inputs[vectors_name][:, 1:  , 0:-1, :]
                 r2 = inputs[vectors_name][:, 1:  , 1:  , :]
                 derivs[1, :, :, :, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)
                 derivs[3, :, :, :, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)
+
                 # left vortex
                 r1 = inputs[vectors_name][:, 1:  , 1:  , :]
                 r2 = inputs[vectors_name][:, 0:-1, 1:  , :]
@@ -415,4 +420,5 @@ class EvalVelMtx(ExplicitComponent):
                 derivs[1, :, -1:, :, :] += compute_finite_vortex_deriv2(r1, r2, trailing_array)
                 derivs[3, :, -1:, :, :] -= compute_semi_infinite_vortex_deriv(u, r1, trailing_array)
                 derivs[1, :, -1:, :, :] += compute_semi_infinite_vortex_deriv(u, r2, trailing_array)
+
                 partials[vel_mtx_name, vectors_name] = derivs.flatten()
