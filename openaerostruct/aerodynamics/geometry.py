@@ -69,7 +69,8 @@ class VLMGeometry(ExplicitComponent):
         size = (nx-1) * (ny-1) * 3
         base = np.arange(size)
         rows = np.tile(base, 4)
-        cols = rows + np.repeat([0, 3, ny*3, (ny+1)*3], len(base))
+        cbase = np.tile(base + np.repeat(3*np.arange(nx-1), 3*(ny-1)), 4)
+        cols = cbase + np.repeat([0, 3, ny*3, (ny+1)*3], len(base))
         val = np.empty((4*size, ))
         val[:2*size] = 0.125
         val[2*size:] = 0.375
@@ -207,16 +208,16 @@ class VLMGeometry(ExplicitComponent):
         partials['cos_sweep', 'def_mesh'] = np.outer([-0.75, 0.75, -0.25, 0.25],
                                                      d1.flatten()).flatten()
 
+        partials['lengths', 'def_mesh'][:] = 0.0
         dmesh = np.diff(mesh, axis=0)
         l = np.sqrt(np.sum(dmesh**2, axis=2))
         dmesh[:, :, 0] /= l
         dmesh[:, :, 1] /= l
         dmesh[:, :, 2] /= l
-        derivs = dmesh.T.flatten()
+        derivs = np.transpose(dmesh, axes=[0, 2, 1]).flatten()
         nn = len(derivs)
-        nf = len(partials['lengths', 'def_mesh'])
-        partials['lengths', 'def_mesh'][:nn] = -derivs
-        partials['lengths', 'def_mesh'][nf-nn:] = +derivs
+        partials['lengths', 'def_mesh'][:nn] -= derivs
+        partials['lengths', 'def_mesh'][-nn:] += derivs
 
         dfullmesh = mesh[0, :] - mesh[-1, :]
         l = np.sqrt(np.sum(dfullmesh**2, axis=1))
