@@ -100,7 +100,7 @@ class VortexMesh(ExplicitComponent):
             vortex_mesh_name = '{}_vortex_mesh'.format(name)
 
             if surface['symmetry']:
-                mesh = np.zeros((nx, ny*2-1, 3))
+                mesh = np.zeros((nx, ny*2-1, 3), dtype=type(inputs[mesh_name][0, 0, 0]))
                 mesh[:, :ny, :] = inputs[mesh_name]
                 mesh[:, ny:, :] = inputs[mesh_name][:, :-1, :][:, ::-1, :]
                 mesh[:, ny:, 1] *= -1.

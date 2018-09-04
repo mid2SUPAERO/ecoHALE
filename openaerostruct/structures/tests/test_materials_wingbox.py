@@ -179,30 +179,30 @@ class Test(unittest.TestCase):
 
         prob.model.add_subsystem('skin_thickness_bsp', BsplinesComp(
             in_name='skin_thickness_cp', out_name='skin_thickness',
-            num_control_points=n_cp, num_points=int(ny-1),
+            num_control_points=n_cp, num_points=int(ny-1), units='m',
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['skin_thickness_cp'], promotes_outputs=['skin_thickness'])
 
         prob.model.add_subsystem('spar_thickness_bsp', BsplinesComp(
             in_name='spar_thickness_cp', out_name='spar_thickness',
-            num_control_points=n_cp, num_points=int(ny-1),
+            num_control_points=n_cp, num_points=int(ny-1), units='m',
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['spar_thickness_cp'], promotes_outputs=['spar_thickness'])
 
         prob.model.add_subsystem('fem_chords_bsp', BsplinesComp(
             in_name='fem_chords_cp', out_name='fem_chords',
-            num_control_points=n_cp, num_points=int(ny-1),
+            num_control_points=n_cp, num_points=int(ny-1), units='m',
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['fem_chords_cp'], promotes_outputs=['fem_chords'])
 
         prob.model.add_subsystem('streamwise_chords_bsp', BsplinesComp(
             in_name='streamwise_chords_cp', out_name='streamwise_chords',
-            num_control_points=n_cp, num_points=int(ny-1),
+            num_control_points=n_cp, num_points=int(ny-1), units='m',
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['streamwise_chords_cp'], promotes_outputs=['streamwise_chords'])
 
         prob.model.add_subsystem('fem_twists_bsp', BsplinesComp(
-            in_name='fem_twists_cp', out_name='fem_twists',
+            in_name='fem_twists_cp', out_name='fem_twists', units='deg',
             num_control_points=n_cp, num_points=int(ny-1),
             bspline_order=min(n_cp, 4), distribution='uniform'),
             promotes_inputs=['fem_twists_cp'], promotes_outputs=['fem_twists'])

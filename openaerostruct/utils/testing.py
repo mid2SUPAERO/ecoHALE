@@ -7,7 +7,7 @@ import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
 
 
-def view_mat(mat1, mat2, key='Title', tol=1e-10):  # pragma: no cover
+def view_mat(mat1, mat2=None, key='Title', tol=1e-10):  # pragma: no cover
     """
     Helper function used to visually examine matrices. It plots mat1 and mat2 side by side,
     and shows the difference between the two.
@@ -33,10 +33,14 @@ def view_mat(mat1, mat2, key='Title', tol=1e-10):  # pragma: no cover
     import matplotlib.pyplot as plt
     if len(mat1.shape) > 2:
         mat1 = np.sum(mat1, axis=2)
-    if len(mat2.shape) > 2:
-        mat2 = np.sum(mat2, axis=2)
-    vmin = np.amin(np.hstack((mat1.flatten(),mat2.flatten())))
-    vmax = np.amax(np.hstack((mat1.flatten(),mat2.flatten())))
+    if mat2 is not None:
+        if len(mat2.shape) > 2:
+            mat2 = np.sum(mat2, axis=2)
+        vmin = np.amin(np.hstack((mat1.flatten(),mat2.flatten())))
+        vmax = np.amax(np.hstack((mat1.flatten(),mat2.flatten())))
+    else:
+        vmin = np.amin(np.hstack((mat1.flatten())))
+        vmax = np.amax(np.hstack((mat1.flatten())))
     if vmax-vmin < tol: # add small difference for plotting if both values are the same
         vmin = vmin - tol
         vmax = vmax + tol
@@ -45,17 +49,18 @@ def view_mat(mat1, mat2, key='Title', tol=1e-10):  # pragma: no cover
     ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
     ax[0].set_title('Approximated Jacobian')
 
-    im = ax[1].imshow(mat2.real, interpolation='none',vmin=vmin,vmax=vmax)
-    fig.colorbar(im, orientation='horizontal',ax=ax[0:2].ravel().tolist())
-    ax[1].set_title('User-Defined Jacobian')
+    if mat2 is not None:
+        im = ax[1].imshow(mat2.real, interpolation='none',vmin=vmin,vmax=vmax)
+        fig.colorbar(im, orientation='horizontal',ax=ax[0:2].ravel().tolist())
+        ax[1].set_title('User-Defined Jacobian')
 
-    diff = mat2.real - mat1.real
-    if np.max(np.abs(diff).flatten()) < tol: # add small difference for plotting if diff is small
-        vmin = -1*tol
-        vmax = tol
-    im2 = ax[2].imshow(diff, interpolation='none', vmin=vmin,vmax=vmax)
-    fig.colorbar(im2, orientation='horizontal',ax=ax[2],aspect=10)
-    ax[2].set_title('Difference')
+        diff = mat2.real - mat1.real
+        if np.max(np.abs(diff).flatten()) < tol: # add small difference for plotting if diff is small
+            vmin = -1*tol
+            vmax = tol
+        im2 = ax[2].imshow(diff, interpolation='none', vmin=vmin,vmax=vmax)
+        fig.colorbar(im2, orientation='horizontal',ax=ax[2],aspect=10)
+        ax[2].set_title('Difference')
     plt.suptitle(key)
     plt.show()
 

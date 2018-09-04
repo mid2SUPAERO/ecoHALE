@@ -59,7 +59,7 @@ class WingboxGeometry(ExplicitComponent):
         # Chord lengths for the panel strips at the panel midpoint
         outputs['streamwise_chords'] = streamwise_chords.copy()
 
-        fem_twists = np.zeros(streamwise_chords.shape)
+        fem_twists = np.zeros(streamwise_chords.shape, dtype=type(mesh[0, 0, 0]))
         fem_chords = streamwise_chords.copy()
 
         surface = self.surface

@@ -88,7 +88,7 @@ class GeometryMesh(ExplicitComponent):
         geo_params['zshear'] = np.zeros(ny)
 
         if 'twist_cp' in surface.keys():
-            self.add_input('twist', val=geo_params['twist'])
+            self.add_input('twist', val=geo_params['twist'], units='deg')
         if 'chord_cp' in surface.keys():
             self.add_input('chord', val=geo_params['chord'], units='m')
         if 'xshear_cp' in surface.keys():

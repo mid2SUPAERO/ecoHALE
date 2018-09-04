@@ -120,6 +120,7 @@ class Test(unittest.TestCase):
         recorder = SqliteRecorder("aero_opt_wavedrag.db")
         prob.driver.add_recorder(recorder)
         prob.driver.recording_options['record_derivatives'] = True
+        prob.driver.recording_options['includes'] = ['*']
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)

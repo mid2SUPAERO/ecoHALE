@@ -65,7 +65,7 @@ class LoadTransfer(ExplicitComponent):
         self.declare_partials('*', '*')
 
         if not fortran_flag:
-            self.declare_partials('*', '*', method='fd')
+            self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh'].copy()
@@ -96,7 +96,8 @@ class LoadTransfer(ExplicitComponent):
                 moment = moment + np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 
             # Compute the loads based on the xyz forces and the computed moments
-            loads = np.zeros((self.ny, 6))
+            loads = outputs['loads']
+            loads[:] = 0.
             sec_forces_sum = np.sum(sec_forces, axis=0)
             loads[:-1, :3] = loads[:-1, :3] + 0.5 * sec_forces_sum[:, :]
             loads[ 1:, :3] = loads[ 1:, :3] + 0.5 * sec_forces_sum[:, :]
