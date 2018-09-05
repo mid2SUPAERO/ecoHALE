@@ -2,6 +2,7 @@ from __future__ import division, print_function
 from openmdao.utils.assert_utils import assert_rel_error
 import unittest
 import numpy as np
+from six import iteritems
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
@@ -11,6 +12,8 @@ from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructP
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp
 from openmdao.utils.assert_utils import assert_check_partials
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
+
+from openaerostruct.utils.testing import view_mat
 
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
@@ -254,9 +257,10 @@ class Test(unittest.TestCase):
         # Check the partials at the initial point in the design space,
         # only care about relative error
         data = prob.check_partials(compact_print=True, out_stream=None, method='cs', step=1e-40)
+
         assert_check_partials(data, atol=1e20, rtol=1e-6)
 
-        # Run the optimizer for 5 iterations
+        # Run the optimizer for 2 iterations
         prob.run_driver()
 
         # Check the partials at this point in the design space

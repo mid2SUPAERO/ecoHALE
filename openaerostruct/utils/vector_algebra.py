@@ -1,6 +1,9 @@
 import numpy as np
 
 
+def get_array_indices(*shape):
+    return np.arange(np.prod(shape)).reshape(shape)
+
 def add_ones_axis(array):
     return np.einsum('...,l->...l', array, np.ones(3))
 
