@@ -85,9 +85,9 @@ class CoupledAS(Group):
 
         promotes = []
         if surface['struct_weight_relief']:
-            promotes = promotes + list(set(['element_weights', 'load_factor']))
+            promotes = promotes + list(set(['nodes', 'element_weights', 'load_factor']))
         if surface['distributed_fuel_weight']:
-            promotes = promotes + list(set(['load_factor']))
+            promotes = promotes + list(set(['nodes', 'load_factor']))
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
