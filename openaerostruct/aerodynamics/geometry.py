@@ -228,11 +228,11 @@ class VLMGeometry(ExplicitComponent):
         #   f has shape (nx-1, ny-1, 3)
         #   x has shape (nx, ny, 3)
 
-        aa = mesh[:-1, 1:, :] - mesh[1:, :-1, :]
-        bb = mesh[:-1, :-1, :] - mesh[1:, 1:, :]
+        a = mesh[:-1, 1:, :] - mesh[1:, :-1, :]
+        b = mesh[:-1, :-1, :] - mesh[1:, 1:, :]
 
         # f = c / n
-        c = np.cross(aa, bb, axis=2)
+        c = np.cross(a, b, axis=2)
         n = np.sqrt(np.sum(c**2, axis=2))
 
         # Now let's work backwards to get derivative
@@ -242,30 +242,41 @@ class VLMGeometry(ExplicitComponent):
         dcdc[:, :, 0, 0] = 1.0
         dcdc[:, :, 1, 1] = 1.0
         dcdc[:, :, 2, 2] = 1.0
-        vdfdc = (dcdc*n[:, :, np.newaxis, np.newaxis] - np.einsum('ijk,ijl->ijkl', c, dndc)) / (n**2)[:, :, np.newaxis, np.newaxis]
+        dfdc = (dcdc*n[:, :, np.newaxis, np.newaxis] - np.einsum('ijk,ijl->ijkl', c, dndc)) / (n**2)[:, :, np.newaxis, np.newaxis]
+
+        # dfdc is now a 3x3 jacobian with f along the rows and c along
+        # the columns
+
+        # The next step is to get dcda and dcdb, both of which will be
+        # 3x3 jacobians with c along the rows
+
+        dcda = np.zeros((nx-1, ny-1, 3, 3))
+        dcda[:, :, 0, 1] = b[:, :, 2]
+        dcda[:, :, 0, 2] = -b[:, :, 1]
+        dcda[:, :, 1, 0] = -b[:, :, 2]
+        dcda[:, :, 1, 2] = b[:, :, 0]
+        dcda[:, :, 2, 0] = b[:, :, 1]
+        dcda[:, :, 2, 1] = -b[:, :, 0]
+
+        dcdb = np.zeros((nx-1, ny-1, 3, 3))
+        dcdb[:, :, 0, 1] = -a[:, :, 2]
+        dcdb[:, :, 0, 2] = a[:, :, 1]
+        dcdb[:, :, 1, 0] = a[:, :, 2]
+        dcdb[:, :, 1, 2] = -a[:, :, 0]
+        dcdb[:, :, 2, 0] = -a[:, :, 1]
+        dcdb[:, :, 2, 1] = a[:, :, 0]
+
+        # Now let's do some matrix multiplication to get dfda and dfdb
+        vdfda = np.einsum('ijkl,ijlm->ijkm', dfdc, dcda)
+        vdfdb = np.einsum('ijkl,ijlm->ijkm', dfdc, dcdb)
+
         for i in range(nx-1):
             for j in range(ny-1):
 
-                a = aa[i, j]
-                b = bb[i, j]
+                #dfdc = vdfdc[i, j]
 
-                dfdc = vdfdc[i, j]
-
-                # dfdc is now a 3x3 jacobian with f along the rows and c along
-                # the columns
-
-                # The next step is to get dcda and dcdb, both of which will be
-                # 3x3 jacobians with c along the rows
-                dcda = np.array([[0, b[2], -b[1]],
-                                [-b[2], 0, b[0]],
-                                [b[1], -b[0], 0]])
-                dcdb = np.array([[0, -a[2], a[1]],
-                                [a[2], 0, -a[0]],
-                                [-a[1], a[0], 0]])
-
-                # Now let's do some matrix multiplication to get dfda and dfdb
-                dfda = np.einsum('ij,jk->ik', dfdc, dcda)
-                dfdb = np.einsum('ij,jk->ik', dfdc, dcdb)
+                dfda = vdfda[i, j]
+                dfdb = vdfdb[i, j]
 
                 # Now we need to get dadlr, dadtl, dbdll, and dbdtr and put them
                 # in the right indices of the big jacobian dfdx
