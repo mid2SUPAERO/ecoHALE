@@ -105,7 +105,22 @@ class VLMGeometry(ExplicitComponent):
 
         self.declare_partials('chords', 'def_mesh', rows=rows, cols=cols)
 
-        self.declare_partials('S_ref', 'def_mesh', method='cs')
+        size = (ny-1)*(nx-1)*3
+        row = np.tile(np.arange(size).reshape((size, 1)), 3).flatten()
+        rows = np.tile(row, 4)
+        base = np.tile(np.arange(3), size) + np.repeat(3*np.arange(size//3), 9)
+        base += np.repeat(3*np.arange(nx-1), 9*(ny-1))
+        cols = np.concatenate([
+            base + 3,
+            base + ny*3,
+            base,
+            base + (ny+1)*3
+        ])
+
+        self.declare_partials('normals', 'def_mesh', rows=rows, cols=cols)
+
+        if self.surface['S_ref_type'] in ['projected', 'wetted']:
+            self.declare_partials('S_ref', 'def_mesh')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']
@@ -223,15 +238,9 @@ class VLMGeometry(ExplicitComponent):
         derivs = (dfullmesh.T/l).flatten()
         partials['chords', 'def_mesh'] = np.concatenate([derivs, -derivs])
 
-        partials['normals', 'def_mesh'] = np.zeros_like(partials['normals', 'def_mesh'])
-        # Partial of f=normals w.r.t. to x=def_mesh
-        #   f has shape (nx-1, ny-1, 3)
-        #   x has shape (nx, ny, 3)
-
+        # f = c / n
         a = mesh[:-1, 1:, :] - mesh[1:, :-1, :]
         b = mesh[:-1, :-1, :] - mesh[1:, 1:, :]
-
-        # f = c / n
         c = np.cross(a, b, axis=2)
         n = np.sqrt(np.sum(c**2, axis=2))
 
@@ -267,41 +276,39 @@ class VLMGeometry(ExplicitComponent):
         dcdb[:, :, 2, 1] = a[:, :, 0]
 
         # Now let's do some matrix multiplication to get dfda and dfdb
-        vdfda = np.einsum('ijkl,ijlm->ijkm', dfdc, dcda)
-        vdfdb = np.einsum('ijkl,ijlm->ijkm', dfdc, dcdb)
+        dfda = np.einsum('ijkl,ijlm->ijkm', dfdc, dcda)
+        dfdb = np.einsum('ijkl,ijlm->ijkm', dfdc, dcdb)
 
-        for i in range(nx-1):
-            for j in range(ny-1):
+        # Note: this is faster than np.concatenate for large meshes.
+        nn = (nx-1)*(ny-1)*9
+        dfda_flat = dfda.flatten()
+        dfdb_flat = dfdb.flatten()
+        partials['normals', 'def_mesh'][:nn] = dfda_flat
+        partials['normals', 'def_mesh'][nn:2*nn] = -dfda_flat
+        partials['normals', 'def_mesh'][2*nn:3*nn] = dfdb_flat
+        partials['normals', 'def_mesh'][3*nn:4*nn] = -dfdb_flat
 
-                #dfdc = vdfdc[i, j]
+        # Compute the wetted surface area
+        if self.surface['S_ref_type'] == 'wetted':
+            dSref_dn = 0.5*np.ones((1, (nx-1), (ny-1)))
+            #S_ref = 0.5 * np.sum(n)
 
-                dfda = vdfda[i, j]
-                dfdb = vdfdb[i, j]
+        # Compute the projected surface area
+        elif self.surface['S_ref_type'] == 'projected':
+            proj_mesh = mesh.copy()
+            proj_mesh[: , :, 2] = 0.
+            proj_normals = np.cross(
+                proj_mesh[:-1,  1:, :] - proj_mesh[1:, :-1, :],
+                proj_mesh[:-1, :-1, :] - proj_mesh[1:,  1:, :],
+                axis=2)
 
-                # Now we need to get dadlr, dadtl, dbdll, and dbdtr and put them
-                # in the right indices of the big jacobian dfdx
+            proj_norms = np.sqrt(np.sum(proj_normals**2, axis=2))
+            for j in range(3):
+                proj_normals[:, :, j] /= proj_norms
 
-                # These are the indices of the first and last components of f
-                # for the current i and j
-                if0 = (i*(ny-1)+j)*3
-                if2 = (i*(ny-1)+j)*3+2
+            S_ref = 0.5 * np.sum(proj_norms)
 
-                # Partial f w.r.t. lr
-                ix0 = (i*ny+j+1)*3      # First index of lr for current i and j
-                ix2 = (i*ny+j+1)*3+2    # Last index of lr for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfda[:,:]
+        # Multiply the surface area by 2 if symmetric to get consistent area measures
+        if self.surface['symmetry']:
+            partials['normals', 'def_mesh'] *= 2.0
 
-                # Partial f w.r.t. tl
-                ix0 = ((i+1)*ny+j)*3    # First index of tl for current i and j
-                ix2 = ((i+1)*ny+j)*3+2  # Last index of tl for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfda[:,:]
-
-                # Partial f w.r.t. ll
-                ix0 = (i*ny+j)*3        # First index of ll for current i and j
-                ix2 = (i*ny+j)*3+2      # Last index of ll for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfdb[:,:]
-
-                # Partial f w.r.t. tr
-                ix0 = ((i+1)*ny+j+1)*3   # First index of tr for current i and j
-                ix2 = ((i+1)*ny+j+1)*3+2 # Last index of tr for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfdb[:,:]
