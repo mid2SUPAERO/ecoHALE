@@ -43,7 +43,7 @@ class DisplacementTransfer(ExplicitComponent):
         self.add_input('mesh', val=np.ones((self.nx, self.ny, 3)), units='m')
         self.add_input('disp', val=np.ones((self.ny, 6)), units='m')
         self.add_input('transformation_matrix', val=np.ones((self.ny, 3, 3)))
-        self.add_input('ref_curve', val=np.ones((self.ny, 3)), units='m')
+        self.add_input('nodes', val=np.ones((self.ny, 3)), units='m')
 
         self.add_output('def_mesh', val=np.random.random_sample((self.nx, self.ny, 3)), units='m')
 
@@ -59,7 +59,7 @@ class DisplacementTransfer(ExplicitComponent):
 
         rows = np.einsum('ijk,l->ijkl', mesh_disp_indices, np.ones(3, int)).flatten()
         cols = np.einsum('ik,jl->ijkl', np.ones((self.nx, 3), int), axis_indices).flatten()
-        self.declare_partials('def_mesh', 'ref_curve', rows=rows, cols=cols)
+        self.declare_partials('def_mesh', 'nodes', rows=rows, cols=cols)
 
         rows = np.einsum('ijk,l->ijkl', mesh_disp_indices, np.ones(3, int)).flatten()
         cols = np.einsum('ijl,k->ijkl', mesh_indices, np.ones(3, int)).flatten()
@@ -74,7 +74,7 @@ class DisplacementTransfer(ExplicitComponent):
         disp = inputs['disp']
 
         # Get the location of the spar
-        ref_curve = inputs['ref_curve']
+        nodes = inputs['nodes']
 
         outputs['def_mesh'] = mesh
         outputs['def_mesh'] += np.einsum('i,jk->ijk',
@@ -82,10 +82,10 @@ class DisplacementTransfer(ExplicitComponent):
 
         outputs['def_mesh'] += np.einsum('lij,klj->kli',
                                          inputs['transformation_matrix'],
-                                         inputs['mesh'] - ref_curve)
+                                         inputs['mesh'] - nodes)
 
     def compute_partials(self, inputs, partials):
-        partials['def_mesh', 'ref_curve'] = -np.einsum('i,jlk->ijlk',
+        partials['def_mesh', 'nodes'] = -np.einsum('i,jlk->ijlk',
             np.ones(self.nx), inputs['transformation_matrix']).flatten()
 
         partials['def_mesh', 'mesh'] = np.einsum('i,jlk->ijlk',
@@ -93,5 +93,5 @@ class DisplacementTransfer(ExplicitComponent):
         partials['def_mesh', 'mesh'] += np.tile(np.eye(3), self.nx * self.ny).flatten(order='F')
 
         partials['def_mesh', 'transformation_matrix'] = np.einsum('ijk,l->ijkl',
-            inputs['mesh'] - np.einsum('i,jk->ijk', np.ones(self.nx), inputs['ref_curve']),
+            inputs['mesh'] - np.einsum('i,jk->ijk', np.ones(self.nx), inputs['nodes']),
             np.ones(3)).flatten()
