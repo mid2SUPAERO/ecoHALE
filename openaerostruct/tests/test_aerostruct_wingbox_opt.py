@@ -160,11 +160,11 @@ class Test(unittest.TestCase):
 
                 com_name = point_name + '.' + name + '_perf.'
                 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
                 prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
-                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
                 prob.model.connect('load_factor', point_name + '.coupled.' + name + '.load_factor')
 
                 # Connect performance calculation variables

@@ -64,7 +64,7 @@ def view_mat(mat1, mat2=None, key='Title', tol=1e-10):  # pragma: no cover
     plt.suptitle(key)
     plt.show()
 
-def run_test(test_obj, comp, complex_flag=False, compact_print=True, method='fd', step=1e-6, atol=1e-5, rtol=1e-5):
+def run_test(test_obj, comp, complex_flag=False, compact_print=True, method='fd', step=1e-6, atol=1e-5, rtol=1e-5, view=False):
     prob = Problem()
     prob.model.add_subsystem('comp', comp)
     prob.setup(force_alloc_complex=complex_flag)
@@ -75,6 +75,12 @@ def run_test(test_obj, comp, complex_flag=False, compact_print=True, method='fd'
         step = 1e-40
 
     check = prob.check_partials(compact_print=compact_print, method=method, step=step)
+
+    if view:
+        # Loop through this `check` dictionary and visualize the approximated
+        # and computed derivatives
+        for key, subjac in iteritems(check[list(check.keys())[0]]):
+            view_mat(subjac['J_fd'],subjac['J_fwd'],key)
 
     assert_check_partials(check, atol=atol, rtol=rtol)
 
