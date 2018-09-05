@@ -13,10 +13,6 @@ class DisplacementTransferGroup(Group):
     def setup(self):
         surface = self.options['surface']
 
-        self.add_subsystem('compute_ref_curve',
-                 ComputeRefCurve(surface=surface),
-                 promotes=['*'])
-
         self.add_subsystem('compute_transformation_matrix',
                  ComputeTransformationMatrix(surface=surface),
                  promotes=['*'])

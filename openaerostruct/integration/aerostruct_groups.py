@@ -1,7 +1,6 @@
 from openaerostruct.geometry.geometry_mesh import GeometryMesh
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.geometry_group import Geometry
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.transfer.displacement_transfer_group import DisplacementTransferGroup
 from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
@@ -86,9 +85,9 @@ class CoupledAS(Group):
 
         promotes = []
         if surface['struct_weight_relief']:
-            promotes = promotes + list(set(['nodes', 'element_weights', 'load_factor']))
+            promotes = promotes + list(set(['element_weights', 'load_factor']))
         if surface['distributed_fuel_weight']:
-            promotes = promotes + list(set(['nodes', 'load_factor']))
+            promotes = promotes + list(set(['load_factor']))
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
@@ -96,7 +95,7 @@ class CoupledAS(Group):
 
         self.add_subsystem('def_mesh',
             DisplacementTransferGroup(surface=surface),
-            promotes_inputs=['mesh', 'disp'], promotes_outputs=['def_mesh'])
+            promotes_inputs=['nodes', 'mesh', 'disp'], promotes_outputs=['def_mesh'])
 
         self.add_subsystem('aero_geom',
             VLMGeometry(surface=surface),
