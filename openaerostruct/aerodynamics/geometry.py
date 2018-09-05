@@ -239,7 +239,6 @@ class VLMGeometry(ExplicitComponent):
 
                 a = aa[i, j]
                 b = bb[i, j]
-                c = normals[i, j]
                 n = norms[i, j]
                 # f = c / n
 
