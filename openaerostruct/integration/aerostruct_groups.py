@@ -230,8 +230,8 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['atol'] = 5e-6
         coupled.nonlinear_solver.options['rtol'] = 1e-12
 
-        # coupled.jacobian = DenseJacobian()
-        coupled.linear_solver = DirectSolver()
+        coupled.linear_solver = DirectSolver(assemble_jac=True)
+        coupled.options['assembled_jac_type'] = 'csc'
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nonlinear_solver.options['maxiter'] = 50
