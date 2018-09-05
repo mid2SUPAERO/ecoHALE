@@ -1,7 +1,10 @@
-.. _User_specified_sref:
+.. _Customizing_Prob_Setup:
+
+Customizing Problem Setup
+=========================
 
 Specifying a Reference Area
-=============================
+---------------------------
 
 In order to use a specific reference area for calculating coefficients, rather than the default approach of area-weighted averaging of each lifting surface, a few modifications must be done. First, an option need to be passed to either ``AeroPoint`` or ``AeroStructPoint`` when it's intialized:
 

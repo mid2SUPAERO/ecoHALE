@@ -12,4 +12,3 @@ These examples are presented without much explanation to show some advanced feat
    more_examples/multipoint.rst
    more_examples/aerostruct_ffd.rst
    more_examples/wingbox.rst
-   more_examples/user_specified_sref.rst
