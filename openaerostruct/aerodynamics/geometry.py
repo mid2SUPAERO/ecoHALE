@@ -233,19 +233,22 @@ class VLMGeometry(ExplicitComponent):
         normals = np.cross(aa, bb, axis=2)
         norms = np.sqrt(np.sum(normals**2, axis=2))
         dndc = normals / norms[:, :, np.newaxis]
-        term = np.einsum('ijk,ijl->ijkl', normals, dndc)
+        dcdc = np.zeros((nx-1, ny-1, 3, 3))
+        dcdc[:, :, 0, 0] = 1.0
+        dcdc[:, :, 1, 1] = 1.0
+        dcdc[:, :, 2, 2] = 1.0
+        vdfdc = (dcdc*norms[:, :, np.newaxis, np.newaxis] - np.einsum('ijk,ijl->ijkl', normals, dndc)) / (norms**2)[:, :, np.newaxis, np.newaxis]
         for i in range(nx-1):
             for j in range(ny-1):
 
                 a = aa[i, j]
                 b = bb[i, j]
-                n = norms[i, j]
                 # f = c / n
 
                 # Now let's work backwards to get derivative
                 # dfdc = (dcdc * n - c * dndc) / n**2
-                dcdc = np.eye(3)
-                dfdc = (dcdc * n - term[i, j]) / n**2
+                #dfdc = (dcdc[i, j] * n - term[i, j]) / n**2
+                dfdc = vdfdc[i, j]
 
                 # dfdc is now a 3x3 jacobian with f along the rows and c along
                 # the columns
