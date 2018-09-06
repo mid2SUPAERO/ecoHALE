@@ -31,7 +31,7 @@ class Test(unittest.TestCase):
 
     def test_derivs_wetted(self):
         # This is a much richer test with the following attributes:
-        # - 5x7 mesh so that each dimension of all variables is uniique
+        # - 5x7 mesh so that each dimension of all variables is unique.
         # - Random values given as inputs.
         # - The mesh has been given a random z height at all points.
         # - S_ref_type option is "wetted"
@@ -110,7 +110,7 @@ class Test(unittest.TestCase):
 
     def test_derivs_projected(self):
         # This is a much richer test with the following attributes:
-        # - 5x7 mesh so that each dimension of all variables is uniique
+        # - 5x7 mesh so that each dimension of all variables is unique.
         # - Random values given as inputs.
         # - The mesh has been given a random z height at all points.
         # - S_ref_type option is "projected"
