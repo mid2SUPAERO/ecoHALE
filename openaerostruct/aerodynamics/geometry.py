@@ -119,8 +119,7 @@ class VLMGeometry(ExplicitComponent):
 
         self.declare_partials('normals', 'def_mesh', rows=rows, cols=cols)
 
-        if self.surface['S_ref_type'] in ['projected', 'wetted']:
-            self.declare_partials('S_ref', 'def_mesh')
+        self.declare_partials('S_ref', 'def_mesh')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']
@@ -279,6 +278,35 @@ class VLMGeometry(ExplicitComponent):
         dfda = np.einsum('ijkl,ijlm->ijkm', dfdc, dcda)
         dfdb = np.einsum('ijkl,ijlm->ijkm', dfdc, dcdb)
 
+        # Aside: preparation for surface area deriv computation under 'projected' option.
+        if self.surface['S_ref_type'] == 'projected':
+            # Compute the projected surface area by zeroing out z dimension.
+            proj_mesh = mesh.copy()
+            proj_mesh[: , :, 2] = 0.
+
+            a = proj_mesh[:-1, 1:, :] - proj_mesh[1:, :-1, :]
+            b = proj_mesh[:-1, :-1, :] - proj_mesh[1:, 1:, :]
+            c = np.cross(a, b, axis=2)
+            n = np.sqrt(np.sum(c**2, axis=2))
+
+            dcda[:, :, 0, 1] = b[:, :, 2]
+            dcda[:, :, 0, 2] = -b[:, :, 1]
+            dcda[:, :, 1, 0] = -b[:, :, 2]
+            dcda[:, :, 1, 2] = b[:, :, 0]
+            dcda[:, :, 2, 0] = b[:, :, 1]
+            dcda[:, :, 2, 1] = -b[:, :, 0]
+
+            dcdb[:, :, 0, 1] = -a[:, :, 2]
+            dcdb[:, :, 0, 2] = a[:, :, 1]
+            dcdb[:, :, 1, 0] = a[:, :, 2]
+            dcdb[:, :, 1, 2] = -a[:, :, 0]
+            dcdb[:, :, 2, 0] = -a[:, :, 1]
+            dcdb[:, :, 2, 1] = a[:, :, 0]
+
+        # Need these for wetted surface area derivs.
+        dsda = np.einsum("ijk,ijkl->ijl", c, dcda) / n[:, :, np.newaxis]
+        dsdb = np.einsum("ijk,ijkl->ijl", c, dcdb) / n[:, :, np.newaxis]
+
         # Note: this is faster than np.concatenate for large meshes.
         nn = (nx-1)*(ny-1)*9
         dfda_flat = dfda.flatten()
@@ -288,27 +316,18 @@ class VLMGeometry(ExplicitComponent):
         partials['normals', 'def_mesh'][2*nn:3*nn] = dfdb_flat
         partials['normals', 'def_mesh'][3*nn:4*nn] = -dfdb_flat
 
-        # Compute the wetted surface area
-        if self.surface['S_ref_type'] == 'wetted':
-            dSref_dn = 0.5*np.ones((1, (nx-1), (ny-1)))
-            #S_ref = 0.5 * np.sum(n)
-
-        # Compute the projected surface area
-        elif self.surface['S_ref_type'] == 'projected':
-            proj_mesh = mesh.copy()
-            proj_mesh[: , :, 2] = 0.
-            proj_normals = np.cross(
-                proj_mesh[:-1,  1:, :] - proj_mesh[1:, :-1, :],
-                proj_mesh[:-1, :-1, :] - proj_mesh[1:,  1:, :],
-                axis=2)
-
-            proj_norms = np.sqrt(np.sum(proj_normals**2, axis=2))
-            for j in range(3):
-                proj_normals[:, :, j] /= proj_norms
-
-            S_ref = 0.5 * np.sum(proj_norms)
+        # At this point, same calculation for wetted and projected surface.
+        dsda_flat = 0.5*dsda.flatten()
+        dsdb_flat = 0.5*dsdb.flatten()
+        nn = (nx-1)*(ny-1)*3
+        idx = np.arange((nx-1)*(ny-1)*3) + np.repeat(3*np.arange(nx-1), 3*(ny-1))
+        partials['S_ref', 'def_mesh'][:] = 0.0
+        partials['S_ref', 'def_mesh'][:, idx+3] += dsda_flat
+        partials['S_ref', 'def_mesh'][:, idx+ny*3] -= dsda_flat
+        partials['S_ref', 'def_mesh'][:, idx] += dsdb_flat
+        partials['S_ref', 'def_mesh'][:, idx+(ny+1)*3] -= dsdb_flat
 
         # Multiply the surface area by 2 if symmetric to get consistent area measures
         if self.surface['symmetry']:
-            partials['normals', 'def_mesh'] *= 2.0
+            partials['S_ref', 'def_mesh'] *= 2.0
 
