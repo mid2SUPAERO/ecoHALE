@@ -40,23 +40,86 @@ class VLMGeometry(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
+        self.ny = ny = surface['num_y']
+        self.nx = nx = surface['num_x']
 
-        self.add_input('def_mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
+        self.add_input('def_mesh', val=np.zeros((nx, ny, 3)), units='m')
 
-        self.add_output('b_pts', val=np.random.random((self.nx-1, self.ny, 3)), units='m')
-        self.add_output('c_pts', val=np.zeros((self.nx-1, self.ny-1, 3)), units='m')
-        self.add_output('widths', val=np.ones((self.ny-1)), units='m')
-        self.add_output('cos_sweep', val=np.zeros((self.ny-1)), units='m')
-        self.add_output('lengths', val=np.zeros((self.ny)), units='m')
-        self.add_output('chords', val=np.zeros((self.ny)), units='m')
-        self.add_output('normals', val=np.zeros((self.nx-1, self.ny-1, 3)))
+        self.add_output('b_pts', val=np.random.random((nx-1, ny, 3)), units='m')
+        self.add_output('c_pts', val=np.zeros((nx-1, ny-1, 3)), units='m')
+        self.add_output('widths', val=np.ones((ny-1)), units='m')
+        self.add_output('cos_sweep', val=np.zeros((ny-1)), units='m')
+        self.add_output('lengths', val=np.zeros((ny)), units='m')
+        self.add_output('chords', val=np.zeros((ny)), units='m')
+        self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=1., units='m**2')
 
         self.declare_partials('*', '*')
 
-        self.declare_partials('S_ref', 'def_mesh', method='cs')
+        size = (nx-1) * ny * 3
+        base = np.arange(size)
+        rows = np.tile(base, 2)
+        cols = rows + np.repeat([0, ny*3], len(base))
+        val = np.empty((2*size, ))
+        val[:size] = 0.75
+        val[size:] = 0.25
+
+        self.declare_partials('b_pts', 'def_mesh', rows=rows, cols=cols, val=val)
+
+        size = (nx-1) * (ny-1) * 3
+        base = np.arange(size)
+        rows = np.tile(base, 4)
+        cbase = np.tile(base + np.repeat(3*np.arange(nx-1), 3*(ny-1)), 4)
+        cols = cbase + np.repeat([0, 3, ny*3, (ny+1)*3], len(base))
+        val = np.empty((4*size, ))
+        val[:2*size] = 0.125
+        val[2*size:] = 0.375
+
+        self.declare_partials('c_pts', 'def_mesh', rows=rows, cols=cols, val=val)
+
+        size = ny - 1
+        base = np.arange(size)
+        rows = np.tile(base, 12)
+        col = np.tile(3*base, 6) + np.repeat(np.arange(6), len(base))
+        cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
+
+        self.declare_partials('widths', 'def_mesh', rows=rows, cols=cols)
+
+        rows = np.tile(base, 8)
+        col = np.tile(3*base, 4) + np.repeat([1, 2, 4, 5], len(base))
+        cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
+
+        self.declare_partials('cos_sweep', 'def_mesh', rows=rows, cols=cols)
+
+        size = ny
+        base = np.arange(size)
+        rows = np.tile(base, nx * 3)
+        col = np.tile(3*base, 3) + np.repeat(np.arange(3), len(base))
+        cols = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), len(col))
+
+        self.declare_partials('lengths', 'def_mesh', rows=rows, cols=cols)
+
+        rows = np.tile(base, 6)
+        col = np.tile(3*base, 3) + np.repeat(np.arange(3), len(base))
+        cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
+
+        self.declare_partials('chords', 'def_mesh', rows=rows, cols=cols)
+
+        size = (ny-1)*(nx-1)*3
+        row = np.tile(np.arange(size).reshape((size, 1)), 3).flatten()
+        rows = np.tile(row, 4)
+        base = np.tile(np.arange(3), size) + np.repeat(3*np.arange(size//3), 9)
+        base += np.repeat(3*np.arange(nx-1), 9*(ny-1))
+        cols = np.concatenate([
+            base + 3,
+            base + ny*3,
+            base,
+            base + (ny+1)*3
+        ])
+
+        self.declare_partials('normals', 'def_mesh', rows=rows, cols=cols)
+
+        self.declare_partials('S_ref', 'def_mesh')
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']
@@ -144,140 +207,125 @@ class VLMGeometry(ExplicitComponent):
         ny = self.ny
         mesh = inputs['def_mesh']
 
-        for iz, v in zip((0, ny*3), (.75, .25)):
-            np.fill_diagonal(partials['b_pts', 'def_mesh'][:, iz:], v)
-
-        for iz, v in zip((0, 3, ny*3, (ny+1)*3),
-                         (.125, .125, .375, .375)):
-            for ix in range(nx-1):
-                np.fill_diagonal(partials['c_pts', 'def_mesh']
-                    [(ix*(ny-1))*3:((ix+1)*(ny-1))*3, iz+ix*ny*3:], v)
-
         # Compute the widths of each panel at the quarter-chord line
         quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
         widths = np.linalg.norm(quarter_chord[1:, :] - quarter_chord[:-1, :], axis=1)
 
         # Compute the cosine of the sweep angle of each panel
-        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1,2]] - quarter_chord[:-1, [1,2]], axis=1)
+        cos_sweep_array = np.linalg.norm(quarter_chord[1:, [1, 2]] - \
+                                         quarter_chord[:-1, [1, 2]], axis=1)
 
-        partials['widths', 'def_mesh'] = np.zeros_like(partials['widths', 'def_mesh'])
-        partials['cos_sweep', 'def_mesh'] = np.zeros_like(partials['cos_sweep', 'def_mesh'])
-        gap = [0, (nx-1)*ny*3]
-        factor = [0.75, 0.25]
-        for i in range(ny-1):
-            w = widths[i]
-            cos_sweep = cos_sweep_array[i]
-            dx = (quarter_chord[i+1, 0] - quarter_chord[i, 0])
-            dy = (quarter_chord[i+1, 1] - quarter_chord[i, 1])
-            dz = (quarter_chord[i+1, 2] - quarter_chord[i, 2])
-            for j in range(2):
-                partials['widths', 'def_mesh'][i, i*3+gap[j]] -= dx * factor[j] / w
-                partials['widths', 'def_mesh'][i, (i+1)*3+gap[j]] += dx * factor[j] / w
-                partials['widths', 'def_mesh'][i, i*3+1+gap[j]] -= dy * factor[j] / w
-                partials['widths', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy * factor[j] / w
-                partials['widths', 'def_mesh'][i, i*3+2+gap[j]] -= dz * factor[j] / w
-                partials['widths', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz * factor[j] / w
-                partials['cos_sweep', 'def_mesh'][i, i*3+1+gap[j]] -= dy / cos_sweep * factor[j]
-                partials['cos_sweep', 'def_mesh'][i, (i+1)*3+1+gap[j]] += dy / cos_sweep * factor[j]
-                partials['cos_sweep', 'def_mesh'][i, i*3+2+gap[j]] -= dz / cos_sweep * factor[j]
-                partials['cos_sweep', 'def_mesh'][i, (i+1)*3+2+gap[j]] += dz / cos_sweep * factor[j]
+        delta = np.diff(quarter_chord, axis=0).T
+        d1 = delta / widths
+        partials['widths', 'def_mesh'] = np.outer([-0.75, 0.75, -0.25, 0.25],
+                                                  d1.flatten()).flatten()
+        d1 = delta[1:, :] / cos_sweep_array
+        partials['cos_sweep', 'def_mesh'] = np.outer([-0.75, 0.75, -0.25, 0.25],
+                                                     d1.flatten()).flatten()
 
-        partials['lengths', 'def_mesh'] = np.zeros_like(partials['lengths', 'def_mesh'])
-        for i in range(ny):
-            dx = mesh[1:, i, 0] - mesh[:-1, i, 0]
-            dy = mesh[1:, i, 1] - mesh[:-1, i, 1]
-            dz = mesh[1:, i, 2] - mesh[:-1, i, 2]
-            for j in range(nx-1):
-                l = np.sqrt(dx[j]**2 + dy[j]**2 + dz[j]**2)
-                partials['lengths', 'def_mesh'][i, (j*ny+i)*3] -= dx[j] / l
-                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3] += dx[j] / l
-                partials['lengths', 'def_mesh'][i, (j*ny+i)*3 + 1] -= dy[j] / l
-                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 1] += dy[j] / l
-                partials['lengths', 'def_mesh'][i, (j*ny+i)*3 + 2] -= dz[j] / l
-                partials['lengths', 'def_mesh'][i, ((j+1)*ny+i)*3 + 2] += dz[j] / l
+        partials['lengths', 'def_mesh'][:] = 0.0
+        dmesh = np.diff(mesh, axis=0)
+        l = np.sqrt(np.sum(dmesh**2, axis=2))
+        dmesh = dmesh / l[:, :, np.newaxis]
+        derivs = np.transpose(dmesh, axes=[0, 2, 1]).flatten()
+        nn = len(derivs)
+        partials['lengths', 'def_mesh'][:nn] -= derivs
+        partials['lengths', 'def_mesh'][-nn:] += derivs
 
-        partials['chords', 'def_mesh'] = np.zeros_like(partials['chords', 'def_mesh'])
-        for i in range(ny):
-            dx = mesh[0, i, 0] - mesh[-1, i, 0]
-            dy = mesh[0, i, 1] - mesh[-1, i, 1]
-            dz = mesh[0, i, 2] - mesh[-1, i, 2]
+        dfullmesh = mesh[0, :] - mesh[-1, :]
+        l = np.sqrt(np.sum(dfullmesh**2, axis=1))
+        derivs = (dfullmesh.T/l).flatten()
+        partials['chords', 'def_mesh'] = np.concatenate([derivs, -derivs])
 
-            l = np.sqrt(dx**2 + dy**2 + dz**2)
+        # f = c / n
+        a = mesh[:-1, 1:, :] - mesh[1:, :-1, :]
+        b = mesh[:-1, :-1, :] - mesh[1:, 1:, :]
+        c = np.cross(a, b, axis=2)
+        n = np.sqrt(np.sum(c**2, axis=2))
 
-            le_ind = 0
-            te_ind = (nx - 1) * 3 * ny
+        # Now let's work backwards to get derivative
+        # dfdc = (dcdc * n - c * dndc) / n**2
+        dndc = c / n[:, :, np.newaxis]
+        dcdc = np.zeros((nx-1, ny-1, 3, 3))
+        dcdc[:, :, 0, 0] = 1.0
+        dcdc[:, :, 1, 1] = 1.0
+        dcdc[:, :, 2, 2] = 1.0
 
-            partials['chords', 'def_mesh'][i, le_ind + i*3 + 0] += dx / l
-            partials['chords', 'def_mesh'][i, te_ind + i*3 + 0] -= dx / l
-            partials['chords', 'def_mesh'][i, le_ind + i*3 + 1] += dy / l
-            partials['chords', 'def_mesh'][i, te_ind + i*3 + 1] -= dy / l
-            partials['chords', 'def_mesh'][i, le_ind + i*3 + 2] += dz / l
-            partials['chords', 'def_mesh'][i, te_ind + i*3 + 2] -= dz / l
+        # dfdc is now a 3x3 jacobian with f along the rows and c along the columns
+        dfdc = (dcdc*n[:, :, np.newaxis, np.newaxis] - np.einsum('ijk,ijl->ijkl', c, dndc)) / (n**2)[:, :, np.newaxis, np.newaxis]
 
-        partials['normals', 'def_mesh'] = np.zeros_like(partials['normals', 'def_mesh'])
-        # Partial of f=normals w.r.t. to x=def_mesh
-        #   f has shape (nx-1, ny-1, 3)
-        #   x has shape (nx, ny, 3)
-        for i in range(nx-1):
-            for j in range(ny-1):
-                # Redo original computation
-                ll = mesh[i, j, :]      # leading-left node
-                lr = mesh[i, j+1, :]    # leading-right node
-                tl = mesh[i+1, j, :]    # trailing-left node
-                tr = mesh[i+1, j+1, :]  # trailing-right node
+        # The next step is to get dcda and dcdb, both of which will be
+        # 3x3 jacobians with c along the rows
 
-                a = lr - tl
-                b = ll - tr
-                c = np.cross(a, b)
-                n = np.sqrt(np.sum(c**2))
-                # f = c / n
+        dcda = np.zeros((nx-1, ny-1, 3, 3))
+        dcda[:, :, 0, 1] = b[:, :, 2]
+        dcda[:, :, 0, 2] = -b[:, :, 1]
+        dcda[:, :, 1, 0] = -b[:, :, 2]
+        dcda[:, :, 1, 2] = b[:, :, 0]
+        dcda[:, :, 2, 0] = b[:, :, 1]
+        dcda[:, :, 2, 1] = -b[:, :, 0]
 
-                # Now let's work backwards to get derivative
-                # dfdc = (dcdc * n - c * dndc) / n**2
-                dcdc = np.eye(3)
-                dndc = c / n
-                dfdc = (dcdc * n - np.einsum('i,j', c, dndc)) / n**2
+        dcdb = np.zeros((nx-1, ny-1, 3, 3))
+        dcdb[:, :, 0, 1] = -a[:, :, 2]
+        dcdb[:, :, 0, 2] = a[:, :, 1]
+        dcdb[:, :, 1, 0] = a[:, :, 2]
+        dcdb[:, :, 1, 2] = -a[:, :, 0]
+        dcdb[:, :, 2, 0] = -a[:, :, 1]
+        dcdb[:, :, 2, 1] = a[:, :, 0]
 
-                # dfdc is now a 3x3 jacobian with f along the rows and c along
-                # the columns
+        # Now let's do some matrix multiplication to get dfda and dfdb
+        dfda = np.einsum('ijkl,ijlm->ijkm', dfdc, dcda)
+        dfdb = np.einsum('ijkl,ijlm->ijkm', dfdc, dcdb)
 
-                # The next step is to get dcda and dcdb, both of which will be
-                # 3x3 jacobians with c along the rows
-                dcda = np.array([[0, b[2], -b[1]],
-                                [-b[2], 0, b[0]],
-                                [b[1], -b[0], 0]])
-                dcdb = np.array([[0, -a[2], a[1]],
-                                [a[2], 0, -a[0]],
-                                [-a[1], a[0], 0]])
+        # Aside: preparation for surface area deriv computation under 'projected' option.
+        if self.surface['S_ref_type'] == 'projected':
+            # Compute the projected surface area by zeroing out z dimension.
+            proj_mesh = mesh.copy()
+            proj_mesh[: , :, 2] = 0.
 
-                # Now let's do some matrix multiplication to get dfda and dfdb
-                dfda = np.einsum('ij,jk->ik', dfdc, dcda)
-                dfdb = np.einsum('ij,jk->ik', dfdc, dcdb)
+            a = proj_mesh[:-1, 1:, :] - proj_mesh[1:, :-1, :]
+            b = proj_mesh[:-1, :-1, :] - proj_mesh[1:, 1:, :]
+            c = np.cross(a, b, axis=2)
+            n = np.sqrt(np.sum(c**2, axis=2))
 
-                # Now we need to get dadlr, dadtl, dbdll, and dbdtr and put them
-                # in the right indices of the big jacobian dfdx
+            dcda[:, :, 0, 1] = b[:, :, 2]
+            dcda[:, :, 0, 2] = -b[:, :, 1]
+            dcda[:, :, 1, 0] = -b[:, :, 2]
+            dcda[:, :, 1, 2] = b[:, :, 0]
+            dcda[:, :, 2, 0] = b[:, :, 1]
+            dcda[:, :, 2, 1] = -b[:, :, 0]
 
-                # These are the indices of the first and last components of f
-                # for the current i and j
-                if0 = (i*(ny-1)+j)*3
-                if2 = (i*(ny-1)+j)*3+2
+            dcdb[:, :, 0, 1] = -a[:, :, 2]
+            dcdb[:, :, 0, 2] = a[:, :, 1]
+            dcdb[:, :, 1, 0] = a[:, :, 2]
+            dcdb[:, :, 1, 2] = -a[:, :, 0]
+            dcdb[:, :, 2, 0] = -a[:, :, 1]
+            dcdb[:, :, 2, 1] = a[:, :, 0]
 
-                # Partial f w.r.t. lr
-                ix0 = (i*ny+j+1)*3      # First index of lr for current i and j
-                ix2 = (i*ny+j+1)*3+2    # Last index of lr for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfda[:,:]
+        # Need these for wetted surface area derivs.
+        dsda = np.einsum("ijk,ijkl->ijl", c, dcda) / n[:, :, np.newaxis]
+        dsdb = np.einsum("ijk,ijkl->ijl", c, dcdb) / n[:, :, np.newaxis]
 
-                # Partial f w.r.t. tl
-                ix0 = ((i+1)*ny+j)*3    # First index of tl for current i and j
-                ix2 = ((i+1)*ny+j)*3+2  # Last index of tl for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfda[:,:]
+        # Note: this is faster than np.concatenate for large meshes.
+        nn = (nx-1)*(ny-1)*9
+        dfda_flat = dfda.flatten()
+        dfdb_flat = dfdb.flatten()
+        partials['normals', 'def_mesh'][:nn] = dfda_flat
+        partials['normals', 'def_mesh'][nn:2*nn] = -dfda_flat
+        partials['normals', 'def_mesh'][2*nn:3*nn] = dfdb_flat
+        partials['normals', 'def_mesh'][3*nn:4*nn] = -dfdb_flat
 
-                # Partial f w.r.t. ll
-                ix0 = (i*ny+j)*3        # First index of ll for current i and j
-                ix2 = (i*ny+j)*3+2      # Last index of ll for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = dfdb[:,:]
+        # At this point, same calculation for wetted and projected surface.
+        dsda_flat = 0.5*dsda.flatten()
+        dsdb_flat = 0.5*dsdb.flatten()
+        idx = np.arange((nx-1)*(ny-1)*3) + np.repeat(3*np.arange(nx-1), 3*(ny-1))
+        partials['S_ref', 'def_mesh'][:] = 0.0
+        partials['S_ref', 'def_mesh'][:, idx+3] += dsda_flat
+        partials['S_ref', 'def_mesh'][:, idx+ny*3] -= dsda_flat
+        partials['S_ref', 'def_mesh'][:, idx] += dsdb_flat
+        partials['S_ref', 'def_mesh'][:, idx+(ny+1)*3] -= dsdb_flat
 
-                # Partial f w.r.t. tr
-                ix0 = ((i+1)*ny+j+1)*3   # First index of tr for current i and j
-                ix2 = ((i+1)*ny+j+1)*3+2 # Last index of tr for current i and j
-                partials['normals', 'def_mesh'][if0:if2+1,ix0:ix2+1] = -dfdb[:,:]
+        # Multiply the surface area by 2 if symmetric to get consistent area measures
+        if self.surface['symmetry']:
+            partials['S_ref', 'def_mesh'] *= 2.0
+
