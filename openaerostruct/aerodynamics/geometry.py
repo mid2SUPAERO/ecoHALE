@@ -250,10 +250,9 @@ class VLMGeometry(ExplicitComponent):
         dcdc[:, :, 0, 0] = 1.0
         dcdc[:, :, 1, 1] = 1.0
         dcdc[:, :, 2, 2] = 1.0
-        dfdc = (dcdc*n[:, :, np.newaxis, np.newaxis] - np.einsum('ijk,ijl->ijkl', c, dndc)) / (n**2)[:, :, np.newaxis, np.newaxis]
 
-        # dfdc is now a 3x3 jacobian with f along the rows and c along
-        # the columns
+        # dfdc is now a 3x3 jacobian with f along the rows and c along the columns
+        dfdc = (dcdc*n[:, :, np.newaxis, np.newaxis] - np.einsum('ijk,ijl->ijkl', c, dndc)) / (n**2)[:, :, np.newaxis, np.newaxis]
 
         # The next step is to get dcda and dcdb, both of which will be
         # 3x3 jacobians with c along the rows
@@ -319,7 +318,6 @@ class VLMGeometry(ExplicitComponent):
         # At this point, same calculation for wetted and projected surface.
         dsda_flat = 0.5*dsda.flatten()
         dsdb_flat = 0.5*dsdb.flatten()
-        nn = (nx-1)*(ny-1)*3
         idx = np.arange((nx-1)*(ny-1)*3) + np.repeat(3*np.arange(nx-1), 3*(ny-1))
         partials['S_ref', 'def_mesh'][:] = 0.0
         partials['S_ref', 'def_mesh'][:, idx+3] += dsda_flat
