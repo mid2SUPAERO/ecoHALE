@@ -58,13 +58,12 @@ class MomentCoefficient(ExplicitComponent):
 
         self.add_output('CM', val=np.ones((3)))
 
-        self.declare_partials('*', '*', method='cs')
+        self.declare_partials(of='*', wrt='*')
+        #self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
-        rho = inputs['rho']
         cg = inputs['cg']
 
-        S_ref_tot = 0.
         M = np.zeros((3))
 
         # Loop through each surface and find its contributions to the moment
@@ -92,8 +91,7 @@ class MomentCoefficient(ExplicitComponent):
                 MAC *= 2
 
             # Get the moment arm acting on each panel, relative to the cg
-            pts = (inputs[name + '_b_pts'][:, 1:, :] + \
-                inputs[name + '_b_pts'][:, :-1, :]) / 2
+            pts = (b_pts[:, 1:, :] + b_pts[:, :-1, :]) / 2
             diff = (pts - cg) / MAC
 
             # Compute the moment based on the previously computed moment
@@ -114,9 +112,58 @@ class MomentCoefficient(ExplicitComponent):
             # normalize CM
             if j == 0:
                 self.MAC_wing = MAC
-            S_ref_tot = S_ref_tot + S_ref
 
         self.M = M
 
         # Compute the normalized CM
+        rho = inputs['rho']
         outputs['CM'] = M / (0.5 * rho * inputs['v']**2 * inputs['S_ref_total'] * self.MAC_wing)
+
+    def compute_partials(self, inputs, partials):
+        rho = inputs['rho']
+        v = inputs['v']
+        S_ref_total = inputs['S_ref_total']
+
+        M = self.M
+        MAC_wing = self.MAC_wing
+
+        fact = 1.0 / (0.5 * rho * v**2 * S_ref_total * MAC_wing)
+
+        partials['CM', 'rho'] = -M * fact**2 * 0.5 * v**2 * S_ref_total * MAC_wing
+        partials['CM', 'v'] = -M * fact**2 * rho * v * S_ref_total * MAC_wing
+        partials['CM', 'S_ref_total'] = -M * fact**2 * 0.5 * rho * v**2 * MAC_wing
+
+        # Loop through each surface.
+        for j, surface in enumerate(self.options['surfaces']):
+            name = surface['name']
+            nx = surface['num_x']
+            ny = surface['num_y']
+
+            b_pts = inputs[name + '_b_pts']
+            widths = inputs[name + '_widths']
+            chords = inputs[name + '_chords']
+            S_ref = inputs[name + '_S_ref']
+            sec_forces = inputs[name + '_sec_forces']
+
+            # MAC derivs
+            panel_chords = (chords[1:] + chords[:-1]) / 2.
+            MAC = 1. / S_ref * np.sum(panel_chords**2 * widths)
+
+            dpc_dc = np.zeros((ny-1, ny))
+            idx = np.arange(ny-1)
+            dpc_dc[idx, idx] = 0.5
+            dpc_dc[idx, idx+1] = 0.5
+
+            dMAC_dc = (2.0 / S_ref) * np.einsum('i,ij', panel_chords * widths, dpc_dc)
+            dMAC_dw = (1.0 / S_ref) * panel_chords**2
+
+            # If the surface is symmetric, then the previously computed MAC
+            # is half what it should be
+            if surface['symmetry']:
+                MAC *= 2.0
+                dMAC_dc *= 2.0
+                dMAC_dw *= 2.0
+
+            # MAC derivative only comes from first surface.
+            if j == 0:
+                pass
