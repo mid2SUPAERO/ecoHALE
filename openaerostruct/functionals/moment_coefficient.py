@@ -144,6 +144,7 @@ class MomentCoefficient(ExplicitComponent):
             ny = surface['num_y']
 
             partials['CM', name + '_sec_forces'][:] = 0.0
+            partials['CM', name + '_b_pts'][:] = 0.0
 
             b_pts = inputs[name + '_b_pts']
             widths = inputs[name + '_widths']
