@@ -302,6 +302,10 @@ class VLMGeometry(ExplicitComponent):
             dcdb[:, :, 2, 0] = -a[:, :, 1]
             dcdb[:, :, 2, 1] = a[:, :, 0]
 
+        # Need these for wetted surface area derivs.
+        dsda = np.einsum("ijk,ijkl->ijl", c, dcda) / n[:, :, np.newaxis]
+        dsdb = np.einsum("ijk,ijkl->ijl", c, dcdb) / n[:, :, np.newaxis]
+
         # Note: this is faster than np.concatenate for large meshes.
         nn = (nx-1)*(ny-1)*9
         dfda_flat = dfda.flatten()
