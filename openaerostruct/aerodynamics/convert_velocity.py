@@ -23,7 +23,6 @@ class ConvertVelocity(ExplicitComponent):
         The rotated freestream velocities at each evaluation point for all
         lifting surfaces. system_size is the sum of the count of all panels
         for all lifting surfaces.
-
     """
 
     def initialize(self):

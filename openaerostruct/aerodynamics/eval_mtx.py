@@ -142,7 +142,8 @@ class EvalVelMtx(ExplicitComponent):
     vel_mtx[num_eval_points, nx - 1, ny - 1, 3] : numpy array
         The AIC matrix for the all lifting surfaces representing the aircraft.
         This has some sparsity pattern, but it is more dense than the FEM matrix
-        and the entries have a wide range of magnitudes.
+        and the entries have a wide range of magnitudes. One exists for each
+        combination of surface name and evaluation points name.
     """
 
     def initialize(self):

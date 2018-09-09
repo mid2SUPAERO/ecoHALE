@@ -25,7 +25,7 @@ class ViscousDrag(ExplicitComponent):
         The spanwise width of each panel.
     lengths[ny] : numpy array
         The sum of the lengths of each line segment along a chord section.
-    t_over_c[ny-1] : ndarray
+    t_over_c[ny-1] : numpy array
         The streamwise thickness-to-chord ratio of each VLM panel.
 
     Returns
