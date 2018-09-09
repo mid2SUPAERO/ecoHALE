@@ -29,7 +29,7 @@ class EvalVelocities(ExplicitComponent):
 
         velocities_name = '{}_velocities'.format(eval_name)
 
-        self.add_input('inflow_velocities', shape=(system_size, 3), units='m/s')
+        self.add_input('freestream_velocities', shape=(system_size, 3), units='m/s')
         self.add_input('circulations', shape=system_size, units='m**2/s')
         self.add_output(velocities_name, shape=(num_eval_points, 3), units='m/s')
 
@@ -43,7 +43,7 @@ class EvalVelocities(ExplicitComponent):
                 np.ones((num_eval_points, 3), int), circulations_indices).flatten(),
         )
 
-        self.declare_partials(velocities_name, 'inflow_velocities', val=1.,
+        self.declare_partials(velocities_name, 'freestream_velocities', val=1.,
             rows=np.arange(3 * num_eval_points),
             cols=np.arange(3 * num_eval_points),
         )
@@ -82,7 +82,7 @@ class EvalVelocities(ExplicitComponent):
 
         velocities_name = '{}_velocities'.format(eval_name)
 
-        outputs[velocities_name] = inputs['inflow_velocities']
+        outputs[velocities_name] = inputs['freestream_velocities']
 
         ind_1 = 0
         ind_2 = 0

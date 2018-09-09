@@ -23,7 +23,7 @@ class VLMMtxRHSComp(ExplicitComponent):
 
         self.system_size = system_size
 
-        self.add_input('inflow_velocities', shape=(system_size, 3), units='m/s')
+        self.add_input('freestream_velocities', shape=(system_size, 3), units='m/s')
         self.add_output('mtx', shape=(system_size, system_size), units='1/m')
         self.add_output('rhs', shape=system_size, units='m/s')
 
@@ -31,7 +31,7 @@ class VLMMtxRHSComp(ExplicitComponent):
         mtx_indices = np.arange(system_size * system_size).reshape((system_size, system_size))
         rhs_indices = np.arange(system_size)
 
-        self.declare_partials('rhs', 'inflow_velocities',
+        self.declare_partials('rhs', 'freestream_velocities',
             rows=np.einsum('i,j->ij', rhs_indices, np.ones(3, int)).flatten(),
             cols=inflow_indices.flatten()
         )
@@ -101,7 +101,7 @@ class VLMMtxRHSComp(ExplicitComponent):
             ind_1 += num
 
         outputs['mtx'] = np.einsum('ijk,ik->ij', self.mtx_n_n_3, self.normals_n_3)
-        outputs['rhs'] = -np.einsum('ij,ij->i', inputs['inflow_velocities'], self.normals_n_3)
+        outputs['rhs'] = -np.einsum('ij,ij->i', inputs['freestream_velocities'], self.normals_n_3)
 
     def compute_partials(self, inputs, partials):
         surfaces = self.options['surfaces']
@@ -128,8 +128,8 @@ class VLMMtxRHSComp(ExplicitComponent):
 
             partials['mtx', normals_name] = self.mtx_n_n_3[ind_1:ind_2, :, :].flatten()
 
-            partials['rhs', normals_name] = -inputs['inflow_velocities'][ind_1:ind_2, :].flatten()
+            partials['rhs', normals_name] = -inputs['freestream_velocities'][ind_1:ind_2, :].flatten()
 
             ind_1 += num
 
-        partials['rhs', 'inflow_velocities'] = -self.normals_n_3.flatten()
+        partials['rhs', 'freestream_velocities'] = -self.normals_n_3.flatten()
