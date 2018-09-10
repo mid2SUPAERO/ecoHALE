@@ -54,8 +54,6 @@ class VLMGeometry(ExplicitComponent):
         self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=1., units='m**2')
 
-        self.declare_partials('*', '*')
-
         size = (nx-1) * ny * 3
         base = np.arange(size)
         rows = np.tile(base, 2)
@@ -328,4 +326,3 @@ class VLMGeometry(ExplicitComponent):
         # Multiply the surface area by 2 if symmetric to get consistent area measures
         if self.surface['symmetry']:
             partials['S_ref', 'def_mesh'] *= 2.0
-

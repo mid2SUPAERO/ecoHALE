@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 from openmdao.api import Group, IndepVarComp, Problem
-from openmdao.utils.assert_utils import assert_check_partials
+from openmdao.utils.assert_utils import assert_check_partials, assert_rel_error
 
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.utils import generate_mesh
@@ -189,6 +189,30 @@ class Test(unittest.TestCase):
 
         assert_check_partials(check, atol=3e-5, rtol=1e-5)
 
+    def test_outputs(self):
+        surfaces = get_default_surfaces()
+
+        group = Group()
+
+        comp = VLMGeometry(surface=surfaces[0])
+
+        indep_var_comp = IndepVarComp()
+
+        indep_var_comp.add_output('def_mesh', val=surfaces[0]['mesh'], units='m')
+
+        group.add_subsystem('geom', comp, promotes=['*'])
+        group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
+
+        prob = Problem()
+        prob.model.add_subsystem('group', group, promotes=['*'])
+        prob.setup()
+        prob.run_model()
+
+        assert_rel_error(self, prob['widths'] , np.array([11.95624787, 11.90425878, 11.44086572]), 1e-6)
+        assert_rel_error(self, prob['cos_sweep'] , np.array([9.7938336,  9.79384207, 9.79385053]), 1e-6)
+        assert_rel_error(self, prob['S_ref'] , np.array([ 415.02211208]), 1e-6)
+        assert_rel_error(self, prob['chords'] , np.array([ 2.72796,    5.1252628,  7.8891638, 13.6189974]), 1e-6)
+        assert_rel_error(self, prob['lengths'] , np.array([ 2.72796,    5.1252628,  7.8891638, 13.6189974]), 1e-6)
 
 if __name__ == '__main__':
     unittest.main()
