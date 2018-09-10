@@ -30,9 +30,11 @@ class LoadTransfer(ExplicitComponent):
 
     Returns
     -------
-    loads[ny, 6] : numpy array
+    LoadsA[ny,3] : numpy array
+    LoadsB[ny,3]: nympy array
         Flattened array containing the loads applied on the FEM component,
         computed from the sectional forces.
+    
     """
 
     def initialize(self):
@@ -64,10 +66,12 @@ class LoadTransfer(ExplicitComponent):
         # Well, technically the units of this load array are mixed.
         # The first 3 indices are N and the last 3 are N*m.
         
-        self.add_output('loadsB', val=np.zeros((self.ny, 3)), units='m')
-        self.add_output('loadsA', val=np.zeros((self.ny, 3)), units='N')
         
-        # setup sparce partials
+        self.add_output('loadsA', val=np.zeros((self.ny, 3)), units='N')
+        self.add_output('loadsB', val=np.zeros((self.ny, 3)), units='N*m')
+        
+        # --------------------------------dloadsA__dsec_forces-------------------------------------
+        # this derivative is linear
         rows=np.zeros((3*(ny-1)*(nx-1)*2))  
         cols=np.zeros((3*(ny-1)*(nx-1)*2))
         for i in range((3*(ny-1)*(nx-1))):
@@ -81,7 +85,7 @@ class LoadTransfer(ExplicitComponent):
         self.declare_partials(of='loadsA', wrt='sec_forces', rows=rows, cols=cols, val=0.5)
         
         
-        # setup sparce partials
+        # --------------------------------dloadsB__dsec_forces-------------------------------------
         rows = np.zeros((18*(ny-1)))
         cols = np.zeros((18*(ny-1)))
         for i in range(ny-1):
@@ -89,24 +93,21 @@ class LoadTransfer(ExplicitComponent):
             cols[i*18:(i+1)*18] = np.array([0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2])+i*3.
         self.declare_partials(of='loadsB', wrt='sec_forces', rows=rows, cols=cols)
 
+        # --------------------------------dloadsB__ddef_mesh-------------------------------------
+        # setup sparce partials for dloadsB__ddef_mesh where:
+        # dloadsB__ddef_mesh = dloadsB__dmoment * dmoment__ddiff * ddiff__ddef_mesh
 
-        # setup partials
-          #rows = np.zeros(((12*2+(ny-2)*18)*2))
-          #cols = np.zeros(((12*2+(ny-2)*18)*2)) 
-        # create sparse matrixes for
         # dloadsB__dmoment
-        # this could be assigned once in setup
         rows = np.zeros((3*(ny-1)*2))
         cols = np.zeros((3*(ny-1)*2))
         data = np.ones((3*(ny-1)*2))
         for i in range(3*(ny-1)):
             rows[i*2:(1+i)*2] = i+np.array([0,3])
             cols[i*2:(1+i)*2] = i+np.array([0,0])
-        dloadsB__dmoment = 0.5*coo_matrix((data, (rows,cols)), shape=(3*ny, 3*(ny-1)))
-        #dloadsB__dmoment.todense()
+        self.dloadsB__dmoment = 0.5*coo_matrix((data, (rows,cols)), shape=(3*ny, 3*(ny-1)))
         
         # dmoment__ddiff
-        # this has to be calulated each time b/c it's a function of sec_forces
+        # this will need to be recalculated in def_partials b/c it's a function of sec_forces
         sec_forces = np.ones((self.nx-1, self.ny-1, 3))
         temp_sec_forces = np.einsum('ijk->jk',sec_forces) # sum the x dimension  
         rows = np.zeros((9*(ny-1)))
@@ -117,65 +118,55 @@ class LoadTransfer(ExplicitComponent):
             cols[i*9:(i+1)*9] = i*3+np.array([0,1,2,0,1,2,0,1,2])
             data[i*9:(i+1)*9] = -_skew(temp_sec_forces[i,:]).flatten() 
         dmoment__ddiff = coo_matrix((data, (rows, cols)), shape=(3*(ny-1),3*(ny-1)))
-        # to view the matrix use: dmoment__ddiff.todense()
            
         # ddiff__ddef_mesh
-        # this could be assigned once in setup
-        w1=0.25 # the w value for a_pts
-        w2=0.24 # the w value for b_pts
+        self.w1 = 0.25
+        self.w2 = self.fem_origin
         cols = np.zeros((6*(ny-1)))
         rows = np.zeros((6*(ny-1)))
         data = np.ones((6*(ny-1)))
         for i in range(3*(ny-1)):
             cols[i*2:(1+i)*2] = i+np.array([0,3])
             rows[i*2:(1+i)*2] = i+np.array([0,0])
-        # first we create the da_pts values
-        ddiff__ddef_mesh_a1 = coo_matrix((0.5*data*(1-w1), (rows,cols)), shape=(3*(ny-1), 3*ny))
-        ddiff__ddef_mesh_a2 = coo_matrix((0.5*data*(w1), (rows,cols)), shape=(3*(ny-1), 3*ny))
+        # first we create the a_pts values
+        ddiff__ddef_mesh_a1 = coo_matrix((0.5*data*(1-self.w1), (rows,cols)), shape=(3*(ny-1), 3*ny))
+        ddiff__ddef_mesh_a2 = coo_matrix((0.5*data*(self.w1), (rows,cols)), shape=(3*(ny-1), 3*ny))
         ddiff__ddef_mesh_a = hstack([ddiff__ddef_mesh_a1, ddiff__ddef_mesh_a2])
-        
         # now we do the same thing for the s_pts values using a different w value
-        ddiff__ddef_mesh_s1 = coo_matrix((-0.5*data*(1-w2), (rows,cols)), shape=(3*(ny-1), 3*ny))
-        ddiff__ddef_mesh_s2 = coo_matrix((-0.5*data*(w2), (rows,cols)), shape=(3*(ny-1), 3*ny))
+        ddiff__ddef_mesh_s1 = coo_matrix((-0.5*data*(1-self.w2), (rows,cols)), shape=(3*(ny-1), 3*ny))
+        ddiff__ddef_mesh_s2 = coo_matrix((-0.5*data*(self.w2), (rows,cols)), shape=(3*(ny-1), 3*ny))
         ddiff__ddef_mesh_s = hstack([ddiff__ddef_mesh_s1, ddiff__ddef_mesh_s2])
-        # now we add them together!
-        ddiff__ddef_mesh = ddiff__ddef_mesh_a + ddiff__ddef_mesh_s 
+        # now we add them together
+        self.ddiff__ddef_mesh = ddiff__ddef_mesh_a + ddiff__ddef_mesh_s 
         
-        
-        # multiply those matrixes together to calculate
         # dloadsB__ddef_mesh
-        #dloadsB__dmoment.todense()
-        #dmoment__ddiff.todense()
-        #ddiff__ddef_mesh.todense()
-        dloadsB__ddef_mesh = dloadsB__dmoment*dmoment__ddiff*ddiff__ddef_mesh
-        dloadsB__ddef_mesh = dloadsB__ddef_mesh.tocoo()
-        type(dloadsB__ddef_mesh)
-        # get the rows and cols and values of this and use those as an input in compute partials
-        data = dloadsB__ddef_mesh.data
+        dloadsB__ddef_mesh = self.dloadsB__dmoment*dmoment__ddiff*self.ddiff__ddef_mesh
+        dloadsB__ddef_mesh = dloadsB__ddef_mesh.tocoo() # enforce that we are using a coo_matrixf
         rows = dloadsB__ddef_mesh.row
         cols = dloadsB__ddef_mesh.col
 
         self.declare_partials(of='loadsB', wrt='def_mesh', rows=rows, cols=cols)
-
+        
+        # --------------------------------Check Partial Options-------------------------------------
         self.set_check_partial_options('*', method='cs', step=1e-40)
 
     def compute(self, inputs, outputs):
-        mesh = inputs['def_mesh'].copy() # why are we copying here?
-        sec_forces = inputs['sec_forces'].copy()
+        mesh = inputs['def_mesh']
+        sec_forces = inputs['sec_forces']
         
         # Compute the aerodynamic centers at the quarter-chord point of each panel
-        w = 0.25
-        a_pts = 0.5 * (1-w) * mesh[:-1, :-1, :] + \
-                0.5 *   w   * mesh[1:, :-1, :] + \
-                0.5 * (1-w) * mesh[:-1,  1:, :] + \
-                0.5 *   w   * mesh[1:,  1:, :]
+        
+        a_pts = 0.5 * (1-self.w1) * mesh[:-1, :-1, :] + \
+                0.5 *   self.w1   * mesh[1:, :-1, :] + \
+                0.5 * (1-self.w1) * mesh[:-1,  1:, :] + \
+                0.5 *   self.w1   * mesh[1:,  1:, :]
 
         # Compute the structural midpoints based on the fem_origin location
-        w = self.fem_origin
-        s_pts = 0.5 * (1-w) * mesh[0, :-1, :] + \
-                0.5 *   w   * mesh[-1, :-1, :] + \
-                0.5 * (1-w) * mesh[0,  1:, :] + \
-                0.5 *   w   * mesh[-1,  1:, :]
+        
+        s_pts = 0.5 * (1-self.w2) * mesh[0, :-1, :] + \
+                0.5 *   self.w2   * mesh[-1, :-1, :] + \
+                0.5 * (1-self.w2) * mesh[0,  1:, :] + \
+                0.5 *   self.w2   * mesh[-1,  1:, :]
 
         # Find the moment arm between the aerodynamic centers of each panel
         # and the FEM elements
@@ -198,57 +189,39 @@ class LoadTransfer(ExplicitComponent):
         outputs['loadsB'] = loadsB
         
     def compute_partials(self, inputs, J):
-        mesh = inputs['def_mesh'].copy() # why are we copying here?
-        sec_forces = inputs['sec_forces'].copy()
+        mesh = inputs['def_mesh']
+        sec_forces = inputs['sec_forces']
         ny = self.ny
         
+        # 
+        # -------------------------------dloadsB__dsec_forces--------------------------------------
         # Compute the aerodynamic centers at the quarter-chord point of each panel
-        w1 = 0.25
-        a_pts = 0.5 * (1-w1) * mesh[:-1, :-1, :] + \
-                0.5 *   w1   * mesh[1:, :-1, :] + \
-                0.5 * (1-w1) * mesh[:-1,  1:, :] + \
-                0.5 *   w1   * mesh[1:,  1:, :]
-
+        a_pts = 0.5 * (1-self.w1) * mesh[:-1, :-1, :] + \
+                0.5 *   self.w1   * mesh[1:, :-1, :] + \
+                0.5 * (1-self.w1) * mesh[:-1,  1:, :] + \
+                0.5 *   self.w1   * mesh[1:,  1:, :]
         # Compute the structural midpoints based on the fem_origin location
-        w2 = self.fem_origin
-        s_pts = 0.5 * (1-w2) * mesh[0, :-1, :] + \
-                0.5 *   w2   * mesh[-1, :-1, :] + \
-                0.5 * (1-w2) * mesh[0,  1:, :] + \
-                0.5 *   w2   * mesh[-1,  1:, :]
-
+        s_pts = 0.5 * (1-self.w2) * mesh[0, :-1, :] + \
+                0.5 *   self.w2   * mesh[-1, :-1, :] + \
+                0.5 * (1-self.w2) * mesh[0,  1:, :] + \
+                0.5 *   self.w2   * mesh[-1,  1:, :]
         # Find the moment arm between the aerodynamic centers of each panel
         # and the FEM elements
         diff = a_pts - s_pts
-        
         # take the sum of def_mesh along the nx axis 
         # this collapses the resulting matrix/tensor to size[ny, 3]
         tmp_def_mesh = np.einsum('ijk->jk',diff) 
-        
         # assign an array to hold the output values
-        dloadsB__dsec_forces = np.zeros((18*(self.ny-1)))
+        dloadsB__dsec_forces = np.zeros((18*(ny-1)))
         #place the skew of tmp_def_mesh into the array
-        
         for i in range(3): # select row
             dloadsB__dsec_forces[i*18:(1+2*i)*9] = 0.5*_skew(tmp_def_mesh[i,:]).flatten()
             dloadsB__dsec_forces[i*18+9:(1+2*i)*9+9] = dloadsB__dsec_forces[i*18:(1+2*i)*9]
-        
         J['loadsB','sec_forces'] = dloadsB__dsec_forces
         
-        # setup partials
-        # create sparse matrixes for
-        # dloadsB__dmoment
-        # this could be assigned once in setup
-        rows = np.zeros((3*(ny-1)*2))
-        cols = np.zeros((3*(ny-1)*2))
-        data = np.ones((3*(ny-1)*2))
-        for i in range(3*(ny-1)):
-            rows[i*2:(1+i)*2] = i+np.array([0,3])
-            cols[i*2:(1+i)*2] = i+np.array([0,0])
-        dloadsB__dmoment = 0.5*coo_matrix((data, (rows,cols)), shape=(3*ny, 3*(ny-1)))
-        #dloadsB__dmoment.todense()
-        
-        # dmoment__ddiff
-        # this has to be calulated each time b/c it's a function of sec_forces
+        # 
+        # --------------------------------dloadsB__ddef_mesh-------------------------------------
+        # dloadsB__ddef_mesh must to be calulated each time b/c it's a function of sec_forces
         temp_sec_forces = np.einsum('ijk->jk',sec_forces) # sum the x dimension  
         rows = np.zeros((9*(ny-1)))
         cols = np.zeros((9*(ny-1)))
@@ -258,43 +231,8 @@ class LoadTransfer(ExplicitComponent):
             cols[i*9:(i+1)*9] = i*3+np.array([0,1,2,0,1,2,0,1,2])
             data[i*9:(i+1)*9] = -_skew(temp_sec_forces[i,:]).flatten() 
         dmoment__ddiff = coo_matrix((data, (rows, cols)), shape=(3*(ny-1),3*(ny-1)))
-        # to view the matrix use: dmoment__ddiff.todense()
-           
-        # ddiff__ddef_mesh
-        # this could be assigned once in setup
-        # we grab these values from above now
-        #w1=0.25 # the w value for a_pts
-        #w2=0.24 # the w value for b_pts
-        cols = np.zeros((6*(ny-1)))
-        rows = np.zeros((6*(ny-1)))
-        data = np.ones((6*(ny-1)))
-        for i in range(3*(ny-1)):
-            cols[i*2:(1+i)*2] = i+np.array([0,3])
-            rows[i*2:(1+i)*2] = i+np.array([0,0])
-        # first we create the da_pts values
-        ddiff__ddef_mesh_a1 = coo_matrix((0.5*data*(1-w1), (rows,cols)), shape=(3*(ny-1), 3*ny))
-        ddiff__ddef_mesh_a2 = coo_matrix((0.5*data*(w1), (rows,cols)), shape=(3*(ny-1), 3*ny))
-        ddiff__ddef_mesh_a = hstack([ddiff__ddef_mesh_a1, ddiff__ddef_mesh_a2])
         
-        # now we do the same thing for the s_pts values using a different w value
-        ddiff__ddef_mesh_s1 = coo_matrix((-0.5*data*(1-w2), (rows,cols)), shape=(3*(ny-1), 3*ny))
-        ddiff__ddef_mesh_s2 = coo_matrix((-0.5*data*(w2), (rows,cols)), shape=(3*(ny-1), 3*ny))
-        ddiff__ddef_mesh_s = hstack([ddiff__ddef_mesh_s1, ddiff__ddef_mesh_s2])
-        # now we add them together!
-        ddiff__ddef_mesh = ddiff__ddef_mesh_a + ddiff__ddef_mesh_s 
-        
-        
-        # multiply those matrixes together to calculate
-        # dloadsB__ddef_mesh
-        #dloadsB__dmoment.todense()
-        #dmoment__ddiff.todense()
-        #ddiff__ddef_mesh.todense()
-        dloadsB__ddef_mesh = dloadsB__dmoment*dmoment__ddiff*ddiff__ddef_mesh
-        dloadsB__ddef_mesh = dloadsB__ddef_mesh.tocoo()
-        type(dloadsB__ddef_mesh)
-        # get the rows and cols and values of this and use those as an input in compute partials
-        data = dloadsB__ddef_mesh.data
-        rows = dloadsB__ddef_mesh.row
-        cols = dloadsB__ddef_mesh.col
-        J['loadsB','def_mesh'] = data
+        # multiply the matrix with those previous calculated in setup
+        dloadsB__ddef_mesh = self.dloadsB__dmoment*dmoment__ddiff*self.ddiff__ddef_mesh
+        J['loadsB','def_mesh'] = dloadsB__ddef_mesh.tocoo() # enforce coo_matrix style
         
