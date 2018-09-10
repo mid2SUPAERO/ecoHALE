@@ -3,7 +3,7 @@ import unittest
 from openaerostruct.structures.wing_weight_loads import StructureWeightLoads
 from openaerostruct.structures.total_loads import TotalLoads
 from openaerostruct.utils.testing import run_test, get_default_surfaces
-from openmdao.api import Group, IndepVarComp, BsplinesComp
+from openmdao.api import Group, IndepVarComp
 import numpy as np
 
 class Test(unittest.TestCase):

@@ -117,6 +117,7 @@ class Test(unittest.TestCase):
         recorder = SqliteRecorder("aero_analysis.db")
         prob.driver.add_recorder(recorder)
         prob.driver.recording_options['record_derivatives'] = True
+        prob.driver.recording_options['includes'] = ['*']
 
         # Set up the problem
         prob.setup()

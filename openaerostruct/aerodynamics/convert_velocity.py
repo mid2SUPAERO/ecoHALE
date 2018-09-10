@@ -37,6 +37,7 @@ class ConvertVelocity(ExplicitComponent):
         sina = np.sin(alpha)
         v_inf = inputs['v'][0] * np.array([cosa, 0., sina])
         outputs['inflow_velocities'][:, :] = v_inf
+        
     def compute_partials(self, inputs, J):
         alpha = inputs['alpha'][0] *np.pi / 180.
         J['inflow_velocities','alpha'] = 0
@@ -48,4 +49,3 @@ class ConvertVelocity(ExplicitComponent):
         Jv_alpha = np.tile(inputs['v'][0] * np.array([-sina, 0., cosa]) * np.pi/180.,self.system_size)
         J['inflow_velocities','v'] = Jv_v
         J['inflow_velocities','alpha'] = Jv_alpha
-    

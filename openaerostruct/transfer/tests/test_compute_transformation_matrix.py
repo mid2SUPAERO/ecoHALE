@@ -1,31 +1,33 @@
 import unittest
+import numpy as np
 from openmdao.api import IndepVarComp, Group
 
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
+from openaerostruct.transfer.compute_transformation_matrix import ComputeTransformationMatrix
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
+
+np.random.seed(314)
 
 class Test(unittest.TestCase):
 
     def test(self):
         surface = get_default_surfaces()[0]
 
-        comp = DisplacementTransfer(surface=surface)
+        comp = ComputeTransformationMatrix(surface=surface)
 
         group = Group()
 
         indep_var_comp = IndepVarComp()
 
         ny = surface['num_y']
+        disp = np.random.random_sample((ny, 6)) * 100.
 
-        mesh = surface['mesh']
-
-        indep_var_comp.add_output('mesh', val=mesh, units='m')
+        indep_var_comp.add_output('disp', val=disp, units='m')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
-        group.add_subsystem('load', comp, promotes=['*'])
+        group.add_subsystem('trans_mtx', comp, promotes=['*'])
 
-        run_test(self, group, complex_flag=True)
+        run_test(self, group, complex_flag=True, method='cs')
 
 
 if __name__ == '__main__':

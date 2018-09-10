@@ -1,7 +1,7 @@
 from openaerostruct.geometry.geometry_mesh import GeometryMesh
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.geometry_group import Geometry
-from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
+from openaerostruct.transfer.displacement_transfer_group import DisplacementTransferGroup
 from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
@@ -94,8 +94,8 @@ class CoupledAS(Group):
             promotes_inputs=['K', 'forces', 'loads'] + promotes, promotes_outputs=['disp'])
 
         self.add_subsystem('def_mesh',
-            DisplacementTransfer(surface=surface),
-            promotes_inputs=['mesh', 'disp'], promotes_outputs=['def_mesh'])
+            DisplacementTransferGroup(surface=surface),
+            promotes_inputs=['nodes', 'mesh', 'disp'], promotes_outputs=['def_mesh'])
 
         self.add_subsystem('aero_geom',
             VLMGeometry(surface=surface),
@@ -230,8 +230,8 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['atol'] = 5e-6
         coupled.nonlinear_solver.options['rtol'] = 1e-12
 
-        # coupled.jacobian = DenseJacobian()
-        coupled.linear_solver = DirectSolver()
+        coupled.linear_solver = DirectSolver(assemble_jac=True)
+        coupled.options['assembled_jac_type'] = 'csc'
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nonlinear_solver.options['maxiter'] = 50

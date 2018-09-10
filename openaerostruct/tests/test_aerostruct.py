@@ -112,6 +112,7 @@ class Test(unittest.TestCase):
 
         com_name = point_name + '.' + name + '_perf'
         prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+        prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
         # Connect aerodyamic mesh to coupled group mesh
         prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
@@ -131,6 +132,7 @@ class Test(unittest.TestCase):
         recorder = SqliteRecorder("aerostruct.db")
         prob.driver.add_recorder(recorder)
         prob.driver.recording_options['record_derivatives'] = True
+        prob.driver.recording_options['includes'] = ['*']
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)

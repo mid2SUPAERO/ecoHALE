@@ -33,8 +33,8 @@ class Test(unittest.TestCase):
                                              # can be 'wetted' or 'projected'
                     'fem_model_type' : 'tube',
 
-                    'thickness_cp' : np.array([.075, .075]),
-                    'twist_cp' : np.array([-10., 15.]),
+                    'thickness_cp' : np.ones((2)) * .1,
+                    'twist_cp' : np.ones((2)),
 
                     'mesh' : mesh,
                     'num_x' : mesh.shape[0],
@@ -136,6 +136,7 @@ class Test(unittest.TestCase):
 
                 com_name = point_name + '.' + name + '_perf'
                 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
@@ -168,7 +169,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 72128.75170161888, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 70754.19144483653, 1e-5)
 
 
 if __name__ == '__main__':

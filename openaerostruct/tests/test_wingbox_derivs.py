@@ -2,6 +2,7 @@ from __future__ import division, print_function
 from openmdao.utils.assert_utils import assert_rel_error
 import unittest
 import numpy as np
+from six import iteritems
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
@@ -12,6 +13,8 @@ from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOp
 from openmdao.utils.assert_utils import assert_check_partials
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 
+from openaerostruct.utils.testing import view_mat
+
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
 # These should be for an airfoil with the chord scaled to 1.
@@ -19,10 +22,10 @@ from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 # We use the coordinates available from airfoiltools.com. Using such a large number of coordinates is not necessary.
 # The first and last x-coordinates of the upper and lower skins must be the same
 
-upper_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6], dtype = 'complex128')
-lower_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6], dtype = 'complex128')
-upper_y = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541], dtype = 'complex128')
-lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515, -0.0524, -0.0532, -0.054, -0.0547, -0.0554, -0.056, -0.0565, -0.057, -0.0575, -0.0579, -0.0583, -0.0586, -0.0589, -0.0592, -0.0594, -0.0595, -0.0596, -0.0597, -0.0598, -0.0598, -0.0598, -0.0598, -0.0597, -0.0596, -0.0594, -0.0592, -0.0589, -0.0586, -0.0582, -0.0578, -0.0573, -0.0567, -0.0561, -0.0554, -0.0546, -0.0538, -0.0529, -0.0519, -0.0509, -0.0497, -0.0485, -0.0472, -0.0458, -0.0444], dtype = 'complex128')
+upper_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6])
+lower_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.6])
+upper_y = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541])
+lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515, -0.0524, -0.0532, -0.054, -0.0547, -0.0554, -0.056, -0.0565, -0.057, -0.0575, -0.0579, -0.0583, -0.0586, -0.0589, -0.0592, -0.0594, -0.0595, -0.0596, -0.0597, -0.0598, -0.0598, -0.0598, -0.0598, -0.0597, -0.0596, -0.0594, -0.0592, -0.0589, -0.0586, -0.0582, -0.0578, -0.0573, -0.0567, -0.0561, -0.0554, -0.0546, -0.0538, -0.0529, -0.0519, -0.0509, -0.0497, -0.0485, -0.0472, -0.0458, -0.0444])
 
 class Test(unittest.TestCase):
 
@@ -167,11 +170,11 @@ class Test(unittest.TestCase):
 
                 com_name = point_name + '.' + name + '_perf.'
                 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
                 prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
-                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.nodes', com_name + 'nodes')
@@ -201,7 +204,9 @@ class Test(unittest.TestCase):
             prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_0.coupled.wing.struct_states.fuel_vols')
             prob.model.connect('fuel_mass', 'AS_point_0.coupled.wing.struct_states.fuel_mass')
 
-            comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
+            comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn',
+                            fuel_mass={'value' : 1.0, 'units' : 'kg'},
+                            fuelburn= {'value' : 1.0, 'units' : 'kg'})
             prob.model.add_subsystem('fuel_diff', comp,
                 promotes_inputs=['fuel_mass'],
                 promotes_outputs=['fuel_diff'])
@@ -212,7 +217,7 @@ class Test(unittest.TestCase):
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
-        prob.driver.options['maxiter'] = 5
+        prob.driver.options['maxiter'] = 2
 
         # from openmdao.api import pyOptSparseDriver
         # prob.driver = pyOptSparseDriver()
@@ -252,9 +257,10 @@ class Test(unittest.TestCase):
         # Check the partials at the initial point in the design space,
         # only care about relative error
         data = prob.check_partials(compact_print=True, out_stream=None, method='cs', step=1e-40)
+
         assert_check_partials(data, atol=1e20, rtol=1e-6)
 
-        # Run the optimizer for 5 iterations
+        # Run the optimizer for 2 iterations
         prob.run_driver()
 
         # Check the partials at this point in the design space
