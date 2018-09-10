@@ -45,9 +45,6 @@ class LoadTransfer(ExplicitComponent):
 
         self.ny = ny = surface['num_y']
         self.nx = nx = surface['num_x']
-        
-        print('ny',self.ny)
-        print('nx',self.nx)
 
         if surface['fem_model_type'] == 'tube':
             self.fem_origin = surface['fem_origin']

@@ -1,6 +1,6 @@
 # load transfer group
 from openmdao.api import Group, MuxComp
-from load_transfer import LoadTransfer
+from openaerostruct.transfer.load_transfer import LoadTransfer
 
 class load_transfer_grp(Group):
     '''
@@ -52,7 +52,7 @@ class load_transfer_grp(Group):
         ny = surface['num_y']
         # m = 'ny,3' # The size of each element to be muxed
         mux_comp = self.add_subsystem('mux', MuxComp(vec_size=n), promotes_outputs=['loads'])
-        mux_comp.add_var('loads', shape=(ny,3), axis=1, units='N') # WARNING!! THESE UNITS ARE ACTUALLY MIXED!!
+        mux_comp.add_var('loads', shape=(ny,3), axis=1, units=None) # WARNING!! THESE UNITS ARE ACTUALLY MIXED!!
         
         self.connect('loadsA','mux.loads_0')
         self.connect('loadsB','mux.loads_1')
