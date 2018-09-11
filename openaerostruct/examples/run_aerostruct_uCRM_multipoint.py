@@ -37,8 +37,8 @@ lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515
 
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 31,
-             'num_x' : 3,
+mesh_dict = {'num_y' : 51,
+             'num_x' : 7,
              'wing_type' : 'uCRM_based',
              'symmetry' : True,
              'num_twist_cp' : 6,
