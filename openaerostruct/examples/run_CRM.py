@@ -9,8 +9,8 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 # Create a dictionary to store options about the mesh
-mesh_dict = {'num_y' : 65,
-             'num_x' : 35,
+mesh_dict = {'num_y' : 5,
+             'num_x' : 5,
              'wing_type' : 'CRM',
              'symmetry' : True,
              'num_twist_cp' : 5}
@@ -102,6 +102,6 @@ prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_o
 prob.setup()
 prob.run_model()
 
-print(prob['aero_point_0.wing_perf.CL'])
-print(prob['aero_point_0.wing_perf.CD'])
+print(prob['aero_point_0.CL'])
+print(prob['aero_point_0.CD'])
 print(prob['aero_point_0.CM'][1])
