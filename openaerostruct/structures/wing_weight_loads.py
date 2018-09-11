@@ -1,6 +1,8 @@
 from __future__ import division, print_function
 import numpy as np
 
+from scipy.sparse import coo_matrix, diags
+
 from openmdao.api import ExplicitComponent
 from openaerostruct.structures.utils import norm
 
@@ -37,6 +39,7 @@ class StructureWeightLoads(ExplicitComponent):
         self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6), dtype=complex), units='N')
 
         self.declare_partials('struct_weight_loads', 'nodes',  method='cs')
+        # self.declare_partials('struct_weight_loads', 'nodes')
 
         nym1 = self.ny-1
         rows = np.zeros(4*nym1)
@@ -116,8 +119,8 @@ class StructureWeightLoads(ExplicitComponent):
                             * (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5
 
         J['struct_weight_loads', 'element_weights'][:2*nym1] = -inputs['load_factor']/2.
-        dswl__dew = inputs['load_factor'] * element_lengths / 12. * \
-                    (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5 / element_lengths * \
+        dswl__dew = inputs['load_factor'] / 12. * \
+                    (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5 * \
                     deltas[: , 1] / element_lengths
         J['struct_weight_loads', 'element_weights'][2*nym1:3*nym1] = -dswl__dew
         J['struct_weight_loads', 'element_weights'][3*nym1:4*nym1] = dswl__dew
@@ -126,18 +129,68 @@ class StructureWeightLoads(ExplicitComponent):
         J['struct_weight_loads', 'load_factor'][:nym1] = -inputs['element_weights']/2.
         J['struct_weight_loads', 'load_factor'][1:self.ny] += -inputs['element_weights']/2
 
-        dswl__dlf = inputs['element_weights'] * element_lengths / 12. * \
-                    (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5 / element_lengths * \
+        dswl__dlf = inputs['element_weights'] / 12. * \
+                    (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5 * \
                     deltas[: , 1] / element_lengths
         J['struct_weight_loads', 'load_factor'][self.ny:self.ny+nym1] = -dswl__dlf
         J['struct_weight_loads', 'load_factor'][self.ny+1:self.ny+nym1+1] += dswl__dlf
 
 
-        dswl__dlf = inputs['element_weights'] * element_lengths / 12. * \
-                    (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5 / element_lengths * \
+        dswl__dlf = inputs['element_weights'] / 12. * \
+                    (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5 * \
                     deltas[: , 0] / element_lengths
         J['struct_weight_loads', 'load_factor'][2*self.ny:2*self.ny+nym1] += -dswl__dlf
         J['struct_weight_loads', 'load_factor'][2*self.ny+1:2*self.ny+nym1+1] += dswl__dlf
+
+
+        # TODO: JSG - Finish these
+        # ddel__dnodes
+        # rows = np.zeros(2*nym1)
+        # cols_d0 = np.zeros(2*nym1)
+        # cols_d1 = np.zeros(2*nym1)
+        # data = np.zeros(2*nym1)
+
+        # counter = 0
+        # for i in range(nym1):
+        #     for j in range(2):
+        #         rows[counter] = i
+        #         cols_d0[counter] = 3*(i+j)
+        #         cols_d1[counter] = 3*(i+j)+1
+        #         data[counter] = -2*j+1
+        #         counter += 1
+
+        # shape = (3,3*self.ny)
+        # ddel0__dnodes = coo_matrix((data, (rows, cols_d0)), shape=shape).tocsr()
+        # ddel1__dnodes = coo_matrix((data, (rows, cols_d1)), shape=shape).tocsr()
+
+        # # del__dnodes
+        # rows = np.zeros(6*nym1)
+        # cols = np.zeros(6*nym1)
+        # data = np.zeros(6*nym1)
+        # counter = 0
+        # for i in range(nym1):
+        #     for j in range(6):
+        #         rows[counter] = i
+        #         cols[counter] = 3*i+j
+        #         if j < 3:
+        #             data[counter] = 1
+        #         else:
+        #             data[counter] = -1
+
+        #         counter += 1
+        # del__dnodes = coo_matrix((data, (rows, cols)), shape=shape).tocsr()
+
+        # del0 = deltas[: , 0]
+        # del1 = deltas[: , 1]
+
+        # dzm_dnodes = diags(struct_weights/12*(del0**2 + del1**2)**-.5)*\
+        #              (diags(del0)*ddel1__dnodes + diags(del1)*ddel1__dnodes)
+        # dbm0_dnodes = diags(del0/element_lengths)*dzm_dnodes \
+        #             + diags(z_moments_for_each)*(diags(1/element_lengths)*ddel0__dnodes - diags(del0/element_lengths**2)*del__dnodes)
+
+
+        # dbm1_dnodes = diags(del1/element_lengths)*dzm_dnodes \
+        #             + diags(z_moments_for_each)*(diags(1/element_lengths)*ddel1__dnodes - diags(del1/element_lengths**2)*del__dnodes)
 
 
 

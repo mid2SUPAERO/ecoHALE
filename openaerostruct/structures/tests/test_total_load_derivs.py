@@ -42,10 +42,10 @@ class Test(unittest.TestCase):
 
         ny = surface['num_y']
 
-        nodesval = np.array([[0., 0., 0.],
-                            [0., 1., 0.],
-                            [0., 2., 0.],
-                            [0., 3., 0.]],dtype=complex)
+        nodesval = np.array([[1., 2., 3.],
+                            [4., 5., 6.],
+                            [7., 8., 9.],
+                            [10., 11., 12.]],dtype=complex)
         element_weights_val = np.arange(ny-1)
 
         indep_var_comp.add_output('nodes', val=nodesval,units='m')
