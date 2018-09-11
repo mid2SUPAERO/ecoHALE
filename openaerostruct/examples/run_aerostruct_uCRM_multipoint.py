@@ -13,6 +13,10 @@
 # directory as 'python plot_wing_wb_mpt.py aerostruct.db' to vizualize the results.
 # This script is based on the plot_wing.py script. It's still a bit hacky and will
 # probably not work as it is for other types of cases for now.
+#
+# Also note that there will be some slight differences between the results from
+# this script and the results in the paper because those results were from an
+# older version of OAS (very slight differences due to numerical errors, etc.)
 #===============================================================================
 
 from __future__ import division, print_function
