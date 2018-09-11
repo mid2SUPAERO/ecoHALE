@@ -31,7 +31,7 @@ class Test(unittest.TestCase):
 
         run_test(self, comp, complex_flag=True)
 
-    def test_3(self):
+    def test_structural_weight_loads(self):
         surface = get_default_surfaces()[0]
 
         comp = StructureWeightLoads(surface=surface)
@@ -54,9 +54,9 @@ class Test(unittest.TestCase):
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('load', comp, promotes=['*'])
 
-        p = run_test(self, group, complex_flag=True)
+        p = run_test(self, group, complex_flag=True, compact_print=False)
 
-        print(p['comp.struct_weight_loads'])
+        # print(p['comp.struct_weight_loads'])
 
 if __name__ == '__main__':
     unittest.main()
