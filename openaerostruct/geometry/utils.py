@@ -961,7 +961,7 @@ def writeMesh(mesh,filename):
 
     Parameters
     ----------
-    mesh[nx,ny,3] : ndarray
+    mesh[nx,ny,3] : numpy array
         The OAS mesh to be written.
     filename : str
         The file name including the .dat extension.
@@ -993,12 +993,12 @@ def getFullMesh(left_mesh=None, right_mesh=None):
 
     Parameters
     ----------
-    left_mesh[nx,ny,3] or right_mesh : ndarray
+    left_mesh[nx,ny,3] or right_mesh : numpy array
         The half mesh to be mirrored.
 
     Returns
     -------
-    full_mesh[nx,2*ny-1,3] : ndarray
+    full_mesh[nx,2*ny-1,3] : numpy array
         The computed full mesh.
     """
     if left_mesh is None and right_mesh is None:

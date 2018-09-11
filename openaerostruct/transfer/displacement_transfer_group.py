@@ -4,7 +4,11 @@ from openaerostruct.transfer.compute_transformation_matrix import ComputeTransfo
 
 
 class DisplacementTransferGroup(Group):
-    """ Group that contains everything needed for a structural-only problem. """
+    """
+    These components take the displacements and rotations obtained by
+    solving the FEM problem and applies them to the aerodynamic mesh
+    to produce a deformed aerodynamic mesh.
+    """
 
     def initialize(self):
         self.options.declare('surface', types=dict)

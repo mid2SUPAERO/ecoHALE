@@ -230,6 +230,8 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['atol'] = 5e-6
         coupled.nonlinear_solver.options['rtol'] = 1e-12
 
+        # coupled.linear_solver = DirectSolver()
+
         coupled.linear_solver = DirectSolver(assemble_jac=True)
         coupled.options['assembled_jac_type'] = 'csc'
 

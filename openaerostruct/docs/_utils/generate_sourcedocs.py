@@ -1,15 +1,16 @@
 import os
+from openmdao.docs.config_params import IGNORE_LIST
 
-IGNORE_LIST = [
-        'docs', 'tests', 'fortran', 'utils'
-    ]
 # this function is used to create the entire directory structure
 # of our source docs, as well as writing out each individual rst file.
 
 
-def generate_docs(dir, top, packages):
+def generate_docs(dir, top, packages, project_name='openmdao'):
     """
     generate_docs
+
+    Can supply a project name other than `openmdao` to use this function
+    with other projects.
     """
     index_top = """:orphan:
 
@@ -34,6 +35,7 @@ Source Docs
    :members:
    :undoc-members:
    :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :exclude-members: __init__, compute, add_constraint, add_design_var, add_input, add_objective, add_output, add_recorder, add_response, check_config, cleanup, compute_jacvec_product, compute_partials, declare_partials, distributed, get_constraints, get_design_vars, get_linear_vectors, get_nonlinear_vectors, get_objectives, get_responses, initialize, is_active, jacobian_context, linear_solver, list_inputs, list_outputs, ln_solver, metadata, nl_solver, nonlinear_solver, reconfigure, record_iteration, resetup, run_apply_linear, run_apply_nonlinear, run_linearize, run_solve_linear, run_solve_nonlinear, set_check_partial_options, set_initial_values, setup, system_iter, add, add_subsystem, approx_totals, compute_sys_group, configure, connect, set_order
    :show-inheritance:
    :inherited-members:
 
@@ -55,16 +57,16 @@ Source Docs
     if not os.path.isdir(packages_dir):
         os.mkdir(packages_dir)
 
-    # look for directories in the openaero level, one up from docs
-    # those directories will be the openmdao packages
-    # auto-generate the top-level index.rst file for _srcdocs, based on
-    # openaerostruct packages:
+    # look for directories in the top level, one up from docs
+    # those directories will be the packages that
+    # auto-generate at the top-level index.rst file for _srcdocs, based on
+    # the packages that are passed in, which are set in conf.py.
 
-    # to improve the order that the user sees in the source docs, put
-    # the important packages in this list explicitly. Any new ones that
-    # get added will show up at the end.
+    # to improve the order in which the user sees the source docs,
+    # order the packages in this list explicitly. Any new ones that
+    # are detected will show up at the end of the list.
 
-    # everything in openaerostruct dir that isn't discarded is appended as a source package.
+    # everything in openmdao dir that isn't discarded is appended as a source package.
     for listing in os.listdir(os.path.join(top)):
         if os.path.isdir(os.path.join("..", listing)):
             if listing not in IGNORE_LIST and listing not in packages:
@@ -75,14 +77,14 @@ Source Docs
     index = open(index_filename, "w")
     index.write(index_top)
 
-    # auto-generate package header files (e.g. 'openaerostruct.core.rst')
+    # auto-generate package header files (e.g. 'openmdao.core.rst')
     for package in packages:
-        # a package is e.g. openaerostruct.core, that contains source files
-        # a sub_package, is a src file, e.g. openaerostruct.core.component
+        # a package is e.g. openmdao.core, that contains source files
+        # a sub_package, is a src file, e.g. openmdao.core.component
         sub_packages = []
         package_filename = os.path.join(packages_dir,
-                                        "openaerostruct." + package + ".rst")
-        package_name = "openaerostruct." + package
+                                        project_name + "." + package + ".rst")
+        package_name = project_name + "." + package
 
         # the sub_listing is going into each package dir and listing what's in it
         for sub_listing in sorted(os.listdir(os.path.join(dir, package.replace('.','/')))):
@@ -99,13 +101,13 @@ Source Docs
 
             # specifically don't use os.path.join here.  Even windows wants the
             # stuff in the file to have fwd slashes.
-            index.write("   packages/openaerostruct." + package + "\n")
+            index.write("   packages/" + project_name + "." + package + "\n")
 
             # make subpkg directory (e.g. _srcdocs/packages/core) for ref sheets
             package_dir = os.path.join(packages_dir, package)
             os.mkdir(package_dir)
 
-            # create/write a package index file: (e.g. "_srcdocs/packages/openaerostruct.core.rst")
+            # create/write a package index file: (e.g. "_srcdocs/packages/openmdao.core.rst")
             package_file = open(package_filename, "w")
             package_file.write(package_name + "\n")
             package_file.write("-" * len(package_name) + "\n")
@@ -114,7 +116,7 @@ Source Docs
             for sub_package in sub_packages:
                 SKIP_SUBPACKAGES = ['__pycache__']
                 # this line writes subpackage name e.g. "core/component.py"
-                # into the corresponding package index file (e.g. "openaerostruct.core.rst")
+                # into the corresponding package index file (e.g. "openmdao.core.rst")
                 if sub_package not in SKIP_SUBPACKAGES:
                     # specifically don't use os.path.join here.  Even windows wants the
                     # stuff in the file to have fwd slashes.

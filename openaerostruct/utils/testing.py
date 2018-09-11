@@ -14,9 +14,9 @@ def view_mat(mat1, mat2=None, key='Title', tol=1e-10):  # pragma: no cover
 
     Parameters
     ----------
-    mat1 : ndarray
+    mat1 : numpy array
         The Jacobian approximated by openMDAO
-    mat2 : ndarray
+    mat2 : numpy array
         The Jacobian computed by compute_partials
     key : str
         The name of the tuple (of, wrt) for which the Jacobian is computed
