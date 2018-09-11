@@ -32,8 +32,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
     le = mesh[ 0]
     quarter_chord = 0.25 * te + 0.75 * le
 
-    ny = mesh.shape[1]
-    nx = mesh.shape[0]
+    nx, ny, _ = mesh.shape
 
     if rotate_x:
         # Compute spanwise z displacements along quarter chord
@@ -105,18 +104,25 @@ def deriv_rotate(mesh, theta_y, symmetry, rotate_x=True):
     le = mesh[ 0]
     quarter_chord = 0.25 * te + 0.75 * le
 
-    ny = mesh.shape[1]
-    nx = mesh.shape[0]
+    nx, ny, _ = mesh.shape
 
     if rotate_x:
         # Compute spanwise z displacements along quarter chord
         if symmetry:
-            dz_qc = quarter_chord[:-1,2] - quarter_chord[1:,2]
-            dy_qc = quarter_chord[:-1,1] - quarter_chord[1:,1]
+            dz_qc = quarter_chord[:-1, 2] - quarter_chord[1:, 2]
+            dy_qc = quarter_chord[:-1, 1] - quarter_chord[1:, 1]
             theta_x = np.arctan(dz_qc/dy_qc)
 
             # Prepend with 0 so that root is not rotated
             rad_theta_x = np.append(theta_x, 0.0)
+
+            fact = 1.0/(1.0 + (dz_qc/dy_qc)**2)
+            d_dy = -dz_qc * fact / dy_qc**2
+            d_dz = fact / dy_qc
+
+            d_dy = np.append(d_dy, 0.0)
+            d_dz = np.append(d_dz, 0.0)
+
         else:
             root_index = int((ny - 1) / 2)
             dz_qc_left = quarter_chord[:root_index,2] - quarter_chord[1:root_index+1,2]
@@ -132,7 +138,8 @@ def deriv_rotate(mesh, theta_y, symmetry, rotate_x=True):
     else:
         rad_theta_x = 0.0
 
-    rad_theta_y = theta_y * np.pi / 180.
+    deg2rad = np.pi / 180.
+    rad_theta_y = theta_y * deg2rad
 
     cos_rtx = cos(rad_theta_x)
     cos_rty = cos(rad_theta_y)
@@ -149,19 +156,33 @@ def deriv_rotate(mesh, theta_y, symmetry, rotate_x=True):
     mats[:, 2, 1] = sin_rtx
     mats[:, 2, 2] = cos_rtx*cos_rty
 
-    dmats = np.zeros((ny, 3, 3))
-    dmats[:, 0, 0] = -sin_rty
-    dmats[:, 0, 2] = cos_rty
-    dmats[:, 1, 0] = sin_rtx * cos_rty + cos_rtx * sin_rty
-    dmats[:, 1, 1] = -sin_rtx
-    dmats[:, 1, 2] = dmats[:, 2, 0] = sin_rtx * sin_rty - cos_rtx * cos_rty
-    dmats[:, 2, 1] = cos_rtx
-    dmats[:, 2, 2] = -sin_rtx * cos_rty - cos_rtx * sin_rty
+    if rotate_x:
+        dmats_dx = np.zeros((ny, 3, 3))
+        dmats_dx[:, 1, 0] = cos_rtx * sin_rty * deg2rad
+        dmats_dx[:, 1, 1] = -sin_rtx * deg2rad
+        dmats_dx[:, 1, 2] = -cos_rtx * cos_rty * deg2rad
+        dmats_dx[:, 2, 0] = sin_rtx * sin_rty * deg2rad
+        dmats_dx[:, 2, 1] = cos_rtx * deg2rad
+        dmats_dx[:, 2, 2] = -sin_rtx * cos_rty * deg2rad
 
-    d_thetay = np.einsum("ikj, mij -> mik", dmats, mesh - quarter_chord)
-    mesh[:] = np.einsum("ikj, mij -> mik", mats, mesh - quarter_chord) + quarter_chord
+    dmats_dy = np.zeros((ny, 3, 3))
+    dmats_dy[:, 0, 0] = -sin_rty * deg2rad
+    dmats_dy[:, 0, 2] = cos_rty * deg2rad
+    dmats_dy[:, 1, 0] = sin_rtx * cos_rty * deg2rad
+    dmats_dy[:, 1, 2] = sin_rtx * sin_rty * deg2rad
+    dmats_dy[:, 2, 0] = -cos_rtx * cos_rty * deg2rad
+    dmats_dy[:, 2, 2] = -cos_rtx * sin_rty * deg2rad
 
-    return d_thetay, 0
+    d_dthetay = np.einsum("ikj, mij -> mik", dmats_dy, mesh - quarter_chord)
+
+    if rotate_x:
+        d_dthetax = np.einsum("ikj, mij -> mik", dmats_dx, mesh - quarter_chord)
+        d_ymesh = np.einsum("ijk, j -> ijk", d_dthetax, d_dy)
+        d_zmesh = np.einsum("ijk, j -> ijk", d_dthetax, d_dz)
+    else:
+        d_ymesh = d_zmesh = None
+
+    return d_dthetay, d_ymesh, d_zmesh
 
 def scale_x(mesh, chord_dist):
     """
@@ -283,8 +304,8 @@ def sweep(mesh, sweep_angle, symmetry):
         dx_left = -(le[:ny2, 1] - y0) * tan_theta
         dx = np.hstack((dx_left, dx_right))
 
-    for i in range(num_x):
-        mesh[i, :, 0] += dx
+    # dx added spanwise.
+    mesh[:, :, 0] += dx
 
 def dihedral(mesh, dihedral_angle, symmetry):
     """
@@ -325,9 +346,58 @@ def dihedral(mesh, dihedral_angle, symmetry):
         dz_left = -(le[:ny2, 1] - y0) * tan_theta
         dz = np.hstack((dz_left, dz_right))
 
-    for i in range(num_x):
-        mesh[i, :, 2] += dz
+    # dz added spanwise.
+    mesh[:, :, 2] += dz
 
+def deriv_dihedral(mesh, dihedral_angle, symmetry):
+    """
+    Compute derivative wrt dihedral angle. Positive angles up.
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    dihedral_angle : float
+        Dihedral angle in degrees.
+    symmetry : boolean
+        Flag set to true if surface is reflected about y=0 plane.
+
+    Returns
+    -------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the aerodynamic surface with dihedral angle.
+
+    """
+
+    # Get the mesh parameters and desired sweep angle
+    num_x, num_y, _ = mesh.shape
+    le = mesh[0]
+    p180 = np.pi / 180
+    tan_theta = tan(p180*dihedral_angle)
+    dtan_dangle = p180 / cos(p180*dihedral_angle)**2
+
+    # If symmetric, simply vary the z-coord based on the distance from the
+    # center of the wing
+    if symmetry:
+        y0 = le[-1, 1]
+        dz = -(le[:, 1] - y0) * tan_theta
+        dz_dtheta = -(le[:, 1] - y0) * dtan_dangle
+
+    else:
+        ny2 = (num_y-1) // 2
+        y0 = le[ny2, 1]
+        dz_right = (le[ny2:, 1] - y0) * tan_theta
+        dz_left = -(le[:ny2, 1] - y0) * tan_theta
+        dz = np.hstack((dz_left, dz_right))
+
+        ddz_right = (le[ny2:, 1] - y0) * dtan_dangle
+        ddz_left = -(le[:ny2, 1] - y0) * dtan_dangle
+        dz_dtheta = np.hstack((ddz_left, ddz_right))
+
+    # dz added spanwise.
+    mesh[:, :, 2] += dz
+
+    return dz_dtheta, _
 
 def stretch(mesh, span, symmetry):
     """

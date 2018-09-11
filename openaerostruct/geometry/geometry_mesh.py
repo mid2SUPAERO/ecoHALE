@@ -6,7 +6,7 @@ import numpy as np
 from openaerostruct.geometry.utils import \
     rotate, scale_x, shear_x, shear_y, shear_z, \
     sweep, dihedral, stretch, taper, \
-    deriv_rotate, deriv_taper
+    deriv_rotate, deriv_dihedral, deriv_taper
 
 from openmdao.api import ExplicitComponent
 
@@ -123,7 +123,28 @@ class GeometryMesh(ExplicitComponent):
             # TODO : remove this line when done
             #self.declare_partials(of='*', wrt='*', method='fd')
 
-            self.declare_partials(of='*', wrt='twist')
+            nx, ny, _ = self.mesh.shape
+
+            rows = np.arange(nx*ny*3)
+            base = np.tile(np.zeros(3), ny) + np.repeat(np.arange(ny), 3)
+            cols = np.tile(base, nx)
+            self.declare_partials(of='*', wrt='twist', rows=rows, cols=cols)
+
+            size = nx * ny
+            rows = 3 * np.arange(size)
+            cols = np.tile(np.arange(ny), nx)
+            vals = np.ones(size)
+            self.declare_partials(of='*', wrt='xshear', rows=rows, cols=cols, val=vals)
+            self.declare_partials(of='*', wrt='yshear', rows=rows + 1, cols=cols, val=vals)
+            self.declare_partials(of='*', wrt='zshear', rows=rows + 2, cols=cols, val=vals)
+
+            if self.rotate_x:
+                rows = np.tile([1, 2], size) + np.repeat(3*np.arange(size), 2)
+                cols = np.zeros(size*2)
+                self.declare_partials(of='*', wrt='dihedral', rows=rows, cols=cols)
+            else:
+                cols = np.zeros(size)
+                self.declare_partials(of='*', wrt='dihedral', rows=rows + 2, cols=cols)
 
             self.set_check_partial_options(wrt='*', method='cs')
 
@@ -291,16 +312,28 @@ class GeometryMesh(ExplicitComponent):
 
         # Sparase Analytic derivatives.
         else:
-            #d_taper = deriv_taper(mesh, self.geo_params['taper'], self.symmetry)
-            #scale_x(mesh, self.geo_params['chord'])
-            #sweep(mesh, self.geo_params['sweep'], self.symmetry)
-            #shear_x(mesh, self.geo_params['xshear'])
-            #stretch(mesh, self.geo_params['span'], self.symmetry)
-            #shear_y(mesh, self.geo_params['yshear'])
-            #dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
-            #shear_z(mesh, self.geo_params['zshear'])
 
-            d_rotate, d_mesh = deriv_rotate(mesh, self.geo_params['twist'], self.symmetry,
-                                            self.rotate_x)
+            nx, ny, _ = self.mesh.shape
 
-            partials['mesh', 'twist'] = d_rotate
+            d_taper = deriv_taper(mesh, self.geo_params['taper'], self.symmetry)
+            scale_x(mesh, self.geo_params['chord'])
+            sweep(mesh, self.geo_params['sweep'], self.symmetry)
+            shear_x(mesh, self.geo_params['xshear'])
+            stretch(mesh, self.geo_params['span'], self.symmetry)
+            shear_y(mesh, self.geo_params['yshear'])
+
+            d_dihedral, d_mesh = deriv_dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
+
+            shear_z(mesh, self.geo_params['zshear'])
+
+            d_twist, d_ymesh, d_zmesh = deriv_rotate(mesh, self.geo_params['twist'], self.symmetry,
+                                                     self.rotate_x)
+
+            if self.rotate_x:
+                d_dihedral = np.einsum("ijk, j -> ijk", d_zmesh[:, :, 1:], d_dihedral).flatten()
+            else:
+                d_dihedral = np.tile(d_dihedral, nx)
+
+            partials['mesh', 'dihedral'] = d_dihedral
+
+            partials['mesh', 'twist'] = d_twist.flatten()
