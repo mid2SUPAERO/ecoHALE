@@ -79,7 +79,8 @@ class StructureWeightLoads(ExplicitComponent):
                             * (deltas[:, 0]**2 + deltas[:, 1]**2)**0.5
 
         loads = np.zeros((self.ny, 6), dtype=complex)
-        if self.under_complex_step: # Why doesn't this trigger when running test_aerostruct_wingbox_+weight_analysis.py???
+        # Why doesn't this trigger when running ../../tests/test_aerostruct_wingbox_+weight_analysis.py???
+        if self.under_complex_step:
             loads = np.zeros((self.ny, 6), dtype=complex)
 
         # Loads in z-direction
