@@ -62,18 +62,106 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
     rad_theta_y = theta_y * np.pi / 180.
 
     mats = np.zeros((ny, 3, 3), dtype=type(rad_theta_y[0]))
-    mats[:, 0, 0] = cos(rad_theta_y)
-    mats[:, 0, 2] = sin(rad_theta_y)
-    mats[:, 1, 0] = sin(rad_theta_x)*sin(rad_theta_y)
-    mats[:, 1, 1] = cos(rad_theta_x)
-    mats[:, 1, 2] = -sin(rad_theta_x)*cos(rad_theta_y)
-    mats[:, 2, 0] = -cos(rad_theta_x)*sin(rad_theta_y)
-    mats[:, 2, 1] = sin(rad_theta_x)
-    mats[:, 2, 2] = cos(rad_theta_x)*cos(rad_theta_y)
-    for ix in range(nx):
-        row = mesh[ix]
-        row[:] = np.einsum("ikj, ij -> ik", mats, row - quarter_chord)
-        row += quarter_chord
+
+    cos_rtx = cos(rad_theta_x)
+    cos_rty = cos(rad_theta_y)
+    sin_rtx = sin(rad_theta_x)
+    sin_rty = sin(rad_theta_y)
+
+    mats[:, 0, 0] = cos_rty
+    mats[:, 0, 2] = sin_rty
+    mats[:, 1, 0] = sin_rtx * sin_rty
+    mats[:, 1, 1] = cos_rtx
+    mats[:, 1, 2] = -sin_rtx * cos_rty
+    mats[:, 2, 0] = -cos_rtx * sin_rty
+    mats[:, 2, 1] = sin_rtx
+    mats[:, 2, 2] = cos_rtx*cos_rty
+
+    mesh[:] = np.einsum("ikj, mij -> mik", mats, mesh - quarter_chord) + quarter_chord
+
+def deriv_rotate(mesh, theta_y, symmetry, rotate_x=True):
+    """
+    Compute derivative of rotation wrt mesh and rotation angles in degrees.
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    theta_y[ny] : numpy array
+        1-D array of rotation angles about y-axis for each wing slice in degrees.
+    symmetry : boolean
+        Flag set to True if surface is reflected about y=0 plane.
+    rotate_x : boolean
+        Flag set to True if the user desires the twist variable to always be
+        applied perpendicular to the wing (say, in the case of a winglet).
+
+    Returns
+    -------
+    d_mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the twisted aerodynamic surface.
+
+    """
+    te = mesh[-1]
+    le = mesh[ 0]
+    quarter_chord = 0.25 * te + 0.75 * le
+
+    ny = mesh.shape[1]
+    nx = mesh.shape[0]
+
+    if rotate_x:
+        # Compute spanwise z displacements along quarter chord
+        if symmetry:
+            dz_qc = quarter_chord[:-1,2] - quarter_chord[1:,2]
+            dy_qc = quarter_chord[:-1,1] - quarter_chord[1:,1]
+            theta_x = np.arctan(dz_qc/dy_qc)
+
+            # Prepend with 0 so that root is not rotated
+            rad_theta_x = np.append(theta_x, 0.0)
+        else:
+            root_index = int((ny - 1) / 2)
+            dz_qc_left = quarter_chord[:root_index,2] - quarter_chord[1:root_index+1,2]
+            dy_qc_left = quarter_chord[:root_index,1] - quarter_chord[1:root_index+1,1]
+            theta_x_left = np.arctan(dz_qc_left/dy_qc_left)
+            dz_qc_right = quarter_chord[root_index+1:,2] - quarter_chord[root_index:-1,2]
+            dy_qc_right = quarter_chord[root_index+1:,1] - quarter_chord[root_index:-1,1]
+            theta_x_right = np.arctan(dz_qc_right/dy_qc_right)
+
+            # Concatenate thetas
+            rad_theta_x = np.concatenate((theta_x_left, np.zeros(1), theta_x_right))
+
+    else:
+        rad_theta_x = 0.0
+
+    rad_theta_y = theta_y * np.pi / 180.
+
+    cos_rtx = cos(rad_theta_x)
+    cos_rty = cos(rad_theta_y)
+    sin_rtx = sin(rad_theta_x)
+    sin_rty = sin(rad_theta_y)
+
+    mats = np.zeros((ny, 3, 3))
+    mats[:, 0, 0] = cos_rty
+    mats[:, 0, 2] = sin_rty
+    mats[:, 1, 0] = sin_rtx * sin_rty
+    mats[:, 1, 1] = cos_rtx
+    mats[:, 1, 2] = -sin_rtx * cos_rty
+    mats[:, 2, 0] = -cos_rtx * sin_rty
+    mats[:, 2, 1] = sin_rtx
+    mats[:, 2, 2] = cos_rtx*cos_rty
+
+    dmats = np.zeros((ny, 3, 3))
+    dmats[:, 0, 0] = -sin_rty
+    dmats[:, 0, 2] = cos_rty
+    dmats[:, 1, 0] = sin_rtx * cos_rty + cos_rtx * sin_rty
+    dmats[:, 1, 1] = -sin_rtx
+    dmats[:, 1, 2] = dmats[:, 2, 0] = sin_rtx * sin_rty - cos_rtx * cos_rty
+    dmats[:, 2, 1] = cos_rtx
+    dmats[:, 2, 2] = -sin_rtx * cos_rty - cos_rtx * sin_rty
+
+    d_thetay = np.einsum("ikj, mij -> mik", dmats, mesh - quarter_chord)
+    mesh[:] = np.einsum("ikj, mij -> mik", mats, mesh - quarter_chord) + quarter_chord
+
+    return d_thetay, 0
 
 def scale_x(mesh, chord_dist):
     """
@@ -303,35 +391,75 @@ def taper(mesh, taper_ratio, symmetry):
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
     quarter_chord = 0.25 * te + 0.75 * le
+    x = quarter_chord[:, 1]
+    span = x[-1] - x[0]
 
     # If symmetric, solve for the correct taper ratio, which is a linear
     # interpolation problem
     if symmetry:
-        x = quarter_chord[:, 1]
-        span = x[-1] - x[0]
         xp = np.array([-span, 0.])
         fp = np.array([taper_ratio, 1.])
-        taper = np.interp(x.real, xp.real, fp.real)
-
-        # Modify the mesh based on the taper amount computed per spanwise section
-        for i in range(num_x):
-            for ind in range(3):
-                mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
-                    taper + quarter_chord[:, ind]
 
     # Otherwise, we set up an interpolation problem for the entire wing, which
     # consists of two linear segments
     else:
-        x = quarter_chord[:, 1]
-        span = x[-1] - x[0]
         xp = np.array([-span/2, 0., span/2])
         fp = np.array([taper_ratio, 1., taper_ratio])
-        taper = np.interp(x.real, xp.real, fp.real)
 
-        for i in range(num_x):
-            for ind in range(3):
-                mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
-                    taper + quarter_chord[:, ind]
+    taper = np.interp(x.real, xp.real, fp.real)
+
+    # Modify the mesh based on the taper amount computed per spanwise section
+    mesh[:] = np.einsum('ijk, j->ijk', mesh - quarter_chord, taper) + quarter_chord
+
+
+def deriv_taper(mesh, taper_ratio, symmetry):
+    """
+    Return derivative of mesh wrt taper_ratio.
+
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface.
+    taper_ratio : float
+        Taper ratio for the wing; 1 is untapered, 0 goes to a point.
+    symmetry : boolean
+        Flag set to true if surface is reflected about y=0 plane.
+
+    Returns
+    -------
+    d_mesh[nx, ny, 3] : numpy array
+        Derivative of mesh wrt taper_ratio.
+
+    """
+    # Get mesh parameters and the quarter-chord
+    le = mesh[0]
+    te = mesh[-1]
+    num_x, num_y, _ = mesh.shape
+    quarter_chord = 0.25 * te + 0.75 * le
+    x = quarter_chord[:, 1]
+    span = x[-1] - x[0]
+
+    # If symmetric, solve for the correct taper ratio, which is a linear
+    # interpolation problem
+    if symmetry:
+        xp = np.array([-span, 0.])
+        fp = np.array([taper_ratio, 1.])
+
+    # Otherwise, we set up an interpolation problem for the entire wing, which
+    # consists of two linear segments
+    else:
+        xp = np.array([-span/2, 0., span/2])
+        fp = np.array([taper_ratio, 1., taper_ratio])
+
+    taper = np.interp(x, xp, fp)
+    dtaper = (1.0 - taper) / (1.0 - taper_ratio)
+
+    # Modify the mesh based on the taper amount computed per spanwise section
+    dmesh = np.einsum('ijk, j->ijk', mesh - quarter_chord, dtaper)
+    mesh[:] = np.einsum('ijk, j->ijk', mesh - quarter_chord, taper) + quarter_chord
+
+    return dmesh
+
 
 def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
     """

@@ -5,7 +5,8 @@ import numpy as np
 
 from openaerostruct.geometry.utils import \
     rotate, scale_x, shear_x, shear_y, shear_z, \
-    sweep, dihedral, stretch, taper
+    sweep, dihedral, stretch, taper, \
+    deriv_rotate, deriv_taper
 
 from openmdao.api import ExplicitComponent
 
@@ -59,19 +60,22 @@ class GeometryMesh(ExplicitComponent):
         self.mesh = surface['mesh']
         self.geo_params = geo_params = {}
 
-        if 'taper' in surface.keys():
+        if 'taper' in surface:
             geo_params['taper'] = surface['taper']
         else:
             geo_params['taper'] = 1.
-        if 'sweep' in surface.keys():
+
+        if 'sweep' in surface:
             geo_params['sweep'] = surface['sweep']
         else:
             geo_params['sweep'] = 0.
-        if 'dihedral' in surface.keys():
+
+        if 'dihedral' in surface:
             geo_params['dihedral'] = surface['dihedral']
         else:
             geo_params['dihedral'] = 0.
-        if 'span' in surface.keys():
+
+        if 'span' in surface:
             geo_params['span'] = surface['span']
         else:
             # Compute span. We need .real to make span to avoid OpenMDAO warnings.
@@ -87,21 +91,21 @@ class GeometryMesh(ExplicitComponent):
         geo_params['yshear'] = np.zeros(ny)
         geo_params['zshear'] = np.zeros(ny)
 
-        if 'twist_cp' in surface.keys():
+        if 'twist_cp' in surface:
             self.add_input('twist', val=geo_params['twist'], units='deg')
-        if 'chord_cp' in surface.keys():
+        if 'chord_cp' in surface:
             self.add_input('chord', val=geo_params['chord'], units='m')
-        if 'xshear_cp' in surface.keys():
+        if 'xshear_cp' in surface:
             self.add_input('xshear', val=geo_params['xshear'], units='m')
-        if 'yshear_cp' in surface.keys():
+        if 'yshear_cp' in surface:
             self.add_input('yshear', val=geo_params['yshear'], units='m')
-        if 'zshear_cp' in surface.keys():
+        if 'zshear_cp' in surface:
             self.add_input('zshear', val=geo_params['zshear'], units='m')
-        if 'sweep' in surface.keys():
+        if 'sweep' in surface:
             self.add_input('sweep', val=geo_params['sweep'], units='deg')
-        if 'dihedral' in surface.keys():
+        if 'dihedral' in surface:
             self.add_input('dihedral', val=geo_params['dihedral'], units='deg')
-        if 'taper' in surface.keys():
+        if 'taper' in surface:
             self.add_input('taper', val=geo_params['taper'])
 
         self.add_output('mesh', val=self.mesh, units='m')
@@ -112,23 +116,25 @@ class GeometryMesh(ExplicitComponent):
         # additional rotation matrix to modify the twist direction
         self.rotate_x = True
 
-        self.declare_partials('*', '*')
+        if fortran_flag:
+            self.declare_partials('*', '*')
 
-        if not fortran_flag:
-            self.declare_partials('*', '*', method='fd')
+        else:
+            # TODO : remove this line when done
+            #self.declare_partials(of='*', wrt='*', method='fd')
+
+            self.declare_partials(of='*', wrt='twist')
+
+            self.set_check_partial_options(wrt='*', method='cs')
 
     def compute(self, inputs, outputs):
         mesh = self.mesh.copy()
 
-        # Dirty hack for now; TODO: fix this
-        for key in self.geo_params:
-            try:
-                if inputs[key].shape[0] > 1:
-                    self.geo_params[key] = inputs[key]
-                else:
-                    self.geo_params[key] = inputs[key][0]
-            except:
-                pass
+        for key in inputs:
+            if inputs[key].shape[0] > 1:
+                self.geo_params[key] = inputs[key]
+            else:
+                self.geo_params[key] = inputs[key][0]
 
         # This line used to work in Clippy
         # self.geo_params.update(inputs)
@@ -154,27 +160,25 @@ class GeometryMesh(ExplicitComponent):
 
         outputs['mesh'] = mesh
 
-    if fortran_flag:
-        def compute_partials(self, inputs, partials):
+    def compute_partials(self, inputs, partials):
 
-            # We actually use the values in self.geo_params to modify the mesh,
-            # but we update self.geo_params using the OpenMDAO params here.
-            # This makes the geometry manipulation process work for any combination
-            # of design variables without having special logic.
-            # self.geo_params.update(inputs)
+        # We actually use the values in self.geo_params to modify the mesh,
+        # but we update self.geo_params using the OpenMDAO params here.
+        # This makes the geometry manipulation process work for any combination
+        # of design variables without having special logic.
+        # self.geo_params.update(inputs)
 
-            # Dirty hack for now; TODO: fix this
-            for key in self.geo_params:
-                try:
-                    if inputs[key].shape[0] > 1:
-                        self.geo_params[key] = inputs[key]
-                    else:
-                        self.geo_params[key] = inputs[key][0]
-                except:
-                    pass
+        for key in inputs:
+            if inputs[key].shape[0] > 1:
+                self.geo_params[key] = inputs[key]
+            else:
+                self.geo_params[key] = inputs[key][0]
 
-            mesh = self.mesh.copy()
+        mesh = self.mesh.copy()
 
+        # TODO : The code setting up the inputs for fortran can be consolidated and
+        # simplified greatly.
+        if fortran_flag:
             for param in inputs:
 
                 d_inputs = {}
@@ -284,3 +288,19 @@ class GeometryMesh(ExplicitComponent):
                     self.geo_params['twist'], twistd, self.symmetry, self.rotate_x)
 
                     partials['mesh', param] = mesh_d.flatten()
+
+        # Sparase Analytic derivatives.
+        else:
+            #d_taper = deriv_taper(mesh, self.geo_params['taper'], self.symmetry)
+            #scale_x(mesh, self.geo_params['chord'])
+            #sweep(mesh, self.geo_params['sweep'], self.symmetry)
+            #shear_x(mesh, self.geo_params['xshear'])
+            #stretch(mesh, self.geo_params['span'], self.symmetry)
+            #shear_y(mesh, self.geo_params['yshear'])
+            #dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
+            #shear_z(mesh, self.geo_params['zshear'])
+
+            d_rotate, d_mesh = deriv_rotate(mesh, self.geo_params['twist'], self.symmetry,
+                                            self.rotate_x)
+
+            partials['mesh', 'twist'] = d_rotate
