@@ -5,6 +5,7 @@ from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
 from openaerostruct.structures.tube_group import TubeGroup
+from openaerostruct.structures.wingbox_group import WingboxGroup
 
 
 class SpatialBeamAlone(Group):
@@ -44,14 +45,20 @@ class SpatialBeamAlone(Group):
             self.add_subsystem('wingbox_group',
                 WingboxGroup(surface=surface),
                 promotes_inputs=['mesh', 't_over_c'],
-                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
+                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
-        self.add_subsystem('struct_setup',
-            SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
-            promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
+        if surface['fem_model_type'] == 'tube':
+            self.add_subsystem('struct_setup',
+                SpatialBeamSetup(surface=surface),
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
+                promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
+        else:
+            self.add_subsystem('struct_setup',
+                SpatialBeamSetup(surface=surface),
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor', 'A_int'],
+                promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights', ])
 
         promotes = []
         if surface['struct_weight_relief']:
@@ -63,8 +70,13 @@ class SpatialBeamAlone(Group):
             SpatialBeamStates(surface=surface),
             promotes_inputs=['K', 'forces', 'loads'] + promotes,
             promotes_outputs=['disp'])
-
-        self.add_subsystem('struct_funcs',
-            SpatialBeamFunctionals(surface=surface),
-            promotes_inputs=['thickness', 'radius', 'nodes', 'disp'],
-            promotes_outputs=['thickness_intersects', 'vonmises', 'failure'])
+        if surface['fem_model_type'] == 'tube':
+            self.add_subsystem('struct_funcs',
+                SpatialBeamFunctionals(surface=surface),
+                promotes_inputs=['thickness', 'radius', 'nodes', 'disp'],
+                promotes_outputs=['thickness_intersects', 'vonmises', 'failure'])
+        else:
+            self.add_subsystem('struct_funcs',
+                SpatialBeamFunctionals(surface=surface),
+                promotes_inputs=['spar_thickness', 'skin_thickness', 'nodes', 'disp','Qz', 'Iz', 'J', 'A_enc', 'spar_thickness', 'skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
+                promotes_outputs=['vonmises', 'failure'])

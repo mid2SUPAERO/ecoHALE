@@ -34,8 +34,10 @@ class TotalLoads(ExplicitComponent):
         self.ny = surface['num_y']
 
         self.add_input('loads', val=np.ones((self.ny, 6)), units='N')
-        self.add_input('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
-        self.add_input('fuel_weight_loads', val=np.zeros((self.ny, 6)), units='N')
+        if surface['struct_weight_relief']:
+            self.add_input('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
+        if surface['distributed_fuel_weight']:
+            self.add_input('fuel_weight_loads', val=np.zeros((self.ny, 6)), units='N')
 
         self.add_output('total_loads', val=np.ones((self.ny, 6)), units='N')
 

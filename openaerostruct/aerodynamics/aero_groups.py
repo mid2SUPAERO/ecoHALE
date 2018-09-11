@@ -6,6 +6,11 @@ from openaerostruct.functionals.total_aero_performance import TotalAeroPerforman
 
 
 class AeroPoint(Group):
+    """
+    This group contains all the components needed for a single-point aerodynamic
+    analysis. You would have one instance of `AeroPoint` for each flight
+    condition you want to study.
+    """
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
@@ -14,17 +19,15 @@ class AeroPoint(Group):
     def setup(self):
         surfaces = self.options['surfaces']
 
+        # Loop through each surface and connect relevant parameters
         for surface in surfaces:
             name = surface['name']
 
             self.connect(name + '.normals', 'aero_states.' + name + '_normals')
-            # self.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
-            # self.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
-            # self.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
-            # self.connect(name + '.widths', 'aero_states.' + name + '_widths')
 
             # Connect the results from 'aero_states' to the performance groups
-            self.connect('aero_states.' + name + '_sec_forces', name + '_perf' + '.sec_forces')
+            self.connect('aero_states.' + name + '_sec_forces',
+                name + '_perf' + '.sec_forces')
 
             # Connect S_ref for performance calcs
             self.connect(name + '.S_ref', name + '_perf.S_ref')
@@ -40,7 +43,8 @@ class AeroPoint(Group):
             self.connect(name + '.b_pts', 'total_perf.' + name + '_b_pts')
             self.connect(name + '_perf' + '.CL', 'total_perf.' + name + '_CL')
             self.connect(name + '_perf' + '.CD', 'total_perf.' + name + '_CD')
-            self.connect('aero_states.' + name + '_sec_forces', 'total_perf.' + name + '_sec_forces')
+            self.connect('aero_states.' + name + '_sec_forces',
+                'total_perf.' + name + '_sec_forces')
 
             self.add_subsystem(name, VLMGeometry(surface=surface))
 
@@ -63,10 +67,14 @@ class AeroPoint(Group):
         # from each surface, but this information is stored within each
         # surface's group.
         for surface in surfaces:
-            self.add_subsystem(surface['name'] +'_perf', VLMFunctionals(surface=surface),
-                    promotes_inputs=["v", "alpha", "M", "re", "rho"])
+            self.add_subsystem(surface['name'] +'_perf',
+                VLMFunctionals(surface=surface),
+                promotes_inputs=["v", "alpha", "M", "re", "rho"])
 
+        # Add the total aero performance group to compute the CL, CD, and CM
+        # of the total aircraft. This accounts for all lifting surfaces.
         self.add_subsystem('total_perf',
-            TotalAeroPerformance(surfaces=surfaces,user_specified_Sref=self.options['user_specified_Sref']),
+            TotalAeroPerformance(surfaces=surfaces,
+            user_specified_Sref=self.options['user_specified_Sref']),
             promotes_inputs=['v', 'rho', 'cg', 'S_ref_total'],
             promotes_outputs=['CM', 'CL', 'CD'])
