@@ -63,8 +63,11 @@ class StructureWeightLoads(ExplicitComponent):
                 idx = i+self.ny*j
                 rows[idx] = 6*i+j+2
 
-        # self.declare_partials('struct_weight_loads', 'load_factor', rows=rows, cols=cols)
-        self.declare_partials('struct_weight_loads', 'load_factor')
+        self.dswl__dlf_row = rows
+        self.dswl__dlf_col = cols
+
+        self.declare_partials('struct_weight_loads', 'load_factor', rows=rows, cols=cols)
+        # self.declare_partials('struct_weight_loads', 'load_factor')
 
 
         # dstruct_weight_loads__dnodes (this one is super complicated)
@@ -83,7 +86,7 @@ class StructureWeightLoads(ExplicitComponent):
                 rows_del[counter] = i
                 cols_d0[counter] = 3*(i+j)
                 cols_d1[counter] = 3*(i+j)+1
-                data[counter] = 2*j-1
+                data[counter] = 2*j-1 #this gives 1 or -1 alternating based on j
                 counter += 1
 
         shape = (nym1,3*self.ny)
@@ -93,7 +96,7 @@ class StructureWeightLoads(ExplicitComponent):
         # del__dnodes
         rows_el = np.zeros(6*nym1)
         cols_el = np.zeros(6*nym1)
-        data = np.ones(6*nym1)
+        data = np.ones(6*nym1) # del__dnodes matrix has only ones in it
 
         counter = 0
         for i in range(nym1):
@@ -178,6 +181,7 @@ class StructureWeightLoads(ExplicitComponent):
                             * (del0**2 + del1**2)**0.5
 
         loads = outputs['struct_weight_loads']
+        loads *= 0 # need to zero it out, since we're accumulating onto it
         # Why doesn't this trigger when running ../../tests/test_aerostruct_wingbox_+weight_analysis.py???
         if self.under_complex_step:
             loads = np.zeros((self.ny, 6), dtype=complex)
@@ -225,11 +229,12 @@ class StructureWeightLoads(ExplicitComponent):
         dbm3__dzm = diags(del1/element_lengths)
         dbm4__dzm = diags(del0/element_lengths)
 
-        dswl__dlf = -self.dswl__dbm3*dbm3__dzm*dzm__dlf +\
-                    -self.dswl__dbm4*dbm4__dzm*dzm__dlf +\
-                    self.dswl__dzf*dzf__dlf
+        # need to convert to lil to re-order the data to match the original row/col indexing from setup
+        dswl__dlf = (-self.dswl__dbm3*dbm3__dzm*coo_matrix(dzm__dlf).T +\
+                    -self.dswl__dbm4*dbm4__dzm*coo_matrix(dzm__dlf).T +\
+                    self.dswl__dzf*coo_matrix(dzf__dlf).T).tolil()
 
-        J['struct_weight_loads', 'load_factor'] = dswl__dlf
+        J['struct_weight_loads', 'load_factor'] = dswl__dlf[self.dswl__dlf_row, self.dswl__dlf_col].toarray().flatten()
 
         dswl__dew = (-self.dswl__dbm4 * dbm4__dzm * dzm__dew +\
                     -self.dswl__dbm3 * dbm3__dzm * dzm__dew +\
