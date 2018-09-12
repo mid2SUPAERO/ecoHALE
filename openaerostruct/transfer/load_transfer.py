@@ -241,10 +241,7 @@ class LoadTransfer(ExplicitComponent):
                 0.5 *   self.w1   * mesh[1:, :-1, :] + \
                 0.5 * (1-self.w1) * mesh[:-1,  1:, :] + \
                 0.5 *   self.w1   * mesh[1:,  1:, :]
-        print('a_pts',a_pts.shape)
-        print('a_pt valss', a_pts)
-        # Compute the structural midpoints based on the fem_origin location
-        
+        # Compute the structural midpoints based on the fem_origin location        
         # s_pts [ny-1, 3]
         s_pts = 0.5 * (1-self.w2) * mesh[0, :-1, :] + \
                 0.5 *   self.w2   * mesh[-1, :-1, :] + \
