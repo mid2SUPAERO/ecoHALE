@@ -84,6 +84,8 @@ def run_test(test_obj, comp, complex_flag=False, compact_print=True, method='fd'
 
     assert_check_partials(check, atol=atol, rtol=rtol)
 
+    return prob
+
 def get_default_surfaces():
     # Create a dictionary to store options about the mesh
     mesh_dict = {'num_y' : 7,
