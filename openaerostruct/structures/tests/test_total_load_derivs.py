@@ -47,7 +47,7 @@ class Test(unittest.TestCase):
                             [20., 22., 7.],
                             [8., 17., 14.],
                             [13., 14., 16.]],dtype=complex)
-        element_weights_val = np.arange(ny-1)
+        element_weights_val = np.arange(ny-1)+1
 
         indep_var_comp.add_output('nodes', val=nodesval,units='m')
         indep_var_comp.add_output('element_weights', val=element_weights_val,units='N')
