@@ -247,7 +247,7 @@ class Test(unittest.TestCase):
         prob.model.add_design_var('fuel_mass', lower=0., upper=2e5, scaler=1e-5)
         prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
 
-        prob.model.add_constraint('AS_point_0.total_perf.CL', equals=0.5)
+        prob.model.add_constraint('AS_point_0.CL', equals=0.5)
         # prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
         prob.model.add_constraint('AS_point_1.L_equals_W', equals=0.)
         prob.model.add_constraint('AS_point_1.wing_perf.failure', upper=0.)

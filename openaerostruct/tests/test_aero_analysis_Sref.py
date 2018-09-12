@@ -129,8 +129,8 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['aero_point_0.total_perf.CL_CD.CD'][0], 0.10534816690971655, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.total_perf.CL_CD.CL'][0], 1.4158238516533308, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CD'][0], 0.10534816690971655, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CL'][0], 1.4158238516533308, 1e-6)
         assert_rel_error(self, prob['aero_point_0.CM'][1], -0.4962425903426805, 1e-6)
 
 
