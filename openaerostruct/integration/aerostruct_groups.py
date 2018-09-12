@@ -254,5 +254,5 @@ class AerostructPoint(Group):
                  TotalPerformance(surfaces=surfaces,
                  user_specified_Sref=self.options['user_specified_Sref'],
                  internally_connect_fuelburn=self.options['internally_connect_fuelburn']),
-                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'S_ref_total'],
-                 promotes_outputs=['L_equals_W', 'fuelburn', 'CM', 'cg'])
+                 promotes_inputs=['v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'S_ref_total'],
+                 promotes_outputs=['L_equals_W', 'fuelburn', 'CL', 'CD', 'CM', 'cg'])
