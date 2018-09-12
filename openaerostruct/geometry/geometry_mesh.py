@@ -330,6 +330,7 @@ class GeometryMesh(ExplicitComponent):
                                                      self.rotate_x)
 
             if self.rotate_x:
+                d_dihedral[:-1] -= d_dihedral[1:]
                 d_dihedral = np.einsum("ijk, j -> ijk", d_zmesh[:, :, 1:], d_dihedral).flatten()
             else:
                 d_dihedral = np.tile(d_dihedral, nx)
