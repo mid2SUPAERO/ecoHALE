@@ -120,10 +120,9 @@ class Test(unittest.TestCase):
 
         # Set up and run the optimization problem
         prob.setup()
-        prob.run_model()
         # prob.check_partials(compact_print=True)
         # exit()
-        prob.run_driver()
+        # prob.run_driver()
 
         assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.033389699871650073, 1e-6)
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-6)
