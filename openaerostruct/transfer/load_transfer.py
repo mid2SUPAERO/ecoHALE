@@ -230,11 +230,6 @@ class LoadTransfer(ExplicitComponent):
         #---------------------------------- dloads__dloadsA__dsec_forces
         self.dloads__dloadsA__dsec_forces = dloads__dloadsA * dloadsA__dsec_forces
 
-
-
-
-
-
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh'] #[nx, ny, 3]
         sec_forces = inputs['sec_forces']
@@ -346,5 +341,3 @@ class LoadTransfer(ExplicitComponent):
         dloads__dsec_forces = self.dloads__dloadsA__dsec_forces + self.dloads__dloadsB * dloadsB__dsec_forces
         dloads__dsec_forces = dloads__dsec_forces.tocoo()
         J['loads','sec_forces'] = dloads__dsec_forces.data
-
-        

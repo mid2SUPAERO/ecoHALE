@@ -38,7 +38,7 @@ class TubeGroup(Group):
             n_cp = len(surface['thickness_cp'])
             # Add bspline components for active bspline geometric variables.
             self.add_subsystem('thickness_bsp', BsplinesComp(
-                in_name='thickness_cp', out_name='thickness',
+                in_name='thickness_cp', out_name='thickness', units='m',
                 num_control_points=n_cp, num_points=int(ny-1),
                 bspline_order=min(n_cp, 4), distribution='uniform'),
                 promotes_inputs=['thickness_cp'], promotes_outputs=['thickness'])

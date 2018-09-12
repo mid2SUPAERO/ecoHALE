@@ -11,7 +11,9 @@ from openaerostruct.aerodynamics.lift_coeff_2D import LiftCoeff2D
 class VLMFunctionals(Group):
     """
     Group that contains the aerodynamic functionals used to evaluate
-    performance.
+    performance. These are not included in the coupled aerostructural group,
+    but are only used to compute aerodynamic performance. This includes
+    computing lift, drag, CL, CD, viscous CD, and wave drag CD.
     """
 
     def initialize(self):
@@ -20,7 +22,6 @@ class VLMFunctionals(Group):
     def setup(self):
         surface = self.options['surface']
 
-        # This component is generally not needed unless you want the sectional CLs
         self.add_subsystem('liftcoeff',
              LiftCoeff2D(surface=surface),
              promotes_inputs=['v', 'alpha', 'rho', 'widths', 'chords', 'sec_forces'],
@@ -43,11 +44,13 @@ class VLMFunctionals(Group):
 
         self.add_subsystem('viscousdrag',
             ViscousDrag(surface=surface),
-            promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref', 't_over_c'], promotes_outputs=['CDv'])
+                promotes_inputs=['M', 're', 'widths', 'cos_sweep', 'lengths', 'S_ref', 't_over_c'],
+                promotes_outputs=['CDv'])
 
         self.add_subsystem('wavedrag',
             WaveDrag(surface=surface),
-            promotes_inputs=['M', 'cos_sweep', 'widths', 'CL', 'chords', 't_over_c'], promotes_outputs=['CDw'])
+                promotes_inputs=['M', 'cos_sweep', 'widths', 'CL', 'chords', 't_over_c'],
+                promotes_outputs=['CDw'])
 
         self.add_subsystem('CD',
             TotalDrag(surface=surface),

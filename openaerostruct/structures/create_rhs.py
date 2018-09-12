@@ -31,8 +31,8 @@ class CreateRHS(ExplicitComponent):
 
         self.ny = surface['num_y']
 
-        self.add_input('total_loads', val=np.zeros((self.ny, 6)), units='N')# dtype=data_type))
-        self.add_output('forces', val=np.ones(((self.ny+1)*6)), units='N')# dtype=data_type))
+        self.add_input('total_loads', val=np.zeros((self.ny, 6)), units='N')
+        self.add_output('forces', val=np.ones(((self.ny+1)*6)), units='N')
 
         n = self.ny * 6
         forces_loads = np.zeros((n + 6, n))

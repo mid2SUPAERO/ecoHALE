@@ -20,7 +20,7 @@ class SparWithinWing(ExplicitComponent):
         Array defining the nodal points of the lifting surface.
     radius[ny-1] : numpy array
         Radius of each element of the FEM spar.
-    t_over_c[ny-1] : ndarray
+    t_over_c[ny-1] : numpy array
         The streamwise thickness-to-chord ratio of each VLM panel.
 
     Returns

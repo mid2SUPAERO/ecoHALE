@@ -12,17 +12,17 @@ class WaveDrag(ExplicitComponent):
     ----------
     M : float
         Mach number.
-    cos_sweep[ny-1] : ndarray
+    cos_sweep[ny-1] : numpy array
         The width in the spanwise direction of each VLM panel. This is the numerator of cos(sweep).
-    widths[ny-1] : ndarray
+    widths[ny-1] : numpy array
         The actual width of each VLM panel, rotated by the sweep angle. This is the denominator
         of cos(sweep)
     CL : float
         The CL of the lifting surface used for wave drag estimation.
-    chords[ny] : ndarray
+    chords[ny] : numpy array
         The chord length of each mesh slice. This is dimension ny rather than ny-1 which would be
         expected for chord length of each VLM panel.
-    t_over_c[ny-1] : ndarray
+    t_over_c[ny-1] : numpy array
         The streamwise thickness-to-chord ratio of each VLM panel.
 
     Returns
