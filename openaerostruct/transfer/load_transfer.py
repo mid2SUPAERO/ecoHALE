@@ -185,6 +185,7 @@ class LoadTransfer(ExplicitComponent):
         # to shorten future calculation times we calculate two other partials
         # ddiff__ddef_mesh
         self.ddiff__ddef_mesh = ddiff__da_pts * da_pts__ddef_mesh - ddiff__ds_pts * ds_pts__ddef_mesh
+        self.ddiff__ddef_mesh = self.ddiff__ddef_mesh.tocoo()
         
         # dloadsB__ddef_mesh
         dloadsB__ddef_mesh = self.dloadsB__dmoment * dmoment__ddiff * self.ddiff__ddef_mesh

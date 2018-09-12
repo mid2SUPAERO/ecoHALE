@@ -10,8 +10,8 @@ class Test(unittest.TestCase):
 
     def test(self):
         surface = get_default_surfaces()[0]
-        surface['num_x'] = 15
-        surface['num_y'] = 10
+        #surface['num_x'] = 15
+        #surface['num_y'] = 10
         group = Group()
         
         comp = LoadTransfer(surface=surface)
