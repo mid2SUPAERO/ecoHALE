@@ -120,7 +120,6 @@ class Test(unittest.TestCase):
 
         # Set up and run the optimization problem
         prob.setup()
-        prob.run_model()
         # prob.check_partials(compact_print=True)
         # exit()
         prob.run_driver()
