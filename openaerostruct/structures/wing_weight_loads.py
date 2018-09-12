@@ -63,7 +63,8 @@ class StructureWeightLoads(ExplicitComponent):
                 idx = i+self.ny*j
                 rows[idx] = 6*i+j+2
 
-        self.declare_partials('struct_weight_loads', 'load_factor', rows=rows, cols=cols)
+        # self.declare_partials('struct_weight_loads', 'load_factor', rows=rows, cols=cols)
+        self.declare_partials('struct_weight_loads', 'load_factor')
 
 
         # dstruct_weight_loads__dnodes (this one is super complicated)
@@ -85,7 +86,7 @@ class StructureWeightLoads(ExplicitComponent):
                 data[counter] = 2*j-1
                 counter += 1
 
-        shape = (3,3*self.ny)
+        shape = (nym1,3*self.ny)
         self.ddel0__dnodes = coo_matrix((data, (rows_del, cols_d0)), shape=shape)
         self.ddel1__dnodes = coo_matrix((data, (rows_del, cols_d1)), shape=shape)
 
@@ -216,10 +217,19 @@ class StructureWeightLoads(ExplicitComponent):
                             * (del0**2 + del1**2)**0.5
 
         dzf__dew = .5*inputs['load_factor'][0]
+        dzf__dlf = inputs['element_weights']/2.
+
         dzm__dew = diags((del0**2 + del1**2)**0.5/12*inputs['load_factor'])
+        dzm__dlf =  (del0**2 + del1**2)**.5/12. * inputs['element_weights']
 
         dbm3__dzm = diags(del1/element_lengths)
         dbm4__dzm = diags(del0/element_lengths)
+
+        dswl__dlf = -self.dswl__dbm3*dbm3__dzm*dzm__dlf +\
+                    -self.dswl__dbm4*dbm4__dzm*dzm__dlf +\
+                    self.dswl__dzf*dzf__dlf
+
+        J['struct_weight_loads', 'load_factor'] = dswl__dlf
 
         dswl__dew = (-self.dswl__dbm4 * dbm4__dzm * dzm__dew +\
                     -self.dswl__dbm3 * dbm3__dzm * dzm__dew +\
@@ -227,24 +237,7 @@ class StructureWeightLoads(ExplicitComponent):
 
         data = dswl__dew[self.dswl__dew_pattern.row, self.dswl__dew_pattern.col].toarray().flatten()
         J['struct_weight_loads', 'element_weights'] = data
-        # J['struct_weight_loads', 'element_weights'] = dswl__dew.todense()
 
-
-        J['struct_weight_loads', 'load_factor'][:nym1] = -inputs['element_weights']/2.
-        J['struct_weight_loads', 'load_factor'][1:self.ny] += -inputs['element_weights']/2
-
-        dswl__dlf = inputs['element_weights'] / 12. * \
-                    (del0**2 + del1**2)**0.5 * \
-                    del1 / element_lengths
-        J['struct_weight_loads', 'load_factor'][self.ny:self.ny+nym1] = -dswl__dlf
-        J['struct_weight_loads', 'load_factor'][self.ny+1:self.ny+nym1+1] += dswl__dlf
-
-
-        dswl__dlf = inputs['element_weights'] / 12. * \
-                    (del0**2 + del1**2)**0.5 * \
-                    del0 / element_lengths
-        J['struct_weight_loads', 'load_factor'][2*self.ny:2*self.ny+nym1] += -dswl__dlf
-        J['struct_weight_loads', 'load_factor'][2*self.ny+1:2*self.ny+nym1+1] += dswl__dlf
 
         # dstruct_weight_loads__dnodes (this one is super complicated)
 
