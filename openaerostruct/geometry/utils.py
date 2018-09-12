@@ -177,8 +177,20 @@ def deriv_rotate(mesh, theta_y, symmetry, rotate_x=True):
 
     if rotate_x:
         d_dthetax = np.einsum("ikj, mij -> mik", dmats_dx, mesh - quarter_chord)
+
+        dqc = np.ones((ny, 2))
+        dqc[:, 1] = -1.0
+        dqc[0, -1] = dqc[1, 0] = 0.0
+
         d_ymesh = np.einsum("ijk, j -> ijk", d_dthetax, d_dy)
+
         d_zmesh = np.einsum("ijk, j -> ijk", d_dthetax, d_dz)
+        d_zmesh = np.einsum("ijk, jm -> ijk", d_zmesh, dqc)
+
+        tail = np.zeros((nx, ny, 3))
+        tail[:, [0, 1, 2], [0, 1, 2]] = 1.0
+        d_qc = np.einsum("ijk, jm -> ijk", -mats + tail, dqc)
+        d_zmesh += d_qc
     else:
         d_ymesh = d_zmesh = None
 

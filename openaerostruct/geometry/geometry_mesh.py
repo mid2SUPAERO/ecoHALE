@@ -176,7 +176,7 @@ class GeometryMesh(ExplicitComponent):
             stretch(mesh, self.geo_params['span'], self.symmetry)
             shear_y(mesh, self.geo_params['yshear'])
             dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
-            shear_z(mesh, self.geo_params['zshear'])
+            #shear_z(mesh, self.geo_params['zshear'])
             rotate(mesh, self.geo_params['twist'], self.symmetry, self.rotate_x)
 
         outputs['mesh'] = mesh
@@ -324,13 +324,12 @@ class GeometryMesh(ExplicitComponent):
 
             d_dihedral, d_mesh = deriv_dihedral(mesh, self.geo_params['dihedral'], self.symmetry)
 
-            shear_z(mesh, self.geo_params['zshear'])
+            #shear_z(mesh, self.geo_params['zshear'])
 
             d_twist, d_ymesh, d_zmesh = deriv_rotate(mesh, self.geo_params['twist'], self.symmetry,
                                                      self.rotate_x)
 
             if self.rotate_x:
-                d_dihedral[:-1] -= d_dihedral[1:]
                 d_dihedral = np.einsum("ijk, j -> ijk", d_zmesh[:, :, 1:], d_dihedral).flatten()
             else:
                 d_dihedral = np.tile(d_dihedral, nx)
