@@ -1,6 +1,5 @@
 from openmdao.api import Group
 from openaerostruct.structures.compute_nodes import ComputeNodes
-from openaerostruct.structures.assemble_k import AssembleK
 from openaerostruct.structures.assemble_k_group import AssembleKGroup
 from openaerostruct.structures.weight import Weight
 from openaerostruct.structures.structural_cg import StructuralCG
