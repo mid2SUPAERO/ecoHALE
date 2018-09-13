@@ -9,7 +9,10 @@ np.random.seed(314)
 class VLMGeometry(ExplicitComponent):
     """
     Compute various geometric properties for VLM analysis.
-    These are used primarily to help compute postprocessing
+    These are used primarily to help compute postprocessing quantities,
+    such as wave CD, viscous CD, etc.
+    Some of the quantities, like `normals`, are used to compute the RHS
+    of the AIC linear system.
 
     parameters
     ----------
@@ -42,6 +45,7 @@ class VLMGeometry(ExplicitComponent):
         self.ny = ny = surface['num_y']
         self.nx = nx = surface['num_x']
 
+        # All of these computations only need the deformed mesh
         self.add_input('def_mesh', val=np.zeros((nx, ny, 3)), units='m')
 
         self.add_output('b_pts', val=np.random.random((nx-1, ny, 3)), units='m')
@@ -52,6 +56,10 @@ class VLMGeometry(ExplicitComponent):
         self.add_output('normals', val=np.zeros((nx-1, ny-1, 3)))
         self.add_output('S_ref', val=1., units='m**2')
 
+        # Next up we have a lot of rows and cols settings for the sparse
+        # Jacobians. Each set of partials needs a different rows/cols setup
+
+        # b_pts
         size = (nx-1) * ny * 3
         base = np.arange(size)
         rows = np.tile(base, 2)
@@ -59,37 +67,37 @@ class VLMGeometry(ExplicitComponent):
         val = np.empty((2*size, ))
         val[:size] = 0.75
         val[size:] = 0.25
-
         self.declare_partials('b_pts', 'def_mesh', rows=rows, cols=cols, val=val)
 
+        # widths
         size = ny - 1
         base = np.arange(size)
         rows = np.tile(base, 12)
         col = np.tile(3*base, 6) + np.repeat(np.arange(6), len(base))
         cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
-
         self.declare_partials('widths', 'def_mesh', rows=rows, cols=cols)
 
+        # cos_sweep
         rows = np.tile(base, 8)
         col = np.tile(3*base, 4) + np.repeat([1, 2, 4, 5], len(base))
         cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
-
         self.declare_partials('cos_sweep', 'def_mesh', rows=rows, cols=cols)
 
+        # lengths
         size = ny
         base = np.arange(size)
         rows = np.tile(base, nx * 3)
         col = np.tile(3*base, 3) + np.repeat(np.arange(3), len(base))
         cols = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), len(col))
-
         self.declare_partials('lengths', 'def_mesh', rows=rows, cols=cols)
 
+        # chords
         rows = np.tile(base, 6)
         col = np.tile(3*base, 3) + np.repeat(np.arange(3), len(base))
         cols = np.tile(col, 2) + np.repeat([0, (nx-1)*ny*3], len(col))
-
         self.declare_partials('chords', 'def_mesh', rows=rows, cols=cols)
 
+        # normals
         size = (ny-1)*(nx-1)*3
         row = np.tile(np.arange(size).reshape((size, 1)), 3).flatten()
         rows = np.tile(row, 4)
@@ -101,9 +109,10 @@ class VLMGeometry(ExplicitComponent):
             base,
             base + (ny+1)*3
         ])
-
         self.declare_partials('normals', 'def_mesh', rows=rows, cols=cols)
 
+        # And here actually all parts of the mesh influence the area, so it's
+        # fully dense
         self.declare_partials('S_ref', 'def_mesh')
 
     def compute(self, inputs, outputs):
