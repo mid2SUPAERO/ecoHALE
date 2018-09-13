@@ -23,8 +23,6 @@ lower_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0
 upper_y = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541], dtype = 'complex128')
 lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515, -0.0524, -0.0532, -0.054, -0.0547, -0.0554, -0.056, -0.0565, -0.057, -0.0575, -0.0579, -0.0583, -0.0586, -0.0589, -0.0592, -0.0594, -0.0595, -0.0596, -0.0597, -0.0598, -0.0598, -0.0598, -0.0598, -0.0597, -0.0596, -0.0594, -0.0592, -0.0589, -0.0586, -0.0582, -0.0578, -0.0573, -0.0567, -0.0561, -0.0554, -0.0546, -0.0538, -0.0529, -0.0519, -0.0509, -0.0497, -0.0485, -0.0472, -0.0458, -0.0444], dtype = 'complex128')
 
-# Always skip this for now until it's faster
-@unittest.skipUnless(0, "Skipping for now.")
 class Test(unittest.TestCase):
 
     def test(self):
@@ -226,17 +224,17 @@ class Test(unittest.TestCase):
         #=======================================================================================
         #=======================================================================================
 
-        # from openmdao.api import ScipyOptimizeDriver
-        # prob.driver = ScipyOptimizeDriver()
-        # prob.driver.options['tol'] = 1e-9
+        from openmdao.api import ScipyOptimizeDriver
+        prob.driver = ScipyOptimizeDriver()
+        prob.driver.options['tol'] = 1e-9
 
-        from openmdao.api import pyOptSparseDriver
-        prob.driver = pyOptSparseDriver()
-        prob.driver.add_recorder(SqliteRecorder("cases.sql"))
-        prob.driver.options['optimizer'] = "SNOPT"
-        prob.driver.opt_settings['Major optimality tolerance'] = 5e-6
-        prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
-        prob.driver.opt_settings['Major iterations limit'] = 200
+        # from openmdao.api import pyOptSparseDriver
+        # prob.driver = pyOptSparseDriver()
+        # prob.driver.add_recorder(SqliteRecorder("cases.sql"))
+        # prob.driver.options['optimizer'] = "SNOPT"
+        # prob.driver.opt_settings['Major optimality tolerance'] = 5e-6
+        # prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
+        # prob.driver.opt_settings['Major iterations limit'] = 200
 
         prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 
@@ -275,7 +273,7 @@ class Test(unittest.TestCase):
         # print(prob['wing.structural_weight'][0]/1.25)
 
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 94556.9136969, 1e-5)
-        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 277521.117558, 1e-5)
+        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 277535.59118440875, 1e-5)
 
 
 if __name__ == '__main__':
