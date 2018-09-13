@@ -42,10 +42,12 @@ class Taper(ExplicitComponent):
 
         self.add_output('mesh', val=mesh, units='m')
 
+        self.declare_partials('*', '*', method='fd')
+
     def compute(self, inputs, outputs):
         mesh = self.options['mesh']
         symmetry = self.options['symmetry']
-        taper_ratio = inputs['taper']
+        taper_ratio = inputs['taper'][0]
 
         # Get mesh parameters and the quarter-chord
         le = mesh[0]
@@ -107,6 +109,8 @@ class ScaleX(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
+        self.declare_partials('*', '*', method='fd')
+
     def compute(self, inputs, outputs):
         mesh = inputs['in_mesh']
         chord_dist = inputs['chord']
@@ -156,14 +160,18 @@ class Sweep(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
+        self.declare_partials('*', '*', method='fd')
+
     def compute(self, inputs, outputs):
-        sweep_angle = inputs['sweep']
+        symmetry = self.options['symmetry']
+        sweep_angle = inputs['sweep'][0]
+        mesh = inputs['in_mesh']
 
         # Get the mesh parameters and desired sweep angle
         num_x, num_y, _ = mesh.shape
         le = mesh[0]
         p180 = np.pi / 180
-        tan_theta = tan(p180*sweep_angle)
+        tan_theta = np.tan(p180*sweep_angle)
 
         # If symmetric, simply vary the x-coord based on the distance from the
         # center of the wing
@@ -181,7 +189,7 @@ class Sweep(ExplicitComponent):
             dx = np.hstack((dx_left, dx_right))
 
         # dx added spanwise.
-        outputs['mesh'][:] = inputs['in_mesh']
+        outputs['mesh'][:] = mesh
         outputs['mesh'][:, :, 0] += dx
 
 
@@ -218,6 +226,8 @@ class ShearX(ExplicitComponent):
         self.add_input('in_mesh', shape=mesh_shape, units='m')
 
         self.add_output('mesh', shape=mesh_shape, units='m')
+
+        self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         outputs['mesh'][:] = inputs['in_mesh']
@@ -262,9 +272,12 @@ class Stretch(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
+        self.declare_partials('*', '*', method='fd')
+
     def compute(self, inputs, outputs):
         symmetry = self.options['symmetry']
-        span = inputs['span']
+        span = inputs['span'][0]
+        mesh = inputs['in_mesh']
 
         # Set the span along the quarter-chord line
         le = mesh[0]
@@ -281,7 +294,7 @@ class Stretch(ExplicitComponent):
         prev_span = quarter_chord[-1, 1] - quarter_chord[0, 1]
         s = quarter_chord[:,1] / prev_span
 
-        outputs['mesh'][:] = inputs['in_mesh']
+        outputs['mesh'][:] = mesh
         outputs['mesh'][:, :, 1] = s * span
 
 
@@ -318,6 +331,8 @@ class ShearY(ExplicitComponent):
         self.add_input('in_mesh', shape=mesh_shape, units='m')
 
         self.add_output('mesh', shape=mesh_shape, units='m')
+
+        self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         outputs['mesh'][:] = inputs['in_mesh']
@@ -361,15 +376,18 @@ class Dihedral(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
+        self.declare_partials('*', '*', method='fd')
+
     def compute(self, inputs, outputs):
         symmetry = self.options['symmetry']
-        dihedral_angle = inputs['dihedral']
+        dihedral_angle = inputs['dihedral'][0]
+        mesh = inputs['in_mesh']
 
         # Get the mesh parameters and desired sweep angle
         _, num_y, _ = inputs['in_mesh'].shape
         le = mesh[0]
         p180 = np.pi / 180
-        tan_theta = tan(p180 * dihedral_angle)
+        tan_theta = np.tan(p180 * dihedral_angle)
 
         # If symmetric, simply vary the z-coord based on the distance from the
         # center of the wing
@@ -385,7 +403,7 @@ class Dihedral(ExplicitComponent):
             dz = np.hstack((dz_left, dz_right))
 
         # dz added spanwise.
-        outputs['mesh'][:] = inputs['in_mesh']
+        outputs['mesh'][:] = mesh
         outputs['mesh'][:, :, 2] += dz
 
 
@@ -422,6 +440,8 @@ class ShearZ(ExplicitComponent):
         self.add_input('in_mesh', shape=mesh_shape, units='m')
 
         self.add_output('mesh', shape=mesh_shape, units='m')
+
+        self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
         outputs['mesh'][:] = inputs['in_mesh']
@@ -473,6 +493,8 @@ class Rotate(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
+        self.declare_partials('*', '*', method='fd')
+
     def compute(self, inputs, outputs):
         symmetry = self.options['symmetry']
         rotate_x = self.options['rotate_x']
@@ -513,10 +535,10 @@ class Rotate(ExplicitComponent):
 
         mats = np.zeros((ny, 3, 3), dtype=type(rad_theta_y[0]))
 
-        cos_rtx = cos(rad_theta_x)
-        cos_rty = cos(rad_theta_y)
-        sin_rtx = sin(rad_theta_x)
-        sin_rty = sin(rad_theta_y)
+        cos_rtx = np.cos(rad_theta_x)
+        cos_rty = np.cos(rad_theta_y)
+        sin_rtx = np.sin(rad_theta_x)
+        sin_rty = np.sin(rad_theta_y)
 
         mats[:, 0, 0] = cos_rty
         mats[:, 0, 2] = sin_rty
