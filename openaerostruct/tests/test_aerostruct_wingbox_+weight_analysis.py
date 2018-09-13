@@ -187,9 +187,12 @@ class Test(unittest.TestCase):
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
+        prob.driver.options['disp'] = True
 
         # Set up the problem
         prob.setup()
+
+        AS_point.nonlinear_solver.options['iprint'] = 2
         #
         # from openmdao.api import view_model
         # view_model(prob)

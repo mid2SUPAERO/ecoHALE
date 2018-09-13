@@ -99,7 +99,7 @@ class CoupledAS(Group):
 
         self.add_subsystem('aero_geom',
             VLMGeometry(surface=surface),
-            promotes_inputs=['def_mesh'], promotes_outputs=['b_pts', 'c_pts', 'widths', 'cos_sweep', 'lengths', 'chords', 'normals', 'S_ref'])
+            promotes_inputs=['def_mesh'], promotes_outputs=['b_pts', 'widths', 'cos_sweep', 'lengths', 'chords', 'normals', 'S_ref'])
 
         self.linear_solver = LinearRunOnce()
 
@@ -154,10 +154,6 @@ class AerostructPoint(Group):
             # 'aero_states' group.
             coupled.connect(name + '.normals', 'aero_states.' + name + '_normals')
             coupled.connect(name + '.def_mesh', 'aero_states.' + name + '_def_mesh')
-            # coupled.connect(name + '.b_pts', 'aero_states.' + name + '_b_pts')
-            # coupled.connect(name + '.c_pts', 'aero_states.' + name + '_c_pts')
-            # coupled.connect(name + '.cos_sweep', 'aero_states.' + name + '_cos_sweep')
-            # coupled.connect(name + '.widths', 'aero_states.' + name + '_widths')
 
             # Connect the results from 'coupled' to the performance groups
             coupled.connect(name + '.def_mesh', name + '_loads.def_mesh')
@@ -198,10 +194,6 @@ class AerostructPoint(Group):
                 promotes = []
 
             coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=promotes)
-
-            # TODO: add this info to the options
-            # prob.model.add_options(surface['name'] + 'yield_stress', surface['yield'])
-            # prob.model.add_options(surface['name'] + 'fem_origin', surface['fem_origin'])
 
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
@@ -262,5 +254,5 @@ class AerostructPoint(Group):
                  TotalPerformance(surfaces=surfaces,
                  user_specified_Sref=self.options['user_specified_Sref'],
                  internally_connect_fuelburn=self.options['internally_connect_fuelburn']),
-                 promotes_inputs=['CL', 'CD', 'v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'S_ref_total'],
-                 promotes_outputs=['L_equals_W', 'fuelburn', 'CM', 'cg'])
+                 promotes_inputs=['v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'S_ref_total'],
+                 promotes_outputs=['L_equals_W', 'fuelburn', 'CL', 'CD', 'CM', 'cg'])

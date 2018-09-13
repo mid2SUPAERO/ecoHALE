@@ -7,7 +7,9 @@ from openmdao.api import ExplicitComponent
 np.random.seed(314)
 
 class VLMGeometry(ExplicitComponent):
-    """ Compute various geometric properties for VLM analysis.
+    """
+    Compute various geometric properties for VLM analysis.
+    These are used primarily to help compute postprocessing
 
     parameters
     ----------
@@ -18,9 +20,6 @@ class VLMGeometry(ExplicitComponent):
     -------
     b_pts[nx-1, ny, 3] : numpy array
         Bound points for the horseshoe vortices, found along the 1/4 chord.
-    c_pts[nx-1, ny-1, 3] : numpy array
-        Collocation points on the 3/4 chord line where the flow tangency
-        condition is satisfed. Used to set up the linear system.
     widths[ny-1] : numpy array
         The spanwise widths of each individual panel.
     lengths[ny] : numpy array
@@ -46,7 +45,6 @@ class VLMGeometry(ExplicitComponent):
         self.add_input('def_mesh', val=np.zeros((nx, ny, 3)), units='m')
 
         self.add_output('b_pts', val=np.random.random((nx-1, ny, 3)), units='m')
-        self.add_output('c_pts', val=np.zeros((nx-1, ny-1, 3)), units='m')
         self.add_output('widths', val=np.ones((ny-1)), units='m')
         self.add_output('cos_sweep', val=np.zeros((ny-1)), units='m')
         self.add_output('lengths', val=np.zeros((ny)), units='m')
@@ -63,17 +61,6 @@ class VLMGeometry(ExplicitComponent):
         val[size:] = 0.25
 
         self.declare_partials('b_pts', 'def_mesh', rows=rows, cols=cols, val=val)
-
-        size = (nx-1) * (ny-1) * 3
-        base = np.arange(size)
-        rows = np.tile(base, 4)
-        cbase = np.tile(base + np.repeat(3*np.arange(nx-1), 3*(ny-1)), 4)
-        cols = cbase + np.repeat([0, 3, ny*3, (ny+1)*3], len(base))
-        val = np.empty((4*size, ))
-        val[:2*size] = 0.125
-        val[2*size:] = 0.375
-
-        self.declare_partials('c_pts', 'def_mesh', rows=rows, cols=cols, val=val)
 
         size = ny - 1
         base = np.arange(size)
@@ -124,13 +111,6 @@ class VLMGeometry(ExplicitComponent):
 
         # Compute the bound points at quarter-chord
         b_pts = mesh[:-1, :, :] * .75 + mesh[1:, :, :] * .25
-
-        # Compute the collocation points at the midpoints of each
-        # panel's 3/4 chord line
-        c_pts = 0.5 * 0.25 * mesh[:-1, :-1, :] + \
-                0.5 * 0.75 * mesh[1:, :-1, :] + \
-                0.5 * 0.25 * mesh[:-1,  1:, :] + \
-                0.5 * 0.75 * mesh[1:,  1:, :]
 
         # Compute the widths of each panel at the quarter-chord line
         quarter_chord = 0.25 * mesh[-1] + 0.75 * mesh[0]
@@ -190,7 +170,6 @@ class VLMGeometry(ExplicitComponent):
 
         # Store each array in the outputs dict
         outputs['b_pts'] = b_pts
-        outputs['c_pts'] = c_pts
         outputs['widths'] = widths
         outputs['cos_sweep'] = cos_sweep
         outputs['lengths'] = lengths

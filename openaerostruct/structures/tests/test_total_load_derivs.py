@@ -31,7 +31,7 @@ class Test(unittest.TestCase):
 
         run_test(self, comp, complex_flag=True)
 
-    def test_3(self):
+    def test_structural_weight_loads(self):
         surface = get_default_surfaces()[0]
 
         comp = StructureWeightLoads(surface=surface)
@@ -42,11 +42,12 @@ class Test(unittest.TestCase):
 
         ny = surface['num_y']
 
-        nodesval = np.array([[0., 0., 0.],
-                            [0., 1., 0.],
-                            [0., 2., 0.],
-                            [0., 3., 0.]],dtype=complex)
-        element_weights_val = np.arange(ny-1)
+        #carefully chosen "random" values that give non-uniform derivatives outputs that are good for testing
+        nodesval = np.array([[1., 2., 4.],
+                            [20., 22., 7.],
+                            [8., 17., 14.],
+                            [13., 14., 16.]],dtype=complex)
+        element_weights_val = np.arange(ny-1)+1
 
         indep_var_comp.add_output('nodes', val=nodesval,units='m')
         indep_var_comp.add_output('element_weights', val=element_weights_val,units='N')
@@ -54,7 +55,9 @@ class Test(unittest.TestCase):
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('load', comp, promotes=['*'])
 
-        run_test(self, group, complex_flag=True)
+        p = run_test(self, group, complex_flag=True, compact_print=True)
+
+        # print(p['comp.struct_weight_loads'])
 
 if __name__ == '__main__':
     unittest.main()

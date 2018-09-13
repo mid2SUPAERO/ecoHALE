@@ -16,22 +16,24 @@ class SpatialBeamStates(Group):
         surface = self.options['surface']
 
         size = int(6 * surface['num_y'] + 6)
-
+        wingbox_promotes = []
         if surface['struct_weight_relief']:
             self.add_subsystem('struct_weight_loads',
                      StructureWeightLoads(surface=surface),
                      promotes_inputs=['element_weights', 'nodes', 'load_factor'],
                      promotes_outputs=['struct_weight_loads'])
+            wingbox_promotes.append('struct_weight_loads')
 
         if surface['distributed_fuel_weight']:
             self.add_subsystem('fuel_loads',
                      FuelLoads(surface=surface),
                      promotes_inputs=['nodes', 'load_factor', 'fuel_vols', 'fuel_mass'],
                      promotes_outputs=['fuel_weight_loads'])
+            wingbox_promotes.append('fuel_weight_loads')
 
         self.add_subsystem('total_loads',
                  TotalLoads(surface=surface),
-                 promotes_inputs=['loads', 'struct_weight_loads', 'fuel_weight_loads'],
+                 promotes_inputs=['loads'] + wingbox_promotes,
                  promotes_outputs=['total_loads'])
 
         self.add_subsystem('create_rhs',

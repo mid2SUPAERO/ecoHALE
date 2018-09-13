@@ -219,7 +219,7 @@ class Test(unittest.TestCase):
         prob.model.add_design_var('wing.skin_thickness_cp', lower=0.003, upper=0.1, scaler=1e2)
         prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.07, upper=0.2, scaler=10.)
 
-        prob.model.add_constraint('AS_point_0.total_perf.CL', equals=0.5)
+        prob.model.add_constraint('AS_point_0.CL', equals=0.5)
         prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
 
         #=======================================================================================
