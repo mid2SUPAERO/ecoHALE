@@ -42,7 +42,7 @@ class Taper(ExplicitComponent):
 
         self.add_output('mesh', val=mesh, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         mesh = self.options['mesh']
@@ -73,6 +73,37 @@ class Taper(ExplicitComponent):
 
         # Modify the mesh based on the taper amount computed per spanwise section
         outputs['mesh'] = np.einsum('ijk,j->ijk', mesh - quarter_chord, taper) + quarter_chord
+
+    def compute_partials(self, inputs, partials):
+        mesh = self.options['mesh']
+        symmetry = self.options['symmetry']
+        taper_ratio = inputs['taper'][0]
+
+        # Get mesh parameters and the quarter-chord
+        le = mesh[0]
+        te = mesh[-1]
+        num_x, num_y, _ = mesh.shape
+        quarter_chord = 0.25 * te + 0.75 * le
+        x = quarter_chord[:, 1]
+        span = x[-1] - x[0]
+
+        # If symmetric, solve for the correct taper ratio, which is a linear
+        # interpolation problem
+        if symmetry:
+            xp = np.array([-span, 0.])
+            fp = np.array([taper_ratio, 1.])
+
+        # Otherwise, we set up an interpolation problem for the entire wing, which
+        # consists of two linear segments
+        else:
+            xp = np.array([-span/2, 0., span/2])
+            fp = np.array([taper_ratio, 1., taper_ratio])
+
+        taper = np.interp(x, xp, fp)
+        dtaper = (1.0 - taper) / (1.0 - taper_ratio)
+
+        # Modify the mesh based on the taper amount computed per spanwise section
+        partials['mesh', 'taper'] = np.einsum('ijk, j->ijk', mesh - quarter_chord, dtaper)
 
 
 class ScaleX(ExplicitComponent):
@@ -109,7 +140,25 @@ class ScaleX(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+        nn = nx * ny * 3
+
+        rows = np.arange(nn)
+        col = np.tile(np.zeros(3), ny) + np.repeat(np.arange(ny), 3)
+        cols = np.tile(col, nx)
+
+        self.declare_partials('mesh', 'chord', rows=rows, cols=cols)
+
+        p_rows = np.arange(nn)
+        p_cols = np.arange(nn)
+        te_rows = np.arange(((nx-1) * ny * 3))
+        le_rows = te_rows + ny*3
+        le_cols = np.tile(np.arange(3 * ny), nx-1)
+        te_cols = le_cols + ny*3*(nx-1)
+        rows = np.concatenate([p_rows, te_rows, le_rows])
+        cols = np.concatenate([p_rows, te_cols, le_cols])
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         mesh = inputs['in_mesh']
@@ -120,6 +169,30 @@ class ScaleX(ExplicitComponent):
         quarter_chord = 0.25 * te + 0.75 * le
 
         outputs['mesh'] = np.einsum('ijk,j->ijk', mesh - quarter_chord, chord_dist) + quarter_chord
+
+    def compute_partials(self, inputs, partials):
+        mesh = inputs['in_mesh']
+        chord_dist = inputs['chord']
+
+        te = mesh[-1]
+        le = mesh[ 0]
+        quarter_chord = 0.25 * te + 0.75 * le
+
+        partials['mesh', 'chord'] = (mesh - quarter_chord).flatten()
+
+        nx, ny, _ = mesh.shape
+        nn = nx * ny * 3
+        d_mesh = np.einsum('i,ij->ij', chord_dist, np.ones((ny, 3))).flatten()
+        partials['mesh', 'in_mesh'][:nn] = np.tile(d_mesh, nx)
+
+        d_qc = (np.einsum('ij,i->ij', np.ones((ny, 3)), 1.0 - chord_dist)).flatten()
+        nnq = (nx-1) * ny * 3
+        partials['mesh', 'in_mesh'][nn:nn + nnq] = np.tile(0.25 * d_qc, nx-1)
+        partials['mesh', 'in_mesh'][nn + nnq:] = np.tile(0.75 * d_qc, nx-1)
+
+        nnq = ny*3
+        partials['mesh', 'in_mesh'][nn - nnq:nn] += 0.25 * d_qc
+        partials['mesh', 'in_mesh'][:nnq] += 0.75 * d_qc
 
 
 class Sweep(ExplicitComponent):
@@ -160,7 +233,41 @@ class Sweep(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+        nn = nx * ny
+        rows = 3 * np.arange(nn)
+        cols = np.zeros(nn)
+
+        self.declare_partials('mesh', 'sweep', rows=rows, cols=cols)
+
+        nn = nx * ny * 3
+        n_rows = np.arange(nn)
+        n_cols = np.arange(nn)
+
+        if self.options['symmetry']:
+            y_cp = ny*3 - 2
+            te_cols = np.tile(y_cp, nx * (ny-1))
+            te_rows = np.tile(3 * np.arange(ny-1), nx) + np.repeat(3*ny*np.arange(nx), ny-1)
+            se_cols = np.tile(3 * np.arange(ny-1) + 1, nx)
+        else:
+            y_cp = 3*(ny+1) // 2 - 2
+            n_sym = (ny-1) // 2
+
+            te_row = np.tile(3*np.arange(n_sym), 2) + np.repeat([0, 3*(n_sym+1)], n_sym)
+            te_rows = np.tile(te_row, nx) + np.repeat(3*ny*np.arange(nx), ny-1)
+
+            te_col = np.tile(y_cp, n_sym)
+            se_col1 = 3*np.arange(n_sym) + 1
+            se_col2 = 3*np.arange(n_sym) + 4 + 3*n_sym
+
+            # neat trick: swap columns on reflected side so we can assign in just two operations
+            te_cols = np.tile(np.concatenate([te_col, se_col2]), nx)
+            se_cols = np.tile(np.concatenate([se_col1, te_col]), nx)
+
+        rows = np.concatenate(([n_rows, te_rows, te_rows]))
+        cols = np.concatenate(([n_rows, te_cols, se_cols]))
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         symmetry = self.options['symmetry']
@@ -168,7 +275,7 @@ class Sweep(ExplicitComponent):
         mesh = inputs['in_mesh']
 
         # Get the mesh parameters and desired sweep angle
-        num_x, num_y, _ = mesh.shape
+        nx, ny, _ = mesh.shape
         le = mesh[0]
         p180 = np.pi / 180
         tan_theta = np.tan(p180*sweep_angle)
@@ -181,7 +288,7 @@ class Sweep(ExplicitComponent):
 
         # Else, vary the x-coord on either side of the wing
         else:
-            ny2 = (num_y - 1) // 2
+            ny2 = (ny - 1) // 2
             y0 = le[ny2, 1]
 
             dx_right = (le[ny2:, 1] - y0) * tan_theta
@@ -191,6 +298,43 @@ class Sweep(ExplicitComponent):
         # dx added spanwise.
         outputs['mesh'][:] = mesh
         outputs['mesh'][:, :, 0] += dx
+
+    def compute_partials(self, inputs, partials):
+        symmetry = self.options['symmetry']
+        sweep_angle = inputs['sweep'][0]
+        mesh = inputs['in_mesh']
+
+        # Get the mesh parameters and desired sweep angle
+        nx, ny, _ = mesh.shape
+        le = mesh[0]
+        p180 = np.pi / 180
+        tan_theta = np.tan(p180*sweep_angle)
+        dtan_dtheta = p180 / np.cos(p180*sweep_angle)**2
+
+        # If symmetric, simply vary the x-coord based on the distance from the
+        # center of the wing
+        if symmetry:
+            y0 = le[-1, 1]
+
+            dx_dtheta = -(le[:, 1] - y0)
+
+        # Else, vary the x-coord on either side of the wing
+        else:
+            ny2 = (ny - 1) // 2
+            y0 = le[ny2, 1]
+
+            dx_dtheta_right = (le[ny2:, 1] - y0)
+            dx_dtheta_left = -(le[:ny2, 1] - y0)
+            dx_dtheta = np.hstack((dx_dtheta_left, dx_dtheta_right))
+
+        partials['mesh', 'sweep'] = np.tile(dx_dtheta * dtan_dtheta, nx)
+
+        nn = nx * ny * 3
+        partials['mesh', 'in_mesh'][:nn] = 1.0
+
+        nn2 = nx * (ny-1)
+        partials['mesh', 'in_mesh'][nn:nn + nn2] = tan_theta
+        partials['mesh', 'in_mesh'][nn + nn2:] = -tan_theta
 
 
 class ShearX(ExplicitComponent):
@@ -227,7 +371,21 @@ class ShearX(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+
+        nn = nx * ny
+        rows = 3.0*np.arange(nn)
+        cols = np.tile(np.arange(ny), nx)
+        val = np.ones(nn)
+
+        self.declare_partials('mesh', 'xshear', rows=rows, cols=cols, val=val)
+
+        nn = nx * ny * 3
+        rows = np.arange(nn)
+        cols = np.arange(nn)
+        val = np.ones(nn)
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols, val=val)
 
     def compute(self, inputs, outputs):
         outputs['mesh'][:] = inputs['in_mesh']
@@ -272,7 +430,41 @@ class Stretch(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+        nn = nx * ny
+        rows = 3 * np.arange(nn) + 1
+        cols = np.zeros(nn)
+
+        self.declare_partials('mesh', 'span', rows=rows, cols=cols)
+
+        # First: x and z on diag is identity.
+        nn = nx * ny
+        xz_diag = 3*np.arange(nn)
+
+        # Four columns at le (root, tip) and te (root, tip)
+        i_le0 = 1
+        i_le1 = ny*3 - 2
+        i_te0 = (nx-1)*ny*3 + 1
+        i_te1 = nn*3 - 2
+
+        rows_4c = np.tile(3*np.arange(nn) + 1, 4)
+        cols_4c = np.concatenate([np.tile(i_le0, nn),
+                                  np.tile(i_le1, nn),
+                                  np.tile(i_te0, nn),
+                                  np.tile(i_te1, nn)
+                                  ])
+
+        # Diagonal stripes
+        base = 3*np.arange(1, ny-1) + 1
+        row_dg = np.tile(base, nx) + np.repeat(ny*3*np.arange(nx), ny-2)
+        rows_dg = np.tile(row_dg, 2)
+        col_dg = np.tile(base, nx)
+        cols_dg = np.concatenate([col_dg, col_dg + 3*ny*(nx-1)])
+
+        rows = np.concatenate([xz_diag, xz_diag + 2, rows_4c, rows_dg])
+        cols = np.concatenate([xz_diag, xz_diag + 2, cols_4c, cols_dg])
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         symmetry = self.options['symmetry']
@@ -292,10 +484,57 @@ class Stretch(ExplicitComponent):
         # Compute the previous span and determine the scalar needed to reach the
         # desired span
         prev_span = quarter_chord[-1, 1] - quarter_chord[0, 1]
-        s = quarter_chord[:,1] / prev_span
+        s = quarter_chord[:, 1] / prev_span
 
         outputs['mesh'][:] = mesh
         outputs['mesh'][:, :, 1] = s * span
+
+    def compute_partials(self, inputs, partials):
+        symmetry = self.options['symmetry']
+        span = inputs['span'][0]
+        mesh = inputs['in_mesh']
+        nx, ny, _ = mesh.shape
+
+        # Set the span along the quarter-chord line
+        le = mesh[0]
+        te = mesh[-1]
+        quarter_chord = 0.25 * te + 0.75 * le
+
+        # The user always deals with the full span, so if they input a specific
+        # span value and have symmetry enabled, we divide this value by 2.
+        if symmetry:
+            span /= 2.
+
+        # Compute the previous span and determine the scalar needed to reach the
+        # desired span
+        prev_span = quarter_chord[-1, 1] - quarter_chord[0, 1]
+        s = quarter_chord[:, 1] / prev_span
+
+        d_prev_span = -quarter_chord[:, 1] / prev_span**2
+        d_prev_span_qc0 = np.zeros((ny, ))
+        d_prev_span_qc1 = np.zeros((ny, ))
+        d_prev_span_qc0[0] = d_prev_span_qc1[-1] = 1.0 / prev_span
+
+        if symmetry:
+            partials['mesh', 'span'] = np.tile(0.5 * s, nx)
+        else:
+            partials['mesh', 'span'] = np.tile(s, nx)
+
+        nn = nx * ny * 2
+        partials['mesh', 'in_mesh'][:nn] = 1.0
+
+        nn2 = nx * ny
+        partials['mesh', 'in_mesh'][nn:nn + nn2] = np.tile(-0.75 * span * (d_prev_span - d_prev_span_qc0), nx)
+        nn3 = nn + nn2 * 2
+        partials['mesh', 'in_mesh'][nn + nn2:nn3] = np.tile(0.75 * span * (d_prev_span + d_prev_span_qc1), nx)
+        nn4 = nn3 + nn2
+        partials['mesh', 'in_mesh'][nn3:nn4] = np.tile(-0.25 * span * (d_prev_span - d_prev_span_qc0), nx)
+        nn5 = nn4 + nn2
+        partials['mesh', 'in_mesh'][nn4:nn5] = np.tile(0.25 * span * (d_prev_span + d_prev_span_qc1), nx)
+
+        nn6 = nn5 + nx*(ny-2)
+        partials['mesh', 'in_mesh'][nn5:nn6] = 0.75 * span / prev_span
+        partials['mesh', 'in_mesh'][nn6:] = 0.25 * span / prev_span
 
 
 class ShearY(ExplicitComponent):
@@ -332,7 +571,21 @@ class ShearY(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+
+        nn = nx * ny
+        rows = 3.0*np.arange(nn) + 1
+        cols = np.tile(np.arange(ny), nx)
+        val = np.ones(nn)
+
+        self.declare_partials('mesh', 'yshear', rows=rows, cols=cols, val=val)
+
+        nn = nx * ny * 3
+        rows = np.arange(nn)
+        cols = np.arange(nn)
+        val = np.ones(nn)
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols, val=val)
 
     def compute(self, inputs, outputs):
         outputs['mesh'][:] = inputs['in_mesh']
@@ -441,7 +694,21 @@ class ShearZ(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+
+        nn = nx * ny
+        rows = 3.0*np.arange(nn) + 2
+        cols = np.tile(np.arange(ny), nx)
+        val = np.ones(nn)
+
+        self.declare_partials('mesh', 'zshear', rows=rows, cols=cols, val=val)
+
+        nn = nx * ny * 3
+        rows = np.arange(nn)
+        cols = np.arange(nn)
+        val = np.ones(nn)
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols, val=val)
 
     def compute(self, inputs, outputs):
         outputs['mesh'][:] = inputs['in_mesh']

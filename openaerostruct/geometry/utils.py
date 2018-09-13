@@ -494,55 +494,6 @@ def taper(mesh, taper_ratio, symmetry):
     mesh[:] = np.einsum('ijk, j->ijk', mesh - quarter_chord, taper) + quarter_chord
 
 
-def deriv_taper(mesh, taper_ratio, symmetry):
-    """
-    Return derivative of mesh wrt taper_ratio.
-
-    Parameters
-    ----------
-    mesh[nx, ny, 3] : numpy array
-        Nodal mesh defining the initial aerodynamic surface.
-    taper_ratio : float
-        Taper ratio for the wing; 1 is untapered, 0 goes to a point.
-    symmetry : boolean
-        Flag set to true if surface is reflected about y=0 plane.
-
-    Returns
-    -------
-    d_mesh[nx, ny, 3] : numpy array
-        Derivative of mesh wrt taper_ratio.
-
-    """
-    # Get mesh parameters and the quarter-chord
-    le = mesh[0]
-    te = mesh[-1]
-    num_x, num_y, _ = mesh.shape
-    quarter_chord = 0.25 * te + 0.75 * le
-    x = quarter_chord[:, 1]
-    span = x[-1] - x[0]
-
-    # If symmetric, solve for the correct taper ratio, which is a linear
-    # interpolation problem
-    if symmetry:
-        xp = np.array([-span, 0.])
-        fp = np.array([taper_ratio, 1.])
-
-    # Otherwise, we set up an interpolation problem for the entire wing, which
-    # consists of two linear segments
-    else:
-        xp = np.array([-span/2, 0., span/2])
-        fp = np.array([taper_ratio, 1., taper_ratio])
-
-    taper = np.interp(x, xp, fp)
-    dtaper = (1.0 - taper) / (1.0 - taper_ratio)
-
-    # Modify the mesh based on the taper amount computed per spanwise section
-    dmesh = np.einsum('ijk, j->ijk', mesh - quarter_chord, dtaper)
-    mesh[:] = np.einsum('ijk, j->ijk', mesh - quarter_chord, taper) + quarter_chord
-
-    return dmesh
-
-
 def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
     """
     Generate simple rectangular wing mesh.
