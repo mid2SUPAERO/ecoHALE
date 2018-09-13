@@ -11,7 +11,14 @@ class Test(unittest.TestCase):
 
         comp = LiftCoeff2D(surface=surfaces[0])
 
-        run_test(self, comp)
+        run_test(self, comp, method='cs', complex_flag=True)
+
+    def test2(self):
+        surfaces = get_default_surfaces()
+
+        comp = LiftCoeff2D(surface=surfaces[1])
+
+        run_test(self, comp, method='cs', complex_flag=True)
 
 
 if __name__ == '__main__':

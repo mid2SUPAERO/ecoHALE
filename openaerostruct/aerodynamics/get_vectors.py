@@ -26,7 +26,6 @@ class GetVectors(ExplicitComponent):
         The actual velocities experienced at the evaluation points for each
         lifting surface in the system. This is the summation of the freestream
         velocities and the induced velocities caused by the circulations.
-
     """
 
     def initialize(self):

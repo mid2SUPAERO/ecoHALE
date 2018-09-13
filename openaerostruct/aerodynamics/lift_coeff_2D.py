@@ -7,7 +7,7 @@ from openmdao.api import ExplicitComponent
 class LiftCoeff2D(ExplicitComponent):
     """
     Calculate 2D lift coefficient distribution based on section forces.
-    This is for one given lifting surface.
+    This is for one given lifting surface. These are the sectional Cls.
 
     Parameters
     ----------
@@ -54,21 +54,20 @@ class LiftCoeff2D(ExplicitComponent):
         # Outputs
         self.add_output('Cl', val=np.zeros((self.ny-1)))
 
-        self.declare_partials(of='Cl', wrt='widths')
-        self.declare_partials(of='Cl', wrt='v')
-        self.declare_partials(of='Cl', wrt='rho')
-        self.declare_partials(of='Cl', wrt='alpha')
-        ### Added to declare Jacobian sparse
-        self.declare_partials(of='Cl', wrt='chords', rows=list(range(self.ny-1))*2, \
-                              cols=list(range(self.ny-1))+list(range(1,self.ny)))
+        self.declare_partials('Cl', 'widths')
+        self.declare_partials('Cl', 'v')
+        self.declare_partials('Cl', 'rho')
+        self.declare_partials('Cl', 'alpha')
 
-        tmp_l = []
-        for i in range(self.ny-1):
-            tmp_l = tmp_l + [i]*3
-        tmp_l = tmp_l*(self.nx-1)
+        # Added to declare Jacobian sparse
+        arange = np.arange(self.ny - 1)
+        rows = np.tile(arange, 2)
+        cols = np.hstack((arange, arange+1))
+        self.declare_partials('Cl', 'chords', rows=rows, cols=cols)
 
-        self.declare_partials(of='Cl', wrt='sec_forces', rows=tmp_l, \
-                              cols=list(range((self.ny-1)*(self.nx-1)*3)))
+        rows = np.tile(np.repeat(arange, 3), self.nx-1)
+        cols = np.arange((self.ny-1)*(self.nx-1)*3)
+        self.declare_partials('Cl', 'sec_forces', rows=rows, cols=cols)
 
 
     def compute(self, inputs, outputs):
