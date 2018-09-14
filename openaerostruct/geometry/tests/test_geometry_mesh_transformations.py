@@ -13,8 +13,8 @@ from openaerostruct.geometry.geometry_mesh_transformations import \
 from openaerostruct.geometry.utils import generate_mesh
 
 # These have been chosen so that each dimension of the intermediate ndarrays is unique.
-NY = 3
-NX = 3
+NY = 7
+NX = 5
 
 
 def get_mesh(symmetry):
@@ -251,6 +251,48 @@ class Test(unittest.TestCase):
         check = prob.check_partials(compact_print=True, abs_err_tol=1e-5, rel_err_tol=1e-5)
         assert_check_partials(check, atol=1e-6, rtol=1e-6)
 
+    def test_dihedral(self):
+        symmetry = False
+        mesh = get_mesh(symmetry)
+
+        prob = Problem()
+        group = prob.model
+
+        val = 15.0*np.random.random(1)
+
+        comp = Dihedral(val=val, mesh_shape=mesh.shape, symmetry=symmetry)
+        group.add_subsystem('comp', comp)
+
+        prob.setup()
+
+        prob['comp.in_mesh'] = mesh
+
+        prob.run_model()
+
+        check = prob.check_partials(compact_print=True, abs_err_tol=1e-5, rel_err_tol=1e-5)
+        assert_check_partials(check, atol=1e-6, rtol=1e-6)
+
+    def test_dihedral_symmetry(self):
+        symmetry = True
+        mesh = get_mesh(symmetry)
+
+        prob = Problem()
+        group = prob.model
+
+        val = np.random.random(1)
+
+        comp = Dihedral(val=val, mesh_shape=mesh.shape, symmetry=symmetry)
+        group.add_subsystem('comp', comp)
+
+        prob.setup()
+
+        prob['comp.in_mesh'] = mesh
+
+        prob.run_model()
+
+        check = prob.check_partials(compact_print=True, abs_err_tol=1e-5, rel_err_tol=1e-5)
+        assert_check_partials(check, atol=1e-6, rtol=1e-6)
+
     def test_shearz(self):
         symmetry = False
         mesh = get_mesh(symmetry)
@@ -271,5 +313,48 @@ class Test(unittest.TestCase):
 
         check = prob.check_partials(compact_print=True, abs_err_tol=1e-5, rel_err_tol=1e-5)
         assert_check_partials(check, atol=1e-6, rtol=1e-6)
+
+    def test_rotate(self):
+        symmetry = False
+        mesh = get_mesh(symmetry)
+
+        prob = Problem()
+        group = prob.model
+
+        val = np.random.random(NY)
+
+        comp = Rotate(val=val, mesh_shape=mesh.shape, symmetry=symmetry)
+        group.add_subsystem('comp', comp)
+
+        prob.setup()
+
+        prob['comp.in_mesh'] = mesh
+
+        prob.run_model()
+
+        check = prob.check_partials(compact_print=True, abs_err_tol=1e-5, rel_err_tol=1e-5)
+        assert_check_partials(check, atol=1e-6, rtol=1e-6)
+
+    def test_rotate_symmetry(self):
+        symmetry = True
+        mesh = get_mesh(symmetry)
+
+        prob = Problem()
+        group = prob.model
+
+        val = np.random.random(NY)
+
+        comp = Rotate(val=val, mesh_shape=mesh.shape, symmetry=symmetry)
+        group.add_subsystem('comp', comp)
+
+        prob.setup()
+
+        prob['comp.in_mesh'] = mesh
+
+        prob.run_model()
+
+        check = prob.check_partials(compact_print=True, abs_err_tol=1e-5, rel_err_tol=1e-5)
+        assert_check_partials(check, atol=1e-6, rtol=1e-6)
+
 if __name__ == '__main__':
     unittest.main()

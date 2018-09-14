@@ -159,7 +159,7 @@ class GeometryMesh(Group):
         if 'twist_cp' in surface:
             promotes = ['twist']
         else:
-            val = 0.
+            val = np.zeros(ny)
             promotes = []
 
         self.add_subsystem('rotate', Rotate(val=val, mesh_shape=mesh_shape, symmetry=symmetry),

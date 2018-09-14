@@ -361,55 +361,6 @@ def dihedral(mesh, dihedral_angle, symmetry):
     # dz added spanwise.
     mesh[:, :, 2] += dz
 
-def deriv_dihedral(mesh, dihedral_angle, symmetry):
-    """
-    Compute derivative wrt dihedral angle. Positive angles up.
-
-    Parameters
-    ----------
-    mesh[nx, ny, 3] : numpy array
-        Nodal mesh defining the initial aerodynamic surface.
-    dihedral_angle : float
-        Dihedral angle in degrees.
-    symmetry : boolean
-        Flag set to true if surface is reflected about y=0 plane.
-
-    Returns
-    -------
-    mesh[nx, ny, 3] : numpy array
-        Nodal mesh defining the aerodynamic surface with dihedral angle.
-
-    """
-
-    # Get the mesh parameters and desired sweep angle
-    num_x, num_y, _ = mesh.shape
-    le = mesh[0]
-    p180 = np.pi / 180
-    tan_theta = tan(p180*dihedral_angle)
-    dtan_dangle = p180 / cos(p180*dihedral_angle)**2
-
-    # If symmetric, simply vary the z-coord based on the distance from the
-    # center of the wing
-    if symmetry:
-        y0 = le[-1, 1]
-        dz = -(le[:, 1] - y0) * tan_theta
-        dz_dtheta = -(le[:, 1] - y0) * dtan_dangle
-
-    else:
-        ny2 = (num_y-1) // 2
-        y0 = le[ny2, 1]
-        dz_right = (le[ny2:, 1] - y0) * tan_theta
-        dz_left = -(le[:ny2, 1] - y0) * tan_theta
-        dz = np.hstack((dz_left, dz_right))
-
-        ddz_right = (le[ny2:, 1] - y0) * dtan_dangle
-        ddz_left = -(le[:ny2, 1] - y0) * dtan_dangle
-        dz_dtheta = np.hstack((ddz_left, ddz_right))
-
-    # dz added spanwise.
-    mesh[:, :, 2] += dz
-
-    return dz_dtheta, _
 
 def stretch(mesh, span, symmetry):
     """

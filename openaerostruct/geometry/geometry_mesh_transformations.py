@@ -102,7 +102,6 @@ class Taper(ExplicitComponent):
         taper = np.interp(x, xp, fp)
         dtaper = (1.0 - taper) / (1.0 - taper_ratio)
 
-        # Modify the mesh based on the taper amount computed per spanwise section
         partials['mesh', 'taper'] = np.einsum('ijk, j->ijk', mesh - quarter_chord, dtaper)
 
 
@@ -629,7 +628,41 @@ class Dihedral(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+        nn = nx*ny
+        rows = 3*np.arange(nn) + 2
+        cols = np.zeros(nn)
+
+        self.declare_partials('mesh', 'dihedral', rows=rows, cols=cols)
+
+        nn = nx * ny * 3
+        n_rows = np.arange(nn)
+        n_cols = np.arange(nn)
+
+        if self.options['symmetry']:
+            y_cp = ny*3 - 2
+            te_cols = np.tile(y_cp, nx * (ny-1))
+            te_rows = np.tile(3 * np.arange(ny-1) + 2, nx) + np.repeat(3*ny*np.arange(nx), ny-1)
+            se_cols = np.tile(3 * np.arange(ny-1) + 1, nx)
+        else:
+            y_cp = 3*(ny+1) // 2 - 2
+            n_sym = (ny-1) // 2
+
+            te_row = np.tile(3*np.arange(n_sym) + 2, 2) + np.repeat([0, 3*(n_sym+1)], n_sym)
+            te_rows = np.tile(te_row, nx) + np.repeat(3*ny*np.arange(nx), ny-1)
+
+            te_col = np.tile(y_cp, n_sym)
+            se_col1 = 3*np.arange(n_sym) + 1
+            se_col2 = 3*np.arange(n_sym) + 4 + 3*n_sym
+
+            # neat trick: swap columns on reflected side so we can assign in just two operations
+            te_cols = np.tile(np.concatenate([te_col, se_col2]), nx)
+            se_cols = np.tile(np.concatenate([se_col1, te_col]), nx)
+
+        rows = np.concatenate(([n_rows, te_rows, te_rows]))
+        cols = np.concatenate(([n_rows, te_cols, se_cols]))
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         symmetry = self.options['symmetry']
@@ -637,7 +670,7 @@ class Dihedral(ExplicitComponent):
         mesh = inputs['in_mesh']
 
         # Get the mesh parameters and desired sweep angle
-        _, num_y, _ = inputs['in_mesh'].shape
+        _, ny, _ = mesh.shape
         le = mesh[0]
         p180 = np.pi / 180
         tan_theta = np.tan(p180 * dihedral_angle)
@@ -649,7 +682,7 @@ class Dihedral(ExplicitComponent):
             dz = -(le[:, 1] - y0) * tan_theta
 
         else:
-            ny2 = (num_y-1) // 2
+            ny2 = (ny-1) // 2
             y0 = le[ny2, 1]
             dz_right = (le[ny2:, 1] - y0) * tan_theta
             dz_left = -(le[:ny2, 1] - y0) * tan_theta
@@ -658,6 +691,47 @@ class Dihedral(ExplicitComponent):
         # dz added spanwise.
         outputs['mesh'][:] = mesh
         outputs['mesh'][:, :, 2] += dz
+
+    def compute_partials(self, inputs, partials):
+        symmetry = self.options['symmetry']
+        dihedral_angle = inputs['dihedral'][0]
+        mesh = inputs['in_mesh']
+
+        # Get the mesh parameters and desired sweep angle
+        nx, ny, _ = mesh.shape
+        le = mesh[0]
+        p180 = np.pi / 180
+        tan_theta = np.tan(p180 * dihedral_angle)
+        dtan_dangle = p180 / np.cos(p180*dihedral_angle)**2
+
+        # If symmetric, simply vary the z-coord based on the distance from the
+        # center of the wing
+        if symmetry:
+            y0 = le[-1, 1]
+            dz = -(le[:, 1] - y0) * tan_theta
+
+            dz_dtheta = -(le[:, 1] - y0) * dtan_dangle
+
+        else:
+            ny2 = (ny-1) // 2
+            y0 = le[ny2, 1]
+            dz_right = (le[ny2:, 1] - y0) * tan_theta
+            dz_left = -(le[:ny2, 1] - y0) * tan_theta
+            dz = np.hstack((dz_left, dz_right))
+
+            ddz_right = (le[ny2:, 1] - y0) * dtan_dangle
+            ddz_left = -(le[:ny2, 1] - y0) * dtan_dangle
+            dz_dtheta = np.hstack((ddz_left, ddz_right))
+
+        # dz added spanwise.
+        partials['mesh', 'dihedral'] = np.tile(dz_dtheta, nx)
+
+        nn = nx * ny * 3
+        partials['mesh', 'in_mesh'][:nn] = 1.0
+
+        nn2 = nx * (ny-1)
+        partials['mesh', 'in_mesh'][nn:nn + nn2] = tan_theta
+        partials['mesh', 'in_mesh'][nn + nn2:] = -tan_theta
 
 
 class ShearZ(ExplicitComponent):
@@ -760,7 +834,66 @@ class Rotate(ExplicitComponent):
 
         self.add_output('mesh', shape=mesh_shape, units='m')
 
-        self.declare_partials('*', '*', method='fd')
+        nx, ny, _ = mesh_shape
+        nn = nx*ny*3
+        rows = np.arange(nn)
+        col = np.tile(np.zeros(3), ny) + np.repeat(np.arange(ny), 3)
+        cols = np.tile(col, nx)
+
+        self.declare_partials('mesh', 'twist', rows=rows, cols=cols)
+
+        row_base = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
+        col_base = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2])
+
+        # Diagonal
+        nn = nx*ny
+        dg_row = np.tile(row_base, nn) + np.repeat(3*np.arange(nn), 9)
+        dg_col = np.tile(col_base, nn) + np.repeat(3*np.arange(nn), 9)
+
+        # Leading and Trailing edge on diagonal terms.
+        row_base_y = np.tile(row_base, ny) + np.repeat(3*np.arange(ny), 9)
+        col_base_y = np.tile(col_base, ny) + np.repeat(3*np.arange(ny), 9)
+        nn2 = 3*ny
+        te_dg_row = np.tile(row_base_y, nx-1) + np.repeat(nn2*np.arange(nx-1), 9*ny)
+        le_dg_col = np.tile(col_base_y, nx-1)
+        le_dg_row = te_dg_row + nn2
+        te_dg_col = le_dg_col + 3 * ny * (nx-1)
+
+        # Leading and Trailing edge off diagonal terms.
+        if self.options['symmetry']:
+            row_base_y = np.tile(row_base, ny-1) + np.repeat(3*np.arange(ny-1), 9)
+            col_base_y = np.tile(col_base + 3, ny-1) + np.repeat(3*np.arange(ny-1), 9)
+
+            nn2 = 3*ny
+            te_od_row = np.tile(row_base_y, nx) + np.repeat(nn2*np.arange(nx), 9*(ny-1))
+            le_od_col = np.tile(col_base_y, nx)
+            te_od_col = le_od_col + 3 * ny * (nx-1)
+
+            rows = np.concatenate([dg_row, le_dg_row, te_dg_row, te_od_row, te_od_row])
+            cols = np.concatenate([dg_col, le_dg_col, te_dg_col, le_od_col, te_od_col])
+
+        else:
+            n_sym = (ny-1) // 2
+
+            row_base_y1 = np.tile(row_base, n_sym) + np.repeat(3*np.arange(n_sym), 9)
+            col_base_y1 = np.tile(col_base + 3, n_sym) + np.repeat(3*np.arange(n_sym), 9)
+
+            row_base_y2 = row_base_y1 + 3*n_sym + 3
+            col_base_y2 = col_base_y1 + 3*n_sym - 3
+
+            nn2 = 3*ny
+
+            te_od_row1 = np.tile(row_base_y1, nx) + np.repeat(nn2*np.arange(nx), 9*n_sym)
+            le_od_col1 = np.tile(col_base_y1, nx)
+            te_od_col1 = le_od_col1 + 3 * ny * (nx-1)
+            te_od_row2 = np.tile(row_base_y2, nx) + np.repeat(nn2*np.arange(nx), 9*n_sym)
+            le_od_col2 = np.tile(col_base_y2, nx)
+            te_od_col2 = le_od_col2 + 3 * ny * (nx-1)
+
+            rows = np.concatenate([dg_row, le_dg_row, te_dg_row, te_od_row1, te_od_row2, te_od_row1, te_od_row2])
+            cols = np.concatenate([dg_col, le_dg_col, te_dg_col, le_od_col1, le_od_col2, te_od_col1, te_od_col2])
+
+        self.declare_partials('mesh', 'in_mesh', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         symmetry = self.options['symmetry']
@@ -777,8 +910,8 @@ class Rotate(ExplicitComponent):
         if rotate_x:
             # Compute spanwise z displacements along quarter chord
             if symmetry:
-                dz_qc = quarter_chord[:-1,2] - quarter_chord[1:,2]
-                dy_qc = quarter_chord[:-1,1] - quarter_chord[1:,1]
+                dz_qc = quarter_chord[:-1, 2] - quarter_chord[1:, 2]
+                dy_qc = quarter_chord[:-1, 1] - quarter_chord[1:, 1]
                 theta_x = np.arctan(dz_qc/dy_qc)
 
                 # Prepend with 0 so that root is not rotated
@@ -817,3 +950,154 @@ class Rotate(ExplicitComponent):
         mats[:, 2, 2] = cos_rtx*cos_rty
 
         outputs['mesh'] = np.einsum("ikj, mij -> mik", mats, mesh - quarter_chord) + quarter_chord
+
+    def compute_partials(self, inputs, partials):
+        symmetry = self.options['symmetry']
+        rotate_x = self.options['rotate_x']
+        theta_y = inputs['twist']
+        mesh = inputs['in_mesh']
+
+        te = mesh[-1]
+        le = mesh[ 0]
+        quarter_chord = 0.25 * te + 0.75 * le
+
+        nx, ny, _ = mesh.shape
+
+        if rotate_x:
+            # Compute spanwise z displacements along quarter chord
+            if symmetry:
+                dz_qc = quarter_chord[:-1,2] - quarter_chord[1:,2]
+                dy_qc = quarter_chord[:-1,1] - quarter_chord[1:,1]
+                theta_x = np.arctan(dz_qc/dy_qc)
+
+                # Prepend with 0 so that root is not rotated
+                rad_theta_x = np.append(theta_x, 0.0)
+
+                fact = 1.0/(1.0 + (dz_qc/dy_qc)**2)
+
+                dthx_dq = np.zeros((ny, 3))
+                dthx_dq[:-1, 1] = -dz_qc * fact / dy_qc**2
+                dthx_dq[:-1, 2] = fact / dy_qc
+
+            else:
+                root_index = int((ny - 1) / 2)
+                dz_qc_left = quarter_chord[:root_index,2] - quarter_chord[1:root_index+1,2]
+                dy_qc_left = quarter_chord[:root_index,1] - quarter_chord[1:root_index+1,1]
+                theta_x_left = np.arctan(dz_qc_left/dy_qc_left)
+                dz_qc_right = quarter_chord[root_index+1:,2] - quarter_chord[root_index:-1,2]
+                dy_qc_right = quarter_chord[root_index+1:,1] - quarter_chord[root_index:-1,1]
+                theta_x_right = np.arctan(dz_qc_right/dy_qc_right)
+
+                # Concatenate thetas
+                rad_theta_x = np.concatenate((theta_x_left, np.zeros(1), theta_x_right))
+
+                fact_left = 1.0/(1.0 + (dz_qc_left/dy_qc_left)**2)
+                fact_right = 1.0/(1.0 + (dz_qc_right/dy_qc_right)**2)
+
+                dthx_dq = np.zeros((ny, 3))
+                dthx_dq[:root_index, 1] = -dz_qc_left * fact_left / dy_qc_left**2
+                dthx_dq[root_index+1:, 1] = -dz_qc_right * fact_right / dy_qc_right**2
+                dthx_dq[:root_index, 2] = fact_left / dy_qc_left
+                dthx_dq[root_index+1:, 2] = fact_right / dy_qc_right
+
+        else:
+            rad_theta_x = 0.0
+
+        deg2rad = np.pi / 180.
+        rad_theta_y = theta_y * deg2rad
+
+        mats = np.zeros((ny, 3, 3), dtype=type(rad_theta_y[0]))
+
+        cos_rtx = np.cos(rad_theta_x)
+        cos_rty = np.cos(rad_theta_y)
+        sin_rtx = np.sin(rad_theta_x)
+        sin_rty = np.sin(rad_theta_y)
+
+        mats[:, 0, 0] = cos_rty
+        mats[:, 0, 2] = sin_rty
+        mats[:, 1, 0] = sin_rtx * sin_rty
+        mats[:, 1, 1] = cos_rtx
+        mats[:, 1, 2] = -sin_rtx * cos_rty
+        mats[:, 2, 0] = -cos_rtx * sin_rty
+        mats[:, 2, 1] = sin_rtx
+        mats[:, 2, 2] = cos_rtx*cos_rty
+
+        dmats_dthy = np.zeros((ny, 3, 3))
+        dmats_dthy[:, 0, 0] = -sin_rty * deg2rad
+        dmats_dthy[:, 0, 2] = cos_rty * deg2rad
+        dmats_dthy[:, 1, 0] = sin_rtx * cos_rty * deg2rad
+        dmats_dthy[:, 1, 2] = sin_rtx * sin_rty * deg2rad
+        dmats_dthy[:, 2, 0] = -cos_rtx * cos_rty * deg2rad
+        dmats_dthy[:, 2, 2] = -cos_rtx * sin_rty * deg2rad
+
+        d_dthetay = np.einsum("ikj, mij -> mik", dmats_dthy, mesh - quarter_chord)
+        partials['mesh', 'twist'] = d_dthetay.flatten()
+
+        nn = nx*ny*9
+        partials['mesh', 'in_mesh'][:nn] = np.tile(mats.flatten(), nx)
+
+        # Quarter chord direct contribution.
+        eye = np.tile(np.eye(3).flatten(), ny).reshape(ny, 3, 3)
+        d_qch = (eye - mats).flatten()
+
+        nqc = ny*9
+        partials['mesh', 'in_mesh'][:nqc] += 0.75 * d_qch
+        partials['mesh', 'in_mesh'][nn -nqc:nn] += 0.25 * d_qch
+
+        if rotate_x:
+
+            dmats_dthx = np.zeros((ny, 3, 3))
+            dmats_dthx[:, 1, 0] = cos_rtx * sin_rty
+            dmats_dthx[:, 1, 1] = -sin_rtx
+            dmats_dthx[:, 1, 2] = -cos_rtx * cos_rty
+            dmats_dthx[:, 2, 0] = sin_rtx * sin_rty
+            dmats_dthx[:, 2, 1] = cos_rtx
+            dmats_dthx[:, 2, 2] = -sin_rtx * cos_rty
+
+            d_dthetax = np.einsum("ikj, mij -> mik", dmats_dthx, mesh - quarter_chord)
+            d_dq = np.einsum("ijk, jm -> ijkm", d_dthetax, dthx_dq)
+
+            d_dq_flat = d_dq.flatten()
+
+            del_n = (nn - 9*ny)
+            nn2 = nn + del_n
+            nn3 = nn2 + del_n
+            partials['mesh', 'in_mesh'][nn:nn2] = 0.75 * d_dq_flat[-del_n:]
+            partials['mesh', 'in_mesh'][nn2:nn3] = 0.25 * d_dq_flat[:del_n]
+
+            # Contribution back to main diagonal.
+            del_n = 9*ny
+            partials['mesh', 'in_mesh'][:nqc] += 0.75 * d_dq_flat[:del_n]
+            partials['mesh', 'in_mesh'][nn-nqc:nn] += 0.25 * d_dq_flat[-del_n:]
+
+            # Quarter chord direct contribution.
+            d_qch_od = np.tile(d_qch.flatten(), nx-1)
+            partials['mesh', 'in_mesh'][nn:nn2] += 0.75 * d_qch_od
+            partials['mesh', 'in_mesh'][nn2:nn3] += 0.25 * d_qch_od
+
+            # off-off diagonal pieces
+            if symmetry:
+                d_dq_flat = d_dq[:, :-1, :, :].flatten()
+
+                del_n = (nn - 9*nx)
+                nn4 = nn3 + del_n
+                partials['mesh', 'in_mesh'][nn3:nn4] = -0.75 * d_dq_flat
+                nn5 = nn4 + del_n
+                partials['mesh', 'in_mesh'][nn4:nn5] = -0.25 * d_dq_flat
+
+            else:
+                d_dq_flat1 = d_dq[:, :root_index, :, :].flatten()
+                d_dq_flat2 = d_dq[:, root_index + 1:, :, :].flatten()
+
+                del_n = nx * root_index * 9
+                nn4 = nn3 + del_n
+                partials['mesh', 'in_mesh'][nn3:nn4] = -0.75 * d_dq_flat1
+                nn5 = nn4 + del_n
+                partials['mesh', 'in_mesh'][nn4:nn5] = -0.75 * d_dq_flat2
+                nn6 = nn5 + del_n
+                partials['mesh', 'in_mesh'][nn5:nn6] = -0.25 * d_dq_flat1
+                nn7 = nn6 + del_n
+                partials['mesh', 'in_mesh'][nn6:nn7] = -0.25 * d_dq_flat2
+
+
+
