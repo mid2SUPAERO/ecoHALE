@@ -32,8 +32,7 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
     le = mesh[ 0]
     quarter_chord = 0.25 * te + 0.75 * le
 
-    ny = mesh.shape[1]
-    nx = mesh.shape[0]
+    nx, ny, _ = mesh.shape
 
     if rotate_x:
         # Compute spanwise z displacements along quarter chord
@@ -62,18 +61,23 @@ def rotate(mesh, theta_y, symmetry, rotate_x=True):
     rad_theta_y = theta_y * np.pi / 180.
 
     mats = np.zeros((ny, 3, 3), dtype=type(rad_theta_y[0]))
-    mats[:, 0, 0] = cos(rad_theta_y)
-    mats[:, 0, 2] = sin(rad_theta_y)
-    mats[:, 1, 0] = sin(rad_theta_x)*sin(rad_theta_y)
-    mats[:, 1, 1] = cos(rad_theta_x)
-    mats[:, 1, 2] = -sin(rad_theta_x)*cos(rad_theta_y)
-    mats[:, 2, 0] = -cos(rad_theta_x)*sin(rad_theta_y)
-    mats[:, 2, 1] = sin(rad_theta_x)
-    mats[:, 2, 2] = cos(rad_theta_x)*cos(rad_theta_y)
-    for ix in range(nx):
-        row = mesh[ix]
-        row[:] = np.einsum("ikj, ij -> ik", mats, row - quarter_chord)
-        row += quarter_chord
+
+    cos_rtx = cos(rad_theta_x)
+    cos_rty = cos(rad_theta_y)
+    sin_rtx = sin(rad_theta_x)
+    sin_rty = sin(rad_theta_y)
+
+    mats[:, 0, 0] = cos_rty
+    mats[:, 0, 2] = sin_rty
+    mats[:, 1, 0] = sin_rtx * sin_rty
+    mats[:, 1, 1] = cos_rtx
+    mats[:, 1, 2] = -sin_rtx * cos_rty
+    mats[:, 2, 0] = -cos_rtx * sin_rty
+    mats[:, 2, 1] = sin_rtx
+    mats[:, 2, 2] = cos_rtx*cos_rty
+
+    mesh[:] = np.einsum("ikj, mij -> mik", mats, mesh - quarter_chord) + quarter_chord
+
 
 def scale_x(mesh, chord_dist):
     """
@@ -195,8 +199,8 @@ def sweep(mesh, sweep_angle, symmetry):
         dx_left = -(le[:ny2, 1] - y0) * tan_theta
         dx = np.hstack((dx_left, dx_right))
 
-    for i in range(num_x):
-        mesh[i, :, 0] += dx
+    # dx added spanwise.
+    mesh[:, :, 0] += dx
 
 def dihedral(mesh, dihedral_angle, symmetry):
     """
@@ -237,8 +241,8 @@ def dihedral(mesh, dihedral_angle, symmetry):
         dz_left = -(le[:ny2, 1] - y0) * tan_theta
         dz = np.hstack((dz_left, dz_right))
 
-    for i in range(num_x):
-        mesh[i, :, 2] += dz
+    # dz added spanwise.
+    mesh[:, :, 2] += dz
 
 
 def stretch(mesh, span, symmetry):
@@ -303,35 +307,26 @@ def taper(mesh, taper_ratio, symmetry):
     te = mesh[-1]
     num_x, num_y, _ = mesh.shape
     quarter_chord = 0.25 * te + 0.75 * le
+    x = quarter_chord[:, 1]
+    span = x[-1] - x[0]
 
     # If symmetric, solve for the correct taper ratio, which is a linear
     # interpolation problem
     if symmetry:
-        x = quarter_chord[:, 1]
-        span = x[-1] - x[0]
         xp = np.array([-span, 0.])
         fp = np.array([taper_ratio, 1.])
-        taper = np.interp(x.real, xp.real, fp.real)
-
-        # Modify the mesh based on the taper amount computed per spanwise section
-        for i in range(num_x):
-            for ind in range(3):
-                mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
-                    taper + quarter_chord[:, ind]
 
     # Otherwise, we set up an interpolation problem for the entire wing, which
     # consists of two linear segments
     else:
-        x = quarter_chord[:, 1]
-        span = x[-1] - x[0]
         xp = np.array([-span/2, 0., span/2])
         fp = np.array([taper_ratio, 1., taper_ratio])
-        taper = np.interp(x.real, xp.real, fp.real)
 
-        for i in range(num_x):
-            for ind in range(3):
-                mesh[i, :, ind] = (mesh[i, :, ind] - quarter_chord[:, ind]) * \
-                    taper + quarter_chord[:, ind]
+    taper = np.interp(x.real, xp.real, fp.real)
+
+    # Modify the mesh based on the taper amount computed per spanwise section
+    mesh[:] = np.einsum('ijk, j->ijk', mesh - quarter_chord, taper) + quarter_chord
+
 
 def gen_rect_mesh(num_x, num_y, span, chord, span_cos_spacing=0., chord_cos_spacing=0.):
     """
