@@ -434,7 +434,7 @@ class Display(object):
             span_diff = ((m_vals[0, :-1, 1] + m_vals[0, 1:, 1]) / 2 - m_vals[0, 0, 1]) * 2 / span - 1
 
             if self.show_wing:
-                t_vals = self.twist[self.curr_pos*n_names+j]
+                t_vals = self.twist[self.curr_pos*n_names+j].squeeze()
                 l_vals = self.lift[self.curr_pos*n_names+j]
                 le_vals = self.lift_ell[self.curr_pos*n_names+j]
                 self.ax2.plot(rel_span, t_vals, lw=2, c='b')
@@ -606,10 +606,11 @@ class Display(object):
     def check_length(self):
         # Load the current sqlitedict
         db = sqlitedict.SqliteDict(self.db_name, 'iterations')
+        cr = self.case_reader = SqliteCaseReader(self.db_name)
 
         # Get the number of current iterations
         # Minus one because OpenMDAO uses 1-indexing
-        self.num_iters = int(db.keys()[-1].split('|')[-1])
+        self.num_iters = int(cr.driver_cases.list_cases()[-1].split('|')[-1])
 
     def get_list_limits(self, input_list):
         list_min = 1.e20
