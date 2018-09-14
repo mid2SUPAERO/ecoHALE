@@ -24,7 +24,6 @@ before_install:
 install:
 - conda install --yes python=$PY numpy scipy nose sphinx mock swig pip;
 - pip install --upgrade pip;
-- pip install mpi4py;
 
 # install pyoptsparse
 - git clone https://github.com/OpenMDAO/pyoptsparse.git;
