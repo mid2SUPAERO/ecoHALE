@@ -25,12 +25,6 @@ install:
 - conda install --yes python=$PY numpy scipy nose sphinx mock swig pip;
 - pip install --upgrade pip;
 
-# install pyoptsparse
-- git clone https://github.com/OpenMDAO/pyoptsparse.git;
-- cd pyoptsparse;
-- python setup.py install;
-- cd ..;
-
 - pip install coverage;
 - pip install coveralls;
 - pip install --user travis-sphinx;
