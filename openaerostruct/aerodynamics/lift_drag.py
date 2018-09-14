@@ -12,9 +12,7 @@ class LiftDrag(ExplicitComponent):
     parameters
     ----------
     sec_forces[nx-1, ny-1, 3] : numpy array
-        Flattened array containing the sectional forces acting on each panel.
-        Stored in Fortran order (only relevant with more than one chordwise
-        panel).
+        Contains the sectional forces acting on each panel.
     alpha : float
         Angle of attack in degrees.
 

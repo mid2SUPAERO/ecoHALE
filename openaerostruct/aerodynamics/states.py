@@ -13,7 +13,9 @@ from openaerostruct.aerodynamics.vortex_mesh import VortexMesh
 
 
 class VLMStates(Group):
-    """ Group that contains the aerodynamic states. """
+    """
+    Group that houses all components to compute the aerodynamic states.
+    """
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
@@ -35,6 +37,7 @@ class VLMStates(Group):
              promotes_inputs=['*'],
              promotes_outputs=['coll_pts', 'force_pts', 'bound_vecs'])
 
+        # Compute the vortex mesh based off the deformed aerodynamic mesh
         self.add_subsystem('vortex_mesh',
             VortexMesh(surfaces=surfaces),
             promotes_inputs=['*'],
