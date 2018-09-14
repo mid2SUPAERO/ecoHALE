@@ -8,18 +8,11 @@ language: generic
 env:
 - PY=2.7
 - PY=3.6
-- FORTRAN=1 PY=2.7
 
 addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    packages:
-    - gfortran
-    - libblas-dev
-    - liblapack-dev
-    - libopenmpi-dev
-    - openmpi-bin
 
 before_install:
 - if [ "$PY" = "2.7" ];  then wget "https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh" -O miniconda.sh; fi
@@ -55,17 +48,10 @@ install:
 - pip install -e .;
 
 script:
-- if [ "$FORTRAN" ]; then
-    cd openaerostruct/fortran; cp config/config-LINUX.mk config/config.mk; make; cd ../..;
-  fi
 - export PYTHONPATH=$PYTHONPATH:$PWD
 - testflo -n 1 openaerostruct --coverage --coverpkg openaerostruct --cover-omit \*tests/\* --cover-omit \*docs/\*;
-- if [ "$FORTRAN" ]; then
-    travis-sphinx build --source=openaerostruct/docs;
-  fi
+- travis-sphinx build --source=openaerostruct/docs;
 
 after_success:
-- if [ "$FORTRAN" ]; then
-    travis-sphinx deploy;
-  fi
+- travis-sphinx deploy;
 - coveralls;
