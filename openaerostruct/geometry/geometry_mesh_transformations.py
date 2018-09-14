@@ -1099,5 +1099,3 @@ class Rotate(ExplicitComponent):
                 nn7 = nn6 + del_n
                 partials['mesh', 'in_mesh'][nn6:nn7] = -0.25 * d_dq_flat2
 
-
-
