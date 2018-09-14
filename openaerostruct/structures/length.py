@@ -16,8 +16,8 @@ class Length(ExplicitComponent):
 
         ny = surface['num_y']
 
-        self.add_input('nodes', shape=(ny, 3))
-        self.add_output('element_lengths', shape=ny - 1)
+        self.add_input('nodes', shape=(ny, 3), units='m')
+        self.add_output('element_lengths', shape=ny - 1, units='m')
 
         mesh_indices = np.arange(3 * ny).reshape((ny, 3))
         length_indices = np.arange(ny - 1)

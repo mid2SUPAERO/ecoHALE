@@ -18,7 +18,7 @@ class Transform(ExplicitComponent):
 
         ny = surface['num_y']
 
-        self.add_input('nodes', shape=(ny, 3))
+        self.add_input('nodes', shape=(ny, 3), units='m')
         self.add_output('transform', shape=(ny - 1, 12, 12))
 
         mesh_indices = np.arange(3 * ny).reshape((ny, 3))
