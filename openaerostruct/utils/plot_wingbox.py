@@ -1,12 +1,6 @@
-""" Script to plot results from aero, struct, or aerostruct optimization.
+"""
 
-Usage is `plot_wing __name__` for user-named database.
-
-You can select a certain zoom factor for the 3d view by adding a number as a
-last keyword.
-The larger the number, the closer the view. Floats or ints are accepted.
-
-Ex: `plot_wing aero.db 1` a wider view than `plot_wing aero.db 5`.
+This only works when using the wingbox model with MULTIPOINT analysis/optimization.
 
 """
 
@@ -106,6 +100,16 @@ class Display(object):
         cr.load_cases()
         last_case = cr.driver_cases.get_case(-1)
 
+        names = []
+        for key in cr.system_metadata.keys():
+            try:
+                surfaces = cr.system_metadata[key]['component_options']['surfaces']
+                for surface in surfaces:
+                    names.append(surface['name'])
+                break
+            except:
+                pass
+
         # figure out if this is an optimization and what the objective is
         obj_keys = last_case.get_objectives()
         if obj_keys.keys(): # if its not an empty list
@@ -146,26 +150,12 @@ class Display(object):
         self.cg = []
 
         # find the names of all surfaces
-        names = []
         pt_names = []
         for key in last_case.outputs:
 
             # Aerostructural
-            if 'coupled' in key and 'loads.loads' in key and 'point_0' in key:
+            if 'coupled' in key:
                 self.aerostruct = True
-                # convoluted way to get the surface name from `<point_name>.coupled.<surf_name>_loads`
-                surf_name = (key.split('.')[2]).split("_")[0]
-                names.append(surf_name)
-
-            # Aero only
-            elif 'sec_forces' in key and 'coupled' not in key:
-                surf_name = (key.split('.')[2]).split("_")[0]
-                names.append(surf_name)
-
-            # Structural only
-            elif 'disp_aug' in key and 'coupled' not in key:
-                surf_name = key.split('.')[0]
-                names.append(surf_name)
 
             if 'CL' in key:
                 pt_names.append(key.split('.')[0])
@@ -220,29 +210,29 @@ class Display(object):
                     self.spar_thickness.append(case.outputs[name+'.spar_thickness'])
                     self.t_over_c.append(case.outputs[name+'.t_over_c'])
                     self.struct_weights.append(case.outputs[name+'.structural_weight'])
-                    
+
 
                     vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_names[1], surf_name=name)
                     self.vonmises.append(np.max(case.outputs[vm_var_name], axis=1))
 
                     def_mesh_var_name = '{pt_name}.coupled.{surf_name}.def_mesh'.format(pt_name=pt_name, surf_name=name)
                     self.def_mesh.append(case.outputs[def_mesh_var_name])
-                    
+
                     def_mesh_var_name = '{pt_name}.coupled.{surf_name}.def_mesh'.format(pt_name=pt_names[1], surf_name=name)
                     self.def_mesh_maneuver.append(case.outputs[def_mesh_var_name])
 
                     normals_var_name = '{pt_name}.coupled.{surf_name}.normals'.format(pt_name=pt_name, surf_name=name)
                     normals.append(case.outputs[normals_var_name])
-                    
+
                     normals_var_name = '{pt_name}.coupled.{surf_name}.normals'.format(pt_name=pt_names[1], surf_name=name)
                     normals_maneuver.append(case.outputs[normals_var_name])
 
                     widths_var_name = '{pt_name}.coupled.{surf_name}.widths'.format(pt_name=pt_name, surf_name=name)
                     widths.append(case.outputs[widths_var_name])
-                    
+
                     widths_var_name = '{pt_name}.coupled.{surf_name}.widths'.format(pt_name=pt_names[1], surf_name=name)
                     widths_maneuver.append(case.outputs[widths_var_name])
-                    
+
                     sec_forces.append(case.outputs[pt_name+'.coupled.aero_states.' + name + '_sec_forces'])
                     sec_forces_maneuver.append(case.outputs[pt_names[1]+'.coupled.aero_states.' + name + '_sec_forces'])
 
@@ -284,13 +274,13 @@ class Display(object):
                 self.yield_stress_dict[name + '_yield_stress'] = surface['yield']
 
                 # self.fem_origin_dict[name + '_fem_origin'] = surface['fem_origin']
-                
+
                 self.fem_origin_dict[name + '_fem_origin'] = (surface['data_x_upper'][0].real *(surface['data_y_upper'][0].real-surface['data_y_lower'][0].real) + \
                 surface['data_x_upper'][-1].real*(surface['data_y_upper'][-1].real-surface['data_y_lower'][-1].real)) / \
                 ( (surface['data_y_upper'][0].real-surface['data_y_lower'][0].real) + (surface['data_y_upper'][-1].real-surface['data_y_lower'][-1].real))
-                
+
                 le_te_coords = np.array([surface['data_x_upper'][0].real, surface['data_x_upper'][-1].real, surface['wing_weight_ratio']])
-                
+
                 np.save(str('temp_' + name + '_le_te'), le_te_coords)
 
         if self.opt:
@@ -423,15 +413,15 @@ class Display(object):
                     lift_area = np.sum(lift * (span[1:] - span[:-1]))
 
                     lift_ell = 4 * lift_area / np.pi * np.sqrt(1 - (2*span)**2)
-                    
+
                     normalize_factor = max(lift_ell) / 4 * np.pi
                     lift_ell = lift_ell / normalize_factor
                     lift = lift / normalize_factor
-                    
+
                     lift_area_maneuver = np.sum(lift_maneuver * (span[1:] - span[:-1]))
 
                     lift_ell_maneuver = 4 * lift_area_maneuver / np.pi * np.sqrt(1 - (2*span)**2)
-                    
+
                     normalize_factor = max(lift_ell_maneuver) / 4 * np.pi
                     lift_ell_maneuver = lift_ell_maneuver / normalize_factor
                     lift_maneuver = lift_maneuver / normalize_factor
@@ -517,7 +507,7 @@ class Display(object):
             self.ax4.set_ylim([self.min_t, self.max_t])
             self.ax4.set_xlim([-1, 1])
             self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
-            
+
             self.ax6.cla()
             self.ax6.locator_params(axis='y',nbins=4)
             self.ax6.locator_params(axis='x',nbins=3)
@@ -575,7 +565,7 @@ class Display(object):
                     transform=self.ax4.transAxes, color=my_green)
                 self.ax5.plot(span_diff, vm_vals, lw=2, c='k')
                 self.ax6.plot(span_diff, toverc, lw=2, c='k')
-                
+
                 self.ax2.set_xticklabels([])
                 self.ax3.set_xticklabels([])
                 self.ax4.set_xticklabels([])
@@ -588,7 +578,7 @@ class Display(object):
         az = self.ax.azim
         el = self.ax.elev
         dist = self.ax.dist
-        
+
         # for a planform view use:
         # az = 270
         # el = 90.
@@ -596,13 +586,13 @@ class Display(object):
 
 
         for j, name in enumerate(self.names):
-            
+
             # for wingbox viz
             try:
                 le_te = np.load(str('temp_' + name + '_le_te.npy'))
             except:
                 print('temp_le_te.npy file not found')
-            
+
             mesh0 = self.mesh[self.curr_pos*n_names+j].copy()
 
             self.ax.set_axis_off()
@@ -612,7 +602,7 @@ class Display(object):
                 x = mesh0[:, :, 0]
                 y = mesh0[:, :, 1]
                 z = mesh0[:, :, 2]
-                
+
                 #################### for wingbox viz ####################
                 mesh1 = np.zeros((2,mesh0.shape[1],mesh0.shape[2]))
                 mesh1[0,:,:] = mesh0[0,:,:]
@@ -620,9 +610,9 @@ class Display(object):
                 chord_vec = mesh1[1,:,:] - mesh1[0,:,:]
                 mesh1[0,:,:] = mesh1[0,:,:] + le_te[0] * chord_vec
                 mesh1[1,:,:] = mesh1[1,:,:] - (1 - le_te[1]) * chord_vec
-                
+
                 current_t_over_c = self.t_over_c[self.curr_pos*n_names+j]
-                
+
                 half_len_toverc = int(len(current_t_over_c) / 2)
                 tovercarray = np.zeros((len(current_t_over_c)+1))
                 tovercarray[:half_len_toverc] = current_t_over_c[:half_len_toverc]
@@ -631,37 +621,37 @@ class Display(object):
                 chord_array = np.zeros((chord_vec.shape[0]))
                 for i in range(chord_vec.shape[0]):
                     chord_array[i] = np.linalg.norm(chord_vec[i,:])
-                
+
                 # for the skins
                 x_box = mesh1[:, :, 0]
                 y_box = mesh1[:, :, 1]
                 z_box = mesh1[:, :, 2] - tovercarray / 2 *chord_array
                 z_box2 =  mesh1[:, :, 2] + tovercarray / 2 *chord_array
-                
+
                 # for the rear spar
                 mesh2 = mesh1.copy()
                 mesh2[0,:,:] = mesh1[-1,:,:]
                 mesh2[1,:,:] = mesh1[-1,:,:]
-                
+
                 mesh2[0, :, 2] = mesh2[0, :, 2] - tovercarray / 2 *chord_array
                 mesh2[1, :, 2] = mesh2[1, :, 2] + tovercarray / 2 *chord_array
-                
+
                 x_box3 = mesh2[:, :, 0]
                 y_box3 = mesh2[:, :, 1]
                 z_box3 = mesh2[:, :, 2]
-                
+
                 # for the forward spar
                 mesh3 = mesh1.copy()
                 mesh3[0,:,:] = mesh1[0,:,:]
                 mesh3[1,:,:] = mesh1[0,:,:]
-                
+
                 mesh3[0, :, 2] = mesh3[0, :, 2] - tovercarray / 2 *chord_array
                 mesh3[1, :, 2] = mesh3[1, :, 2] + tovercarray / 2 *chord_array
-                
+
                 x_box4 = mesh3[:, :, 0]
                 y_box4 = mesh3[:, :, 1]
                 z_box4 = mesh3[:, :, 2]
-                
+
                 #########################################################
 
                 try:  # show deformed mesh option may not be available
@@ -703,54 +693,54 @@ class Display(object):
             #     # Get the array of radii and thickness values for the FEM system
             #     r0 = self.radius[self.curr_pos*n_names+j]
             #     t0 = self.thickness[self.curr_pos*n_names+j]
-            # 
+            #
             #     # Create a normalized array of values for the colormap
             #     colors = t0
             #     colors = colors / np.max(colors)
-            # 
+            #
             #     # Set the number of rectangular patches on the cylinder
             #     num_circ = 12
             #     fem_origin = self.fem_origin_dict[name.split('.')[-1] + '_fem_origin']
-            # 
+            #
             #     # Get the number of spanwise nodal points
             #     n = mesh0.shape[1]
-            # 
+            #
             #     # Create an array of angles around a circle
             #     p = np.linspace(0, 2*np.pi, num_circ)
-            # 
+            #
             #     # This is just to show the deformed mesh if selected
             #     if self.show_wing:
             #         if self.show_def_mesh.get():
             #             mesh0[:, :, 2] = def_mesh0[:, :, 2]
-            # 
+            #
             #     # Loop through each element in the FEM system
             #     for i, thick in enumerate(t0):
-            # 
+            #
             #         # Get the radii describing the circles at each nodal point
             #         r = np.array((r0[i], r0[i]))
             #         R, P = np.meshgrid(r, p)
-            # 
+            #
             #         # Get the X and Z coordinates for all points around the circle
             #         X, Z = R*np.cos(P), R*np.sin(P)
-            # 
+            #
             #         # Get the chord and center location for the FEM system
             #         chords = mesh0[-1, :, 0] - mesh0[0, :, 0]
             #         comp = fem_origin * chords + mesh0[0, :, 0]
-            # 
+            #
             #         # Add the location of the element centers to the circle coordinates
             #         X[:, 0] += comp[i]
             #         X[:, 1] += comp[i+1]
             #         Z[:, 0] += fem_origin * (mesh0[-1, i, 2] - mesh0[0, i, 2]) + mesh0[0, i, 2]
             #         Z[:, 1] += fem_origin * (mesh0[-1, i+1, 2] - mesh0[0, i+1, 2]) + mesh0[0, i+1, 2]
-            # 
+            #
             #         # Get the spanwise locations of the spar points
             #         Y = np.empty(X.shape)
             #         Y[:] = np.linspace(mesh0[0, i, 1], mesh0[0, i+1, 1], 2)
-            # 
+            #
             #         # Set the colors of the rectangular surfaces
             #         col = np.zeros(X.shape)
             #         col[:] = colors[i]
-            # 
+            #
             #         # Plot the rectangular surfaces for each individual FEM element
             #         try:
             #             self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
@@ -768,16 +758,16 @@ class Display(object):
         self.ax.auto_scale_xyz([-lim, lim], [-lim, lim], [-lim, lim])
         self.ax.set_title("Iteration: {}".format(self.curr_pos))
 
-        round_to_n = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + (n - 1))
+        # round_to_n = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + (n - 1))
         if self.opt:
-            obj_val = round_to_n(self.obj[self.curr_pos], 7)
-            
+            obj_val = self.obj[self.curr_pos]
+
             try:
                 wing_weight_ratio = np.load(str('temp_' + name + '_le_te.npy'))[2]
             except:
                 print('temp_le_te.npy file not found')
-            
-            sw_val = round_to_n(self.struct_weights[self.curr_pos] / wing_weight_ratio / 9.80665, 7)
+
+            sw_val = self.struct_weights[self.curr_pos] / wing_weight_ratio / 9.80665
             self.ax.text2D(.05, -.1, self.obj_key + ' [kg]: {}'.format(obj_val),
                 transform=self.ax.transAxes, color='k')
             self.ax.text2D(.05, -.15, 'wingbox mass' + ' [kg]: {}'.format(sw_val),

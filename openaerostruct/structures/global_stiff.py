@@ -20,9 +20,9 @@ class GlobalStiff(ExplicitComponent):
 
         size = 6 * ny + 6
 
-        self.add_input('nodes', shape=(ny, 3))
+        self.add_input('nodes', shape=(ny, 3), units='m')
         self.add_input('local_stiff_transformed', shape=(ny - 1, 12, 12))
-        self.add_output('K', shape=(size, size))
+        self.add_output('K', shape=(size, size), units='N/m')
 
         arange = np.arange(ny - 1)
 

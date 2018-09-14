@@ -133,8 +133,8 @@ class Geometry(Group):
                     bspline_order=min(n_cp, 4), distribution='uniform'),
                     promotes_inputs=['zshear_cp'], promotes_outputs=['zshear'])
                 bsp_inputs.append('zshear')
-                if surface.get('zhear_cp_dv', True):
-                    indep_var_comp.add_output('zhear_cp', val=surface['zhear_cp'], units='m')
+                if surface.get('zshear_cp_dv', True):
+                    indep_var_comp.add_output('zshear_cp', val=surface['zshear_cp'], units='m')
 
             if 'sweep' in surface.keys():
                 bsp_inputs.append('sweep')

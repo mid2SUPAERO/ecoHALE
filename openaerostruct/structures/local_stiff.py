@@ -38,11 +38,11 @@ class LocalStiff(ExplicitComponent):
 
         ny = surface['num_y']
 
-        self.add_input('A', shape=ny - 1)
-        self.add_input('J', shape=ny - 1)
-        self.add_input('Iy', shape=ny - 1)
-        self.add_input('Iz', shape=ny - 1)
-        self.add_input('element_lengths', shape=ny - 1)
+        self.add_input('A', shape=ny - 1, units='m**2')
+        self.add_input('J', shape=ny - 1, units='m**4')
+        self.add_input('Iy', shape=ny - 1, units='m**4')
+        self.add_input('Iz', shape=ny - 1, units='m**4')
+        self.add_input('element_lengths', shape=ny - 1, units='m')
 
         self.add_output('local_stiff', shape=(ny - 1, 12, 12))
 
