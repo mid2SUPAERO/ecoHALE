@@ -25,5 +25,6 @@ setup(name='openaerostruct',
     entry_points="""
     [console_scripts]
     plot_wing=openaerostruct.utils.plot_wing:disp_plot
+    plot_wingbox=openaerostruct.utils.plot_wingbox:disp_plot
     """
 )

@@ -184,17 +184,20 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
                 prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
-        from openmdao.api import ScipyOptimizeDriver
+        from openmdao.api import ScipyOptimizeDriver, SqliteRecorder
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
 
         # from openmdao.api import pyOptSparseDriver
         # prob.driver = pyOptSparseDriver()
-        # # prob.driver.add_recorder(SqliteRecorder("cases.sql"))
         # prob.driver.options['optimizer'] = "SNOPT"
         # prob.driver.opt_settings['Major optimality tolerance'] = 1e-6
         # prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
         # prob.driver.opt_settings['Major iterations limit'] = 200
+
+        # prob.driver.add_recorder(SqliteRecorder("wingbox.db"))
+        # prob.driver.recording_options['record_derivatives'] = True
+        # prob.driver.recording_options['includes'] = ['*']
 
         prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 

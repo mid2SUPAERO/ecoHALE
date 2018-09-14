@@ -100,6 +100,16 @@ class Display(object):
         cr.load_cases()
         last_case = cr.driver_cases.get_case(-1)
 
+        names = []
+        for key in cr.system_metadata.keys():
+            try:
+                surfaces = cr.system_metadata[key]['component_options']['surfaces']
+                for surface in surfaces:
+                    names.append(surface['name'])
+                break
+            except:
+                pass
+
         # figure out if this is an optimization and what the objective is
         obj_keys = last_case.get_objectives()
         if obj_keys.keys(): # if its not an empty list
@@ -128,26 +138,11 @@ class Display(object):
         self.obj = []
         self.cg = []
 
-        # find the names of all surfaces
-        names = []
         pt_names = []
         for key in last_case.outputs:
             # Aerostructural
-            if 'coupled' in key and 'loads' in key:
+            if 'coupled' in key:
                 self.aerostruct = True
-                # convoluted way to get the surface name from `<point_name>.coupled.<surf_name>_loads`
-                surf_name = (key.split('.')[2]).split("_")[0]
-                names.append(surf_name)
-
-            # Aero only
-            elif 'sec_forces' in key and 'coupled' not in key:
-                surf_name = (key.split('.')[2]).split("_")[0]
-                names.append(surf_name)
-
-            # Structural only
-            elif 'disp_aug' in key and 'coupled' not in key:
-                surf_name = key.split('.')[0]
-                names.append(surf_name)
 
             if 'CL' in key:
                 pt_names.append(key.split('.')[0])
