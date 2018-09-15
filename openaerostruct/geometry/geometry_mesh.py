@@ -171,4 +171,3 @@ class GeometryMesh(Group):
 
         for j in np.arange(len(names) - 1):
             self.connect(names[j] + '.mesh', names[j+1] + '.in_mesh')
-
