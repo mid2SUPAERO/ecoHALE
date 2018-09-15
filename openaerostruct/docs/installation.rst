@@ -22,14 +22,3 @@ Then from within the OpenAeroStruct folder, pip install the package:
 .. code-block:: bash
 
     pip install -e .
-
-Lastly, there's an optional step to compile the Fortran to decrease the computational cost of running OpenAeroStruct. If you are using Linux, the default `config.mk` file should work. On Mac, you need to delete the original `config.mk` file and rename the `config-macOS.mk` file to `config.mk`.
-
-You may need to modify the `PYTHON-CONFIG` option based on which Python version you're using. For example, if you're using Anaconda Python 2.7 or Python 3.6, you may need to change the value to `python2.7-config` or `python3.6-config` respectively. With the `config.mk` file set up correctly, navigate to the `openaerostructr/fortran` folder and run the following command:
-
-.. code-block:: bash
-
-    make
-
-Note that the code will run without compiling the Fortran library, but it will run significantly faster when using Fortran.
-The Fortran code has been tested extensively on Linux, partially on MacOS, and not at all on Windows.
