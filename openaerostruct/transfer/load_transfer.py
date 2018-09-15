@@ -62,8 +62,8 @@ class LoadTransfer(ExplicitComponent):
         self.w1 = w1 = 0.25
         self.w2 = w2 = self.fem_origin
 
-        self.add_input('def_mesh', val=np.random.random((nx, ny, 3)), units='m')
-        self.add_input('sec_forces', val=np.random.random((nx-1, ny-1, 3)), units='N')
+        self.add_input('def_mesh', val=np.zeros((nx, ny, 3)), units='m')
+        self.add_input('sec_forces', val=np.zeros((nx-1, ny-1, 3)), units='N')
 
         #self.add_output('loadsA', val=np.zeros((ny, 3)), units='N')
         #self.add_output('loadsB', val=np.zeros((ny, 3)), units='N*m')
