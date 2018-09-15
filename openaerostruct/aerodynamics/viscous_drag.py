@@ -53,7 +53,7 @@ class ViscousDrag(ExplicitComponent):
         ny = surface['num_y']
 
         self.add_input('re', val=5.e6, units='1/m')
-        self.add_input('M', val=1.6)
+        self.add_input('Mach_number', val=1.6)
         self.add_input('S_ref', val=1., units='m**2')
         self.add_input('cos_sweep', val=np.ones((ny-1)), units='m')
         self.add_input('widths', val=np.ones((ny-1)), units='m')
@@ -68,7 +68,7 @@ class ViscousDrag(ExplicitComponent):
     def compute(self, inputs, outputs):
         if self.with_viscous:
             re = inputs['re']
-            M = inputs['M']
+            M = inputs['Mach_number']
             S_ref = inputs['S_ref']
             widths = inputs['widths']
             lengths = inputs['lengths']
@@ -125,7 +125,7 @@ class ViscousDrag(ExplicitComponent):
 
         if self.with_viscous:
 
-            M = inputs['M']
+            M = inputs['Mach_number']
             S_ref = inputs['S_ref']
 
             widths = inputs['widths']
@@ -219,7 +219,7 @@ class ViscousDrag(ExplicitComponent):
 
             dD_over_q__dM = np.sum(widths* (dd_over_q__dM*FF + dFF__dM*d_over_q))
 
-            partials['CDv','M'] = dD_over_q__dM / S_ref
+            partials['CDv','Mach_number'] = dD_over_q__dM / S_ref
 
             term = 0.455/(1+0.144*M**2)**0.65
             dRe_c__dRe = chords
@@ -244,6 +244,6 @@ class ViscousDrag(ExplicitComponent):
                 partials['CDv', 'widths'][0, :] *= 2
                 partials['CDv', 'S_ref'] *=  2
                 partials['CDv', 'cos_sweep'][0, :] *=  2
-                partials['CDv', 'M'][0, :] *=  2
+                partials['CDv', 'Mach_number'][0, :] *=  2
                 partials['CDv', 're'][0, :] *=  2
                 partials['CDv', 't_over_c'][0, :] *=  2

@@ -45,7 +45,7 @@ class WaveDrag(ExplicitComponent):
 
         ny = surface['num_y']
 
-        self.add_input('M', val=1.6)
+        self.add_input('Mach_number', val=1.6)
         self.add_input('cos_sweep', val=np.ones((ny-1))*.2, units='m')
         self.add_input('widths', val=np.arange((ny-1))+1., units='m') # set to np.arange so that d_CDw_d_chords is nonzero
         self.add_input('CL', val=0.33)
@@ -61,7 +61,7 @@ class WaveDrag(ExplicitComponent):
             t_over_c = inputs['t_over_c']
             widths = inputs['widths']
             actual_cos_sweep = inputs['cos_sweep']/widths
-            M = inputs['M']
+            M = inputs['Mach_number']
             chords = inputs['chords']
             CL = inputs['CL']
 
@@ -90,7 +90,7 @@ class WaveDrag(ExplicitComponent):
             widths = inputs['widths']
             cos_sweep = inputs['cos_sweep']
             actual_cos_sweep = cos_sweep/widths
-            M = inputs['M']
+            M = inputs['Mach_number']
             chords = inputs['chords']
             CL = inputs['CL']
 
@@ -124,7 +124,7 @@ class WaveDrag(ExplicitComponent):
                 dcdchords[i==j] = 0.5
                 dcdchords[i==j-1] = 0.5
 
-                partials['CDw','M'] = -1*dCDwdMDD
+                partials['CDw','Mach_number'] = -1*dCDwdMDD
                 partials['CDw','CL'] = dCDwdMDD * dMDDdCL
                 partials['CDw','widths'] = dCDwdMDD * dMDDdavg * davgdw
                 partials['CDw','cos_sweep'] = dCDwdMDD * dMDDdavg * davgdcos \
@@ -138,6 +138,6 @@ class WaveDrag(ExplicitComponent):
             partials['CDw', 'CL'][0, :] *=  2
             partials['CDw', 'widths'][0, :] *= 2
             partials['CDw', 'cos_sweep'][0, :] *=  2
-            partials['CDw', 'M'][0, :] *=  2
+            partials['CDw', 'Mach_number'][0, :] *=  2
             partials['CDw', 'chords'][0, :] *=  2
             partials['CDw', 't_over_c'][0, :] *=  2

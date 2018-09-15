@@ -20,7 +20,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('t_over_c_cp', val=surface['t_over_c_cp'])
-        indep_var_comp.add_output('M', val=.95)
+        indep_var_comp.add_output('Mach_number', val=.95)
         indep_var_comp.add_output('CL', val=0.7)
         indep_var_comp.add_output('widths', val = np.array([12.14757848, 11.91832712, 11.43730892]),units='m')
         indep_var_comp.add_output('cos_sweep', val = np.array([10.01555924,  9.80832351,  9.79003729]),units='m')

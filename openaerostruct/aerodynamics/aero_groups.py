@@ -69,7 +69,7 @@ class AeroPoint(Group):
         for surface in surfaces:
             self.add_subsystem(surface['name'] +'_perf',
                 VLMFunctionals(surface=surface),
-                promotes_inputs=["v", "alpha", "M", "re", "rho"])
+                promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho'])
 
         # Add the total aero performance group to compute the CL, CD, and CM
         # of the total aircraft. This accounts for all lifting surfaces.
