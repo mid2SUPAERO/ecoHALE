@@ -7,6 +7,7 @@ import unittest
 class Test(unittest.TestCase):
 
     def test(self):
+        import numpy as np
 
         from openaerostruct.geometry.utils import generate_mesh, write_FFD_file
         from openaerostruct.geometry.geometry_group import Geometry
