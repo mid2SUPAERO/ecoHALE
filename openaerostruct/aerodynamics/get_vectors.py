@@ -42,8 +42,9 @@ class GetVectors(ExplicitComponent):
         self.add_input(eval_name, val=np.zeros((num_eval_points, 3)), units='m')
 
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh=surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
             vectors_name = '{}_{}_vectors'.format(name, eval_name)
 
@@ -84,8 +85,8 @@ class GetVectors(ExplicitComponent):
         # and in a usable data format.
 
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
             name = surface['name']
 
             mesh_name = name + '_vortex_mesh'

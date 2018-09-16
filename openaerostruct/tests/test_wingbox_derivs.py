@@ -60,8 +60,6 @@ class Test(unittest.TestCase):
                     'skin_thickness_cp' : np.array([0.005, 0.01, 0.015, 0.020, 0.025, 0.026]),
                     'twist_cp' : np.array([4., 5., 8., 8., 8., 9.]),
                     'mesh' : mesh,
-                    'num_x' : mesh.shape[0],
-                    'num_y' : mesh.shape[1],
 
                     'data_x_upper' : upper_x,
                     'data_x_lower' : lower_x,

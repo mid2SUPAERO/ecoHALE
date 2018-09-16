@@ -17,7 +17,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         #  define the spar with y out the wing
         nodes = np.zeros((ny, 3))

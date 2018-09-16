@@ -39,8 +39,8 @@ class LiftCoeff2D(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
-        self.nx = surface['num_x']
+        self.nx = nx = surface['mesh'].shape[0]
+        self.ny = ny = surface['mesh'].shape[1]
         self.num_panels = (self.nx-1) * (self.ny-1)
 
         # Inputs

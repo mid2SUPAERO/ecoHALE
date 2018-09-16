@@ -16,7 +16,7 @@ class LocalStiffTransformed(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         self.add_input('transform', shape=(ny - 1, 12, 12))
         self.add_input('local_stiff_permuted', shape=(ny - 1, 12, 12))
@@ -34,7 +34,7 @@ class LocalStiffTransformed(ExplicitComponent):
     def compute(self, inputs, outputs):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
 
         outputs['local_stiff_transformed'] = np.einsum('ilj,ilm,imk->ijk',
             inputs['transform'], inputs['local_stiff_permuted'], inputs['transform'])
@@ -42,7 +42,7 @@ class LocalStiffTransformed(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
 
         partials['local_stiff_transformed', 'local_stiff_permuted'] = np.einsum('ilj,imk->ijklm',
             inputs['transform'], inputs['transform']).flatten()

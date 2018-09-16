@@ -30,7 +30,7 @@ class VonMisesTube(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
+        self.ny = surface['mesh'].shape[1]
 
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('radius', val=np.zeros((self.ny - 1)), units='m')
@@ -45,8 +45,12 @@ class VonMisesTube(ExplicitComponent):
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        self.T = np.zeros((3, 3),dtype=complex)
-        self.x_gl = np.array([1, 0, 0],dtype=complex)
+        dtype = float
+        if self.under_complex_step:
+            dtype = complex
+
+        self.T = np.zeros((3, 3),dtype=dtype)
+        self.x_gl = np.array([1, 0, 0],dtype=dtype)
         radius = inputs['radius']
         disp = inputs['disp']
         nodes = inputs['nodes']

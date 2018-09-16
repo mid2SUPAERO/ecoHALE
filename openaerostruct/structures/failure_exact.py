@@ -31,7 +31,7 @@ class FailureExact(ExplicitComponent):
         elif surface['fem_model_type'] == 'wingbox':
             num_failure_criteria = 4
 
-        self.ny = surface['num_y']
+        self.ny = surface['mesh'].shape[1]
         self.sigma = surface['yield']
 
         self.add_input('vonmises', val=np.zeros((self.ny-1, num_failure_criteria)), units='N/m**2')

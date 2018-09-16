@@ -18,7 +18,9 @@ class TubeGroup(Group):
 
     def setup(self):
         surface = self.options['surface']
-        ny = surface['num_y']
+        mesh = surface['mesh']
+        nx = mesh.shape[0]
+        ny = mesh.shape[1]
 
         # Add independent variables that do not belong to a specific component
         indep_var_comp = IndepVarComp()

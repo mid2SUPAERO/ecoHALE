@@ -29,7 +29,7 @@ class CreateRHS(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        self.ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         self.add_input('total_loads', val=np.zeros((self.ny, 6)), units='N')
         self.add_output('forces', val=np.ones(((self.ny+1)*6)), units='N')

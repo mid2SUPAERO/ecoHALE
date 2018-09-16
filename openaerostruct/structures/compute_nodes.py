@@ -28,9 +28,9 @@ class ComputeNodes(ExplicitComponent):
 
     def setup(self):
         surface = self.options['surface']
-
-        ny = surface['num_y']
-        nx = surface['num_x']
+        mesh = surface['mesh']
+        nx = mesh.shape[0]
+        ny = mesh.shape[1]
 
         if surface['fem_model_type'] == 'tube':
             self.fem_origin = surface['fem_origin']

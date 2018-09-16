@@ -38,8 +38,9 @@ class HorseshoeCirculations(ExplicitComponent):
         # Loop through all the surfaces to obtain the total system size,
         # which is the number of panels in the total system.
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
 
             system_size += (nx - 1) * (ny - 1)
 
@@ -59,8 +60,9 @@ class HorseshoeCirculations(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             num = (nx - 1) * (ny - 1)
 
             ind_2 += num

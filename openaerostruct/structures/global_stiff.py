@@ -16,7 +16,7 @@ class GlobalStiff(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         size = 6 * ny + 6
 
@@ -39,7 +39,7 @@ class GlobalStiff(ExplicitComponent):
     def compute(self, inputs, outputs):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
 
         size = 6 * ny + 6
 

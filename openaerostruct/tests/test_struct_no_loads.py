@@ -32,8 +32,6 @@ class Test(unittest.TestCase):
                     'fem_model_type' : 'tube',
 
                     'mesh' : mesh,
-                    'num_x' : mesh.shape[0],
-                    'num_y' : mesh.shape[1],
 
                     # Structural values are based on aluminum 7075
                     'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -52,7 +50,7 @@ class Test(unittest.TestCase):
         # Create the problem and assign the model group
         prob = Problem()
 
-        ny = surf_dict['num_y']
+        ny = surf_dict['mesh'].shape[1]
 
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('loads', val=np.zeros((ny, 6)), units='N')

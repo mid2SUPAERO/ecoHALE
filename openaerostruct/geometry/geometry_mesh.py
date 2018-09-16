@@ -47,8 +47,8 @@ class GeometryMesh(Group):
     def setup(self):
         surface = self.options['surface']
 
-        ny = surface['num_y']
         mesh = surface['mesh']
+        ny = mesh.shape[1]
         mesh_shape = mesh.shape
         symmetry = surface['symmetry']
 

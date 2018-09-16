@@ -8,7 +8,6 @@ class Test(unittest.TestCase):
 
     def test(self):
         import numpy as np
-
         from openaerostruct.geometry.utils import generate_mesh, write_FFD_file
         from openaerostruct.geometry.geometry_group import Geometry
         from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
@@ -60,7 +59,6 @@ class Test(unittest.TestCase):
                     'with_wave' : False,     # if true, compute wave drag
                     }
 
-        surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
 
         surfaces = [surf_dict]
 

@@ -40,9 +40,9 @@ class ComputeTransformationMatrix(ExplicitComponent):
 
     def setup(self):
         self.surface = surface = self.options['surface']
-
-        ny = self.ny = surface['num_y']
-        nx = self.nx = surface['num_x']
+        mesh=surface['mesh']
+        nx = self.nx = mesh.shape[0]
+        ny = self.ny = mesh.shape[1]
 
         self.add_input('disp', val=np.zeros((ny, 6)), units='m')
         self.add_output('transformation_matrix', shape=(ny, 3, 3))

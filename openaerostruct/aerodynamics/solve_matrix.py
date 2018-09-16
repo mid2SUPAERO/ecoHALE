@@ -34,8 +34,9 @@ class SolveMatrix(ImplicitComponent):
         system_size = 0
 
         for surface in self.options['surfaces']:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
 
             system_size += (nx - 1) * (ny - 1)
 

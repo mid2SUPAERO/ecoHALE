@@ -19,7 +19,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
         disp = np.random.random_sample((ny, 6)) * 100.
 
         indep_var_comp.add_output('disp', val=disp, units='m')

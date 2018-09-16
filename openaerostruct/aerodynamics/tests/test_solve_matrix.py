@@ -14,13 +14,13 @@ class Test(unittest.TestCase):
 
         group = Group()
         comp = SolveMatrix(surfaces=surfaces)
-        
+
         indep_var_comp = IndepVarComp()
-        
+
         system_size = 0
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
             system_size += (nx - 1) * (ny - 1)
 
 
@@ -29,7 +29,7 @@ class Test(unittest.TestCase):
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('solve_matrix', comp, promotes=['*'])
-        
+
 
         run_test(self, group)
 

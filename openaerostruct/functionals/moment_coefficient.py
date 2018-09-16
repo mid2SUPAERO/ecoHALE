@@ -42,8 +42,8 @@ class MomentCoefficient(ExplicitComponent):
     def setup(self):
         for surface in self.options['surfaces']:
             name = surface['name']
-            ny = surface['num_y']
-            nx = surface['num_x']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
 
             self.add_input(name + '_b_pts', val=np.ones((nx-1, ny, 3)), units='m')
             self.add_input(name + '_widths', val=np.ones((ny-1)), units='m')
@@ -69,8 +69,8 @@ class MomentCoefficient(ExplicitComponent):
         # of the aircraft based on the section forces and their location
         for j, surface in enumerate(self.options['surfaces']):
             name = surface['name']
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
 
             b_pts = inputs[name + '_b_pts']
             widths = inputs[name + '_widths']
@@ -140,8 +140,8 @@ class MomentCoefficient(ExplicitComponent):
         # Loop through each surface.
         for j, surface in enumerate(self.options['surfaces']):
             name = surface['name']
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
 
             partials['CM', name + '_sec_forces'][:] = 0.0
             partials['CM', name + '_b_pts'][:] = 0.0

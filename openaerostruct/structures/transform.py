@@ -16,7 +16,7 @@ class Transform(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         self.add_input('nodes', shape=(ny, 3), units='m')
         self.add_output('transform', shape=(ny - 1, 12, 12))
@@ -39,7 +39,7 @@ class Transform(ExplicitComponent):
     def compute(self, inputs, outputs):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
 
         P0 = inputs['nodes'][:-1, :]
         P1 = inputs['nodes'][ 1:, :]
@@ -62,7 +62,7 @@ class Transform(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         P0 = inputs['nodes'][:-1, :]
         P1 = inputs['nodes'][ 1:, :]

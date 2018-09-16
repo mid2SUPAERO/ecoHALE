@@ -25,8 +25,9 @@ class VLMStates(Group):
 
         num_collocation_points = 0
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh=surface['mesh']
+            nx = self.nx = mesh.shape[0]
+            ny = self.ny = mesh.shape[1]
             num_collocation_points += (ny - 1) * (nx - 1)
 
         num_force_points = num_collocation_points

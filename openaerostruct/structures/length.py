@@ -14,7 +14,7 @@ class Length(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         self.add_input('nodes', shape=(ny, 3), units='m')
         self.add_output('element_lengths', shape=ny - 1, units='m')
@@ -32,7 +32,7 @@ class Length(ExplicitComponent):
     def compute(self, inputs, outputs):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
 
         vec = inputs['nodes'][1:, :] - inputs['nodes'][:-1, :]
 
@@ -41,7 +41,7 @@ class Length(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
 
         vec = inputs['nodes'][1:, :] - inputs['nodes'][:-1, :]
         vec_deriv = np.einsum('i,jk->ijk', np.ones(ny - 1), np.eye(3))

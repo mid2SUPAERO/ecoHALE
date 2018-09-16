@@ -40,7 +40,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         #carefully chosen "random" values that give non-uniform derivatives outputs that are good for testing
         nodesval = np.array([[1., 2., 4.],

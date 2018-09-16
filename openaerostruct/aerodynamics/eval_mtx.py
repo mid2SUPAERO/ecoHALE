@@ -159,8 +159,9 @@ class EvalVelMtx(ExplicitComponent):
         self.add_input('alpha', val=1., units='deg')
 
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh=surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             # Get the names for the vectors and vel_mtx. We have the lifting
@@ -246,8 +247,8 @@ class EvalVelMtx(ExplicitComponent):
         num_eval_points = self.options['num_eval_points']
 
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
             name = surface['name']
 
             alpha = inputs['alpha'][0]
@@ -336,8 +337,8 @@ class EvalVelMtx(ExplicitComponent):
         num_eval_points = self.options['num_eval_points']
 
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
             name = surface['name']
 
             vectors_name = '{}_{}_vectors'.format(name, eval_name)

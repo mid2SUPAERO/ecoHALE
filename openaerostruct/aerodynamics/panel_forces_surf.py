@@ -35,8 +35,9 @@ class PanelForcesSurf(ExplicitComponent):
 
         # Loop through the surfaces to get the total system size
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
 
             system_size += (nx - 1) * (ny - 1)
 
@@ -49,8 +50,9 @@ class PanelForcesSurf(ExplicitComponent):
         # from panel_forces to make sure the forces go to the correct output
         ind1, ind2 = 0, 0
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             sec_forces_name = '{}_sec_forces'.format(name)
@@ -70,8 +72,9 @@ class PanelForcesSurf(ExplicitComponent):
 
         ind1, ind2 = 0, 0
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             sec_forces_name = '{}_sec_forces'.format(name)

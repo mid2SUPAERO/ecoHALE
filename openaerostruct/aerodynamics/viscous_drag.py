@@ -50,7 +50,7 @@ class ViscousDrag(ExplicitComponent):
         # Thickness over chord for the airfoil
         self.c_max_t = surface['c_max_t']
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         self.add_input('re', val=5.e6, units='1/m')
         self.add_input('M', val=1.6)
