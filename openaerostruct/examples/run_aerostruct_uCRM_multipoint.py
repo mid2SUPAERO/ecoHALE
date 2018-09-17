@@ -1,23 +1,23 @@
-#===============================================================================
-# This script can be used to reproduce the multipoint aerostructural optimization
-# cases in the 'Low-fidelity aerostructural optimization of aircraft wings with 
-# a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan 
-# and Martins.
-# The fuel burn from the cruise case is the objective function and the 2.5g
-# maneuver case is used for the structural sizing. The wing is based on the
-# uCRM (undeflected Common Research Model Wing).
-# See the paper for more:
-# https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
-#
-# After running the optimization, use the 'plot_wing_wb_mpt.py' script in this 
-# directory as 'python plot_wing_wb_mpt.py aerostruct.db' to vizualize the results.
-# This script is based on the plot_wing.py script. It's still a bit hacky and will
-# probably not work as it is for other types of cases for now.
-#
-# Also note that there will be some slight differences between the results from
-# this script and the results in the paper because those results were from an
-# older version of OAS (very slight differences due to numerical errors, etc.)
-#===============================================================================
+"""
+This script can be used to reproduce the multipoint aerostructural optimization
+cases in the 'Low-fidelity aerostructural optimization of aircraft wings with 
+a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan 
+and Martins.
+The fuel burn from the cruise case is the objective function and the 2.5g
+maneuver case is used for the structural sizing. The wing is based on the
+uCRM (undeflected Common Research Model wing).
+See the paper for more:
+https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
+(https://doi.org/10.1007/978-3-319-97773-7_38)
+After running the optimization, use the 'plot_wingbox.py' script in the utils/ 
+directory (e.g., as 'python ../utils/plot_wingbox.py aerostruct.db' if running 
+from this directory) to vizualize the results.
+This script is based on the plot_wing.py script. It's still a bit hacky and will
+probably not work as it is for other types of cases for now.
+Also note that there will be some slight differences between the results from
+this script and the results in the paper because those results were from an
+older version of OAS (very slight differences due to numerical errors, etc.)
+"""
 
 from __future__ import division, print_function
 import numpy as np
@@ -116,16 +116,17 @@ prob = Problem()
 
 # Add problem information as an independent variables component
 indep_var_comp = IndepVarComp()
-indep_var_comp.add_output('v', val=.85 * 295.07, units='m/s')
+indep_var_comp.add_output('v', val=np.array([.85 * 295.07, .64 * 340.294]), units='m/s')
 indep_var_comp.add_output('alpha', val=0., units='deg')
 indep_var_comp.add_output('alpha_maneuver', val=0., units='deg')
-indep_var_comp.add_output('M', val=0.85)
-indep_var_comp.add_output('re', val=0.348*295.07*.85*1./(1.43*1e-5), units='1/m')
-indep_var_comp.add_output('rho', val=np.array([0.348, 0.9237]), units='kg/m**3')
+indep_var_comp.add_output('M', val=np.array([0.85, 0.64]))
+indep_var_comp.add_output('re', val=np.array([0.348*295.07*.85*1./(1.43*1e-5), \
+                          1.225*340.294*.64*1./(1.81206*1e-5)]),  units='1/m')
+indep_var_comp.add_output('rho', val=np.array([0.348, 1.225]), units='kg/m**3')
 indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
 indep_var_comp.add_output('R', val=14.307e6, units='m')
 indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
-indep_var_comp.add_output('a', val=295.07, units='m/s')
+indep_var_comp.add_output('a', val= np.array([295.07, 340.294]), units='m/s')
 indep_var_comp.add_output('load_factor', val=np.array([1., 2.5]))
 indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
@@ -158,14 +159,14 @@ for i in range(2):
     prob.model.add_subsystem(point_name, AS_point)
 
     # Connect flow properties to the analysis point
-    prob.model.connect('v', point_name + '.v')
-    prob.model.connect('M', point_name + '.M')
-    prob.model.connect('re', point_name + '.re')
+    prob.model.connect('v', point_name + '.v', src_indices=[i])
+    prob.model.connect('M', point_name + '.M', src_indices=[i])
+    prob.model.connect('re', point_name + '.re', src_indices=[i])
     prob.model.connect('rho', point_name + '.rho', src_indices=[i])
     prob.model.connect('CT', point_name + '.CT')
     prob.model.connect('R', point_name + '.R')
     prob.model.connect('W0', point_name + '.W0')
-    prob.model.connect('a', point_name + '.a')
+    prob.model.connect('a', point_name + '.a', src_indices=[i])
     prob.model.connect('empty_cg', point_name + '.empty_cg')
     prob.model.connect('load_factor', point_name + '.load_factor', src_indices=[i])
     prob.model.connect('fuel_mass', point_name + '.total_perf.L_equals_W.fuelburn')
@@ -175,7 +176,8 @@ for i in range(2):
 
         if i==0:
             prob.model.connect('load_factor', name + '.load_factor', src_indices=[i])
-        prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
+        if surf_dict['distributed_fuel_weight']:
+            prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 
         com_name = point_name + '.' + name + '_perf.'
         prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
@@ -183,7 +185,8 @@ for i in range(2):
 
         # Connect aerodyamic mesh to coupled group mesh
         prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
-        prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
+        if surf_dict['struct_weight_relief']:
+            prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
 
         # Connect performance calculation variables
         prob.model.connect(name + '.nodes', com_name + 'nodes')
@@ -214,11 +217,12 @@ prob.model.add_subsystem('fuel_vol_delta', WingboxFuelVolDelta(surface=surface))
 prob.model.connect('wing.struct_setup.fuel_vols', 'fuel_vol_delta.fuel_vols')
 
 prob.model.connect('AS_point_0.fuelburn', 'fuel_vol_delta.fuelburn')
-prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_0.coupled.wing.struct_states.fuel_vols')
-prob.model.connect('fuel_mass', 'AS_point_0.coupled.wing.struct_states.fuel_mass')
+if surf_dict['distributed_fuel_weight']:
+    prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_0.coupled.wing.struct_states.fuel_vols')
+    prob.model.connect('fuel_mass', 'AS_point_0.coupled.wing.struct_states.fuel_mass')
 
-prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
-prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
+    prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
+    prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
 
 comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
 prob.model.add_subsystem('fuel_diff', comp,
@@ -234,12 +238,20 @@ prob.model.connect('AS_point_1.fuelburn', 'fuel_diff_25.fuelburn')
 #=======================================================================================
 #=======================================================================================
 
-# from openmdao.api import ScipyOptimizeDriver
-# prob.driver = ScipyOptimizeDriver()
-# prob.driver.options['tol'] = 1e-9
+## Use these settings if you do not have pyOptSparse or SNOPT
+from openmdao.api import ScipyOptimizeDriver
+prob.driver = ScipyOptimizeDriver()
+prob.driver.options['tol'] = 1e-8
 
-from openmdao.api import pyOptSparseDriver
-prob.driver = pyOptSparseDriver()
+## The following are the optimizer settings used for the EngOpt conference paper
+## Uncomment them if you can use SNOPT
+# from openmdao.api import pyOptSparseDriver
+# prob.driver = pyOptSparseDriver()
+# prob.driver.options['optimizer'] = "SNOPT"
+# prob.driver.opt_settings['Major optimality tolerance'] = 5e-6
+# prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
+# prob.driver.opt_settings['Major iterations limit'] = 200
+
 recorder = SqliteRecorder("aerostruct.db")
 prob.driver.add_recorder(recorder)
 
@@ -248,7 +260,8 @@ prob.driver.recording_options['includes'] = \
 ['prob_vars.alpha', 'prob_vars.rho', 'prob_vars.v', 'prob_vars.cg', \
 'AS_point_1.total_perf.CG.cg', 'AS_point_0.total_perf.CG.cg', \
 'AS_point_0.coupled.wing_loads.loads', 'AS_point_1.coupled.wing_loads.loads', \
-'wing.geometry.mesh.mesh', 'wing.wingbox_group.skin_thickness_bsp.skin_thickness', \
+'wing.wingbox_group.skin_thickness_bsp.skin_thickness', \
+'wing.geometry.mesh.rotate.mesh',\
 'wing.wingbox_group.spar_thickness_bsp.spar_thickness', \
 'wing.wingbox_group.spar_thickness_bsp.spar_thickness', \
 'wing.geometry.t_over_c_bsp.t_over_c', \
@@ -271,13 +284,6 @@ prob.driver.recording_options['record_objectives'] = True
 prob.driver.recording_options['record_constraints'] = True
 prob.driver.recording_options['record_desvars'] = True
 prob.driver.recording_options['record_inputs'] = True
-
-
-
-prob.driver.options['optimizer'] = "SNOPT"
-prob.driver.opt_settings['Major optimality tolerance'] = 5e-6
-prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
-prob.driver.opt_settings['Major iterations limit'] = 200
 
 prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 
