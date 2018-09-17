@@ -245,7 +245,7 @@ class AerostructPoint(Group):
             # the coupled system
             perf_group = CoupledPerformance(surface=surface)
 
-            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=["rho", "v", "alpha", "re", "M"])
+            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=['rho', 'v', 'alpha', 're', 'Mach_number'])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all
