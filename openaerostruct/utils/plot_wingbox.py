@@ -257,7 +257,6 @@ class Display(object):
                 alpha.append(case.outputs['alpha'] * np.pi / 180.)
                 alpha_maneuver.append(case.outputs['alpha_maneuver'] * np.pi / 180.)
                 rho.append(case.outputs['rho'])
-                # SKETCHY
                 rho_maneuver.append(case.outputs['rho'])
                 v.append(case.outputs['v'])
                 if self.show_tube:
@@ -397,15 +396,14 @@ class Display(object):
 
                     forces = np.sum(sec_forces[i*n_names+j], axis=0)
 
-                    # SKETCHY
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                        widths[i*n_names+j]/0.5/rho[i][0]/v[i]**2
+                        widths[i*n_names+j]/0.5/rho[i][0]/v[i][0]**2
                     a_maneuver = alpha_maneuver[i]
                     cosa_maneuver = np.cos(a_maneuver)
                     sina_maneuver = np.sin(a_maneuver)
                     forces_maneuver = np.sum(sec_forces_maneuver[i*n_names+j], axis=0)
                     lift_maneuver= (-forces_maneuver[:, 0] * sina_maneuver + forces_maneuver[:, 2] * cosa_maneuver) / \
-                        widths_maneuver[i*n_names+j]/0.5/rho_maneuver[i][1]/v[i]**2
+                        widths_maneuver[i*n_names+j]/0.5/rho_maneuver[i][1]/v[i][1]**2
 
                     span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                     span = span - (span[0] + .5)
