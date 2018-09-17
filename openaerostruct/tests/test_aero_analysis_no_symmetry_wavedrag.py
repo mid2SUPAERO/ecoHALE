@@ -123,7 +123,7 @@ class Test(unittest.TestCase):
 
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.464191542231, 1e-6)
         assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.0222413119687, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.1603034566404, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -1.5717101821556665, 1e-6)
 
 
 
