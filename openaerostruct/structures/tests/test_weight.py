@@ -12,7 +12,7 @@ class Test(unittest.TestCase):
 
     def test(self):
         surface = get_default_surfaces()[0]
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         group = Group()
 

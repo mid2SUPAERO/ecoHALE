@@ -29,16 +29,16 @@ class StructuralCG(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         # Setup Inputs
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('structural_weight', val=0., units='N')
         self.add_input('element_weights', val=np.zeros((self.ny-1)), units='N')
-        
+
         # Setup Outputs
         self.add_output('cg_location', val=np.zeros((3)), units='m')
-        
+
         # Setup Partials
         self.declare_partials(of='cg_location', wrt='structural_weight')
         self.declare_partials(of='cg_location', wrt='element_weights')
@@ -50,9 +50,9 @@ class StructuralCG(ExplicitComponent):
         for i in range(dimensions):
             rows[i*self.ny:i*self.ny+self.ny]=i
             cols[i*self.ny:i*self.ny+self.ny]=cols_const+i
-            
+
         self.declare_partials(of='cg_location', wrt='nodes', rows=rows, cols=cols)
-        
+
         # Check partials options
         self.set_check_partial_options('*', method='cs', step=1e-40)
 
@@ -94,7 +94,7 @@ class StructuralCG(ExplicitComponent):
         values[1:ny] += ew
         values /= 2*structural_weight
         dimensions = 3
-        
+
         J['cg_location', 'nodes'] = np.tile(values,dimensions)
         if is_sym:
             J['cg_location', 'nodes'][ny:2*ny] = 0

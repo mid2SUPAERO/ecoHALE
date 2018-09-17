@@ -18,7 +18,7 @@ class WingboxGroup(Group):
 
     def setup(self):
         surface = self.options['surface']
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         if 'spar_thickness_cp' in surface.keys() or 'skin_thickness_cp' in surface.keys():
             # Add independent variables that do not belong to a specific component

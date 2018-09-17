@@ -49,8 +49,9 @@ class EvalVelocities(ExplicitComponent):
         # Determine system_size by looping through each surface and summing
         # the number of panels.
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             system_size += (nx - 1) * (ny - 1)
@@ -88,8 +89,9 @@ class EvalVelocities(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
             num = (nx - 1) * (ny - 1)
 
@@ -126,8 +128,9 @@ class EvalVelocities(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
             num = (nx - 1) * (ny - 1)
 
@@ -158,8 +161,9 @@ class EvalVelocities(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
             num = (nx - 1) * (ny - 1)
 

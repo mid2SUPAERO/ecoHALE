@@ -45,8 +45,8 @@ class LoadTransfer(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = ny = surface['num_y']
-        self.nx = nx = surface['num_x']
+        self.nx = nx = surface['mesh'].shape[0]
+        self.ny = ny = surface['mesh'].shape[1]
 
 
         if surface['fem_model_type'] == 'tube':
@@ -251,7 +251,11 @@ class LoadTransfer(ExplicitComponent):
         # and the FEM elements
         # diff [nx-1, ny-1, 3]
         diff = a_pts - s_pts
-        moment = np.zeros((self.ny - 1, 3), dtype=np.complex128)
+        dtype = float
+        if self.under_complex_step:
+            dtype = complex
+
+        moment = np.zeros((self.ny - 1, 3), dtype=dtype)
         for ind in range(self.nx-1):
             moment = moment + np.cross(diff[ind, :, :], sec_forces[ind, :, :], axis=1)
 

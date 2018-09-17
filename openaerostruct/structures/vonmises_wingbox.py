@@ -31,7 +31,7 @@ class VonMisesWingbox(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
+        self.ny = surface['mesh'].shape[1]
 
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
 

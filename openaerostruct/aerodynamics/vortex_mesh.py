@@ -35,8 +35,9 @@ class VortexMesh(ExplicitComponent):
         # We do have to account for symmetry here to create a ghost mesh
         # by mirroring the symmetric mesh.
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh=surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             mesh_name = '{}_def_mesh'.format(name)
@@ -115,8 +116,8 @@ class VortexMesh(ExplicitComponent):
         surfaces = self.options['surfaces']
 
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
             name = surface['name']
 
             mesh_name = '{}_def_mesh'.format(name)

@@ -23,7 +23,6 @@ class Test(unittest.TestCase):
         mesh[:, :, 1] = np.linspace(0, span, ny)
         surface['mesh'] = mesh
         surface['name'] = 'wing'
-        surface['num_y'] = ny
 
         # The way this is currently set up, we don't actually use the values here
         surface['twist_cp'] = np.zeros((5))

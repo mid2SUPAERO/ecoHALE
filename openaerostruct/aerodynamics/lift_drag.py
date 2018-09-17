@@ -31,8 +31,8 @@ class LiftDrag(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        ny = surface['num_y']
-        nx = surface['num_x']
+        self.nx = nx = surface['mesh'].shape[0]
+        self.ny = ny = surface['mesh'].shape[1]
         self.num_panels = (nx - 1) * (ny - 1)
 
         self.add_input('sec_forces', val=np.zeros((nx-1, ny-1, 3)), units='N')

@@ -1,23 +1,25 @@
-"""
-This script can be used to reproduce the multipoint aerostructural optimization
-cases in the 'Low-fidelity aerostructural optimization of aircraft wings with 
-a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan 
-and Martins.
-The fuel burn from the cruise case is the objective function and the 2.5g
-maneuver case is used for the structural sizing. The wing is based on the
-uCRM (undeflected Common Research Model wing).
-See the paper for more:
-https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
-(https://doi.org/10.1007/978-3-319-97773-7_38)
-After running the optimization, use the 'plot_wingbox.py' script in the utils/ 
-directory (e.g., as 'python ../utils/plot_wingbox.py aerostruct.db' if running 
-from this directory) to vizualize the results.
-This script is based on the plot_wing.py script. It's still a bit hacky and will
-probably not work as it is for other types of cases for now.
-Also note that there will be some slight differences between the results from
-this script and the results in the paper because those results were from an
-older version of OAS (very slight differences due to numerical errors, etc.)
-"""
+#===============================================================================
+# This script can be used to reproduce the multipoint aerostructural optimization
+# cases in the 'Low-fidelity aerostructural optimization of aircraft wings with
+# a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan
+# and Martins.
+# The fuel burn from the cruise case is the objective function and the 2.5g
+# maneuver case is used for the structural sizing. The wing is based on the
+# uCRM (undeflected Common Research Model Wing).
+# See the paper for more:
+# https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
+#
+# After running the optimization, use the 'plot_wing_wb_mpt.py' script in this
+# directory as 'python plot_wing_wb_mpt.py aerostruct.db' to vizualize the results.
+# This script is based on the plot_wing.py script. It's still a bit hacky and will
+# probably not work as it is for other types of cases for now.
+#
+# Also note that there will be some slight differences between the results from
+# this script and the results in the paper because those results were from an
+# older version of OAS (very slight differences due to numerical errors, etc.)
+#===============================================================================
+=======
+
 
 from __future__ import division, print_function
 import numpy as np
@@ -66,8 +68,6 @@ surf_dict = {
             'skin_thickness_cp' : np.array([0.005, 0.01, 0.015, 0.020, 0.025, 0.026]),
             'twist_cp' : np.array([4., 5., 8., 8., 8., 9.]),
             'mesh' : mesh,
-            'num_x' : mesh.shape[0],
-            'num_y' : mesh.shape[1],
 
             'data_x_upper' : upper_x,
             'data_x_lower' : lower_x,

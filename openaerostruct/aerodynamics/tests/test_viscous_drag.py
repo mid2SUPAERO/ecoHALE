@@ -11,8 +11,8 @@ class Test(unittest.TestCase):
         surface = get_default_surfaces()[0]
         surface['t_over_c_cp'] = np.array([0.1, 0.15, 0.2])
 
-        ny = surface['num_y']
-        nx = surface['num_x']
+        nx = surface['mesh'].shape[0]
+        ny = surface['mesh'].shape[1]
         n_cp = len(surface['t_over_c_cp'])
 
         group = Group()
@@ -36,8 +36,8 @@ class Test(unittest.TestCase):
         surface = get_default_surfaces()[0]
         surface['k_lam'] = .5
 
-        ny = surface['num_y']
-        nx = surface['num_x']
+        nx = surface['mesh'].shape[0]
+        ny = surface['mesh'].shape[1]
         n_cp = len(surface['t_over_c_cp'])
 
         group = Group()

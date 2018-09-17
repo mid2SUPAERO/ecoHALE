@@ -23,7 +23,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         nodesval = np.array([[0., 0., 0.],
                             [0., 1., 0.],

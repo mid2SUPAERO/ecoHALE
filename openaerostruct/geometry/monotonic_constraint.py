@@ -32,7 +32,7 @@ class MonotonicConstraint(ExplicitComponent):
         self.con_name = 'monotonic_' + self.var_name
 
         self.symmetry = surface['symmetry']
-        self.ny = surface['num_y']
+        self.ny = surface['mesh'].shape[1]
 
         self.add_input(self.var_name, val=np.zeros(self.ny))
         self.add_output(self.con_name, val=np.zeros(self.ny-1))

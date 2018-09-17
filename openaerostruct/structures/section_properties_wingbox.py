@@ -22,8 +22,8 @@ class SectionPropertiesWingbox(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
         self.mesh = surface['mesh']
+        self.ny = self.mesh.shape[1]
         self.orig_wb_af_t_over_c = surface['original_wingbox_airfoil_t_over_c']
 
         self.data_x_upper = surface['data_x_upper']

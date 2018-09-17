@@ -48,8 +48,9 @@ class CollocationPoints(ExplicitComponent):
         # Loop through all the surfaces to determine the total number
         # of evaluation points.
         for surface in self.options['surfaces']:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
 
             num_eval_points += (nx - 1) * (ny - 1)
 
@@ -62,8 +63,9 @@ class CollocationPoints(ExplicitComponent):
         ind_eval_points_1 = 0
         ind_eval_points_2 = 0
         for surface in self.options['surfaces']:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             # Keep track of how many evaluation points come from this surface.
@@ -123,8 +125,9 @@ class CollocationPoints(ExplicitComponent):
         # paying special attention to the total number of evaluation points
         # in the system and each surface's place within the final arrays.
         for surface in self.options['surfaces']:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             ind_eval_points_2 += (nx - 1) * (ny - 1)

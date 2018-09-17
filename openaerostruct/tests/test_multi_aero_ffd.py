@@ -71,8 +71,6 @@ class Test(unittest.TestCase):
                     'with_wave' : False,     # if true, compute wave drag
                     }
 
-        surf_dict['num_x'], surf_dict['num_y'] = surf_dict['mesh'].shape[:2]
-
         surfaces = [surf_dict]
 
         n_points = 2
