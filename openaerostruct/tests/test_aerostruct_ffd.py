@@ -14,9 +14,8 @@ class Test(unittest.TestCase):
 
     def test(self):
         from openaerostruct.geometry.utils import generate_mesh, write_FFD_file
-        from openaerostruct.geometry.geometry_group import Geometry
 
-        from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
+        from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
         from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
         from pygeo import DVGeometry
@@ -44,8 +43,6 @@ class Test(unittest.TestCase):
                     'thickness_cp' : np.array([.1, .2, .3]),
 
                     'mesh' : mesh,
-                    'num_x' : mesh.shape[0],
-                    'num_y' : mesh.shape[1],
 
                     'geom_manipulator' : 'FFD',
                     'mx' : 2,
@@ -114,7 +111,7 @@ class Test(unittest.TestCase):
 
             filename = write_FFD_file(surface, surface['mx'], surface['my'])
             DVGeo = DVGeometry(filename)
-            aerostruct_group = Aerostruct(surface=surface, DVGeo=DVGeo)
+            aerostruct_group = AerostructGeometry(surface=surface, DVGeo=DVGeo)
 
             # Add tmp_group to the problem with the name of the surface.
             prob.model.add_subsystem(name, aerostruct_group)

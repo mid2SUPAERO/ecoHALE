@@ -42,8 +42,9 @@ class VLMGeometry(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = ny = surface['num_y']
-        self.nx = nx = surface['num_x']
+        mesh=surface['mesh']
+        nx = self.nx = mesh.shape[0]
+        ny = self.ny = mesh.shape[1]
 
         # All of these computations only need the deformed mesh
         self.add_input('def_mesh', val=np.zeros((nx, ny, 3)), units='m')

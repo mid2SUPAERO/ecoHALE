@@ -47,7 +47,8 @@ class FailureKS(ExplicitComponent):
         elif surface['fem_model_type'] == 'wingbox':
             num_failure_criteria = 4
 
-        self.ny = surface['num_y']
+        self.ny = surface['mesh'].shape[1]
+
 
         self.add_input('vonmises', val=np.zeros((self.ny-1, num_failure_criteria)), units='N/m**2')
         self.add_output('failure', val=0.)

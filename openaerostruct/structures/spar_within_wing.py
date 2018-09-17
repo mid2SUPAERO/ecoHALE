@@ -38,8 +38,8 @@ class SparWithinWing(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
-        nx = surface['num_x']
+        self.ny = surface['mesh'].shape[1]
+        nx = surface['mesh'].shape[0]
 
         self.add_input('mesh', val=np.zeros((nx, self.ny, 3)), units='m')
         self.add_input('radius', val=np.zeros((self.ny-1)), units='m')

@@ -4,9 +4,8 @@ import unittest
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.geometry_group import Geometry
 
-from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
+from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
@@ -55,8 +54,6 @@ class Test(unittest.TestCase):
                     'skin_thickness_cp' : np.array([0.005, 0.01, 0.015, 0.020, 0.025, 0.026]),
                     'twist_cp' : np.array([4., 5., 8., 8., 8., 9.]),
                     'mesh' : mesh,
-                    'num_x' : mesh.shape[0],
-                    'num_y' : mesh.shape[1],
 
                     'data_x_upper' : upper_x,
                     'data_x_lower' : lower_x,
@@ -128,7 +125,7 @@ class Test(unittest.TestCase):
             # only for this surface
             name = surface['name']
 
-            aerostruct_group = Aerostruct(surface=surface)
+            aerostruct_group = AerostructGeometry(surface=surface)
 
             # Add tmp_group to the problem with the name of the surface.
             prob.model.add_subsystem(name, aerostruct_group)

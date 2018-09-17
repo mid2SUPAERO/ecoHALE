@@ -43,7 +43,7 @@ class WaveDrag(ExplicitComponent):
         # Thickness over chord for the airfoil
         self.ka = 0.95  # airfoil technology level (for NASA SC airfoil)
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         self.add_input('Mach_number', val=1.6)
         self.add_input('cos_sweep', val=np.ones((ny-1))*.2, units='m')
@@ -85,7 +85,7 @@ class WaveDrag(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         """ Jacobian for wave drag."""
         if self.with_wave:
-            ny = self.surface['num_y']
+            ny = self.surface['mesh'].shape[1]
             t_over_c = inputs['t_over_c']
             widths = inputs['widths']
             cos_sweep = inputs['cos_sweep']

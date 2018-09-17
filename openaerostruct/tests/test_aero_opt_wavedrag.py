@@ -33,8 +33,6 @@ class Test(unittest.TestCase):
                                              # can be 'wetted' or 'projected'
 
                     'mesh' : mesh,
-                    'num_x' : mesh.shape[0],
-                    'num_y' : mesh.shape[1],
                     'twist_cp' : twist_cp,
 
                     # Aerodynamic performance of the lifting surface at

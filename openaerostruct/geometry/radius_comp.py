@@ -23,7 +23,7 @@ class RadiusComp(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        self.nx, self.ny = surface['num_x'], surface['num_y']
+        self.nx, self.ny = surface['mesh'].shape[0],surface['mesh'].shape[1]
         self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
         self.add_input('t_over_c', val=np.ones((self.ny-1)))
         self.add_output('radius', val=np.ones((self.ny - 1)), units='m')

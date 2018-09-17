@@ -49,8 +49,6 @@ class Test(unittest.TestCase):
 
                     'twist_cp' : np.zeros(2),
                     'mesh' : mesh,
-                    'num_x' : mesh.shape[0],
-                    'num_y' : mesh.shape[1],
 
                     # Aerodynamic performance of the lifting surface at
                     # an angle of attack of 0 (alpha=0).

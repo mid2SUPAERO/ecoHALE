@@ -33,7 +33,7 @@ class NonIntersectingThickness(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = surface['num_y']
+        self.ny = surface['mesh'].shape[1]
 
         self.add_input('thickness', val=np.zeros((self.ny-1)), units='m')
         self.add_input('radius', val=np.zeros((self.ny-1)), units='m')

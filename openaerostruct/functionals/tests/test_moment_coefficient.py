@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 
 from openmdao.api import Group, IndepVarComp
 
@@ -9,13 +10,12 @@ from openaerostruct.utils.testing import run_test, get_default_surfaces
 class Test(unittest.TestCase):
 
     def test(self):
+
         wing_dict = {'name' : 'wing',
-                     'num_y' : 7,
-                     'num_x' : 2,
+                     'mesh': np.zeros((2,7)),
                      'symmetry' : True}
         tail_dict = {'name' : 'tail',
-                     'num_y' : 5,
-                     'num_x' : 3,
+                     'mesh': np.zeros((3,5)),
                      'symmetry' : False}
 
         surfaces = [wing_dict, tail_dict]

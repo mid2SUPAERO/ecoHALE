@@ -41,8 +41,9 @@ class PanelForces(ExplicitComponent):
         system_size = 0
 
         for surface in surfaces:
-            ny = surface['num_y']
-            nx = surface['num_x']
+            mesh = surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
 
             system_size += (nx - 1) * (ny - 1)
 

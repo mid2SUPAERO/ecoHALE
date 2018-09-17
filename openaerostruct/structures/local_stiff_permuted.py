@@ -27,7 +27,7 @@ class LocalStiffPermuted(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         self.add_input('local_stiff', shape=(ny - 1, 12, 12))
         self.add_output('local_stiff_permuted', shape=(ny - 1, 12, 12))
@@ -51,6 +51,6 @@ class LocalStiffPermuted(ExplicitComponent):
     def compute(self, inputs, outputs):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
 
         outputs['local_stiff_permuted'] = np.einsum('jl,ilm,mk->ijk', mtx.T, inputs['local_stiff'], mtx)

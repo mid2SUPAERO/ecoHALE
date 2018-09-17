@@ -36,8 +36,9 @@ class ConvertVelocity(ExplicitComponent):
         # Loop through each surface and cumulatively add the number of panels
         # to obtain system_size.
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh=surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             system_size += (nx - 1) * (ny - 1)

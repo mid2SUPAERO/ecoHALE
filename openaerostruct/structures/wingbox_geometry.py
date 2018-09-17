@@ -40,7 +40,8 @@ class WingboxGeometry(ExplicitComponent):
 
     def setup(self):
         self.surface = self.options['surface']
-        nx, ny = self.surface['num_x'], self.surface['num_y']
+        mesh = self.surface['mesh']
+        nx, ny = mesh.shape[0], mesh.shape[1]
 
         self.add_input('mesh', val=np.zeros((nx, ny, 3)),units='m')
 

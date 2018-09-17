@@ -16,7 +16,7 @@ class Test(unittest.TestCase):
 
         indep_var_comp = IndepVarComp()
 
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
 
         mesh = surface['mesh']
 

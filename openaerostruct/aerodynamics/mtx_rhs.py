@@ -46,8 +46,9 @@ class VLMMtxRHSComp(ExplicitComponent):
         # Loop through the surfaces to compute the total number of panels;
         # the system_size
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh=surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
 
             system_size += (nx - 1) * (ny - 1)
@@ -77,8 +78,9 @@ class VLMMtxRHSComp(ExplicitComponent):
         # This is because the AIC linear system has information for all surfaces
         # together.
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            mesh=surface['mesh']
+            nx = mesh.shape[0]
+            ny = mesh.shape[1]
             name = surface['name']
             num = (nx - 1) * (ny - 1)
 
@@ -126,8 +128,8 @@ class VLMMtxRHSComp(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
             name = surface['name']
             num = (nx - 1) * (ny - 1)
 
@@ -156,8 +158,8 @@ class VLMMtxRHSComp(ExplicitComponent):
         ind_1 = 0
         ind_2 = 0
         for surface in surfaces:
-            nx = surface['num_x']
-            ny = surface['num_y']
+            nx = surface['mesh'].shape[0]
+            ny = surface['mesh'].shape[1]
             name = surface['name']
             num = (nx - 1) * (ny - 1)
 

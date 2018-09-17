@@ -36,7 +36,7 @@ class LocalStiff(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        self.ny = ny = surface['mesh'].shape[1]
 
         self.add_input('A', shape=ny - 1, units='m**2')
         self.add_input('J', shape=ny - 1, units='m**4')
@@ -58,7 +58,7 @@ class LocalStiff(ExplicitComponent):
     def compute(self, inputs, outputs):
         surface = self.options['surface']
 
-        ny = surface['num_y']
+        ny = self.ny
         E = surface['E']
         G = surface['G']
 
@@ -91,7 +91,7 @@ class LocalStiff(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
-        ny = surface['num_y']
+        ny = surface['mesh'].shape[1]
         E = surface['E']
         G = surface['G']
 

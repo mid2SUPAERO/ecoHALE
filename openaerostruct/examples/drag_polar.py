@@ -38,10 +38,10 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
     for surface in surfaces:
         name = surface['name']
         # Create and add a group that handles the geometry for the
-        # aerodynamic lifting surface   
+        # aerodynamic lifting surface
         geom_group = Geometry(surface=surface)
         prob.model.add_subsystem(name, geom_group)
-        
+
         # Connect the mesh from the geometry component to the analysis point
         prob.model.connect(name + '.mesh', 'aero.' + name + '.def_mesh')
         # Perform the connections with the modified names within the
@@ -51,7 +51,7 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
     # Create the aero point group, which contains the actual aerodynamic
     # analyses
     point_name = 'aero'
-    aero_group = AeroPoint(surfaces=surfaces) 
+    aero_group = AeroPoint(surfaces=surfaces)
     prob.model.add_subsystem(point_name, aero_group,
         promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho', 'cg'])
 
@@ -63,7 +63,7 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
             promotes_outputs = ['tail_rotation'])
         prob.model.connect('aero.CM', 'balance.lhs:tail_rotation', src_indices = [1])
         prob.model.connect('tail_rotation', 'tail.twist_cp', src_indices = np.zeros((1,5), dtype = int))
-        
+
         # Use Newton Solver
         # prob.model.nonlinear_solver = NewtonSolver()
         # prob.model.nonlinear_solver.options['solve_subsystems'] = True
@@ -73,14 +73,14 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
         prob.model.nonlinear_solver.options['state_vars'] = ['tail_rotation']
 
         # prob.model.nonlinear_solver.linesearch = ArmijoGoldsteinLS()
-        
+
         prob.model.nonlinear_solver.options['iprint'] = 2
         prob.model.nonlinear_solver.options['maxiter'] = 20
         prob.model.linear_solver = DirectSolver()
-    
+
 
     prob.setup()
-    
+
     #prob['tail_rotation'] = -0.75
 
     prob.run_model()
@@ -94,14 +94,14 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
     CMs = []
 
     for a in alphas:
-        prob['alpha'] =  a 
+        prob['alpha'] =  a
         prob.run_model()
         CLs.append(prob['aero.CL'][0])
         CDs.append(prob['aero.CD'][0])
         CMs.append(prob['aero.CM'][1]) # Take only the longitudinal CM
         #print(a, prob['aero.CL'], prob['aero.CD'], prob['aero.CM'][1])
 
-    # Plot CL vs alpha and drag polar 
+    # Plot CL vs alpha and drag polar
     fig,axes =  plt.subplots(nrows=3)
     axes[0].plot(alphas, CLs)
     axes[1].plot(alphas, CMs)
@@ -135,8 +135,6 @@ if __name__=='__main__':
                 'fem_model_type' : 'tube',
                 'twist_cp' : twist_cp,
                 'mesh' : mesh,
-                'num_x' : mesh.shape[0],
-                'num_y' : mesh.shape[1],
                 # Aerodynamic performance of the lifting surface at
                 # an angle of attack of 0 (alpha=0).
                 # These CL0 and CD0 values are added to the CL and CD
@@ -174,8 +172,6 @@ if __name__=='__main__':
                 'twist_cp' : twist_cp,
                 'twist_cp_dv' : False,
                 'mesh' : mesh,
-                'num_x' : mesh.shape[0],
-                'num_y' : mesh.shape[1],
 
                 # Aerodynamic performance of the lifting surface at
                 # an angle of attack of 0 (alpha=0).
