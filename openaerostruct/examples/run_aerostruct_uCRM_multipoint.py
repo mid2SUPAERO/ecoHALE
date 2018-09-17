@@ -26,7 +26,7 @@ import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
-from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
+from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp, SqliteRecorder
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 
@@ -142,7 +142,7 @@ for surface in surfaces:
     # only for this surface
     name = surface['name']
 
-    aerostruct_group = Aerostruct(surface=surface)
+    aerostruct_group = AerostructGeometry(surface=surface)
 
     # Add tmp_group to the problem with the name of the surface.
     prob.model.add_subsystem(name, aerostruct_group)
