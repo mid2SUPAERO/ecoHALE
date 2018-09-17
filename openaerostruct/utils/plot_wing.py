@@ -170,7 +170,7 @@ class Display(object):
                     self.mesh.append(case.outputs[name+'.mesh'])
 
                     try:
-                        self.radius.append(case.outputs[name+'.radius'])
+                        self.radius.append(np.squeeze(case.outputs[name+'.radius']))
                         self.thickness.append(case.outputs[name+'.thickness'])
                         self.vonmises.append(
                             np.max(case.outputs[name+'.vonmises'], axis=1))
@@ -192,7 +192,7 @@ class Display(object):
                     self.show_wing, self.show_tube = True, True
 
                     self.mesh.append(case.outputs[name+'.mesh'])
-                    self.radius.append(case.outputs[name+'.radius'])
+                    self.radius.append(np.squeeze(case.outputs[name+'.radius']))
                     self.thickness.append(case.outputs[name+'.thickness'])
 
                     vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_name, surf_name=name)

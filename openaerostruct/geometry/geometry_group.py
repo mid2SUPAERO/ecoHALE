@@ -2,8 +2,6 @@ import numpy as np
 
 from openmdao.api import IndepVarComp, Group, BsplinesComp
 
-from openaerostruct.geometry.radius_comp import RadiusComp
-
 
 class Geometry(Group):
     """ Group that contains everything needed for a structural-only problem. """
