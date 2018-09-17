@@ -156,7 +156,7 @@ class Test(unittest.TestCase):
             prob.model.connect('CT', point_name + '.CT')
             prob.model.connect('R', point_name + '.R')
             prob.model.connect('W0', point_name + '.W0')
-            prob.model.connect('speed_of_sound', point_name + '.a')
+            prob.model.connect('speed_of_sound', point_name + '.speed_of_sound')
             prob.model.connect('empty_cg', point_name + '.empty_cg')
             prob.model.connect('load_factor', point_name + '.load_factor')
 
