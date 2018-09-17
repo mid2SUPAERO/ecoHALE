@@ -114,7 +114,7 @@ class CoupledPerformance(Group):
 
         self.add_subsystem('aero_funcs',
             VLMFunctionals(surface=surface),
-            promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'S_ref', 'sec_forces', 't_over_c'], promotes_outputs=['CDv', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
+            promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho', 'widths', 'cos_sweep', 'lengths', 'S_ref', 'sec_forces', 't_over_c'], promotes_outputs=['CDv', 'L', 'D', 'CL1', 'CDi', 'CD', 'CL'])
 
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_funcs',
@@ -245,7 +245,7 @@ class AerostructPoint(Group):
             # the coupled system
             perf_group = CoupledPerformance(surface=surface)
 
-            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=["rho", "v", "alpha", "re", "M"])
+            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=['rho', 'v', 'alpha', 're', 'Mach_number'])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all
@@ -254,5 +254,5 @@ class AerostructPoint(Group):
                  TotalPerformance(surfaces=surfaces,
                  user_specified_Sref=self.options['user_specified_Sref'],
                  internally_connect_fuelburn=self.options['internally_connect_fuelburn']),
-                 promotes_inputs=['v', 'rho', 'empty_cg', 'total_weight', 'CT', 'a', 'R', 'M', 'W0', 'load_factor', 'S_ref_total'],
+                 promotes_inputs=['v', 'rho', 'empty_cg', 'total_weight', 'CT', 'speed_of_sound', 'R', 'Mach_number', 'W0', 'load_factor', 'S_ref_total'],
                  promotes_outputs=['L_equals_W', 'fuelburn', 'CL', 'CD', 'CM', 'cg'])

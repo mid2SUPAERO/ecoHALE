@@ -25,7 +25,7 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
     indep_var_comp = IndepVarComp()
     indep_var_comp.add_output('v', val=248.136, units='m/s')
     indep_var_comp.add_output('alpha', val=0., units = 'deg')
-    indep_var_comp.add_output('M', val=Mach)
+    indep_var_comp.add_output('Mach_number', val=Mach)
     indep_var_comp.add_output('re', val=1.e6, units='1/m')
     indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
     indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
@@ -53,7 +53,7 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
     point_name = 'aero'
     aero_group = AeroPoint(surfaces=surfaces)
     prob.model.add_subsystem(point_name, aero_group,
-        promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'cg'])
+        promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho', 'cg'])
 
     # For trimmed polar, setup balance component
     if trimmed == True:

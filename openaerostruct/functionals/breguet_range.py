@@ -39,9 +39,9 @@ class BreguetRange(ExplicitComponent):
         self.add_input('CT', val=0.25, units='1/s')
         self.add_input('CL', val=0.7)
         self.add_input('CD', val=0.02)
-        self.add_input('a', val=100., units='m/s')
+        self.add_input('speed_of_sound', val=100., units='m/s')
         self.add_input('R', val=3000., units='m')
-        self.add_input('M', val=1.2)
+        self.add_input('Mach_number', val=1.2)
         self.add_input('W0', val=200., units='kg')
         self.add_input('load_factor', val=1.05)
 
@@ -54,9 +54,9 @@ class BreguetRange(ExplicitComponent):
 
         g = 9.80665 * inputs['load_factor']
         CT = inputs['CT']
-        a = inputs['a']
+        a = inputs['speed_of_sound']
         R = inputs['R']
-        M = inputs['M']
+        M = inputs['Mach_number']
         W0 = inputs['W0'] * g
 
         # Loop through the surfaces and add up the structural weights
@@ -78,9 +78,9 @@ class BreguetRange(ExplicitComponent):
 
         g = 9.80665 * inputs['load_factor']
         CT = inputs['CT']
-        a = inputs['a']
+        a = inputs['speed_of_sound']
         R = inputs['R']
-        M = inputs['M']
+        M = inputs['Mach_number']
         W0 = inputs['W0'] * g
 
         Ws = 0.
@@ -109,9 +109,9 @@ class BreguetRange(ExplicitComponent):
         partials['fuelburn', 'CL'] = dfb_dCL / 9.80665
         partials['fuelburn', 'CD'] = dfb_dCD / 9.80665
         partials['fuelburn', 'CT'] = dfb_dCT / 9.80665
-        partials['fuelburn', 'a'] = dfb_da / 9.80665
+        partials['fuelburn', 'speed_of_sound'] = dfb_da / 9.80665
         partials['fuelburn', 'R'] = dfb_dR / 9.80665
-        partials['fuelburn', 'M'] = dfb_dM / 9.80665
+        partials['fuelburn', 'Mach_number'] = dfb_dM / 9.80665
         partials['fuelburn', 'W0'] = dfb_dW * inputs['load_factor']
         partials['fuelburn', 'load_factor'] = (W0 / inputs['load_factor'] + Ws) * dfb_dW / 9.80665
 

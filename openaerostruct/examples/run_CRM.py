@@ -60,7 +60,7 @@ prob = Problem()
 indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=248.136, units='m/s')
 indep_var_comp.add_output('alpha', val=5., units='deg')
-indep_var_comp.add_output('M', val=0.84)
+indep_var_comp.add_output('Mach_number', val=0.84)
 indep_var_comp.add_output('re', val=1.e6, units='1/m')
 indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
 indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
@@ -80,7 +80,7 @@ prob.model.add_subsystem(surface['name'], geom_group)
 aero_group = AeroPoint(surfaces=[surface])
 point_name = 'aero_point_0'
 prob.model.add_subsystem(point_name, aero_group,
-    promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'cg'])
+    promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho', 'cg'])
 
 name = surface['name']
 

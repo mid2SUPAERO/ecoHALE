@@ -78,7 +78,7 @@ class Test(unittest.TestCase):
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
         indep_var_comp.add_output('alpha', val=6.64, units='deg')
-        indep_var_comp.add_output('M', val=0.84)
+        indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
         indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
@@ -110,7 +110,7 @@ class Test(unittest.TestCase):
             # Connect flow properties to the analysis point
             prob.model.connect('v', point_name + '.v')
             prob.model.connect('alpha', point_name + '.alpha')
-            prob.model.connect('M', point_name + '.M')
+            prob.model.connect('Mach_number', point_name + '.Mach_number')
             prob.model.connect('re', point_name + '.re')
             prob.model.connect('rho', point_name + '.rho')
             prob.model.connect('cg', point_name + '.cg')
@@ -153,7 +153,7 @@ class Test(unittest.TestCase):
 
         assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03398038, 1e-6)
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.18379626783513864, 1e-5)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -1.7736315914915437, 1e-5)
 
 
 if __name__ == '__main__':

@@ -106,7 +106,7 @@ class MomentCoefficient(ExplicitComponent):
 
             # Note: a scalar can be factored from a cross product, so I moved the division by MAC
             # down here for efficiency of calc and derivs.
-            M = M + np.sum(moment, axis=0) / MAC
+            M = M + np.sum(moment, axis=0)
 
             # For the first (main) lifting surface, we save the MAC to correctly
             # normalize CM
@@ -197,10 +197,10 @@ class MomentCoefficient(ExplicitComponent):
             dcdb[2, :, :, 0] = -diff[:, :, 1]
             dcdb[2, :, :, 1] = diff[:, :, 0]
 
-            partials['CM', name + '_sec_forces'] += dcdb.reshape((3, 3*(nx-1)*(ny-1))) * fact / MAC
+            partials['CM', name + '_sec_forces'] += dcdb.reshape((3, 3*(nx-1)*(ny-1))) * fact
 
             dc_dchord = np.einsum('ijkl,km->ijml', dcda, dpc_dc)
-            partials['CM', name + '_b_pts'] += dc_dchord.reshape((3, 3*(nx-1)*ny)) * fact / MAC
+            partials['CM', name + '_b_pts'] += dc_dchord.reshape((3, 3*(nx-1)*ny)) * fact
 
             dcda = np.einsum('ijkl->il', dcda)
 
@@ -220,19 +220,16 @@ class MomentCoefficient(ExplicitComponent):
                 dcda[1, :] *= 2.0
                 dcda[2, :] = 0.
 
-            partials['CM', 'cg'] -= dcda * fact / MAC
+            partials['CM', 'cg'] -= dcda * fact
 
             M_j = np.sum(moment, axis=0)
-            term = fact / MAC**2
+            term = fact / MAC
             partials['CM', name + '_chords'] = -np.outer(M_j * term, dMAC_dc)
             partials['CM', name + '_widths'] = -np.outer(M_j * term, dMAC_dw)
             partials['CM', name + '_S_ref'] = -np.outer(M_j, dMAC_dS * term)
 
-            # For first surface, MAC is a higher power.
+            # For first surface, we need to save the deriv results
             if j == 0:
-                partials['CM', name + '_chords'] *= 2.0
-                partials['CM', name + '_widths'] *= 2.0
-                partials['CM', name + '_S_ref'] *= 2.0
                 base_name = name
                 base_dMAC_dc = dMAC_dc
                 base_dMAC_dw = dMAC_dw

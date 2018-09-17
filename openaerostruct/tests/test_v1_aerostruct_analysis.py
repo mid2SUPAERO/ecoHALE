@@ -78,13 +78,13 @@ class Test(unittest.TestCase):
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
         indep_var_comp.add_output('alpha', val=5., units='deg')
-        indep_var_comp.add_output('M', val=0.84)
+        indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
         indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
         indep_var_comp.add_output('R', val=11.165e6, units='m')
         indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
-        indep_var_comp.add_output('a', val=295.4, units='m/s')
+        indep_var_comp.add_output('speed_of_sound', val=295.4, units='m/s')
         indep_var_comp.add_output('load_factor', val=1.)
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 
@@ -118,13 +118,13 @@ class Test(unittest.TestCase):
             # Connect flow properties to the analysis point
             prob.model.connect('v', point_name + '.v')
             prob.model.connect('alpha', point_name + '.alpha')
-            prob.model.connect('M', point_name + '.M')
+            prob.model.connect('Mach_number', point_name + '.Mach_number')
             prob.model.connect('re', point_name + '.re')
             prob.model.connect('rho', point_name + '.rho')
             prob.model.connect('CT', point_name + '.CT')
             prob.model.connect('R', point_name + '.R')
             prob.model.connect('W0', point_name + '.W0')
-            prob.model.connect('a', point_name + '.a')
+            prob.model.connect('speed_of_sound', point_name + '.speed_of_sound')
             prob.model.connect('empty_cg', point_name + '.empty_cg')
             prob.model.connect('load_factor', point_name + '.load_factor')
 
@@ -159,7 +159,7 @@ class Test(unittest.TestCase):
         assert_rel_error(self, prob['AS_point_0.wing_perf.CL'][0], 0.501212803372, 1e-6)
         assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], -0.434049851068, 1e-6)
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 70365.875285, 1e-4)
-        assert_rel_error(self, prob['AS_point_0.CM'][1], -0.129720748279, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.CM'][1], -1.2725562400264683, 1e-5)
 
 
 if __name__ == '__main__':
