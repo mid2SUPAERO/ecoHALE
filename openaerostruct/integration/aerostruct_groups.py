@@ -16,7 +16,7 @@ from openaerostruct.structures.wingbox_group import WingboxGroup
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, ExplicitComponent, PetscKSP
 
 
-class Aerostruct(Group):
+class AerostructGeometry(Group):
 
     def initialize(self):
         self.options.declare('surface', types=dict)

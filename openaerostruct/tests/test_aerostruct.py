@@ -9,9 +9,8 @@ class Test(unittest.TestCase):
         import numpy as np
 
         from openaerostruct.geometry.utils import generate_mesh
-        from openaerostruct.geometry.geometry_group import Geometry
 
-        from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
+        from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
         from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
 
@@ -91,7 +90,7 @@ class Test(unittest.TestCase):
              indep_var_comp,
              promotes=['*'])
 
-        aerostruct_group = Aerostruct(surface=surface)
+        aerostruct_group = AerostructGeometry(surface=surface)
 
         name = 'wing'
 
