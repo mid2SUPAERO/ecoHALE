@@ -4,7 +4,7 @@ from subprocess import call
 
 
 setup(name='openaerostruct',
-    version='2.0.0',
+    version='2.1.0',
     description='OpenAeroStruct',
     author='John Jasa',
     author_email='johnjasa@umich.edu',
