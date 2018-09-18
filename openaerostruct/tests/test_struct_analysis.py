@@ -32,6 +32,7 @@ class Test(unittest.TestCase):
                     'fem_model_type' : 'tube',
 
                     'mesh' : mesh,
+                    'radius_cp' : np.ones((5)) * 0.5,
 
                     # Structural values are based on aluminum 7075
                     'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -70,7 +71,7 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        assert_rel_error(self, prob['wing.structural_weight'][0], 1218692.827367485, 1e-4)
+        assert_rel_error(self, prob['wing.structural_weight'][0], 1155812.21925423, 1e-4)
 
 
 if __name__ == '__main__':
