@@ -48,7 +48,6 @@ class Equilibrium(ExplicitComponent):
         self.add_output('L_equals_W', val=1.)
         self.add_output('total_weight', val=1., units='N')
 
-        
         self.declare_partials('L_equals_W','CL')
         self.declare_partials('L_equals_W','S_ref_total')
         self.declare_partials('L_equals_W','W0')

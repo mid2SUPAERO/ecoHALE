@@ -38,7 +38,7 @@ class Coeffs(ExplicitComponent):
         self.add_input('D', val=1., units='N')
         self.add_input('v', val=1., units='m/s')
         self.add_input('rho', val=1., units='kg/m**3')
-        
+
         self.add_output('CL1', val=0.)
         self.add_output('CDi', val=0.)
 

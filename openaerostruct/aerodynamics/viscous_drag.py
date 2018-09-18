@@ -14,7 +14,7 @@ class ViscousDrag(ExplicitComponent):
     re : float
         Dimensionalized (1/length) Reynolds number. This is used to compute the
         local Reynolds number based on the local chord length.
-    M : float
+    Mach_number : float
         Mach number.
     S_ref : float
         The reference area of the lifting surface.

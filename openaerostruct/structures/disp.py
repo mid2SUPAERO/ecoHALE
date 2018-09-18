@@ -39,9 +39,8 @@ class Disp(ExplicitComponent):
         self.add_output('disp', val=np.zeros((self.ny, 6)), units='m')
 
         n = self.ny * 6
-        disp_disp_aug = np.zeros((n, n+6))
-        disp_disp_aug[:n, :n] = np.eye((n))
-        self.declare_partials('disp', 'disp_aug', val=disp_disp_aug)
+        arange = np.arange((n))
+        self.declare_partials('disp', 'disp_aug', val=1., rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
         # Obtain the relevant portions of disp_aug and store the reshaped

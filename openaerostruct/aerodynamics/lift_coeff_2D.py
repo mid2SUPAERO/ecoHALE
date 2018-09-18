@@ -69,7 +69,6 @@ class LiftCoeff2D(ExplicitComponent):
         cols = np.arange((self.ny-1)*(self.nx-1)*3)
         self.declare_partials('Cl', 'sec_forces', rows=rows, cols=cols)
 
-
     def compute(self, inputs, outputs):
 
         # Input parameters

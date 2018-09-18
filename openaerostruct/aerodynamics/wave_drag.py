@@ -10,7 +10,7 @@ class WaveDrag(ExplicitComponent):
 
     Parameters
     ----------
-    M : float
+    Mach_number : float
         Mach number.
     cos_sweep[ny-1] : numpy array
         The width in the spanwise direction of each VLM panel. This is the numerator of cos(sweep).
