@@ -60,8 +60,6 @@ class FEM(ImplicitComponent):
         shape_A = (vec_size_A, size, size) if vec_size_A > 1 else (size, size)
 
         init_A = np.eye(size)
-        if vec_size_A > 1:
-            init_A = np.repeat(init_A.reshape(1, size, size), vec_size_A, axis=0)
 
         self.add_input('K', val=init_A)
         self.add_input('forces', val=np.ones(shape))
@@ -74,10 +72,7 @@ class FEM(ImplicitComponent):
 
         rows = np.repeat(np.arange(full_size), size)
 
-        if vec_size_A > 1:
-            cols = np.arange(mat_size * vec_size)
-        else:
-            cols = np.tile(np.arange(mat_size), vec_size)
+        cols = np.tile(np.arange(mat_size), vec_size)
 
         self.declare_partials('disp_aug', 'K', rows=rows, cols=cols)
 
@@ -99,14 +94,7 @@ class FEM(ImplicitComponent):
         residuals : Vector
             unscaled, dimensional residuals written to via residuals[key]
         """
-        if self.options['vec_size'] > 1:
-            if self.vec_size_A > 1:
-                residuals['disp_aug'] = np.einsum('ijk,ik->ij', inputs['K'], outputs['disp_aug']) - inputs['forces']
-            else:
-                residuals['disp_aug'] = np.einsum('jk,ik->ij', inputs['K'], outputs['disp_aug']) - inputs['forces']
-
-        else:
-            residuals['disp_aug'] = inputs['K'].dot(outputs['disp_aug']) - inputs['forces']
+        residuals['disp_aug'] = inputs['K'].dot(outputs['disp_aug']) - inputs['forces']
 
     def solve_nonlinear(self, inputs, outputs):
         """
@@ -124,17 +112,8 @@ class FEM(ImplicitComponent):
 
         # lu factorization for use with solve_linear
         self._lup = []
-        if vec_size > 1:
-            for j in range(vec_size_A):
-                lhs = inputs['K'][j] if vec_size_A > 1 else inputs['K']
-                self._lup.append(linalg.lu_factor(lhs))
-
-            for j in range(vec_size):
-                idx = j if vec_size_A > 1 else 0
-                outputs['disp_aug'][j] = linalg.lu_solve(self._lup[idx], inputs['forces'][j])
-        else:
-            self._lup = linalg.lu_factor(inputs['K'])
-            outputs['disp_aug'] = linalg.lu_solve(self._lup, inputs['forces'])
+        self._lup = linalg.lu_factor(inputs['K'])
+        outputs['disp_aug'] = linalg.lu_solve(self._lup, inputs['forces'])
 
     def linearize(self, inputs, outputs, J):
         """
@@ -154,10 +133,7 @@ class FEM(ImplicitComponent):
         vec_size = self.options['vec_size']
 
         J['disp_aug', 'K'] = np.tile(x, size).flat
-        if self.vec_size_A > 1:
-            J['disp_aug', 'disp_aug'] = inputs['K'].flat
-        else:
-            J['disp_aug', 'disp_aug'] = np.tile(inputs['K'].flat, vec_size)
+        J['disp_aug', 'disp_aug'] = np.tile(inputs['K'].flat, vec_size)
 
     def solve_linear(self, d_outputs, d_residuals, mode):
         r"""
