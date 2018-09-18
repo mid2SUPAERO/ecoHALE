@@ -31,6 +31,7 @@ class Test(unittest.TestCase):
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                                 # can be 'wetted' or 'projected'
                     'fem_model_type' : 'wingbox',
+                    'symmetry' : True,
 
                     'spar_thickness_cp' : np.array([0.004, 0.005, 0.005, 0.008, 0.008, 0.01]), # [m]
                     'skin_thickness_cp' : np.array([0.005, 0.01, 0.015, 0.020, 0.025, 0.026]),
