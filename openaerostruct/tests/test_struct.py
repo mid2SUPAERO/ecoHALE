@@ -27,7 +27,6 @@ class Test(unittest.TestCase):
         surf_dict = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
-                    'type' : 'structural',
                     'symmetry' : True,     # if true, model one half of wing
                                             # reflected across the plane y = 0
                     'fem_model_type' : 'tube',

@@ -127,7 +127,6 @@ if __name__=='__main__':
     wing_surface = {
                 # Wing definition
                 'name' : 'wing',        # name of the surface
-                'type' : 'aero',
                 'symmetry' : True,     # if true, model one half of wing
                                         # reflected across the plane y = 0
                 'S_ref_type' : 'wetted', # how we compute the wing area,
@@ -164,7 +163,6 @@ if __name__=='__main__':
     tail_surface = {
                 # Wing definition
                 'name' : 'tail',        # name of the surface
-                'type' : 'aero',
                 'symmetry' : True,     # if true, model one half of wing
                                         # reflected across the plane y = 0
                 'S_ref_type' : 'wetted', # how we compute the wing area,

@@ -1,3 +1,14 @@
+################################################################################
+# This script runs an aerostructural optimization for the ScanEagle airplane,
+# a small drone used for recon missions. The geometry definition comes from
+# a variety of sources, including spec sheets and discussions with the
+# manufacturer, Insitu.
+#
+# Results using this model were presented in this paper:
+# https://arc.aiaa.org/doi/abs/10.2514/6.2018-1658
+# which was presented at AIAA SciTech 2018.
+################################################################################
+
 from __future__ import division, print_function
 import numpy as np
 
@@ -5,14 +16,15 @@ from openaerostruct.geometry.utils import generate_mesh
 
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, SqliteRecorder
 
 # Total number of nodes to use in the spanwise (num_y) and
-# chordwise (num_x) directions
-num_y = 31
+# chordwise (num_x) directions. Vary these to change the level of fidelity.
+num_y = 21
 num_x = 3
 
-# Create a dictionary to store options about the surface
+# Create a mesh dictionary to feed to generate_mesh to actually create
+# the mesh array.
 mesh_dict = {'num_y' : num_y,
              'num_x' : num_x,
              'wing_type' : 'rect',
@@ -31,6 +43,7 @@ camber *= 0.3 * 0.05
 for ind_x in range(num_x):
     mesh[ind_x, :, 2] = camber[ind_x]
 
+# Introduce geometry manipulation variables to define the ScanEagle shape
 zshear_cp = np.zeros(10)
 zshear_cp[0] = .3
 
@@ -44,6 +57,7 @@ chord_cp[-2] = 1.3
 
 radius_cp = 0.01  * np.ones(10)
 
+# Define wing parameters
 surface = {
             # Wing definition
             'name' : 'wing',        # name of the surface
@@ -59,8 +73,9 @@ surface = {
             'chord_cp' : chord_cp,
             'sweep' : 20.,
             'twist_cp' : np.array([2.5, 2.5, 5.]), #np.zeros((3)),
-            'thickness_cp' : np.ones((3))*.0051,
+            'thickness_cp' : np.ones((3))*.008,
 
+            # Give OAS the radius and mesh from before
             'radius_cp' : radius_cp,
             'mesh' : mesh,
 
@@ -89,7 +104,7 @@ surface = {
             'mrho' : 1.6e3,
 
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
-            'wing_weight_ratio' : 1.,
+            'wing_weight_ratio' : 1., # multiplicative factor on the computed structural weight
             'struct_weight_relief' : True,    # True to add the weight of the structure to the loads on the structure
             'distributed_fuel_weight' : False,
             # Constraints
@@ -117,23 +132,29 @@ prob.model.add_subsystem('prob_vars',
      indep_var_comp,
      promotes=['*'])
 
+# Add the AerostructGeometry group, which computes all the intermediary
+# parameters for the aero and structural analyses, like the structural
+# stiffness matrix and some aerodynamic geometry arrays
 aerostruct_group = AerostructGeometry(surface=surface)
 
 name = 'wing'
 
-# Add tmp_group to the problem with the name of the surface.
+# Add the group to the problem
 prob.model.add_subsystem(name, aerostruct_group,
     promotes_inputs=['load_factor'])
 
 point_name = 'AS_point_0'
 
-# Create the aero point group and add it to the model
+# Create the aerostruct point group and add it to the model.
+# This contains all the actual aerostructural analyses.
 AS_point = AerostructPoint(surfaces=[surface])
 
 prob.model.add_subsystem(point_name, AS_point,
     promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho', 'CT', 'R',
         'W0', 'speed_of_sound', 'empty_cg', 'load_factor'])
 
+# Issue quite a few connections within the model to make sure all of the
+# parameters are connected correctly.
 com_name = point_name + '.' + name + '_perf'
 prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
@@ -149,42 +170,43 @@ prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + nam
 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
-# from openmdao.api import ScipyOptimizeDriver
-# prob.driver = ScipyOptimizeDriver()
-# prob.driver.options['tol'] = 1e-9
+# Set the optimizer type
+from openmdao.api import ScipyOptimizeDriver
+prob.driver = ScipyOptimizeDriver()
+prob.driver.options['tol'] = 1e-7
 
-from openmdao.api import pyOptSparseDriver
-prob.driver = pyOptSparseDriver()
-prob.driver.options['optimizer'] = "SNOPT"
-prob.driver.opt_settings['Major optimality tolerance'] = 1e-6
-prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
-prob.driver.opt_settings['Major iterations limit'] = 1000
-prob.driver.opt_settings['Verify level'] = -1
-
+# Record data from this problem so we can visualize it using plot_wing
 recorder = SqliteRecorder("aerostruct.db")
 prob.driver.add_recorder(recorder)
 prob.driver.recording_options['record_derivatives'] = True
 prob.driver.recording_options['includes'] = ['*']
 
-# Setup problem and add design variables, constraint, and objective
+# Setup problem and add design variables.
+# Here we're varying twist, thickness, sweep, and alpha.
 prob.model.add_design_var('wing.twist_cp', lower=-5., upper=10.)
 prob.model.add_design_var('wing.thickness_cp', lower=0.001, upper=0.01, scaler=1e3)
 prob.model.add_design_var('wing.sweep', lower=10., upper=30.)
+prob.model.add_design_var('alpha', lower=-10., upper=10.)
+
+# Make sure the spar doesn't fail, we meet the lift needs, and the aircraft
+# is trimmed through CM=0.
 prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
 prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
-
-# Add design variables, constraisnt, and objective on the problem
-prob.model.add_design_var('alpha', lower=-10., upper=10.)
 prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
-prob.model.add_constraint('AS_point_0.CM', equals=0.)
+
+# Instead of using an equality constraint here, we have to give it a little
+# wiggle room to make SLSQP work correctly.
+prob.model.add_constraint('AS_point_0.CM', lower=-0.001, upper=0.001)
 prob.model.add_constraint('wing.twist_cp', lower=np.array([-1e20, -1e20, 5.]), upper=np.array([1e20, 1e20, 5.]))
 
+# We're trying to minimize fuel burn
 prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 
 # Set up the problem
-prob.setup(check=True)
+prob.setup()
 
-# from openmdao.api import view_model
-# view_model(prob)
+# Use this if you just want to run analysis and not optimization
+# prob.run_model()
 
+# Actually run the optimization problem
 prob.run_driver()

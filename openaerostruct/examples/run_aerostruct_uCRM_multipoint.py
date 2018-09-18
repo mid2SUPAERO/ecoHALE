@@ -57,7 +57,6 @@ mesh, twist_cp = generate_mesh(mesh_dict)
 surf_dict = {
             # Wing definition
             'name' : 'wing',        # name of the surface
-            'type' : 'aerostruct',
             'symmetry' : True,     # if true, model one half of wing
                                     # reflected across the plane y = 0
             'S_ref_type' : 'wetted', # how we compute the wing area,
