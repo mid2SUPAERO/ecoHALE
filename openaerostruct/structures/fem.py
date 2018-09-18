@@ -13,40 +13,78 @@ class FEM(ImplicitComponent):
     """
     Component that solves a linear system, Ax=b.
 
-    Designed to handle small and dense linear systems that can be
-    efficiently solved with lu-decomposition
+    Designed to handle small, dense linear systems (Ax=B) that can be efficiently solved with
+    lu-decomposition. It can be vectorized to either solve for multiple right hand sides,
+    or to solve multiple linear systems.
 
     Attributes
     ----------
-    _lup : object
-        matrix factorization returned from scipy.linag.lu_factor
+    _lup : None or list(object)
+        matrix factorizations returned from scipy.linag.lu_factor for each A matrix
     """
+
+    def __init__(self, **kwargs):
+        """
+        Intialize the LinearSystemComp component.
+
+        Parameters
+        ----------
+        **kwargs : dict of keyword arguments
+            Keyword arguments that will be mapped into the Component options.
+        """
+        super(FEM, self).__init__(**kwargs)
+        self._lup = None
 
     def initialize(self):
         """
         Declare options.
         """
-        self.options.declare('size', default=1, types=int, desc='the size of the linear system')
+        self.options.declare('size', default=1, types=int, desc='The size of the linear system.')
+        self.options.declare('vec_size', types=int, default=1,
+                             desc='Number of linear systems to solve.')
+        self.options.declare('vectorize_A', default=False, types=bool,
+                             desc='Set to True to vectorize the A matrix.')
 
     def setup(self):
         """
         Matrix and RHS are inputs, solution vector is the output.
         """
+        vec_size = self.options['vec_size']
+        vec_size_A = self.vec_size_A = vec_size if self.options['vectorize_A'] else 1
         size = self.options['size']
+        mat_size = size * size
+        full_size = size * vec_size
 
-        self._lup = None
+        self._lup = []
+        shape = (vec_size, size) if vec_size > 1 else (size, )
+        shape_A = (vec_size_A, size, size) if vec_size_A > 1 else (size, size)
 
-        self.add_input('K', val=np.eye(size), units='N/m')
-        self.add_input('forces', val=np.ones(size), units='N')
-        self.add_output('disp_aug', shape=size, val=.1, units='m')
+        init_A = np.eye(size)
+        if vec_size_A > 1:
+            init_A = np.repeat(init_A.reshape(1, size, size), vec_size_A, axis=0)
 
-        size = self.options['size']
-        row_col = np.arange(size, dtype="int")
+        self.add_input('K', val=init_A)
+        self.add_input('forces', val=np.ones(shape))
+        self.add_output('disp_aug', shape=shape, val=.1)
 
-        self.declare_partials('*', '*')
+        # Set up the derivatives.
+        row_col = np.arange(full_size, dtype="int")
 
-        arange = np.arange(size)
-        self.declare_partials('disp_aug', 'forces', val=-1., rows=arange, cols=arange)
+        self.declare_partials('disp_aug', 'forces', val=np.full(full_size, -1.0), rows=row_col, cols=row_col)
+
+        rows = np.repeat(np.arange(full_size), size)
+
+        if vec_size_A > 1:
+            cols = np.arange(mat_size * vec_size)
+        else:
+            cols = np.tile(np.arange(mat_size), vec_size)
+
+        self.declare_partials('disp_aug', 'K', rows=rows, cols=cols)
+
+        cols = np.tile(np.arange(size), size)
+        cols = np.tile(cols, vec_size) + np.repeat(np.arange(vec_size), mat_size) * size
+
+        self.declare_partials(of='disp_aug', wrt='disp_aug', rows=rows, cols=cols)
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         """
@@ -61,7 +99,14 @@ class FEM(ImplicitComponent):
         residuals : Vector
             unscaled, dimensional residuals written to via residuals[key]
         """
-        residuals['disp_aug'] = inputs['K'].dot(outputs['disp_aug']) - inputs['forces']
+        if self.options['vec_size'] > 1:
+            if self.vec_size_A > 1:
+                residuals['disp_aug'] = np.einsum('ijk,ik->ij', inputs['K'], outputs['disp_aug']) - inputs['forces']
+            else:
+                residuals['disp_aug'] = np.einsum('jk,ik->ij', inputs['K'], outputs['disp_aug']) - inputs['forces']
+
+        else:
+            residuals['disp_aug'] = inputs['K'].dot(outputs['disp_aug']) - inputs['forces']
 
     def solve_nonlinear(self, inputs, outputs):
         """
@@ -74,23 +119,45 @@ class FEM(ImplicitComponent):
         outputs : Vector
             unscaled, dimensional output variables read via outputs[key]
         """
+        vec_size = self.options['vec_size']
+        vec_size_A = self.vec_size_A
+
         # lu factorization for use with solve_linear
-        self._lup = linalg.lu_factor(inputs['K'])
-        outputs['disp_aug'] = linalg.lu_solve(self._lup, inputs['forces'])
+        self._lup = []
+        if vec_size > 1:
+            for j in range(vec_size_A):
+                lhs = inputs['K'][j] if vec_size_A > 1 else inputs['K']
+                self._lup.append(linalg.lu_factor(lhs))
+
+            for j in range(vec_size):
+                idx = j if vec_size_A > 1 else 0
+                outputs['disp_aug'][j] = linalg.lu_solve(self._lup[idx], inputs['forces'][j])
+        else:
+            self._lup = linalg.lu_factor(inputs['K'])
+            outputs['disp_aug'] = linalg.lu_solve(self._lup, inputs['forces'])
 
     def linearize(self, inputs, outputs, J):
         """
         Compute the non-constant partial derivatives.
+
+        Parameters
+        ----------
+        inputs : Vector
+            unscaled, dimensional input variables read via inputs[key]
+        outputs : Vector
+            unscaled, dimensional output variables read via outputs[key]
+        J : Jacobian
+            sub-jac components written to jacobian[output_name, input_name]
         """
         x = outputs['disp_aug']
         size = self.options['size']
+        vec_size = self.options['vec_size']
 
-        dx_dA = np.zeros((size, size**2))
-        for i in range(size):
-            dx_dA[i, i * size:(i + 1) * size] = x
-        J['disp_aug', 'K'] = dx_dA
-
-        J['disp_aug', 'disp_aug'] = inputs['K']
+        J['disp_aug', 'K'] = np.tile(x, size).flat
+        if self.vec_size_A > 1:
+            J['disp_aug', 'disp_aug'] = inputs['K'].flat
+        else:
+            J['disp_aug', 'disp_aug'] = np.tile(inputs['K'].flat, vec_size)
 
     def solve_linear(self, d_outputs, d_residuals, mode):
         r"""
@@ -110,11 +177,23 @@ class FEM(ImplicitComponent):
         mode : str
             either 'fwd' or 'rev'
         """
-        if mode == 'fwd':
-            sol_vec, forces_vec = d_outputs, d_residuals
-            t = 0
-        else:
-            sol_vec, forces_vec = d_residuals, d_outputs
-            t = 1
+        vec_size = self.options['vec_size']
+        vec_size_A = self.vec_size_A
 
-        sol_vec['disp_aug'] = linalg.lu_solve(self._lup, forces_vec['disp_aug'], trans=t)
+        if mode == 'fwd':
+            if vec_size > 1:
+                for j in range(vec_size):
+                    idx = j if vec_size_A > 1 else 0
+                    d_outputs['disp_aug'][j] = linalg.lu_solve(self._lup[idx], d_residuals['disp_aug'][j],
+                                                        trans=0)
+            else:
+                d_outputs['disp_aug'] = linalg.lu_solve(self._lup, d_residuals['disp_aug'], trans=0)
+
+        else:  # rev
+            if vec_size > 1:
+                for j in range(vec_size):
+                    idx = j if vec_size_A > 1 else 0
+                    d_residuals['disp_aug'][j] = linalg.lu_solve(self._lup[idx], d_outputs['disp_aug'][j],
+                                                          trans=1)
+            else:
+                d_residuals['disp_aug'] = linalg.lu_solve(self._lup, d_outputs['disp_aug'], trans=1)

@@ -25,12 +25,12 @@ class RadiusComp(ExplicitComponent):
 
         self.nx, self.ny = surface['mesh'].shape[0],surface['mesh'].shape[1]
         self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
-        self.add_input('t_over_c', val=np.ones((self.ny-1)))
+        self.add_input('t_over_c', val=np.ones((self.ny - 1)))
         self.add_output('radius', val=np.ones((self.ny - 1)), units='m')
 
-        arange  = np.arange(self.ny-1)
-        self.declare_partials('radius','t_over_c',rows=arange,cols=arange)
-        self.declare_partials('radius','mesh')
+        arange  = np.arange(self.ny - 1)
+        self.declare_partials('radius', 't_over_c', rows=arange, cols=arange)
+        self.declare_partials('radius', 'mesh')
 
     def compute(self, inputs, outputs):
         outputs['radius'] = radii(inputs['mesh'], inputs['t_over_c'])
@@ -48,7 +48,7 @@ class RadiusComp(ExplicitComponent):
         dr_dtoc = mean_chords/2
         partials['radius','t_over_c'] = dr_dtoc
 
-        dmean_dchords = np.zeros((self.ny-1,self.ny))
+        dmean_dchords = np.zeros((self.ny - 1, self.ny))
         i,j = np.indices(dmean_dchords.shape)
         dmean_dchords[i==j] = 0.5
         dmean_dchords[i==j-1] = 0.5

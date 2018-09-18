@@ -144,6 +144,3 @@ class Weight(ExplicitComponent):
             partials['element_weights', 'nodes'][i*dimensions*2:(i+1)*dimensions*2] = np.append(first_part,second_part)
 
         #dew__dprecalc =
-
-
-

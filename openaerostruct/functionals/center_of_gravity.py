@@ -99,9 +99,9 @@ class CenterOfGravity(ExplicitComponent):
         partials['cg', 'fuelburn'] = g * (W0_cg + spar_cg* inputs['load_factor']) / (tw - fb * g) ** 2
         partials['cg', 'load_factor'] =  (9.80665 * W0 * cg + spar_cg) / (tw - fb * g) + 9.80665 * (W0 * cg * g + spar_cg * inputs['load_factor']) / (tw - fb * g)**2 * (fb)
         partials['cg', 'empty_cg'] = W0 * g / (tw - fb * g)
-        
+
         partials['cg', 'W0'] = cg * g  / (inputs['total_weight'] - inputs['fuelburn'] * g)
-        
+
         for surface in self.options['surfaces']:
             name = surface['name']
             partials['cg', name + '_cg_location'] = inputs[name + '_structural_weight'] \
