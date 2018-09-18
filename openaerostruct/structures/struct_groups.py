@@ -18,9 +18,12 @@ class SpatialBeamAlone(Group):
         surface = self.options['surface']
 
         tube_promotes = []
+        tube_inputs = []
 
         if 'thickness_cp' in surface.keys():
             tube_promotes.append('thickness_cp')
+        if 'radius_cp' not in surface.keys():
+            tube_inputs = ['mesh', 't_over_c']
 
         self.add_subsystem('geometry',
             Geometry(surface=surface),
@@ -30,7 +33,7 @@ class SpatialBeamAlone(Group):
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('tube_group',
                 TubeGroup(surface=surface),
-                promotes_inputs=['mesh', 't_over_c'],
+                promotes_inputs=tube_inputs,
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
         elif surface['fem_model_type'] == 'wingbox':
             wingbox_promotes = []

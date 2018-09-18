@@ -32,6 +32,10 @@ class AerostructGeometry(Group):
             geom_promotes.append('twist_cp')
         if 't_over_c_cp' in surface.keys():
             geom_promotes.append('t_over_c')
+        if 'sweep' in surface.keys():
+            geom_promotes.append('sweep')
+        if 'taper' in surface.keys():
+            geom_promotes.append('taper')
         if 'mx' in surface.keys():
             geom_promotes.append('shape')
 
@@ -42,11 +46,14 @@ class AerostructGeometry(Group):
 
         if surface['fem_model_type'] == 'tube':
             tube_promotes = []
+            tube_inputs = []
             if 'thickness_cp' in surface.keys():
                 tube_promotes.append('thickness_cp')
+            if 'radius_cp' not in surface.keys():
+                tube_inputs = ['mesh', 't_over_c']
             self.add_subsystem('tube_group',
                 TubeGroup(surface=surface),
-                promotes_inputs=['mesh', 't_over_c'],
+                promotes_inputs=tube_inputs,
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
         elif surface['fem_model_type'] == 'wingbox':
             wingbox_promotes = []
