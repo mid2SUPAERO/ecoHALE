@@ -55,6 +55,7 @@ install:
 
 script:
 - export PYTHONPATH=$PYTHONPATH:$PWD
+- python openaerostruct/tests/test_v1_aerostruct_opt.py
 - testflo -n 1 openaerostruct --coverage --coverpkg openaerostruct --cover-omit \*tests/\* --cover-omit \*docs/\*;
 - travis-sphinx build --source=openaerostruct/docs;
 
