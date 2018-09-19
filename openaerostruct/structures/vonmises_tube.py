@@ -113,24 +113,23 @@ class VonMisesTube(ExplicitComponent):
         G = self.G
         x_gl = self.x_gl
 
-        # Compute the coordinate delta between the two element end points
-        dP = np.diff(nodes, axis=0)
-
-        # Compute the element length
-        L_n = norm(dP, axis=1)
-
         num_elems = self.ny - 1
         for ielem in range(num_elems):
 
+            # Compute the coordinate delta between the two element end points
+            P0 = nodes[ielem, :]
+            P1 = nodes[ielem+1, :]
+            dP = P1 - P0
+
             # Compute the derivative of element length
-            L = L_n[ielem]
-            dLddP = norm_d(dP[ielem])
+            L = norm(dP)
+            dLddP = norm_d(dP)
 
             # unit function converts a vector to a unit vector
             # calculate the transormation to the local element frame.
             # We use x_gl to provide a reference axis to reference
-            x_loc = unit(dP[ielem])
-            dxdP = unit_d(dP[ielem])
+            x_loc = unit(dP)
+            dxdP = unit_d(dP)
 
             y_loc = unit(np.cross(x_loc, x_gl))
             dtmpdx, _ = cross_d(x_loc, x_gl)
