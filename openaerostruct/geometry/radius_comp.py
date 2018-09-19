@@ -50,12 +50,11 @@ class RadiusComp(ExplicitComponent):
         vectors = mesh[-1, :, :] - mesh[0, :, :]
         chords = np.sqrt(np.sum(vectors**2, axis=1))
         t_c = inputs['t_over_c']
-        mean_chords = 0.5 * chords[:-1] + 0.5 * chords[1:]
 
-        dr_dtoc = mean_chords/2
+        dr_dtoc = 0.25 * (chords[:-1] + chords[1:])
         partials['radius','t_over_c'] = dr_dtoc
 
-        dr_dchords = 0.25*t_c
+        dr_dchords = 0.25 * t_c
         dr = mesh[0, :] - mesh[-1, :]
 
         l = np.sqrt(np.sum(dr**2, axis=1))
