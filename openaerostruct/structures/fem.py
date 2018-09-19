@@ -61,9 +61,9 @@ class FEM(ImplicitComponent):
 
         init_A = np.eye(size)
 
-        self.add_input('K', val=init_A)
-        self.add_input('forces', val=np.ones(shape))
-        self.add_output('disp_aug', shape=shape, val=.1)
+        self.add_input('K', val=init_A, units='N/m')
+        self.add_input('forces', val=np.ones(shape), units='N')
+        self.add_output('disp_aug', shape=shape, val=.1, units='m')
 
         # Set up the derivatives.
         row_col = np.arange(full_size, dtype="int")
