@@ -16,7 +16,7 @@ def norm_d(vec):
 def unit_d(vec):
     n_d = norm_d(vec)
     normvec = norm(vec)
-    vec_d = np.outer((-vec/(normvec*normvec)),n_d)+1/normvec*np.eye(len(vec))
+    vec_d = np.outer((-vec/(normvec*normvec)),n_d) + 1/normvec*np.eye(len(vec))
 
     return vec_d
 
