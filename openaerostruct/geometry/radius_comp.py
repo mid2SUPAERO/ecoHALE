@@ -23,14 +23,21 @@ class RadiusComp(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        self.nx, self.ny = surface['mesh'].shape[0],surface['mesh'].shape[1]
-        self.add_input('mesh', val=np.zeros((self.nx, self.ny, 3)), units='m')
-        self.add_input('t_over_c', val=np.ones((self.ny - 1)))
-        self.add_output('radius', val=np.ones((self.ny - 1)), units='m')
+        nx, ny = self.nx, self.ny = surface['mesh'].shape[:2]
 
-        arange  = np.arange(self.ny - 1)
+        self.add_input('mesh', val=np.zeros((nx, ny, 3)), units='m')
+        self.add_input('t_over_c', val=np.ones((ny - 1)))
+        self.add_output('radius', val=np.ones((ny - 1)), units='m')
+
+        arange  = np.arange(ny - 1)
         self.declare_partials('radius', 't_over_c', rows=arange, cols=arange)
-        self.declare_partials('radius', 'mesh')
+
+        row = np.tile(np.zeros(6), ny-1) + np.repeat(arange, 6)
+        rows = np.concatenate([row, row])
+        col = np.tile(np.arange(6), ny-1) + np.repeat(3*arange, 6)
+        cols = np.concatenate([col, col + (nx-1) * 3 * ny])
+
+        self.declare_partials('radius', 'mesh', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         outputs['radius'] = radii(inputs['mesh'], inputs['t_over_c'])
@@ -48,30 +55,17 @@ class RadiusComp(ExplicitComponent):
         dr_dtoc = mean_chords/2
         partials['radius','t_over_c'] = dr_dtoc
 
-        dmean_dchords = np.zeros((self.ny - 1, self.ny))
-        i,j = np.indices(dmean_dchords.shape)
-        dmean_dchords[i==j] = 0.5
-        dmean_dchords[i==j-1] = 0.5
-        dr_dmean = np.diag(t_c/2)
-        dr_dchords = np.squeeze(np.matmul(dr_dmean, dmean_dchords))
+        dr_dchords = 0.25*t_c
+        dr = mesh[0, :] - mesh[-1, :]
 
-        dchords_dmesh = np.zeros((self.ny,self.nx*self.ny*3))
+        l = np.sqrt(np.sum(dr**2, axis=1))
+        dr = dr / l[:, np.newaxis]
 
-        le_ind = 0
-        te_ind = (self.nx - 1) * 3 * self.ny
+        drad = np.empty((self.ny - 1, 6))
+        drad[:, :3] = np.einsum('i, ij -> ij', dr_dchords, dr[:-1, :])
+        drad[:, 3:] = np.einsum('i, ij -> ij', dr_dchords, dr[1:, :])
+        drad = drad.flatten()
 
-        dx = mesh[0, :, 0] - mesh[-1, :, 0]
-        dy = mesh[0, :, 1] - mesh[-1, :, 1]
-        dz = mesh[0, :, 2] - mesh[-1, :, 2]
-
-        l = np.sqrt(dx**2 + dy**2 + dz**2)
-        i = np.arange(self.ny)
-
-        dchords_dmesh[i, le_ind + i*3 + 0] += dx[i] / l[i]
-        dchords_dmesh[i, te_ind + i*3 + 0] -= dx[i] / l[i]
-        dchords_dmesh[i, le_ind + i*3 + 1] += dy[i] / l[i]
-        dchords_dmesh[i, te_ind + i*3 + 1] -= dy[i] / l[i]
-        dchords_dmesh[i, le_ind + i*3 + 2] += dz[i] / l[i]
-        dchords_dmesh[i, te_ind + i*3 + 2] -= dz[i] / l[i]
-
-        partials['radius','mesh'] = np.matmul(dr_dchords,dchords_dmesh)
+        nn = 6*(self.ny - 1)
+        partials['radius','mesh'][:nn] = drad
+        partials['radius','mesh'][nn:] = -drad
