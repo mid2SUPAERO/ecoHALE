@@ -343,9 +343,8 @@ class LoadTransfer(ExplicitComponent):
         #J['loadsB','def_mesh'] = dloadsB__ddef_mesh.data
 
         dloads__ddef_mesh = self.dloads__dloadsB * dloadsB__ddef_mesh
-        dloads__ddef_mesh = dloads__ddef_mesh.tocoo()
+        dloads__ddef_mesh = dloads__ddef_mesh.tocsr()
         J['loads','def_mesh'] = dloads__ddef_mesh.data
-
 
         dloads__dsec_forces = self.dloads__dloadsA__dsec_forces + self.dloads__dloadsB * dloadsB__dsec_forces
         dloads__dsec_forces = dloads__dsec_forces.tocoo()
