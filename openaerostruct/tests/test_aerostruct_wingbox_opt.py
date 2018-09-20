@@ -87,6 +87,7 @@ class Test(unittest.TestCase):
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     'Wf_reserve' :15000.,       # [kg] reserve fuel mass
+                    'span' : 58.                # [m]
                     }
 
         surfaces = [surf_dict]
@@ -202,6 +203,7 @@ class Test(unittest.TestCase):
         prob.model.add_design_var('wing.spar_thickness_cp', lower=0.003, upper=0.1, scaler=1e2)
         prob.model.add_design_var('wing.skin_thickness_cp', lower=0.003, upper=0.1, scaler=1e2)
         prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.07, upper=0.2, scaler=10.)
+        prob.model.add_design_var('wing.geometry.span', lower=55., upper=60., scaler=2e-2)
 
         prob.model.add_constraint('AS_point_0.CL', equals=0.5)
         # prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
@@ -220,8 +222,10 @@ class Test(unittest.TestCase):
 
         # print(prob['AS_point_0.fuelburn'][0])
         # print(prob['wing.structural_weight'][0]/1.25)
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 87992.0813377, 1e-5)
-        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 163207.153536, 1e-5)
+        # print(prob['wing.geometry.span'])
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 87621.5146177, 1e-5)
+        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 168925.384879, 1e-5)
+        assert_rel_error(self, prob['wing.geometry.span'][0], 60., 1e-5)
 
 
 if __name__ == '__main__':
