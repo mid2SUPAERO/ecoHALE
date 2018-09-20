@@ -1,24 +1,23 @@
-#===============================================================================
-# This script can be used to reproduce the multipoint aerostructural optimization
-# cases in the 'Low-fidelity aerostructural optimization of aircraft wings with
-# a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan
-# and Martins.
-# The fuel burn from the cruise case is the objective function and the 2.5g
-# maneuver case is used for the structural sizing. The wing is based on the
-# uCRM (undeflected Common Research Model Wing).
-# See the paper for more:
-# https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
-#
-# After running the optimization, use the 'plot_wing_wb_mpt.py' script in this
-# directory as 'python plot_wing_wb_mpt.py aerostruct.db' to vizualize the results.
-# This script is based on the plot_wing.py script. It's still a bit hacky and will
-# probably not work as it is for other types of cases for now.
-#
-# Also note that there will be some slight differences between the results from
-# this script and the results in the paper because those results were from an
-# older version of OAS (very slight differences due to numerical errors, etc.)
-#===============================================================================
-=======
+"""
+This script can be used to reproduce the multipoint aerostructural optimization
+cases in the 'Low-fidelity aerostructural optimization of aircraft wings with 
+a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan 
+and Martins.
+The fuel burn from the cruise case is the objective function and the 2.5g
+maneuver case is used for the structural sizing. The wing is based on the
+uCRM (undeflected Common Research Model wing).
+See the paper for more:
+https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
+(https://doi.org/10.1007/978-3-319-97773-7_38)
+After running the optimization, use the 'plot_wingbox.py' script in the utils/ 
+directory (e.g., as 'python ../utils/plot_wingbox.py aerostruct.db' if running 
+from this directory) to vizualize the results.
+This script is based on the plot_wing.py script. It's still a bit hacky and will
+probably not work as it is for other types of cases for now.
+Also note that there will be some slight differences between the results from
+this script and the results in the paper because those results were from an
+older version of OAS (very slight differences due to numerical errors, etc.)
+"""
 
 
 from __future__ import division, print_function
@@ -118,13 +117,14 @@ indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=np.array([.85 * 295.07, .64 * 340.294]), units='m/s')
 indep_var_comp.add_output('alpha', val=0., units='deg')
 indep_var_comp.add_output('alpha_maneuver', val=0., units='deg')
-indep_var_comp.add_output('Mach_number', val=0.85)
-indep_var_comp.add_output('re', val=0.348*295.07*.85*1./(1.43*1e-5), units='1/m')
-indep_var_comp.add_output('rho', val=np.array([0.348, 0.9237]), units='kg/m**3')
+indep_var_comp.add_output('Mach_number', val=np.array([0.85, 0.64]))
+indep_var_comp.add_output('re',val=np.array([0.348*295.07*.85*1./(1.43*1e-5), \
+                          1.225*340.294*.64*1./(1.81206*1e-5)]),  units='1/m')
+indep_var_comp.add_output('rho', val=np.array([0.348, 1.225]), units='kg/m**3')
 indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
 indep_var_comp.add_output('R', val=14.307e6, units='m')
 indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
-indep_var_comp.add_output('speed_of_sound', val=295.07, units='m/s')
+indep_var_comp.add_output('speed_of_sound', val= np.array([295.07, 340.294]), units='m/s')
 indep_var_comp.add_output('load_factor', val=np.array([1., 2.5]))
 indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
@@ -157,14 +157,14 @@ for i in range(2):
     prob.model.add_subsystem(point_name, AS_point)
 
     # Connect flow properties to the analysis point
-    prob.model.connect('v', point_name + '.v')
-    prob.model.connect('Mach_number', point_name + '.Mach_number')
-    prob.model.connect('re', point_name + '.re')
+    prob.model.connect('v', point_name + '.v', src_indices=[i])
+    prob.model.connect('Mach_number', point_name + '.Mach_number', src_indices=[i])
+    prob.model.connect('re', point_name + '.re', src_indices=[i])
     prob.model.connect('rho', point_name + '.rho', src_indices=[i])
     prob.model.connect('CT', point_name + '.CT')
     prob.model.connect('R', point_name + '.R')
     prob.model.connect('W0', point_name + '.W0')
-    prob.model.connect('speed_of_sound', point_name + '.speed_of_sound')
+    prob.model.connect('speed_of_sound', point_name + '.speed_of_sound', src_indices=[i])
     prob.model.connect('empty_cg', point_name + '.empty_cg')
     prob.model.connect('load_factor', point_name + '.load_factor', src_indices=[i])
     prob.model.connect('fuel_mass', point_name + '.total_perf.L_equals_W.fuelburn')
