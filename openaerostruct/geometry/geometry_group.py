@@ -18,7 +18,7 @@ class Geometry(Group):
         ny = surface['mesh'].shape[1]
 
         # Check if any control points were added to the surface dict
-        dv_keys = set(['twist_cp', 'chord_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp', 'sweep', 'taper', 'dihedral', 't_over_c_cp'])
+        dv_keys = set(['twist_cp', 'chord_cp', 'xshear_cp', 'yshear_cp', 'zshear_cp', 'sweep', 'span', 'taper', 'dihedral', 't_over_c_cp'])
         active_dv_keys = dv_keys.intersection(set(surface.keys()))
         # Make sure that at least one of them is an independent variable
         make_ivc = False
@@ -138,6 +138,12 @@ class Geometry(Group):
                 bsp_inputs.append('sweep')
                 if surface.get('sweep_dv', True):
                     indep_var_comp.add_output('sweep', val=surface['sweep'], units='deg')
+            
+            if 'span' in surface.keys():
+                bsp_inputs.append('span')
+                if surface.get('span_dv', True):
+                    indep_var_comp.add_output('span', val=surface['span'], units='m')
+
 
             if 'dihedral' in surface.keys():
                 bsp_inputs.append('dihedral')
