@@ -3,12 +3,9 @@
 Wingbox Model
 =============
 
-A tubular spar is the default structural model type in OpenAeroStruct.
-We are in the process of adding a wingbox model and have some functionality working.
-However, it is not fully documented or verified.
-
-.. warning::
-  This wingbox model is EXPERIMENTAL and has not been fully verified yet. Use at your own risk.
+In addition to the tubular structural spar available in OpenAeroStruct, you can use a wingbox-based model.
+This model is detailed in Chauhan and Martins' paper `here <https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct>`_.
+Analytic derivatives are not provided with this model, so any optimization problem will use complex-step to obtain the relevant partial derivatives.
 
 .. embed-code::
     openaerostruct.tests.test_aerostruct_wingbox_analysis.Test.test

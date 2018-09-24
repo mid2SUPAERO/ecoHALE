@@ -49,17 +49,8 @@ If you want to create your own mesh, see :ref:`Geometry_Creation_and_Manipulatio
 To use OpenAeroStruct's helper function, you need to give it the number of spanwise points, `num_y`, as well as the number of chordwise points, `num_x`.
 In the code block shown below, we call the helper function to define a mesh and get a starting twist distribution.
 
-.. code-block:: python
-
-  # Create a dictionary to store options about the mesh
-  mesh_dict = {'num_y' : 7,
-               'num_x' : 2,
-               'wing_type' : 'CRM',
-               'symmetry' : True,
-               'num_twist_cp' : 5}
-
-  # Generate the aerodynamic mesh based on the previous dictionary
-  mesh, twist_cp = generate_mesh(mesh_dict)
+.. embed-code::
+    openaerostruct/docs/aero_walkthrough/part_1.py
 
 There are many options for each surface, and they are loosely organized into the following categories:
 
@@ -70,43 +61,8 @@ There are many options for each surface, and they are loosely organized into the
 - Structural properties (E, G, yield stress, location of spar, etc)
 - Options for constraints (KS aggregation, monotonic design variables)
 
-.. code-block:: python
-
-  # Create a dictionary with info and options about the aerodynamic
-  # lifting surface
-  surface = {
-              # Wing definition
-              'name' : 'wing',        # name of the surface
-              'type' : 'aero',
-              'symmetry' : True,     # if true, model one half of wing
-                                      # reflected across the plane y = 0
-              'S_ref_type' : 'wetted', # how we compute the wing area,
-                                       # can be 'wetted' or 'projected'
-              'fem_model_type' : 'tube',
-
-              'twist_cp' : twist_cp,
-              'mesh' : mesh,
-              'num_x' : mesh.shape[0],
-              'num_y' : mesh.shape[1],
-
-              # Aerodynamic performance of the lifting surface at
-              # an angle of attack of 0 (alpha=0).
-              # These CL0 and CD0 values are added to the CL and CD
-              # obtained from aerodynamic analysis of the surface to get
-              # the total CL and CD.
-              # These CL0 and CD0 values do not vary wrt alpha.
-              'CL0' : 0.0,            # CL of the surface at alpha=0
-              'CD0' : 0.015,            # CD of the surface at alpha=0
-
-              # Airfoil properties for viscous drag calculation
-              'k_lam' : 0.05,         # percentage of chord with laminar
-                                      # flow, used for viscous drag
-              't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
-              'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
-                                      # thickness
-              'with_viscous' : True,  # if true, compute viscous drag
-              }
-
+.. embed-code::
+    openaerostruct/docs/aero_walkthrough/part_2.py
 
 2. Initialize your problem and add problem conditions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -115,25 +71,8 @@ In a more complex model, these flow conditions might come from a different OpenM
 Set the values for these parameters that you want to use here.
 We then add this component to the OpenMDAO model.
 
-.. code-block:: python
-
-  # Create the OpenMDAO problem
-  prob = Problem()
-
-  # Create an independent variable component that will supply the flow
-  # conditions to the problem.
-  indep_var_comp = IndepVarComp()
-  indep_var_comp.add_output('v', val=248.136, units='m/s')
-  indep_var_comp.add_output('alpha', val=5.)
-  indep_var_comp.add_output('M', val=0.84)
-  indep_var_comp.add_output('re', val=1.e6, units='1/m')
-  indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-  indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
-
-  # Add this IndepVarComp to the problem model
-  prob.model.add_subsystem('prob_vars',
-      indep_var_comp,
-      promotes=['*'])
+.. embed-code::
+    openaerostruct/docs/aero_walkthrough/part_3.py
 
 We now need to provide the geometry and analysis groups to the OpenMDAO problem.
 
@@ -144,35 +83,11 @@ We then add an `AeroPoint` group, which contains the analysis components to comp
 Additionally, we promote the flow condition variables from the group up to the model level.
 This means that the values in our IndepVarComp can pass data into this `AeroPoint` group, which is how the aerodynamic analysis knows which flow conditions to use.
 
-.. code-block:: python
-
-  # Create and add a group that handles the geometry for the
-  # aerodynamic lifting surface
-  geom_group = Geometry(surface=surface)
-  prob.model.add_subsystem(surface['name'], geom_group)
-
-  # Create the aero point group, which contains the actual aerodynamic
-  # analyses
-  aero_group = AeroPoint(surfaces=[surface])
-  point_name = 'aero_point_0'
-  prob.model.add_subsystem(point_name, aero_group,
-      promotes_inputs=['v', 'alpha', 'M', 're', 'rho', 'cg'])
-
 We need to connect some of the variables from the `Geometry` group into the `AeroPoint` group.
 These connections allow information about the mesh to flow through the model correctly.
 
-.. code-block:: python
-
-  name = surface['name']
-
-  # Connect the mesh from the geometry component to the analysis point
-  prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
-
-  # Perform the connections with the modified names within the
-  # 'aero_states' group.
-  prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
-
-  prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
+.. embed-code::
+    openaerostruct/docs/aero_walkthrough/part_4.py
 
 3. Add your design variables, constraints, and objective
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -213,22 +128,8 @@ Common objectives include:
 We also tell the OpenMDAO problem to record information about each optimization iteration.
 This will allow us to visualize the history during and after the optimization.
 
-.. code-block:: python
-
-  # Import the Scipy Optimizer and set the driver of the problem to use
-  # it, which defaults to an SLSQP optimization method
-  from openmdao.api import ScipyOptimizeDriver
-  prob.driver = ScipyOptimizeDriver()
-
-  recorder = SqliteRecorder("aero.db")
-  prob.driver.add_recorder(recorder)
-  prob.driver.recording_options['record_derivatives'] = True
-  prob.driver.recording_options['includes'] = ['*']
-
-  # Setup problem and add design variables, constraint, and objective
-  prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-  prob.model.add_constraint(point_name + '.wing_perf.CL', equals=0.5)
-  prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
+.. embed-code::
+    openaerostruct/docs/aero_walkthrough/part_5.py
 
 4. Set up and run the optimization problem
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -238,13 +139,14 @@ If you only wanted to perform analysis, not optimization, you could use `prob.ru
 
 The code below find the lowest `CD` value while providing a certain amount of lift by constraining `CL`.
 
-.. code-block:: python
+.. embed-code::
+    openaerostruct/docs/aero_walkthrough/part_6.py
 
-  # Set up and run the optimization problem
-  prob.setup()
-  prob.run_driver()
-  print(prob['aero_point_0.wing_perf.CD'][0])
-  print(prob['aero_point_0.wing_perf.CL'][0])
+.. embed-code::
+    openaerostruct.tests.test_aero.Test.test
+    :layout: output
+
+
 
 Investigation of the problem structure -- N2 diagram
 ----------------------------------------------------
@@ -263,12 +165,15 @@ To create this diagram for any OpenMDAO problem, add these two lines after you c
 
 .. code-block:: python
 
-  # Set up and run the optimization problem
-  prob.setup()
   from openmdao.api import view_model
   view_model(prob)
 
 Use any web browser to open the `.html` file and you can examine your problem layout.
+This diagram shows groups in dark blue, components in light blue, as organized by your actual problem hierarchy.
+Parameters (inputs and outputs) are shown on the diagonal, with off-diagonal terms representing where an output from a component is passed as input to another component.
+Any red parameters shown are unconnected inputs, which means that those parameters are not receiving any data from another component.
+In general this is bad -- it suggests that the model is not set up properly -- but if you want to use the default value of those inputs, then it's OK.
+For example, we currently have unconnected inputs in the geometry group within OpenAeroStruct, but this is allowable because the default values used in that group are correct and do not modify the mesh.
 
 How to visualize results
 ------------------------
