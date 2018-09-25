@@ -22,9 +22,6 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('def_mesh', val=np.random.random((nx, ny, 3)), units='m')
         indep_var_comp.add_output('sec_forces', val=np.random.random((nx-1, ny-1, 3)), units='N')
 
-        indep_var_comp.add_output('loadA', val=np.random.random((ny,3)), units='N')
-        indep_var_comp.add_output('loadB', val=np.random.random((ny,3)), units='m')
-
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('load_transfer', comp, promotes=['*'])
 
