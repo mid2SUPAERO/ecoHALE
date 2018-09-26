@@ -99,128 +99,33 @@ class LoadTransfer(ExplicitComponent):
 
         self.declare_partials(of='loads', wrt='sec_forces', rows=rows, cols=cols)
 
-        # ------- OLD ---------
-        # Below we create each individual partial derivative
+        # Top diagonal is forward-most mesh point.
+        base_row = np.array([3, 3, 3, 4, 4, 4, 5, 5, 5])
+        base_col = np.tile(np.array([3, 4, 5]), 3)
+        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 9)
+        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 9)
+        rows1 = np.tile(row, nx)
+        cols1 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 9*(ny-1))
+
+        # Bottom diagonal is backward-most mesh point.
+        base_row = np.array([9, 9, 9, 10, 10, 10, 11, 11, 11])
+        base_col = np.tile(np.array([0, 1, 2]), 3)
+        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 9)
+        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 9)
+        rows2 = np.tile(row, nx)
+        cols2 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 9*(ny-1))
+
+        # Central Diagonal blocks
+        base_row = np.array([3, 3, 3, 4, 4, 4, 5, 5, 5])
+        base_col = np.tile(np.array([0, 1, 2]), 3)
+        row = np.tile(base_row, ny) + np.repeat(6*np.arange(ny), 9)
+        col = np.tile(base_col, ny) + np.repeat(3*np.arange(ny), 9)
+        rows3 = np.tile(row, nx)
+        cols3 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 9*ny)
 
 
-        # --------------------------------dloadsB__dsec_forces-------------------------------------
-        #dloadsB__dmoment
-        rowsA=np.zeros((3*(ny-1)*2))
-        colsA=np.zeros((3*(ny-1)*2))
-        data=0.5*np.ones((3*(ny-1)*2))
-        for col_idx in range(3*(ny-1)):
-            rowsA[col_idx*2] = col_idx
-            rowsA[col_idx*2+1] = col_idx+3
-            colsA[col_idx*2] = col_idx
-            colsA[col_idx*2+1] = col_idx
-        self.dloadsB__dmoment = coo_matrix((data, (rowsA, colsA)), shape=(3*ny,3*(ny-1)))
-
-        # dmoment__dsec_forces
-        diff = np.ones((nx-1, ny-1, 3))
-        rows = np.zeros((9*(ny-1)*(nx-1)))
-        cols = np.zeros((9*(ny-1)*(nx-1)))
-        data = np.ones((9*(ny-1)*(nx-1)))
-        tmp_row = np.array([0,0,0,1,1,1,2,2,2])
-        tmp_col = np.array([0,1,2,0,1,2,0,1,2])
-        # setup rows and cols
-        for nxitr in range(nx-1):
-            for nyitr in range(ny-1):
-                index = 9*(nyitr+(ny-1)*nxitr)
-                rows[index:index+9] = tmp_row+nyitr*3.
-                cols[index:index+9] = tmp_col+nyitr*3.+3*(ny-1)*nxitr
-                data[index:index+9] = -_skew(diff[nxitr,nyitr,:]).flatten()
-        dmoment__dsec_forces = coo_matrix((data, (rows,cols)), shape=(3*(ny-1), 3*(ny-1)*(nx-1)))
-
-        # dloadsB__dsec_forces
-        dloadsB__dsec_forces = self.dloadsB__dmoment * dmoment__dsec_forces
-        dloadsB__dsec_forces = dloadsB__dsec_forces.tocoo() # force the system to be a coo_matrix
-
-        # --------------------------------dloadsB__ddef_mesh-------------------------------------
-        # setup sparce partials for dloadsB__ddef_mesh where:
-
-        # dloadsB__dmoment
-        rows = np.zeros((3*(ny-1)*2))
-        cols = np.zeros((3*(ny-1)*2))
-        data = np.ones((3*(ny-1)*2))
-        tmp_row = np.array([0,3])
-        tmp_col = np.array([0,0])
-        for i in range(3*(ny-1)):
-            rows[i*2:(1+i)*2] = i+tmp_row
-            cols[i*2:(1+i)*2] = i+tmp_col
-        self.dloadsB__dmoment = 0.5*coo_matrix((data, (rows,cols)), shape=(3*ny, 3*(ny-1)))
-
-        # dmoment__ddiff
-        # this will need to be recalculated in def_partials b/c it's a function of sec_forces
-        rows = np.zeros((9*(ny-1)*(nx-1)))
-        cols = np.zeros((9*(ny-1)*(nx-1)))
-        data = np.zeros((9*(ny-1)*(nx-1)))
-        tmp_row = np.array([0,0,0,1,1,1,2,2,2])
-        tmp_col = np.array([0,1,2,0,1,2,0,1,2])
-        tmp_sec_forces = np.ones((nx-1,ny-1,3))
-        # setup rows and cols
-        for nxitr in range(nx-1):
-            for nyitr in range(ny-1):
-                index = 9*(nyitr+(ny-1)*nxitr)
-                rows[index:index+9] = tmp_row+nyitr*3.
-                cols[index:index+9] = tmp_col+nyitr*3.+3*(ny-1)*nxitr
-                data[index:index+9] = -_skew(tmp_sec_forces[nxitr,nyitr,:]).flatten()
-        dmoment__ddiff = coo_matrix((data, (rows,cols)), shape=(3*(ny-1), 3*(ny-1)*(nx-1)))
-
-        # ddiff__ds_pts
-        tmp_ddiff__ds_pts = np.zeros((3*(ny-1)*(nx-1),3*(ny-1)))
-        for xiter in range(nx-1):
-            tmp_ddiff__ds_pts[xiter*3*(ny-1):(1+xiter)*3*(ny-1),0:3*(ny-1)] = np.eye((3*(ny-1)))
-        ddiff__ds_pts = coo_matrix(tmp_ddiff__ds_pts)
-
-        # ds_pts__ddef_mesh
-        tmp_ds_pts__ddef_mesh = np.zeros((3*(ny-1),3*(ny)*(nx)))
-        block = np.zeros((3*(ny-1),3*ny))
-        block[:,0:-3] = np.eye((3*(ny-1)))
-        block[:,3:] = block[:,3:] + np.eye((3*(ny-1)))
-        tmp_ds_pts__ddef_mesh[:,0:3*ny] = 0.5*(1-w2)*block
-        tmp_ds_pts__ddef_mesh[:,3*ny*(nx-1):] = tmp_ds_pts__ddef_mesh[:,3*ny*(nx-1):] + 0.5 * w2 * block
-        ds_pts__ddef_mesh = coo_matrix(tmp_ds_pts__ddef_mesh)
-
-        # ddiff__da_pts
-        ddiff__da_pts = identity((3*(ny-1)*(nx-1)))
-
-        # da_pts__ddef_mesh
-        tmp_da_pts__ddef_mesh = np.zeros((3*(ny-1)*(nx-1),3*ny*nx))
-        block2 = np.zeros((3*(ny-1),6*ny))
-        block2[:,:-3*ny] = 0.5 * (1-w1) * block
-        block2[:,3*ny:] = 0.5 * w1 * block
-        down = 3*(ny-1)
-        over = 3*ny
-        for xiter in range(nx-1):
-            tmp_da_pts__ddef_mesh[xiter*down:xiter*down+3*(ny-1),over*xiter:over*xiter+6*ny] = block2
-        da_pts__ddef_mesh = coo_matrix(tmp_da_pts__ddef_mesh)
-
-        # to shorten future calculation times we calculate two other partials
-        # ddiff__ddef_mesh
-        self.ddiff__ddef_mesh = ddiff__da_pts * da_pts__ddef_mesh - ddiff__ds_pts * ds_pts__ddef_mesh
-        self.ddiff__ddef_mesh = self.ddiff__ddef_mesh.tocoo()
-
-        # dloadsB__ddef_mesh
-        dloadsB__ddef_mesh = self.dloadsB__dmoment * dmoment__ddiff * self.ddiff__ddef_mesh
-        dloadsB__ddef_mesh = dloadsB__ddef_mesh.tocoo()
-
-        #---------------------------------dloads__ddef_mesh
-        #dloads__dloadsA
-        blk = np.array([0,1,2])
-        rows = np.zeros((ny*3))
-        data = np.ones((ny*3))
-        cols = np.linspace(0,ny*3-1, ny*3)
-        for yiter in range(ny):
-            rows[yiter*3:(1+yiter)*3] = blk+6*yiter
-
-        #dloads__dloadsB
-        rows = rows + 3
-        self.dloads__dloadsB = coo_matrix((data, (rows, cols)), shape=(ny*6, ny*3))
-
-        dloads__ddef_mesh = self.dloads__dloadsB * dloadsB__ddef_mesh
-        dloads__ddef_mesh = dloads__ddef_mesh.tocoo()
-        rows = dloads__ddef_mesh.row
-        cols = dloads__ddef_mesh.col
+        rows = np.concatenate([rows1, rows2, rows3])
+        cols = np.concatenate([cols1, cols2, cols3])
 
         self.declare_partials(of='loads', wrt='def_mesh', rows=rows, cols=cols)
 
@@ -266,20 +171,22 @@ class LoadTransfer(ExplicitComponent):
         sec_forces = inputs['sec_forces']
         ny = self.ny
         nx = self.nx
+        w1 = self.w1
+        w2 = self.w2
 
         # -------------------------------dloadsB__dsec_forces--------------------------------------
         # dmoment__dsec_forces
         # Compute the aerodynamic centers at the quarter-chord point of each panel
-        a_pts = 0.5 * (1-self.w1) * mesh[:-1, :-1, :] + \
-                0.5 *   self.w1   * mesh[1:, :-1, :] + \
-                0.5 * (1-self.w1) * mesh[:-1,  1:, :] + \
-                0.5 *   self.w1   * mesh[1:,  1:, :]
+        a_pts = 0.5 * (1-w1) * mesh[:-1, :-1, :] + \
+                0.5 *   w1   * mesh[1:, :-1, :] + \
+                0.5 * (1-w1) * mesh[:-1,  1:, :] + \
+                0.5 *   w1   * mesh[1:,  1:, :]
 
         # Compute the structural midpoints based on the fem_origin location
-        s_pts = 0.5 * (1-self.w2) * mesh[0, :-1, :] + \
-                0.5 *   self.w2   * mesh[-1, :-1, :] + \
-                0.5 * (1-self.w2) * mesh[0,  1:, :] + \
-                0.5 *   self.w2   * mesh[-1,  1:, :]
+        s_pts = 0.5 * (1-w2) * mesh[0, :-1, :] + \
+                0.5 *   w2   * mesh[-1, :-1, :] + \
+                0.5 * (1-w2) * mesh[0,  1:, :] + \
+                0.5 *   w2   * mesh[-1,  1:, :]
 
         # Derivatives across the cross product.
         diff = a_pts - s_pts
@@ -292,53 +199,72 @@ class LoadTransfer(ExplicitComponent):
         dmom_dsec[:, :, 2, 0] = -diff[:, :, 1] * 0.5
         dmom_dsec[:, :, 2, 1] = diff[:, :, 0] * 0.5
 
-        n1 = 6*(ny-1)*(nx-1)
-        partials['loads', 'sec_forces'][:n1] = 0.5
+        id1 = 6*(ny-1)*(nx-1)
+        partials['loads', 'sec_forces'][:id1] = 0.5
 
-        n2 = n1 + n1*3//2
+        id2 = id1 + id1*3//2
         dmom_dsec = dmom_dsec.flatten()
-        partials['loads', 'sec_forces'][n1:n2] = dmom_dsec
-        partials['loads', 'sec_forces'][n2:] = dmom_dsec
+        partials['loads', 'sec_forces'][id1:id2] = dmom_dsec
+        partials['loads', 'sec_forces'][id2:] = dmom_dsec
 
-        rows = np.zeros((9*(ny-1)*(nx-1)))
-        cols = np.zeros((9*(ny-1)*(nx-1)))
-        data = np.zeros((9*(ny-1)*(nx-1)))
-        tmp_row = np.array([0,0,0,1,1,1,2,2,2])
-        tmp_col = np.array([0,1,2,0,1,2,0,1,2])
-        # setup rows and cols
-        for nxitr in range(nx-1):
-            for nyitr in range(ny-1):
-                index = 9*(nyitr+(ny-1)*nxitr)
-                rows[index:index+9] = tmp_row+nyitr*3.
-                cols[index:index+9] = tmp_col+nyitr*3.+3*(ny-1)*nxitr
-                data[index:index+9] = _skew(diff[nxitr,nyitr,:]).flatten()
-        dmoment__dsec_forces = coo_matrix((data, (rows,cols)), shape=(3*(ny-1), 3*(ny-1)*(nx-1)))
+        dmom_ddiff = np.zeros((nx-1, ny-1, 3, 3))
+        dmom_ddiff[:, :, 0, 1] = sec_forces[:, :, 2]
+        dmom_ddiff[:, :, 0, 2] = -sec_forces[:, :, 1]
+        dmom_ddiff[:, :, 1, 0] = -sec_forces[:, :, 2]
+        dmom_ddiff[:, :, 1, 2] = sec_forces[:, :, 0]
+        dmom_ddiff[:, :, 2, 0] = sec_forces[:, :, 1]
+        dmom_ddiff[:, :, 2, 1] = -sec_forces[:, :, 0]
+        dmom_ddiff *= 0.25
 
-        dloadsB__dsec_forces = self.dloadsB__dmoment * dmoment__dsec_forces
-        dloadsB__dsec_forces = dloadsB__dsec_forces.tocoo()
+        dmom_ddiff_sum = np.sum(dmom_ddiff, axis=0)
 
-        # --------------------------------dloadsB__ddef_mesh-------------------------------------
-        # dmoment__ddiff must to be calulated each time b/c it's a function of sec_forces
-        rows = np.zeros((9*(ny-1)*(nx-1)))
-        cols = np.zeros((9*(ny-1)*(nx-1)))
-        data = np.zeros((9*(ny-1)*(nx-1)))
-        tmp_row = np.array([0,0,0,1,1,1,2,2,2])
-        tmp_col = np.array([0,1,2,0,1,2,0,1,2])
-        # setup rows and cols
-        for nxitr in range(nx-1):
-            for nyitr in range(ny-1):
-                index = 9*(nyitr+(ny-1)*nxitr)
-                rows[index:index+9] = tmp_row+nyitr*3.
-                cols[index:index+9] = tmp_col+nyitr*3.+3*(ny-1)*nxitr
-                data[index:index+9] = -_skew(sec_forces[nxitr,nyitr,:]).flatten()
-        dmoment__ddiff = coo_matrix((data, (rows,cols)), shape=(3*(ny-1), 3*(ny-1)*(nx-1)))
+        dmom_ddiff_fwd = np.zeros((nx-1, ny, 3, 3))
+        dmom_ddiff_fwd[:, 1:, :, :] = dmom_ddiff
+        dmom_ddiff_rev = np.zeros((nx-1, ny, 3, 3))
+        dmom_ddiff_rev[:, :-1, :, :] = dmom_ddiff
+        dmom_ddiff_rev_sum = np.zeros((1, ny, 3, 3))
+        dmom_ddiff_rev_sum[:, :-1, :, :] = dmom_ddiff_sum
+        dmom_ddiff_fwd_sum = np.zeros((1, ny, 3, 3))
+        dmom_ddiff_fwd_sum[:, 1:, :, :] = dmom_ddiff_sum
 
+        dmom_ddiff = dmom_ddiff.flatten()
+        dmom_ddiff_sum = dmom_ddiff_sum.flatten()
+        dmom_ddiff_fwd = dmom_ddiff_fwd.flatten()
+        dmom_ddiff_rev = dmom_ddiff_rev.flatten()
+        dmom_ddiff_rev_sum = dmom_ddiff_rev_sum.flatten()
+        dmom_ddiff_fwd_sum = dmom_ddiff_fwd_sum.flatten()
 
-        # multiply the matrix with those previous calculated in setup
-        dloadsB__ddef_mesh = self.dloadsB__dmoment * dmoment__ddiff * self.ddiff__ddef_mesh
-        dloadsB__ddef_mesh = dloadsB__ddef_mesh.tocoo()
+        idy = 9*(ny-1)
+        idx = idy*nx
+        idw = idy*(nx-1)
+        partials['loads','def_mesh'][:] = 0.0
 
-        dloads__ddef_mesh = self.dloads__dloadsB * dloadsB__ddef_mesh
-        dloads__ddef_mesh = dloads__ddef_mesh.tocoo()
-        partials['loads','def_mesh'] = dloads__ddef_mesh.data
+        # Upper diagonal blocks
+        partials['loads','def_mesh'][:idw] = dmom_ddiff * (1-w1)
+        partials['loads','def_mesh'][idy:idx] += dmom_ddiff * w1
+        partials['loads','def_mesh'][:idy] -= dmom_ddiff_sum * (1-w2)
+        partials['loads','def_mesh'][idx-idy:idx] -= dmom_ddiff_sum * w2
+
+        # Lower Diagonal blocks
+        id2 = idx * 2
+        partials['loads','def_mesh'][idx:idx+idw] = dmom_ddiff * (1-w1)
+        partials['loads','def_mesh'][idx+idy:id2] += dmom_ddiff * w1
+        partials['loads','def_mesh'][idx:idx+idy] -= dmom_ddiff_sum * (1-w2)
+        partials['loads','def_mesh'][id2-idy:id2] -= dmom_ddiff_sum * w2
+
+        # Central diagonal blocks
+        idy = 9*ny
+        idz = 9*(nx-1)
+        id3 = id2 + idw + idz
+        partials['loads','def_mesh'][id2:id3] = dmom_ddiff_rev * (1-w1)
+        partials['loads','def_mesh'][id2:id2+idy] -= dmom_ddiff_rev_sum * (1-w2)
+        partials['loads','def_mesh'][id2:id3] += dmom_ddiff_fwd * (1-w1)
+        partials['loads','def_mesh'][id2:id2+idy] -= dmom_ddiff_fwd_sum * (1-w2)
+
+        id2 += idy
+        id3 += idy
+        partials['loads','def_mesh'][id2:id3] += dmom_ddiff_rev * w1
+        partials['loads','def_mesh'][id3-idy:id3] -= dmom_ddiff_rev_sum * w2
+        partials['loads','def_mesh'][id2:id3] += dmom_ddiff_fwd * w1
+        partials['loads','def_mesh'][id3-idy:id3] -= dmom_ddiff_fwd_sum * w2
 
