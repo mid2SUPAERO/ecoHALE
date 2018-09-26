@@ -85,13 +85,13 @@ class LoadTransfer(ExplicitComponent):
         cols1 = np.tile(col, nx-1) + np.repeat(3*(ny-1)*np.arange(nx-1), 6*(ny-1))
 
         # Then, the term from the cross product.
-        base_row = np.array([3, 3, 3, 4, 4, 4, 5, 5, 5])
-        base_col = np.tile(np.array([0, 1, 2]), 3)
-        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 9)
-        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 9)
+        base_row = np.array([3, 3, 4, 4, 5, 5])
+        base_col = np.array([1, 2, 0, 2, 0, 1])
+        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 6)
+        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 6)
         row1 = np.tile(row, nx-1)
-        col1 = np.tile(col, nx-1) + np.repeat(3*(ny-1)*np.arange(nx-1), 9*(ny-1))
-        rows2 = np.tile(row1, 2) + np.repeat(np.array([0, 6]), 9*(nx-1)*(ny-1))
+        col1 = np.tile(col, nx-1) + np.repeat(3*(ny-1)*np.arange(nx-1), 6*(ny-1))
+        rows2 = np.tile(row1, 2) + np.repeat(np.array([0, 6]), 6*(nx-1)*(ny-1))
         cols2 = np.tile(col1, 2)
 
         rows = np.concatenate([rows1, rows2])
@@ -100,28 +100,28 @@ class LoadTransfer(ExplicitComponent):
         self.declare_partials(of='loads', wrt='sec_forces', rows=rows, cols=cols)
 
         # Top diagonal is forward-most mesh point.
-        base_row = np.array([3, 3, 3, 4, 4, 4, 5, 5, 5])
-        base_col = np.tile(np.array([3, 4, 5]), 3)
-        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 9)
-        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 9)
+        base_row = np.array([3, 3, 4, 4, 5, 5])
+        base_col = np.array([4, 5, 3, 5, 3, 4])
+        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 6)
+        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 6)
         rows1 = np.tile(row, nx)
-        cols1 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 9*(ny-1))
+        cols1 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 6*(ny-1))
 
         # Bottom diagonal is backward-most mesh point.
-        base_row = np.array([9, 9, 9, 10, 10, 10, 11, 11, 11])
-        base_col = np.tile(np.array([0, 1, 2]), 3)
-        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 9)
-        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 9)
+        base_row = np.array([9, 9, 10, 10, 11, 11])
+        base_col = np.array([1, 2, 0, 2, 0, 1])
+        row = np.tile(base_row, ny-1) + np.repeat(6*np.arange(ny-1), 6)
+        col = np.tile(base_col, ny-1) + np.repeat(3*np.arange(ny-1), 6)
         rows2 = np.tile(row, nx)
-        cols2 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 9*(ny-1))
+        cols2 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 6*(ny-1))
 
         # Central Diagonal blocks
-        base_row = np.array([3, 3, 3, 4, 4, 4, 5, 5, 5])
-        base_col = np.tile(np.array([0, 1, 2]), 3)
-        row = np.tile(base_row, ny) + np.repeat(6*np.arange(ny), 9)
-        col = np.tile(base_col, ny) + np.repeat(3*np.arange(ny), 9)
+        base_row = np.array([3, 3, 4, 4, 5, 5])
+        base_col = np.array([1, 2, 0, 2, 0, 1])
+        row = np.tile(base_row, ny) + np.repeat(6*np.arange(ny), 6)
+        col = np.tile(base_col, ny) + np.repeat(3*np.arange(ny), 6)
         rows3 = np.tile(row, nx)
-        cols3 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 9*ny)
+        cols3 = np.tile(col, nx) + np.repeat(3*ny*np.arange(nx), 6*ny)
 
 
         rows = np.concatenate([rows1, rows2, rows3])
@@ -174,8 +174,6 @@ class LoadTransfer(ExplicitComponent):
         w1 = self.w1
         w2 = self.w2
 
-        # -------------------------------dloadsB__dsec_forces--------------------------------------
-        # dmoment__dsec_forces
         # Compute the aerodynamic centers at the quarter-chord point of each panel
         a_pts = 0.5 * (1-w1) * mesh[:-1, :-1, :] + \
                 0.5 *   w1   * mesh[1:, :-1, :] + \
@@ -188,83 +186,77 @@ class LoadTransfer(ExplicitComponent):
                 0.5 * (1-w2) * mesh[0,  1:, :] + \
                 0.5 *   w2   * mesh[-1,  1:, :]
 
-        # Derivatives across the cross product.
-        diff = a_pts - s_pts
+        diff = 0.5 * (a_pts - s_pts)
 
-        dmom_dsec = np.zeros((nx-1, ny-1, 3, 3))
-        dmom_dsec[:, :, 0, 1] = -diff[:, :, 2] * 0.5
-        dmom_dsec[:, :, 0, 2] = diff[:, :, 1] * 0.5
-        dmom_dsec[:, :, 1, 0] = diff[:, :, 2] * 0.5
-        dmom_dsec[:, :, 1, 2] = -diff[:, :, 0] * 0.5
-        dmom_dsec[:, :, 2, 0] = -diff[:, :, 1] * 0.5
-        dmom_dsec[:, :, 2, 1] = diff[:, :, 0] * 0.5
+        # dmoment__dsec_forces
+
+        dmom_dsec = np.empty((nx-1, ny-1, 6))
+        dmom_dsec[:, :, 0] = -diff[:, :, 2]
+        dmom_dsec[:, :, 1] = diff[:, :, 1]
+        dmom_dsec[:, :, 2] = diff[:, :, 2]
+        dmom_dsec[:, :, 3] = -diff[:, :, 0]
+        dmom_dsec[:, :, 4] = -diff[:, :, 1]
+        dmom_dsec[:, :, 5] = diff[:, :, 0]
 
         id1 = 6*(ny-1)*(nx-1)
         partials['loads', 'sec_forces'][:id1] = 0.5
 
-        id2 = id1 + id1*3//2
+        id2 = id1 * 2
         dmom_dsec = dmom_dsec.flatten()
         partials['loads', 'sec_forces'][id1:id2] = dmom_dsec
         partials['loads', 'sec_forces'][id2:] = dmom_dsec
 
-        dmom_ddiff = np.zeros((nx-1, ny-1, 3, 3))
-        dmom_ddiff[:, :, 0, 1] = sec_forces[:, :, 2]
-        dmom_ddiff[:, :, 0, 2] = -sec_forces[:, :, 1]
-        dmom_ddiff[:, :, 1, 0] = -sec_forces[:, :, 2]
-        dmom_ddiff[:, :, 1, 2] = sec_forces[:, :, 0]
-        dmom_ddiff[:, :, 2, 0] = sec_forces[:, :, 1]
-        dmom_ddiff[:, :, 2, 1] = -sec_forces[:, :, 0]
-        dmom_ddiff *= 0.25
+        # dmoment__dmesh
+
+        dmom_ddiff = np.zeros((nx-1, ny-1, 6))
+        dmom_ddiff[:, :, 0] = sec_forces[:, :, 2]
+        dmom_ddiff[:, :, 1] = -sec_forces[:, :, 1]
+        dmom_ddiff[:, :, 2] = -sec_forces[:, :, 2]
+        dmom_ddiff[:, :, 3] = sec_forces[:, :, 0]
+        dmom_ddiff[:, :, 4] = sec_forces[:, :, 1]
+        dmom_ddiff[:, :, 5] = -sec_forces[:, :, 0]
 
         dmom_ddiff_sum = np.sum(dmom_ddiff, axis=0)
 
-        dmom_ddiff_fwd = np.zeros((nx-1, ny, 3, 3))
-        dmom_ddiff_fwd[:, 1:, :, :] = dmom_ddiff
-        dmom_ddiff_rev = np.zeros((nx-1, ny, 3, 3))
-        dmom_ddiff_rev[:, :-1, :, :] = dmom_ddiff
-        dmom_ddiff_rev_sum = np.zeros((1, ny, 3, 3))
-        dmom_ddiff_rev_sum[:, :-1, :, :] = dmom_ddiff_sum
-        dmom_ddiff_fwd_sum = np.zeros((1, ny, 3, 3))
-        dmom_ddiff_fwd_sum[:, 1:, :, :] = dmom_ddiff_sum
+        dmon_ddiff_diag = np.zeros((nx-1, ny, 6))
+        dmon_ddiff_diag[:, 1:, :] = dmom_ddiff
+        dmon_ddiff_diag[:, :-1, :] += dmom_ddiff
+        dmon_ddiff_diag_sum = np.zeros((1, ny, 6))
+        dmon_ddiff_diag_sum[:, :-1, :] = dmom_ddiff_sum
+        dmon_ddiff_diag_sum[:, 1:, :] += dmom_ddiff_sum
 
         dmom_ddiff = dmom_ddiff.flatten()
         dmom_ddiff_sum = dmom_ddiff_sum.flatten()
-        dmom_ddiff_fwd = dmom_ddiff_fwd.flatten()
-        dmom_ddiff_rev = dmom_ddiff_rev.flatten()
-        dmom_ddiff_rev_sum = dmom_ddiff_rev_sum.flatten()
-        dmom_ddiff_fwd_sum = dmom_ddiff_fwd_sum.flatten()
+        dmon_ddiff_diag = dmon_ddiff_diag.flatten()
+        dmon_ddiff_diag_sum = dmon_ddiff_diag_sum.flatten()
 
-        idy = 9*(ny-1)
+        idy = 6*(ny-1)
         idx = idy*nx
         idw = idy*(nx-1)
         partials['loads','def_mesh'][:] = 0.0
 
         # Upper diagonal blocks
-        partials['loads','def_mesh'][:idw] = dmom_ddiff * (1-w1)
-        partials['loads','def_mesh'][idy:idx] += dmom_ddiff * w1
-        partials['loads','def_mesh'][:idy] -= dmom_ddiff_sum * (1-w2)
-        partials['loads','def_mesh'][idx-idy:idx] -= dmom_ddiff_sum * w2
+        partials['loads','def_mesh'][:idw] = dmom_ddiff * ((1-w1) * 0.25)
+        partials['loads','def_mesh'][idy:idx] += dmom_ddiff * (w1 * 0.25)
+        partials['loads','def_mesh'][:idy] -= dmom_ddiff_sum * ((1-w2) * 0.25)
+        partials['loads','def_mesh'][idx-idy:idx] -= dmom_ddiff_sum * (w2 * 0.25)
 
         # Lower Diagonal blocks
         id2 = idx * 2
-        partials['loads','def_mesh'][idx:idx+idw] = dmom_ddiff * (1-w1)
-        partials['loads','def_mesh'][idx+idy:id2] += dmom_ddiff * w1
-        partials['loads','def_mesh'][idx:idx+idy] -= dmom_ddiff_sum * (1-w2)
-        partials['loads','def_mesh'][id2-idy:id2] -= dmom_ddiff_sum * w2
+        partials['loads','def_mesh'][idx:idx+idw] = dmom_ddiff * ((1-w1) * 0.25)
+        partials['loads','def_mesh'][idx+idy:id2] += dmom_ddiff * (w1 * 0.25)
+        partials['loads','def_mesh'][idx:idx+idy] -= dmom_ddiff_sum * ((1-w2) * 0.25)
+        partials['loads','def_mesh'][id2-idy:id2] -= dmom_ddiff_sum * (w2 * 0.25)
 
         # Central diagonal blocks
-        idy = 9*ny
-        idz = 9*(nx-1)
+        idy = 6*ny
+        idz = 6*(nx-1)
         id3 = id2 + idw + idz
-        partials['loads','def_mesh'][id2:id3] = dmom_ddiff_rev * (1-w1)
-        partials['loads','def_mesh'][id2:id2+idy] -= dmom_ddiff_rev_sum * (1-w2)
-        partials['loads','def_mesh'][id2:id3] += dmom_ddiff_fwd * (1-w1)
-        partials['loads','def_mesh'][id2:id2+idy] -= dmom_ddiff_fwd_sum * (1-w2)
+        partials['loads','def_mesh'][id2:id3] = dmon_ddiff_diag * ((1-w1) * 0.25)
+        partials['loads','def_mesh'][id2:id2+idy] -= dmon_ddiff_diag_sum * ((1-w2) * 0.25)
 
         id2 += idy
         id3 += idy
-        partials['loads','def_mesh'][id2:id3] += dmom_ddiff_rev * w1
-        partials['loads','def_mesh'][id3-idy:id3] -= dmom_ddiff_rev_sum * w2
-        partials['loads','def_mesh'][id2:id3] += dmom_ddiff_fwd * w1
-        partials['loads','def_mesh'][id3-idy:id3] -= dmom_ddiff_fwd_sum * w2
+        partials['loads','def_mesh'][id2:id3] += dmon_ddiff_diag * (w1 * 0.25)
+        partials['loads','def_mesh'][id3-idy:id3] -= dmon_ddiff_diag_sum * (w2 * 0.25)
 
