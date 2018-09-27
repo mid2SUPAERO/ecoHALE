@@ -57,7 +57,6 @@ class FEM(ImplicitComponent):
 
         self._lup = []
         shape = (vec_size, size) if vec_size > 1 else (size, )
-        shape_A = (vec_size_A, size, size) if vec_size_A > 1 else (size, size)
 
         init_A = np.eye(size)
 
@@ -107,8 +106,6 @@ class FEM(ImplicitComponent):
         outputs : Vector
             unscaled, dimensional output variables read via outputs[key]
         """
-        vec_size = self.options['vec_size']
-        vec_size_A = self.vec_size_A
 
         # lu factorization for use with solve_linear
         self._lup = []

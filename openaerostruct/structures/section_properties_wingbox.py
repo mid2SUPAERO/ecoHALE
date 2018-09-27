@@ -81,8 +81,6 @@ class SectionPropertiesWingbox(ExplicitComponent):
         y_up_diff = data_y_upper[1:] - data_y_upper[:-1]
         y_low_diff = data_y_lower[1:] - data_y_lower[:-1]
 
-        x_up_add = data_x_upper[1:] + data_x_upper[:-1]
-        x_low_add = data_x_lower[1:] + data_x_lower[:-1]
         y_up_add = data_y_upper[1:] + data_y_upper[:-1]
         y_low_add = data_y_lower[1:] + data_y_lower[:-1]
 
@@ -136,8 +134,6 @@ class SectionPropertiesWingbox(ExplicitComponent):
         y_up_diff = data_y_upper[1:] - data_y_upper[:-1]
         y_low_diff = data_y_lower[1:] - data_y_lower[:-1]
 
-        x_up_add = data_x_upper[1:] + data_x_upper[:-1]
-        x_low_add = data_x_lower[1:] + data_x_lower[:-1]
         y_up_add = data_y_upper[1:] + data_y_upper[:-1]
         y_low_add = data_y_lower[1:] + data_y_lower[:-1]
 

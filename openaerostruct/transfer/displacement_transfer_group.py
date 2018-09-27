@@ -1,4 +1,4 @@
-from openmdao.api import IndepVarComp, Group
+from openmdao.api import Group
 from openaerostruct.transfer.displacement_transfer import DisplacementTransfer
 from openaerostruct.transfer.compute_transformation_matrix import ComputeTransformationMatrix
 

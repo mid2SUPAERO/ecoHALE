@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.utils.vector_algebra import get_array_indices, compute_cross, compute_cross_deriv1, compute_cross_deriv2
+from openaerostruct.utils.vector_algebra import get_array_indices
 
 
 class ComputeTransformationMatrix(ExplicitComponent):
@@ -41,23 +41,23 @@ class ComputeTransformationMatrix(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
         mesh=surface['mesh']
-        nx = self.nx = mesh.shape[0]
-        ny = self.ny = mesh.shape[1]
+        self.nx = mesh.shape[0]
+        self.ny = mesh.shape[1]
 
-        self.add_input('disp', val=np.zeros((ny, 6)), units='m')
-        self.add_output('transformation_matrix', shape=(ny, 3, 3))
+        self.add_input('disp', val=np.zeros((self.ny, 6)), units='m')
+        self.add_output('transformation_matrix', shape=(self.ny, 3, 3))
 
         # Create index arrays for each relevant input and output.
         # This allows us to set up the rows and cols for the sparse Jacobians.
-        disp_indices = get_array_indices(ny, 6)
-        transform_indices = get_array_indices(ny, 3, 3)
+        disp_indices = get_array_indices(self.ny, 6)
+        transform_indices = get_array_indices(self.ny, 3, 3)
 
         # Set up the rows and cols for `transformation_matrix` wrt `disp`
         rows = np.einsum('ijk,l->ijkl',
             transform_indices,
             np.ones(3, int)).flatten()
         cols = np.einsum('il,jk->ijkl',
-            get_array_indices(ny, 6)[:, 3:],
+            get_array_indices(self.ny, 6)[:, 3:],
             np.ones((3, 3), int)).flatten()
         self.declare_partials('transformation_matrix', 'disp', rows=rows, cols=cols)
 

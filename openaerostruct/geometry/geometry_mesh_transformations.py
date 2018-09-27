@@ -149,7 +149,6 @@ class ScaleX(ExplicitComponent):
         self.declare_partials('mesh', 'chord', rows=rows, cols=cols)
 
         p_rows = np.arange(nn)
-        p_cols = np.arange(nn)
         te_rows = np.arange(((nx-1) * ny * 3))
         le_rows = te_rows + ny*3
         le_cols = np.tile(np.arange(3 * ny), nx-1)
@@ -241,7 +240,6 @@ class Sweep(ExplicitComponent):
 
         nn = nx * ny * 3
         n_rows = np.arange(nn)
-        n_cols = np.arange(nn)
 
         if self.options['symmetry']:
             y_cp = ny*3 - 2
@@ -637,7 +635,6 @@ class Dihedral(ExplicitComponent):
 
         nn = nx * ny * 3
         n_rows = np.arange(nn)
-        n_cols = np.arange(nn)
 
         if self.options['symmetry']:
             y_cp = ny*3 - 2
@@ -708,8 +705,6 @@ class Dihedral(ExplicitComponent):
         # center of the wing
         if symmetry:
             y0 = le[-1, 1]
-            dz = -(le[:, 1] - y0) * tan_theta
-
             dz_dtheta = -(le[:, 1] - y0) * dtan_dangle
 
         else:
@@ -717,7 +712,6 @@ class Dihedral(ExplicitComponent):
             y0 = le[ny2, 1]
             dz_right = (le[ny2:, 1] - y0) * tan_theta
             dz_left = -(le[:ny2, 1] - y0) * tan_theta
-            dz = np.hstack((dz_left, dz_right))
 
             ddz_right = (le[ny2:, 1] - y0) * dtan_dangle
             ddz_left = -(le[:ny2, 1] - y0) * dtan_dangle

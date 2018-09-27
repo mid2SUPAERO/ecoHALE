@@ -69,8 +69,6 @@ class MomentCoefficient(ExplicitComponent):
         # of the aircraft based on the section forces and their location
         for j, surface in enumerate(self.options['surfaces']):
             name = surface['name']
-            nx = surface['mesh'].shape[0]
-            ny = surface['mesh'].shape[1]
 
             b_pts = inputs[name + '_b_pts']
             widths = inputs[name + '_widths']

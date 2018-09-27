@@ -1,5 +1,4 @@
-from openmdao.api import Group, ExplicitComponent
-from openaerostruct.geometry.geometry_mesh import GeometryMesh
+from openmdao.api import Group
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
@@ -81,5 +80,5 @@ class SpatialBeamAlone(Group):
         else:
             self.add_subsystem('struct_funcs',
                 SpatialBeamFunctionals(surface=surface),
-                promotes_inputs=['spar_thickness', 'skin_thickness', 'nodes', 'disp','Qz', 'Iz', 'J', 'A_enc', 'spar_thickness', 'skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
+                promotes_inputs=['spar_thickness', 'disp','Qz', 'J', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes'],
                 promotes_outputs=['vonmises', 'failure'])

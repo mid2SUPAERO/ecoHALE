@@ -1,5 +1,4 @@
 from __future__ import print_function, division
-import warnings
 import numpy as np
 from numpy import cos, sin, tan
 
@@ -549,7 +548,6 @@ def add_chordwise_panels(mesh, num_x, chord_cos_spacing):
 
     # Obtain mesh and num properties
     num_y = mesh.shape[1]
-    ny2 = (num_y + 1) // 2
     nx2 = (num_x + 1) // 2
 
     # Create beta, an array of linear sampling points to pi/2
@@ -746,66 +744,66 @@ def write_FFD_file(surface, mx, my):
 
     ffd = np.vstack((bottom_ffd, top_ffd))
 
-    if 0:
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
-
-        fig = plt.figure()
-        axes = []
-
-        axes.append(fig.add_subplot(221, projection='3d'))
-        axes.append(fig.add_subplot(222, projection='3d'))
-        axes.append(fig.add_subplot(223, projection='3d'))
-        axes.append(fig.add_subplot(224, projection='3d'))
-
-        for i, ax in enumerate(axes):
-            xs = ffd[:, :, 0].flatten()
-            ys = ffd[:, :, 1].flatten()
-            zs = ffd[:, :, 2].flatten()
-
-            ax.scatter(xs, ys, zs, c='red', alpha=1., clip_on=False)
-
-            xs = ffd[:, :, 0].flatten()
-            ys = ffd[:, :, 1].flatten()
-            zs = ffd[:, :, 2].flatten()
-
-            ax.scatter(xs, ys, zs, c='blue', alpha=1.)
-
-            xs = mesh[:, :, 0]
-            ys = mesh[:, :, 1]
-            zs = mesh[:, :, 2]
-
-            ax.plot_wireframe(xs, ys, zs, color='k')
-
-            ax.set_xlim([-5, 5])
-            ax.set_ylim([-5, 5])
-            ax.set_zlim([-5, 5])
-
-            ax.set_xlim([20, 40])
-            ax.set_ylim([-25, -5.])
-            ax.set_zlim([-10, 10])
-
-            ax.set_xlabel('x')
-            ax.set_ylabel('y')
-            ax.set_zlabel('z')
-
-            ax.set_axis_off()
-
-            ax.set_axis_off()
-
-            if i == 0:
-                ax.view_init(elev=0, azim=180)
-            elif i == 1:
-                ax.view_init(elev=0, azim=90)
-            elif i == 2:
-                ax.view_init(elev=100000, azim=0)
-            else:
-                ax.view_init(elev=40, azim=-30)
-
-        plt.tight_layout()
-        plt.subplots_adjust(wspace=0, hspace=0)
-
-        plt.show()
+    # ### Uncomment this to plot the FFD points
+    # import matplotlib.pyplot as plt
+    # from mpl_toolkits.mplot3d import Axes3D
+    #
+    # fig = plt.figure()
+    # axes = []
+    #
+    # axes.append(fig.add_subplot(221, projection='3d'))
+    # axes.append(fig.add_subplot(222, projection='3d'))
+    # axes.append(fig.add_subplot(223, projection='3d'))
+    # axes.append(fig.add_subplot(224, projection='3d'))
+    #
+    # for i, ax in enumerate(axes):
+    #     xs = ffd[:, :, 0].flatten()
+    #     ys = ffd[:, :, 1].flatten()
+    #     zs = ffd[:, :, 2].flatten()
+    #
+    #     ax.scatter(xs, ys, zs, c='red', alpha=1., clip_on=False)
+    #
+    #     xs = ffd[:, :, 0].flatten()
+    #     ys = ffd[:, :, 1].flatten()
+    #     zs = ffd[:, :, 2].flatten()
+    #
+    #     ax.scatter(xs, ys, zs, c='blue', alpha=1.)
+    #
+    #     xs = mesh[:, :, 0]
+    #     ys = mesh[:, :, 1]
+    #     zs = mesh[:, :, 2]
+    #
+    #     ax.plot_wireframe(xs, ys, zs, color='k')
+    #
+    #     ax.set_xlim([-5, 5])
+    #     ax.set_ylim([-5, 5])
+    #     ax.set_zlim([-5, 5])
+    #
+    #     ax.set_xlim([20, 40])
+    #     ax.set_ylim([-25, -5.])
+    #     ax.set_zlim([-10, 10])
+    #
+    #     ax.set_xlabel('x')
+    #     ax.set_ylabel('y')
+    #     ax.set_zlabel('z')
+    #
+    #     ax.set_axis_off()
+    #
+    #     ax.set_axis_off()
+    #
+    #     if i == 0:
+    #         ax.view_init(elev=0, azim=180)
+    #     elif i == 1:
+    #         ax.view_init(elev=0, azim=90)
+    #     elif i == 2:
+    #         ax.view_init(elev=100000, azim=0)
+    #     else:
+    #         ax.view_init(elev=40, azim=-30)
+    #
+    # plt.tight_layout()
+    # plt.subplots_adjust(wspace=0, hspace=0)
+    #
+    # plt.show()
 
     filename = surface['name'] + '_ffd.fmt'
 

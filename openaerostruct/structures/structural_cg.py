@@ -29,7 +29,7 @@ class StructuralCG(ExplicitComponent):
     def setup(self):
         self.surface = surface = self.options['surface']
 
-        self.ny = ny = surface['mesh'].shape[1]
+        self.ny = surface['mesh'].shape[1]
 
         # Setup Inputs
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')

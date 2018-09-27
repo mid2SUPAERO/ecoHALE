@@ -3,10 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.utils.vector_algebra import add_ones_axis
-from openaerostruct.utils.vector_algebra import compute_norm, compute_norm_deriv
-from openaerostruct.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
-
 
 row_indices = np.arange(12)
 col_indices = np.array([
@@ -35,7 +31,7 @@ class LocalStiffPermuted(ExplicitComponent):
         indices = np.arange(144 * (ny - 1)).reshape((ny - 1, 12, 12))
         ones = np.ones((12, 12), int)
 
-        data = np.empty((ny - 1, 12, 12, 12, 12))
+        # data = np.empty((ny - 1, 12, 12, 12, 12))
         # for row1 in range(12):
         #     for col1 in range(12):
         #         for row2 in range(12):
@@ -49,8 +45,4 @@ class LocalStiffPermuted(ExplicitComponent):
         self.declare_partials('local_stiff_permuted', 'local_stiff', val=data, rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        surface = self.options['surface']
-
-        ny = self.ny
-
         outputs['local_stiff_permuted'] = np.einsum('jl,ilm,mk->ijk', mtx.T, inputs['local_stiff'], mtx)

@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.utils.vector_algebra import get_array_indices, compute_cross, compute_cross_deriv1, compute_cross_deriv2
+from openaerostruct.utils.vector_algebra import get_array_indices
 
 
 np.random.seed(314)
@@ -44,8 +44,8 @@ class DisplacementTransfer(ExplicitComponent):
         self.surface = surface = self.options['surface']
 
         mesh=surface['mesh']
-        nx = self.nx = mesh.shape[0]
-        ny = self.ny = mesh.shape[1]
+        self.nx = mesh.shape[0]
+        self.ny = mesh.shape[1]
 
         self.add_input('mesh', val=np.ones((self.nx, self.ny, 3)), units='m')
         self.add_input('disp', val=np.ones((self.ny, 6)), units='m')
@@ -83,14 +83,11 @@ class DisplacementTransfer(ExplicitComponent):
         self.declare_partials('def_mesh', 'transformation_matrix', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        mesh = inputs['mesh']
-        disp = inputs['disp']
-
         # Get the location of the spar
         nodes = inputs['nodes']
 
         # First set the deformed mesh with the undeformed mesh values
-        outputs['def_mesh'] = mesh
+        outputs['def_mesh'] = inputs['mesh'].copy()
 
         # Add the translational displacements to the deformed mesh.
         # These are simply the x,y,z displacements getting added to all nodal

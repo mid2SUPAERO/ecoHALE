@@ -46,11 +46,9 @@ class VLMMtxRHSComp(ExplicitComponent):
         # Loop through the surfaces to compute the total number of panels;
         # the system_size
         for surface in surfaces:
-            mesh=surface['mesh']
+            mesh = surface['mesh']
             nx = mesh.shape[0]
             ny = mesh.shape[1]
-            name = surface['name']
-
             system_size += (nx - 1) * (ny - 1)
 
         self.system_size = system_size

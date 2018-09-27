@@ -33,7 +33,7 @@ class Disp(ExplicitComponent):
     def setup(self):
         surface = self.options['surface']
 
-        self.ny = ny = surface['mesh'].shape[1]
+        self.ny = surface['mesh'].shape[1]
 
         self.add_input('disp_aug', val=np.zeros(((self.ny+1)*6)), units='m')
         self.add_output('disp', val=np.zeros((self.ny, 6)), units='m')

@@ -3,8 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
-
 
 class PanelForcesSurf(ExplicitComponent):
     """

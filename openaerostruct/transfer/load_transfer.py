@@ -253,4 +253,3 @@ class LoadTransfer(ExplicitComponent):
         id3 += idy
         partials['loads','def_mesh'][id2:id3] += dmon_ddiff_diag * (w1 * 0.25)
         partials['loads','def_mesh'][id3-idy:id3] -= dmon_ddiff_diag_sum * (w2 * 0.25)
-

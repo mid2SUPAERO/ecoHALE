@@ -1,4 +1,4 @@
-from openmdao.api import Group, ExplicitComponent, BsplinesComp
+from openmdao.api import Group
 from openaerostruct.common.reynolds_comp import ReynoldsComp
 from openaerostruct.common.atmos_comp import AtmosComp
 

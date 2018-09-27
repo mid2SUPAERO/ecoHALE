@@ -29,8 +29,6 @@ class SolveMatrix(ImplicitComponent):
         self.options.declare('surfaces', types=list)
 
     def setup(self):
-        surfaces = self.options['surfaces']
-
         system_size = 0
 
         for surface in self.options['surfaces']:
