@@ -35,6 +35,7 @@ try:
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
         NavigationToolbar2Tk
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     import matplotlib.animation as manimation
     import sqlitedict
