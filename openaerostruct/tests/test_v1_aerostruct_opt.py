@@ -32,7 +32,7 @@ class Test(unittest.TestCase):
                                              # can be 'wetted' or 'projected'
                     'fem_model_type' : 'tube',
 
-                    'thickness_cp' : np.ones(2) * 0.1,
+                    'thickness_cp' : np.ones(2) * 0.06836728,
 
                     'twist_cp' : twist_cp,
                     'mesh' : mesh,
