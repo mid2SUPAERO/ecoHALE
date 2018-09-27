@@ -41,11 +41,10 @@ class Weight(ExplicitComponent):
 
         self.declare_partials('structural_weight', ['A','nodes','load_factor'])
 
-
         self.declare_partials('element_weights', 'load_factor')
         row_col = np.arange(self.ny-1, dtype=int)
         self.declare_partials('element_weights','A', rows=row_col, cols=row_col)
-        ny = self.ny
+
         dimensions = 3
         rows=np.empty((dimensions*2*(ny-1)))
         cols=np.empty((dimensions*2*(ny-1)))

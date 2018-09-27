@@ -175,7 +175,6 @@ class Test(unittest.TestCase):
 
                 # Connect wingbox properties to von Mises stress calcs
                 prob.model.connect(name + '.Qz', com_name + 'Qz')
-                prob.model.connect(name + '.Iz', com_name + 'Iz')
                 prob.model.connect(name + '.J', com_name + 'J')
                 prob.model.connect(name + '.A_enc', com_name + 'A_enc')
                 prob.model.connect(name + '.htop', com_name + 'htop')
@@ -184,7 +183,6 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.hrear', com_name + 'hrear')
 
                 prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
-                prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
                 prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
             #=======================================================================================

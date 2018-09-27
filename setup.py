@@ -1,6 +1,4 @@
-from numpy.distutils.core import setup, Extension
-import os
-from subprocess import call
+from numpy.distutils.core import setup
 
 
 setup(name='openaerostruct',

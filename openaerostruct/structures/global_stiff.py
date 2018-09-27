@@ -3,10 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.utils.vector_algebra import add_ones_axis
-from openaerostruct.utils.vector_algebra import compute_norm, compute_norm_deriv
-from openaerostruct.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
-
 
 class GlobalStiff(ExplicitComponent):
 
@@ -37,11 +33,7 @@ class GlobalStiff(ExplicitComponent):
         self.declare_partials('K', 'local_stiff_transformed', val=1., rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        surface = self.options['surface']
-
         ny = self.ny
-
-        size = 6 * ny + 6
 
         arange = np.arange(ny - 1)
 

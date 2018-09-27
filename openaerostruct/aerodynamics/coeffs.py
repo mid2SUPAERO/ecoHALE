@@ -1,7 +1,7 @@
 from __future__ import print_function, division
-import numpy as np
 
 from openmdao.api import ExplicitComponent
+
 
 class Coeffs(ExplicitComponent):
     """ Compute lift and drag coefficients for each individual lifting surface.
@@ -27,12 +27,7 @@ class Coeffs(ExplicitComponent):
         Induced coefficient of drag (CD) for the lifting surface.
     """
 
-    def initialize(self):
-        self.options.declare('surface', types=dict)
-
     def setup(self):
-        self.surface = surface = self.options['surface']
-
         self.add_input('S_ref', val=1., units='m**2')
         self.add_input('L', val=1., units='N')
         self.add_input('D', val=1., units='N')

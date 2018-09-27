@@ -1,10 +1,10 @@
 from openmdao.api import Group
-from openaerostruct.structures.energy import Energy
-from openaerostruct.structures.weight import Weight
+# from openaerostruct.structures.energy import Energy
+# from openaerostruct.structures.weight import Weight
+# from openaerostruct.structures.spar_within_wing import SparWithinWing
 from openaerostruct.structures.vonmises_tube import VonMisesTube
 from openaerostruct.structures.vonmises_wingbox import VonMisesWingbox
 from openaerostruct.structures.non_intersecting_thickness import NonIntersectingThickness
-from openaerostruct.structures.spar_within_wing import SparWithinWing
 from openaerostruct.structures.failure_exact import FailureExact
 from openaerostruct.structures.failure_ks import FailureKS
 
@@ -36,7 +36,7 @@ class SpatialBeamFunctionals(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('vonmises',
                      VonMisesWingbox(surface=surface),
-                     promotes_inputs=['Qz', 'Iz', 'J', 'A_enc', 'spar_thickness', 'skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
+                     promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
                      promotes_outputs=['vonmises'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')

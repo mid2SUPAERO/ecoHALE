@@ -38,12 +38,10 @@ class VonMisesWingbox(ExplicitComponent):
         self.add_input('disp', val=np.zeros((self.ny, 6)), units='m')
 
         self.add_input('Qz', val=np.zeros((self.ny - 1)), units='m**3')
-        self.add_input('Iz', val=np.zeros((self.ny - 1)), units='m**4')
         self.add_input('J', val=np.zeros((self.ny - 1)), units='m**4')
         self.add_input('A_enc', val=np.zeros((self.ny - 1)), units='m**2')
 
         self.add_input('spar_thickness', val=np.zeros((self.ny - 1)), units='m')
-        self.add_input('skin_thickness', val=np.zeros((self.ny - 1)), units='m')
 
         self.add_input('htop', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hbottom', val=np.zeros((self.ny - 1)), units='m')
@@ -55,7 +53,7 @@ class VonMisesWingbox(ExplicitComponent):
         self.E = surface['E']
         self.G = surface['G']
 
-        self.tssf = top_skin_strength_factor = surface['strength_factor_for_upper_skin']
+        self.tssf = surface['strength_factor_for_upper_skin']
 
         self.declare_partials('*', '*', method='cs')
 
@@ -64,14 +62,12 @@ class VonMisesWingbox(ExplicitComponent):
         nodes = inputs['nodes']
         A_enc = inputs['A_enc']
         Qy = inputs['Qz']
-        Iz = inputs['Iz']
         J = inputs['J']
         htop = inputs['htop']
         hbottom = inputs['hbottom']
         hfront = inputs['hfront']
         hrear = inputs['hrear']
         spar_thickness = inputs['spar_thickness']
-        skin_thickness = inputs['skin_thickness']
         vonmises = outputs['vonmises']
 
         # Only use complex type for these arrays if we're using cs to check derivs

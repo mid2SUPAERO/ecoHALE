@@ -7,9 +7,7 @@ from openaerostruct.utils.testing import run_test, get_default_surfaces
 class Test(unittest.TestCase):
 
     def test(self):
-        surface = get_default_surfaces()[0]
-
-        comp = Coeffs(surface=surface)
+        comp = Coeffs()
 
         run_test(self, comp)
 

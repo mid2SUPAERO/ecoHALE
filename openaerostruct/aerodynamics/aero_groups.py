@@ -1,4 +1,4 @@
-from openmdao.api import Group, LinearRunOnce, DirectSolver
+from openmdao.api import Group, LinearRunOnce
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals

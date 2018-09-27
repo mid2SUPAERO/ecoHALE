@@ -24,11 +24,6 @@ def view_mat(mat1, mat2=None, key='Title', tol=1e-10):  # pragma: no cover
         The tolerance, below which the two numbers are considered the same for
         plotting purposes.
 
-    Returns
-    -------
-    CDw : float
-        Wave drag coefficient for the lifting surface computed using the
-        Korn equation
     """
     import matplotlib.pyplot as plt
     if len(mat1.shape) > 2:

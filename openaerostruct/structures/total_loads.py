@@ -31,7 +31,7 @@ class TotalLoads(ExplicitComponent):
 
     def setup(self):
         self.surface = surface = self.options['surface']
-        self.ny = ny = surface['mesh'].shape[1]
+        self.ny = surface['mesh'].shape[1]
 
         self.add_input('loads', val=np.ones((self.ny, 6)), units='N')
         if surface['struct_weight_relief']:

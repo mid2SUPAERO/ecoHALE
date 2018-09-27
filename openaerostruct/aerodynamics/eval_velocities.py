@@ -52,8 +52,6 @@ class EvalVelocities(ExplicitComponent):
             mesh = surface['mesh']
             nx = mesh.shape[0]
             ny = mesh.shape[1]
-            name = surface['name']
-
             system_size += (nx - 1) * (ny - 1)
 
         self.system_size = system_size
@@ -116,8 +114,6 @@ class EvalVelocities(ExplicitComponent):
         surfaces = self.options['surfaces']
         eval_name = self.options['eval_name']
         num_eval_points = self.options['num_eval_points']
-
-        system_size = self.system_size
 
         velocities_name = '{}_velocities'.format(eval_name)
 

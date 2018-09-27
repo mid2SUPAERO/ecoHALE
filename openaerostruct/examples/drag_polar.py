@@ -4,10 +4,8 @@ from __future__ import division, print_function
 import numpy as np
 import matplotlib.pylab as plt
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, BroydenSolver, \
-            ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, \
-            DirectSolver, LinearBlockGS, PetscKSP, SqliteRecorder, BalanceComp, ExecComp, \
-            ArmijoGoldsteinLS
+from openmdao.api import IndepVarComp, Problem, NewtonSolver, BroydenSolver, \
+            DirectSolver, BalanceComp
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint

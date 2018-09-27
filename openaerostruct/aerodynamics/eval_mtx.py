@@ -247,7 +247,6 @@ class EvalVelMtx(ExplicitComponent):
         num_eval_points = self.options['num_eval_points']
 
         for surface in surfaces:
-            nx = surface['mesh'].shape[0]
             ny = surface['mesh'].shape[1]
             name = surface['name']
 

@@ -1,8 +1,6 @@
 import numpy as np
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, \
-    ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, \
-    DirectSolver, LinearBlockGS, PetscKSP, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry

@@ -87,8 +87,6 @@ class PanelForces(ExplicitComponent):
         )
 
     def compute(self, inputs, outputs):
-        system_size = self.system_size
-
         rho = inputs['rho'][0]
         horseshoe_circulations = np.outer(inputs['horseshoe_circulations'], np.ones(3))
         velocities = inputs['force_pts_velocities']
@@ -100,8 +98,6 @@ class PanelForces(ExplicitComponent):
             rho * horseshoe_circulations * compute_cross(velocities, bound_vecs)
 
     def compute_partials(self, inputs, partials):
-        system_size = self.system_size
-
         rho = inputs['rho'][0]
         horseshoe_circulations = np.outer(inputs['horseshoe_circulations'], np.ones(3))
         velocities = inputs['force_pts_velocities']
