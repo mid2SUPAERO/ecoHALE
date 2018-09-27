@@ -1,7 +1,6 @@
 from __future__ import division, print_function
 
 import numpy as np
-from scipy.sparse import coo_matrix, identity
 
 from openmdao.api import ExplicitComponent
 
@@ -57,8 +56,8 @@ class LoadTransfer(ExplicitComponent):
             # For some reason, surface data is complex in some tests.
             self.fem_origin = np.float(fem_origin)
 
-        self.w1 = w1 = 0.25
-        self.w2 = w2 = self.fem_origin
+        self.w1 = 0.25
+        self.w2 = self.fem_origin
 
         self.add_input('def_mesh', val=np.zeros((nx, ny, 3)), units='m')
         self.add_input('sec_forces', val=np.zeros((nx-1, ny-1, 3)), units='N')
