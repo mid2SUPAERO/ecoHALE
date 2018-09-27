@@ -226,6 +226,8 @@ class LoadTransfer(ExplicitComponent):
         idy = 6*(ny-1)
         idx = idy*nx
         idw = idy*(nx-1)
+
+        # Need to zero out what's there because our assignments overlap.
         partials['loads','def_mesh'][:] = 0.0
 
         # Upper diagonal blocks
@@ -241,7 +243,7 @@ class LoadTransfer(ExplicitComponent):
         partials['loads','def_mesh'][idx:idx+idy] -= dmom_ddiff_sum * ((1-w2) * 0.25)
         partials['loads','def_mesh'][id2-idy:id2] -= dmom_ddiff_sum * (w2 * 0.25)
 
-        # Central diagonal blocks
+        # Central Diagonal blocks
         idy = 6*ny
         idz = 6*(nx-1)
         id3 = id2 + idw + idz
