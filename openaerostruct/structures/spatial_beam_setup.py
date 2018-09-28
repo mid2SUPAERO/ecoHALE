@@ -22,7 +22,7 @@ class SpatialBeamSetup(Group):
 
         self.add_subsystem('assembly',
                  AssembleKGroup(surface=surface),
-                 promotes_inputs=['A', 'Iy', 'Iz', 'J', 'nodes'], promotes_outputs=['K'])
+                 promotes_inputs=['A', 'Iy', 'Iz', 'J', 'nodes'], promotes_outputs=['K', 'local_stiff_transformed'])
 
         self.add_subsystem('structural_weight',
                  Weight(surface=surface),

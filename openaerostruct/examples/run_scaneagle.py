@@ -156,7 +156,7 @@ prob.model.add_subsystem(point_name, AS_point,
 # Issue quite a few connections within the model to make sure all of the
 # parameters are connected correctly.
 com_name = point_name + '.' + name + '_perf'
-prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
 # Connect aerodyamic mesh to coupled group mesh

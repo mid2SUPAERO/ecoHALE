@@ -5,6 +5,8 @@ from six.moves import range
 
 import numpy as np
 from scipy import linalg
+from scipy.sparse import coo_matrix
+from scipy.sparse.linalg import splu
 
 from openmdao.core.implicitcomponent import ImplicitComponent
 
@@ -59,9 +61,9 @@ class FEM(ImplicitComponent):
         shape = (vec_size, size) if vec_size > 1 else (size, )
 
         init_A = np.eye(size)
+        init_locK = np.tile(np.eye(12).flatten(), ny-1).reshape(ny-1, 12, 12)
 
-        self.add_input('local_stiff_transformed', shape=(ny - 1, 12, 12))
-        self.add_input('K', val=init_A, units='N/m')
+        self.add_input('local_stiff_transformed', val=init_locK)
         self.add_input('forces', val=np.ones(shape), units='N')
         self.add_output('disp_aug', shape=shape, val=.1, units='m')
 
@@ -71,15 +73,19 @@ class FEM(ImplicitComponent):
         self.declare_partials('disp_aug', 'forces', val=np.full(full_size, -1.0), rows=row_col, cols=row_col)
 
         rows = np.repeat(np.arange(full_size), size)
-
-        cols = np.tile(np.arange(mat_size), vec_size)
-
-        self.declare_partials('disp_aug', 'K', rows=rows, cols=cols)
-
         cols = np.tile(np.arange(size), size)
         cols = np.tile(cols, vec_size) + np.repeat(np.arange(vec_size), mat_size) * size
 
         self.declare_partials(of='disp_aug', wrt='disp_aug', rows=rows, cols=cols)
+
+        base_row = np.tile(0, 12)
+        base_col = np.arange(12)
+        row = np.tile(base_row, 12) + np.repeat(np.arange(12), 12)
+        col = np.tile(base_col, 12) + np.repeat(12*np.arange(12), 12)
+        rows = np.tile(row, ny-1) + np.repeat(6*np.arange(ny-1), 144)
+        cols = np.tile(col, ny-1) + np.repeat(144*np.arange(ny-1), 144)
+
+        self.declare_partials('disp_aug', 'local_stiff_transformed', rows=rows, cols=cols)
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         """
@@ -94,7 +100,8 @@ class FEM(ImplicitComponent):
         residuals : Vector
             unscaled, dimensional residuals written to via residuals[key]
         """
-        residuals['disp_aug'] = inputs['K'].dot(outputs['disp_aug']) - inputs['forces']
+        K = self.assemble_CSC_K(inputs)
+        residuals['disp_aug'] = K.dot(outputs['disp_aug']) - inputs['forces']
 
     def solve_nonlinear(self, inputs, outputs):
         """
@@ -108,8 +115,9 @@ class FEM(ImplicitComponent):
             unscaled, dimensional output variables read via outputs[key]
         """
         # lu factorization for use with solve_linear
-        self._lup = linalg.lu_factor(inputs['K'])
-        outputs['disp_aug'] = linalg.lu_solve(self._lup, inputs['forces'])
+        K = self.assemble_CSC_K(inputs)
+        self._lup = splu(K)
+        outputs['disp_aug'] = self._lup.solve(inputs['forces'])
 
     def linearize(self, inputs, outputs, J):
         """
@@ -125,11 +133,14 @@ class FEM(ImplicitComponent):
             sub-jac components written to jacobian[output_name, input_name]
         """
         x = outputs['disp_aug']
-        size = self.options['size']
         vec_size = self.options['vec_size']
+        ny = self.ny
 
-        J['disp_aug', 'K'] = np.tile(x, size).flat
-        J['disp_aug', 'disp_aug'] = np.tile(inputs['K'].flat, vec_size)
+        idx = np.tile(np.tile(np.arange(12), 12), ny-1) + np.repeat(6*np.arange(ny-1), 144)
+        J['disp_aug', 'local_stiff_transformed'] = np.tile(x[idx], vec_size)
+
+        K = self.assemble_CSC_K(inputs).todense()
+        J['disp_aug', 'disp_aug'] = np.tile(K.flat, vec_size)
 
     def solve_linear(self, d_outputs, d_residuals, mode):
         r"""
@@ -154,18 +165,15 @@ class FEM(ImplicitComponent):
         if mode == 'fwd':
             if vec_size > 1:
                 for j in range(vec_size):
-                    d_outputs['disp_aug'][j] = linalg.lu_solve(self._lup[0], d_residuals['disp_aug'][j],
-                                                        trans=0)
+                    d_outputs['d'] = self.lu.solve(d_residuals['d'][j])
             else:
-                d_outputs['disp_aug'] = linalg.lu_solve(self._lup, d_residuals['disp_aug'], trans=0)
-
-        else:  # rev
+                d_outputs['d'] = self.lu.solve(d_residuals['d'])
+        else:
             if vec_size > 1:
                 for j in range(vec_size):
-                    d_residuals['disp_aug'][j] = linalg.lu_solve(self._lup[0], d_outputs['disp_aug'][j],
-                                                          trans=1)
+                    d_residuals['d'] = self.lu.solve(d_outputs['d'][j])
             else:
-                d_residuals['disp_aug'] = linalg.lu_solve(self._lup, d_outputs['disp_aug'], trans=1)
+                d_residuals['d'] = self.lu.solve(d_outputs['d'])
 
     def assemble_CSC_K(self, inputs):
         """
@@ -177,24 +185,59 @@ class FEM(ImplicitComponent):
             Stiffness matrix as dense ndarray.
         """
         surface = self.options['surface']
+        k_loc = inputs['local_stiff_transformed']
         ny = self.ny
         size = self.size
 
-        arange = np.arange(ny - 1)
+        base_row = np.repeat(0, 6)
+        base_col = np.arange(6)
 
-        outputs['K'] = 0.
-        for i in range(12):
-            for j in range(12):
-                outputs['K'][6 * arange + i, 6 * arange + j] += inputs['local_stiff_transformed'][:, i, j]
+        # Upper diagonal blocks
+        rows1 = np.tile(base_row, 6*(ny-1)) + np.repeat(np.arange(6*(ny-1)), 6)
+        col = np.tile(base_col + 6, 6)
+        cols1 = np.tile(col, ny-1) + np.repeat(6*np.arange(ny-1), 36)
+        data1 = k_loc[:, :6, 6:].flatten()
 
-        # Find constrained nodes based on closeness to central point
-        nodes = inputs['nodes']
-        dist = nodes - np.array([5., 0, 0])
-        idx = (np.linalg.norm(dist, axis=1)).argmin()
+        # Lower diagonal blocks
+        rows2 = np.tile(base_row + 6, 6*(ny-1)) + np.repeat(np.arange(6*(ny-1)), 6)
+        col = np.tile(base_col, 6)
+        cols2 = np.tile(col, ny-1) + np.repeat(6*np.arange(ny-1), 36)
+        data2 = k_loc[:, 6:, :6].flatten()
+
+        # Main diagonal blocks, root
+        rows3 = np.tile(base_row, 6) + np.repeat(np.arange(6), 6)
+        cols3 = np.tile(base_col, 6)
+        data3 = k_loc[0, :6, :6].flatten()
+
+        # Main diagonal blocks, tip
+        rows4 = np.tile(base_row + (ny-1)*6, 6) + np.repeat(np.arange(6), 6)
+        cols4 = np.tile(base_col + (ny-1)*6, 6)
+        data4 = k_loc[-1, 6:, 6:].flatten()
+
+        # Main diagonal blocks, interior
+        rows5 = np.tile(base_row + 6, 6*(ny-2)) + np.repeat(np.arange(6*(ny-2)), 6)
+        col = np.tile(base_col + 6, 6)
+        cols5 = np.tile(col, ny-2) + np.repeat(6*np.arange(ny-2), 36)
+        data5 = (k_loc[0:-1, 6:, 6:] + k_loc[1:, :6, :6]).flatten()
+
+        # Find constrained nodes based on closeness to specified cg point
+        symmetry = self.options['surface']['symmetry']
+        if symmetry:
+            idx = self.ny - 1
+        else:
+            idx = (self.ny - 1) // 2
+
         index = 6 * idx
         num_dofs = 6 * ny
-
         arange = np.arange(6)
 
-        outputs['K'][index + arange, num_dofs + arange] = 1.e9
-        outputs['K'][num_dofs + arange, index + arange] = 1.e9
+        # Fixed boundary condition.
+        rows6 = index + arange
+        cols6 = num_dofs + arange
+        data6 = np.full((6, ), 1e9)
+
+        rows = np.concatenate([rows1, rows2, rows3, rows4, rows5, rows6, cols6])
+        cols = np.concatenate([cols1, cols2, cols3, cols4, cols5, cols6, rows6])
+        data = np.concatenate([data1, data2, data3, data4, data5, data6, data6])
+
+        return coo_matrix((data, (rows, cols)), shape=(size, size)).tocsc()
