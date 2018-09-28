@@ -16,7 +16,6 @@ class GlobalStiff(ExplicitComponent):
 
         size = 6 * ny + 6
 
-        self.add_input('nodes', shape=(ny, 3), units='m')
         self.add_input('local_stiff_transformed', shape=(ny - 1, 12, 12))
         self.add_output('K', shape=(size, size), units='N/m')
 
@@ -33,11 +32,7 @@ class GlobalStiff(ExplicitComponent):
         self.declare_partials('K', 'local_stiff_transformed', val=1., rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        surface = self.options['surface']
-
         ny = self.ny
-
-        size = 6 * ny + 6
 
         arange = np.arange(ny - 1)
 
@@ -46,10 +41,13 @@ class GlobalStiff(ExplicitComponent):
             for j in range(12):
                 outputs['K'][6 * arange + i, 6 * arange + j] += inputs['local_stiff_transformed'][:, i, j]
 
-        # Find constrained nodes based on closeness to central point
-        nodes = inputs['nodes']
-        dist = nodes - np.array([5., 0, 0])
-        idx = (np.linalg.norm(dist, axis=1)).argmin()
+        # Find constrained nodes based on closeness to specified cg point
+        symmetry = self.options['surface']['symmetry']
+        if symmetry:
+            idx = self.ny - 1
+        else:
+            idx = (self.ny - 1) // 2
+
         index = 6 * idx
         num_dofs = 6 * ny
 

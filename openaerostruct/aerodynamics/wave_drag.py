@@ -3,6 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+
 class WaveDrag(ExplicitComponent):
     """
     Compute the wave drag if the with_wave option is True. If not, the CDw is 0.
@@ -132,7 +133,6 @@ class WaveDrag(ExplicitComponent):
                 partials['CDw','chords'] = dCDwdMDD * dMDDdavg * np.matmul(davgdc, dcdchords) \
                                            + dCDwdMDD * dMDDdtoc * np.matmul(dtocdc, dcdchords)
                 partials['CDw', 't_over_c'] = dCDwdMDD * dMDDdtoc * dtocavgdtoc
-
 
         if self.surface['symmetry']:
             partials['CDw', 'CL'][0, :] *=  2

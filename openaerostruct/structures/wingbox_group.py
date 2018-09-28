@@ -1,9 +1,4 @@
-from openmdao.api import Group, ExplicitComponent, BsplinesComp
-from openaerostruct.geometry.geometry_mesh import GeometryMesh
-from openaerostruct.geometry.geometry_group import Geometry
-from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
-from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
-from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
+from openmdao.api import Group, BsplinesComp
 from openaerostruct.structures.section_properties_wingbox import SectionPropertiesWingbox
 from openaerostruct.structures.wingbox_geometry import WingboxGeometry
 

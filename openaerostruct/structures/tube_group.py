@@ -1,9 +1,4 @@
-from openmdao.api import Group, ExplicitComponent, BsplinesComp
-from openaerostruct.geometry.geometry_mesh import GeometryMesh
-from openaerostruct.geometry.geometry_group import Geometry
-from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
-from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
-from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
+from openmdao.api import Group, BsplinesComp
 from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
 from openaerostruct.geometry.radius_comp import RadiusComp
 
@@ -19,7 +14,6 @@ class TubeGroup(Group):
     def setup(self):
         surface = self.options['surface']
         mesh = surface['mesh']
-        nx = mesh.shape[0]
         ny = mesh.shape[1]
 
         # Add independent variables that do not belong to a specific component

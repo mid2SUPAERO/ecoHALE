@@ -107,8 +107,6 @@ class FEM(ImplicitComponent):
         outputs : Vector
             unscaled, dimensional output variables read via outputs[key]
         """
-        vec_size = self.options['vec_size']
-
         # lu factorization for use with solve_linear
         self._lup = linalg.lu_factor(inputs['K'])
         outputs['disp_aug'] = linalg.lu_solve(self._lup, inputs['forces'])

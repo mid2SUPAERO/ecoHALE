@@ -30,21 +30,14 @@ class Length(ExplicitComponent):
         self.declare_partials('element_lengths', 'nodes', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        surface = self.options['surface']
-
-        ny = self.ny
-
         vec = inputs['nodes'][1:, :] - inputs['nodes'][:-1, :]
 
         outputs['element_lengths'] = np.linalg.norm(vec, axis=-1)
 
     def compute_partials(self, inputs, partials):
-        surface = self.options['surface']
-
         ny = self.ny
 
         vec = inputs['nodes'][1:, :] - inputs['nodes'][:-1, :]
-        vec_deriv = np.einsum('i,jk->ijk', np.ones(ny - 1), np.eye(3))
 
         derivs = partials['element_lengths', 'nodes'].reshape((2, ny - 1, 3))
         derivs[0, :, :] = -vec / compute_norm(vec)

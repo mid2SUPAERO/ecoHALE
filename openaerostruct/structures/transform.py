@@ -37,10 +37,6 @@ class Transform(ExplicitComponent):
         self.ref_axis = np.outer(np.ones(ny - 1), np.array([1., 0., 0.]))
 
     def compute(self, inputs, outputs):
-        surface = self.options['surface']
-
-        ny = self.ny
-
         P0 = inputs['nodes'][:-1, :]
         P1 = inputs['nodes'][ 1:, :]
         norm = compute_norm(P1 - P0)
@@ -84,7 +80,6 @@ class Transform(ExplicitComponent):
             compute_cross_deriv1(row0_deriv, row1) +
             compute_cross_deriv2(row0, row1_deriv)
         )
-        row2 = cross
         row2_deriv = cross_deriv
 
         derivs = partials['transform', 'nodes'].reshape((2, ny - 1, 12, 12, 3))

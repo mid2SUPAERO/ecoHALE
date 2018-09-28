@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 import numpy as np
-from scipy.linalg import lu_factor, lu_solve
 
 
 def norm(vec, axis=None):

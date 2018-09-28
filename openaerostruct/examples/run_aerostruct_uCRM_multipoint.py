@@ -1,7 +1,7 @@
 """
 This script can be used to reproduce the multipoint aerostructural optimization
-cases in the 'Low-fidelity aerostructural optimization of aircraft wings with 
-a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan 
+cases in the 'Low-fidelity aerostructural optimization of aircraft wings with
+a simplified wingbox model using OpenAeroStruct' conference paper by Chauhan
 and Martins.
 The fuel burn from the cruise case is the objective function and the 2.5g
 maneuver case is used for the structural sizing. The wing is based on the
@@ -9,8 +9,8 @@ uCRM (undeflected Common Research Model wing).
 See the paper for more:
 https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
 (https://doi.org/10.1007/978-3-319-97773-7_38)
-After running the optimization, use the 'plot_wingbox.py' script in the utils/ 
-directory (e.g., as 'python ../utils/plot_wingbox.py aerostruct.db' if running 
+After running the optimization, use the 'plot_wingbox.py' script in the utils/
+directory (e.g., as 'python ../utils/plot_wingbox.py aerostruct.db' if running
 from this directory) to vizualize the results.
 This script is based on the plot_wing.py script. It's still a bit hacky and will
 probably not work as it is for other types of cases for now.
@@ -24,9 +24,8 @@ from __future__ import division, print_function
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp, SqliteRecorder
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
@@ -71,7 +70,6 @@ surf_dict = {
             'data_x_lower' : lower_x,
             'data_y_upper' : upper_y,
             'data_y_lower' : lower_y,
-            'strength_factor_for_upper_skin' : 1.,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).
@@ -172,6 +170,8 @@ for i in range(2):
 
     for surface in surfaces:
 
+        name = surface['name']
+
         if i==0:
             prob.model.connect('load_factor', name + '.load_factor', src_indices=[i])
         if surf_dict['distributed_fuel_weight']:
@@ -193,7 +193,6 @@ for i in range(2):
 
         # Connect wingbox properties to von Mises stress calcs
         prob.model.connect(name + '.Qz', com_name + 'Qz')
-        prob.model.connect(name + '.Iz', com_name + 'Iz')
         prob.model.connect(name + '.J', com_name + 'J')
         prob.model.connect(name + '.A_enc', com_name + 'A_enc')
         prob.model.connect(name + '.htop', com_name + 'htop')
@@ -202,7 +201,6 @@ for i in range(2):
         prob.model.connect(name + '.hrear', com_name + 'hrear')
 
         prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
-        prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
         prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
 prob.model.connect('alpha', 'AS_point_0' + '.alpha')
@@ -236,19 +234,19 @@ prob.model.connect('AS_point_1.fuelburn', 'fuel_diff_25.fuelburn')
 #=======================================================================================
 #=======================================================================================
 
-## Use these settings if you do not have pyOptSparse or SNOPT
-from openmdao.api import ScipyOptimizeDriver
-prob.driver = ScipyOptimizeDriver()
-prob.driver.options['tol'] = 1e-8
+# ## Use these settings if you do not have pyOptSparse or SNOPT
+# from openmdao.api import ScipyOptimizeDriver
+# prob.driver = ScipyOptimizeDriver()
+# prob.driver.options['tol'] = 1e-8
 
-## The following are the optimizer settings used for the EngOpt conference paper
-## Uncomment them if you can use SNOPT
-# from openmdao.api import pyOptSparseDriver
-# prob.driver = pyOptSparseDriver()
-# prob.driver.options['optimizer'] = "SNOPT"
-# prob.driver.opt_settings['Major optimality tolerance'] = 5e-6
-# prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
-# prob.driver.opt_settings['Major iterations limit'] = 200
+# The following are the optimizer settings used for the EngOpt conference paper
+# Uncomment them if you can use SNOPT
+from openmdao.api import pyOptSparseDriver
+prob.driver = pyOptSparseDriver()
+prob.driver.options['optimizer'] = "SNOPT"
+prob.driver.opt_settings['Major optimality tolerance'] = 5e-6
+prob.driver.opt_settings['Major feasibility tolerance'] = 1e-8
+prob.driver.opt_settings['Major iterations limit'] = 2
 
 recorder = SqliteRecorder("aerostruct.db")
 prob.driver.add_recorder(recorder)

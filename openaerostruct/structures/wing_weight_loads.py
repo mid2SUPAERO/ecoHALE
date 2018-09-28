@@ -205,8 +205,6 @@ class StructureWeightLoads(ExplicitComponent):
         struct_weights = inputs['element_weights'] * inputs['load_factor']
         nodes = inputs['nodes']
 
-        nym1 = self.ny-1
-
         element_lengths = norm(nodes[1:, :] - nodes[:-1, :], axis=1)
 
         # And we also need the deltas between consecutive nodes
@@ -216,7 +214,6 @@ class StructureWeightLoads(ExplicitComponent):
         del1 = deltas[: , 1]
 
         # Assume weight coincides with the elastic axis
-        z_forces_for_each = struct_weights / 2.
         z_moments_for_each = struct_weights / 12. \
                             * (del0**2 + del1**2)**0.5
 

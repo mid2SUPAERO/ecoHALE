@@ -67,12 +67,9 @@ class Equilibrium(ExplicitComponent):
         v = inputs['v']
 
         structural_weight = 0.
-        symmetry = False
         for surface in self.options['surfaces']:
             name = surface['name']
             structural_weight += inputs[name + '_structural_weight']
-            if surface['symmetry']:
-                symmetry = True
 
         S_ref_tot = inputs['S_ref_total']
 

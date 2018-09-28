@@ -3,10 +3,6 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.utils.vector_algebra import add_ones_axis
-from openaerostruct.utils.vector_algebra import compute_norm, compute_norm_deriv
-from openaerostruct.utils.vector_algebra import compute_cross, compute_cross_deriv1, compute_cross_deriv2
-
 
 class LocalStiffTransformed(ExplicitComponent):
 
@@ -32,18 +28,10 @@ class LocalStiffTransformed(ExplicitComponent):
         self.declare_partials('local_stiff_transformed', 'local_stiff_permuted', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        surface = self.options['surface']
-
-        ny = self.ny
-
         outputs['local_stiff_transformed'] = np.einsum('ilj,ilm,imk->ijk',
             inputs['transform'], inputs['local_stiff_permuted'], inputs['transform'])
 
     def compute_partials(self, inputs, partials):
-        surface = self.options['surface']
-
-        ny = self.ny
-
         partials['local_stiff_transformed', 'local_stiff_permuted'] = np.einsum('ilj,imk->ijklm',
             inputs['transform'], inputs['transform']).flatten()
 

@@ -312,16 +312,12 @@ class Display(object):
                 self.def_mesh = new_def_mesh
                 self.twist = new_twist
                 widths = new_widths
-                normals = new_normals
                 sec_forces = new_sec_forces
 
         if self.show_wing:
             for i in range(self.num_iters):
                 for j, name in enumerate(names):
                     m_vals = self.mesh[i*n_names+j].copy()
-                    cvec = m_vals[0, :, :] - m_vals[-1, :, :]
-                    chords = np.sqrt(np.sum(cvec**2, axis=1))
-                    chords = 0.5 * (chords[1:] + chords[:-1])
                     a = alpha[i]
                     cosa = np.cos(a)
                     sina = np.sin(a)
@@ -486,7 +482,7 @@ class Display(object):
                 except:
                     self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
-                cg = self.cg[self.curr_pos]
+                # cg = self.cg[self.curr_pos]
                 # self.ax.scatter(cg[0], cg[1], cg[2], s=100, color='r')
 
             if self.show_tube:
@@ -501,9 +497,6 @@ class Display(object):
                 # Set the number of rectangular patches on the cylinder
                 num_circ = 12
                 fem_origin = self.fem_origin_dict[name.split('.')[-1] + '_fem_origin']
-
-                # Get the number of spanwise nodal points
-                n = mesh0.shape[1]
 
                 # Create an array of angles around a circle
                 p = np.linspace(0, 2*np.pi, num_circ)
@@ -605,7 +598,6 @@ class Display(object):
 
     def check_length(self):
         # Load the current sqlitedict
-        db = sqlitedict.SqliteDict(self.db_name, 'iterations')
         cr = self.case_reader = SqliteCaseReader(self.db_name)
 
         # Get the number of current iterations

@@ -33,7 +33,7 @@ class VLMFunctionals(Group):
             promotes_outputs=['L', 'D'])
 
         self.add_subsystem('coeffs',
-            Coeffs(surface=surface),
+            Coeffs(),
             promotes_inputs=['v', 'rho', 'S_ref', 'L', 'D'],
             promotes_outputs=['CL1', 'CDi'])
 

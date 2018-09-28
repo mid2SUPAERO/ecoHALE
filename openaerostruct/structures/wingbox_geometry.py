@@ -6,33 +6,7 @@ from openaerostruct.structures.utils import norm
 
 class WingboxGeometry(ExplicitComponent):
     """
-    OpenMDAO component that performs mesh manipulation functions. It reads in
-    the initial mesh from the surface dictionary and outputs the altered
-    mesh based on the geometric design variables.
 
-    Depending on the design variables selected or the supplied geometry information,
-    only some of the follow parameters will actually be given to this component.
-    If parameters are not active (they do not deform the mesh), then
-    they will not be given to this component.
-
-    Parameters
-    ----------
-    sweep : float
-        Shearing sweep angle in degrees.
-    dihedral : float
-        Dihedral angle in degrees.
-    twist[ny] : numpy array
-        1-D array of rotation angles for each wing slice in degrees.
-    chord_dist[ny] : numpy array
-        Chord length for each panel edge.
-    taper : float
-        Taper ratio for the wing; 1 is untapered, 0 goes to a point at the tip.
-
-    Returns
-    -------
-    mesh[nx, ny, 3] : numpy array
-        Modified mesh based on the initial mesh in the surface dictionary and
-        the geometric design variables.
     """
 
     def initialize(self):

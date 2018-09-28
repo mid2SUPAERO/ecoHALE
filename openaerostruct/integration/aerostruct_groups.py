@@ -1,8 +1,6 @@
-from openaerostruct.geometry.geometry_mesh import GeometryMesh
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer_group import DisplacementTransferGroup
-from openaerostruct.structures.section_properties_tube import SectionPropertiesTube
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
 from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -13,7 +11,7 @@ from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.structures.tube_group import TubeGroup
 from openaerostruct.structures.wingbox_group import WingboxGroup
 
-from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, ExplicitComponent, PetscKSP
+from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce
 
 
 class AerostructGeometry(Group):
@@ -131,7 +129,7 @@ class CoupledPerformance(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('struct_funcs',
                 SpatialBeamFunctionals(surface=surface),
-                promotes_inputs=['Qz', 'Iz', 'J', 'A_enc', 'spar_thickness', 'skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'], promotes_outputs=['vonmises', 'failure'])
+                promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'], promotes_outputs=['vonmises', 'failure'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
