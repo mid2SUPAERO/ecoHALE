@@ -209,4 +209,8 @@ prob.setup()
 prob.run_model()
 
 # Actually run the optimization problem
+from time import time
+t0 = time()
 prob.run_driver()
+print("Elapsed Time", time() - t0)
+
