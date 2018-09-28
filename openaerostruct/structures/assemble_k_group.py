@@ -30,5 +30,3 @@ class AssembleKGroup(Group):
         comp = LocalStiffTransformed(surface=surface)
         self.add_subsystem('local_stiff_transformed', comp, promotes=['*'])
 
-        comp = GlobalStiff(surface=surface)
-        self.add_subsystem('global_stiff', comp, promotes=['*'])

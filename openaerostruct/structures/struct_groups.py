@@ -55,12 +55,12 @@ class SpatialBeamAlone(Group):
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
                 promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
-                promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
+                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_weight', 'cg_location', 'element_weights'])
         else:
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
                 promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor', 'A_int'],
-                promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights', ])
+                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_weight', 'cg_location', 'element_weights', ])
 
         promotes = []
         if surface['struct_weight_relief']:
@@ -70,7 +70,7 @@ class SpatialBeamAlone(Group):
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads'] + promotes,
+            promotes_inputs=['local_stiff_transformed', 'forces', 'loads'] + promotes,
             promotes_outputs=['disp'])
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_funcs',

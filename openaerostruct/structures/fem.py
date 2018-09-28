@@ -165,15 +165,15 @@ class FEM(ImplicitComponent):
         if mode == 'fwd':
             if vec_size > 1:
                 for j in range(vec_size):
-                    d_outputs['d'] = self.lu.solve(d_residuals['d'][j])
+                    d_outputs['disp_aug'] = self._lup.solve(d_residuals['disp_aug'][j])
             else:
-                d_outputs['d'] = self.lu.solve(d_residuals['d'])
+                d_outputs['disp_aug'] = self._lup.solve(d_residuals['disp_aug'])
         else:
             if vec_size > 1:
                 for j in range(vec_size):
-                    d_residuals['d'] = self.lu.solve(d_outputs['d'][j])
+                    d_residuals['disp_aug'] = self._lup.solve(d_outputs['disp_aug'][j])
             else:
-                d_residuals['d'] = self.lu.solve(d_outputs['d'])
+                d_residuals['disp_aug'] = self._lup.solve(d_outputs['disp_aug'])
 
     def assemble_CSC_K(self, inputs):
         """
