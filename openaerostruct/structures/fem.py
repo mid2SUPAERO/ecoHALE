@@ -39,28 +39,28 @@ class FEM(ImplicitComponent):
         """
         Declare options.
         """
-        self.options.declare('size', default=1, types=int, desc='The size of the linear system.')
+        self.options.declare('surface', types=dict)
         self.options.declare('vec_size', types=int, default=1,
                              desc='Number of linear systems to solve.')
-        self.options.declare('vectorize_A', default=False, types=bool,
-                             desc='Set to True to vectorize the A matrix.')
 
     def setup(self):
         """
         Matrix and RHS are inputs, solution vector is the output.
         """
+        surface = self.options['surface']
+        self.ny = ny = surface['mesh'].shape[1]
+        self.size = size = int(6 * ny + 6)
+
         vec_size = self.options['vec_size']
-        vec_size_A = self.vec_size_A = vec_size if self.options['vectorize_A'] else 1
-        size = self.options['size']
         mat_size = size * size
         full_size = size * vec_size
 
         self._lup = []
         shape = (vec_size, size) if vec_size > 1 else (size, )
-        shape_A = (vec_size_A, size, size) if vec_size_A > 1 else (size, size)
 
         init_A = np.eye(size)
 
+        self.add_input('local_stiff_transformed', shape=(ny - 1, 12, 12))
         self.add_input('K', val=init_A, units='N/m')
         self.add_input('forces', val=np.ones(shape), units='N')
         self.add_output('disp_aug', shape=shape, val=.1, units='m')
@@ -108,10 +108,8 @@ class FEM(ImplicitComponent):
             unscaled, dimensional output variables read via outputs[key]
         """
         vec_size = self.options['vec_size']
-        vec_size_A = self.vec_size_A
 
         # lu factorization for use with solve_linear
-        self._lup = []
         self._lup = linalg.lu_factor(inputs['K'])
         outputs['disp_aug'] = linalg.lu_solve(self._lup, inputs['forces'])
 
@@ -154,13 +152,11 @@ class FEM(ImplicitComponent):
             either 'fwd' or 'rev'
         """
         vec_size = self.options['vec_size']
-        vec_size_A = self.vec_size_A
 
         if mode == 'fwd':
             if vec_size > 1:
                 for j in range(vec_size):
-                    idx = j if vec_size_A > 1 else 0
-                    d_outputs['disp_aug'][j] = linalg.lu_solve(self._lup[idx], d_residuals['disp_aug'][j],
+                    d_outputs['disp_aug'][j] = linalg.lu_solve(self._lup[0], d_residuals['disp_aug'][j],
                                                         trans=0)
             else:
                 d_outputs['disp_aug'] = linalg.lu_solve(self._lup, d_residuals['disp_aug'], trans=0)
@@ -168,8 +164,39 @@ class FEM(ImplicitComponent):
         else:  # rev
             if vec_size > 1:
                 for j in range(vec_size):
-                    idx = j if vec_size_A > 1 else 0
-                    d_residuals['disp_aug'][j] = linalg.lu_solve(self._lup[idx], d_outputs['disp_aug'][j],
+                    d_residuals['disp_aug'][j] = linalg.lu_solve(self._lup[0], d_outputs['disp_aug'][j],
                                                           trans=1)
             else:
                 d_residuals['disp_aug'] = linalg.lu_solve(self._lup, d_outputs['disp_aug'], trans=1)
+
+    def assemble_CSC_K(self, inputs):
+        """
+        Assemble the stiffness matrix in sparse CSC format.
+
+        Returns
+        -------
+        ndarray
+            Stiffness matrix as dense ndarray.
+        """
+        surface = self.options['surface']
+        ny = self.ny
+        size = self.size
+
+        arange = np.arange(ny - 1)
+
+        outputs['K'] = 0.
+        for i in range(12):
+            for j in range(12):
+                outputs['K'][6 * arange + i, 6 * arange + j] += inputs['local_stiff_transformed'][:, i, j]
+
+        # Find constrained nodes based on closeness to central point
+        nodes = inputs['nodes']
+        dist = nodes - np.array([5., 0, 0])
+        idx = (np.linalg.norm(dist, axis=1)).argmin()
+        index = 6 * idx
+        num_dofs = 6 * ny
+
+        arange = np.arange(6)
+
+        outputs['K'][index + arange, num_dofs + arange] = 1.e9
+        outputs['K'][num_dofs + arange, index + arange] = 1.e9
