@@ -65,13 +65,11 @@ class FEM(ImplicitComponent):
         self.size = size = int(6 * ny + 6)
 
         vec_size = self.options['vec_size']
-        mat_size = size * size
         full_size = size * vec_size
 
         self._lup = []
         shape = (vec_size, size) if vec_size > 1 else (size, )
 
-        init_A = np.eye(size)
         init_locK = np.tile(np.eye(12).flatten(), ny-1).reshape(ny-1, 12, 12)
 
         self.add_input('local_stiff_transformed', val=init_locK)
@@ -81,7 +79,8 @@ class FEM(ImplicitComponent):
         # Set up the derivatives.
         row_col = np.arange(full_size, dtype="int")
 
-        self.declare_partials('disp_aug', 'forces', val=np.full(full_size, -1.0), rows=row_col, cols=row_col)
+        self.declare_partials('disp_aug', 'forces', val=np.full(full_size, -1.0),
+                              rows=row_col, cols=row_col)
 
         # The derivative of residual wrt displacements is the stiffness matrix K. We can use the
         # sparsity pattern here and when constucting the sparse matrix, so save rows and cols.
