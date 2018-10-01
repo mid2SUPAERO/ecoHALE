@@ -4,10 +4,9 @@ from openaerostruct.structures.length import Length
 from openaerostruct.structures.local_stiff import LocalStiff
 from openaerostruct.structures.local_stiff_permuted import LocalStiffPermuted
 from openaerostruct.structures.local_stiff_transformed import LocalStiffTransformed
-from openaerostruct.structures.global_stiff import GlobalStiff
 
 class AssembleKGroup(Group):
-    """ Assemble that there global stiffness matrix. """
+    """ Assemble that there compact local stiffness matrix. """
 
     def initialize(self):
         self.options.declare('surface', types=dict)

@@ -16,13 +16,21 @@ class FEM(ImplicitComponent):
     Component that solves a linear system, Ax=b.
 
     Designed to handle small, dense linear systems (Ax=B) that can be efficiently solved with
-    lu-decomposition. It can be vectorized to either solve for multiple right hand sides,
+    sparse lu-decomposition. It can be vectorized to either solve for multiple right hand sides,
     or to solve multiple linear systems.
+
+    A is represented sparsely as a local_stiff_transformed, which is an ny x 12 x 12 array.
 
     Attributes
     ----------
     _lup : None or list(object)
         matrix factorizations returned from scipy.linag.lu_factor for each A matrix
+    k_cols : ndarray
+        Cached column indices for sparse representation of stiffness matrix.
+    k_rows : ndarray
+        Cached row indices for sparse representation of stiffness matrix.
+    k_data : ndarray
+        Cached values for sparse representation of stiffness matrix.
     """
 
     def __init__(self, **kwargs):
