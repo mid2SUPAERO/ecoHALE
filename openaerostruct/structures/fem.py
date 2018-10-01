@@ -4,7 +4,6 @@ from __future__ import division, print_function
 from six.moves import range
 
 import numpy as np
-from scipy import linalg
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import splu
 
