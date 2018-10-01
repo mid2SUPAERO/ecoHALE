@@ -36,6 +36,9 @@ class FEM(ImplicitComponent):
         """
         super(FEM, self).__init__(**kwargs)
         self._lup = None
+        self.k_cols = None
+        self.k_rows = None
+        self.k_data = None
 
     def initialize(self):
         """
@@ -72,11 +75,58 @@ class FEM(ImplicitComponent):
 
         self.declare_partials('disp_aug', 'forces', val=np.full(full_size, -1.0), rows=row_col, cols=row_col)
 
-        rows = np.repeat(np.arange(full_size), size)
-        cols = np.tile(np.arange(size), size)
-        cols = np.tile(cols, vec_size) + np.repeat(np.arange(vec_size), mat_size) * size
+        # The derivative of residual wrt displacements is the stiffness matrix K. We can use the
+        # sparsity pattern here and when constucting the sparse matrix, so save rows and cols.
 
-        self.declare_partials(of='disp_aug', wrt='disp_aug', rows=rows, cols=cols)
+        base_row = np.repeat(0, 6)
+        base_col = np.arange(6)
+
+        # Upper diagonal blocks
+        rows1 = np.tile(base_row, 6*(ny-1)) + np.repeat(np.arange(6*(ny-1)), 6)
+        col = np.tile(base_col + 6, 6)
+        cols1 = np.tile(col, ny-1) + np.repeat(6*np.arange(ny-1), 36)
+
+        # Lower diagonal blocks
+        rows2 = np.tile(base_row + 6, 6*(ny-1)) + np.repeat(np.arange(6*(ny-1)), 6)
+        col = np.tile(base_col, 6)
+        cols2 = np.tile(col, ny-1) + np.repeat(6*np.arange(ny-1), 36)
+
+        # Main diagonal blocks, root
+        rows3 = np.tile(base_row, 6) + np.repeat(np.arange(6), 6)
+        cols3 = np.tile(base_col, 6)
+
+        # Main diagonal blocks, tip
+        rows4 = np.tile(base_row + (ny-1)*6, 6) + np.repeat(np.arange(6), 6)
+        cols4 = np.tile(base_col + (ny-1)*6, 6)
+
+        # Main diagonal blocks, interior
+        rows5 = np.tile(base_row + 6, 6*(ny-2)) + np.repeat(np.arange(6*(ny-2)), 6)
+        col = np.tile(base_col + 6, 6)
+        cols5 = np.tile(col, ny-2) + np.repeat(6*np.arange(ny-2), 36)
+
+        # Find constrained nodes based on closeness to specified cg point
+        symmetry = self.options['surface']['symmetry']
+        if symmetry:
+            idx = self.ny - 1
+        else:
+            idx = (self.ny - 1) // 2
+
+        index = 6 * idx
+        num_dofs = 6 * ny
+        arange = np.arange(6)
+
+        # Fixed boundary condition.
+        rows6 = index + arange
+        cols6 = num_dofs + arange
+
+        self.k_rows = rows = np.concatenate([rows1, rows2, rows3, rows4, rows5, rows6, cols6])
+        self.k_cols = cols = np.concatenate([cols1, cols2, cols3, cols4, cols5, cols6, rows6])
+
+        sp_size = len(rows)
+        vec_rows = np.tile(rows, vec_size) + np.repeat(sp_size*np.arange(vec_size), sp_size)
+        vec_cols = np.tile(cols, vec_size) + np.repeat(sp_size*np.arange(vec_size), sp_size)
+
+        self.declare_partials(of='disp_aug', wrt='disp_aug', rows=vec_rows, cols=vec_cols)
 
         base_row = np.tile(0, 12)
         base_col = np.arange(12)
@@ -139,8 +189,7 @@ class FEM(ImplicitComponent):
         idx = np.tile(np.tile(np.arange(12), 12), ny-1) + np.repeat(6*np.arange(ny-1), 144)
         J['disp_aug', 'local_stiff_transformed'] = np.tile(x[idx], vec_size)
 
-        K = self.assemble_CSC_K(inputs).todense()
-        J['disp_aug', 'disp_aug'] = np.tile(K.flat, vec_size)
+        J['disp_aug', 'disp_aug'] = np.tile(self.k_data, vec_size)
 
     def solve_linear(self, d_outputs, d_residuals, mode):
         r"""
@@ -184,60 +233,16 @@ class FEM(ImplicitComponent):
         ndarray
             Stiffness matrix as dense ndarray.
         """
-        surface = self.options['surface']
         k_loc = inputs['local_stiff_transformed']
-        ny = self.ny
         size = self.size
 
-        base_row = np.repeat(0, 6)
-        base_col = np.arange(6)
-
-        # Upper diagonal blocks
-        rows1 = np.tile(base_row, 6*(ny-1)) + np.repeat(np.arange(6*(ny-1)), 6)
-        col = np.tile(base_col + 6, 6)
-        cols1 = np.tile(col, ny-1) + np.repeat(6*np.arange(ny-1), 36)
         data1 = k_loc[:, :6, 6:].flatten()
-
-        # Lower diagonal blocks
-        rows2 = np.tile(base_row + 6, 6*(ny-1)) + np.repeat(np.arange(6*(ny-1)), 6)
-        col = np.tile(base_col, 6)
-        cols2 = np.tile(col, ny-1) + np.repeat(6*np.arange(ny-1), 36)
         data2 = k_loc[:, 6:, :6].flatten()
-
-        # Main diagonal blocks, root
-        rows3 = np.tile(base_row, 6) + np.repeat(np.arange(6), 6)
-        cols3 = np.tile(base_col, 6)
         data3 = k_loc[0, :6, :6].flatten()
-
-        # Main diagonal blocks, tip
-        rows4 = np.tile(base_row + (ny-1)*6, 6) + np.repeat(np.arange(6), 6)
-        cols4 = np.tile(base_col + (ny-1)*6, 6)
         data4 = k_loc[-1, 6:, 6:].flatten()
-
-        # Main diagonal blocks, interior
-        rows5 = np.tile(base_row + 6, 6*(ny-2)) + np.repeat(np.arange(6*(ny-2)), 6)
-        col = np.tile(base_col + 6, 6)
-        cols5 = np.tile(col, ny-2) + np.repeat(6*np.arange(ny-2), 36)
         data5 = (k_loc[0:-1, 6:, 6:] + k_loc[1:, :6, :6]).flatten()
-
-        # Find constrained nodes based on closeness to specified cg point
-        symmetry = self.options['surface']['symmetry']
-        if symmetry:
-            idx = self.ny - 1
-        else:
-            idx = (self.ny - 1) // 2
-
-        index = 6 * idx
-        num_dofs = 6 * ny
-        arange = np.arange(6)
-
-        # Fixed boundary condition.
-        rows6 = index + arange
-        cols6 = num_dofs + arange
         data6 = np.full((6, ), 1e9)
 
-        rows = np.concatenate([rows1, rows2, rows3, rows4, rows5, rows6, cols6])
-        cols = np.concatenate([cols1, cols2, cols3, cols4, cols5, cols6, rows6])
-        data = np.concatenate([data1, data2, data3, data4, data5, data6, data6])
+        self.k_data = data = np.concatenate([data1, data2, data3, data4, data5, data6, data6])
 
-        return coo_matrix((data, (rows, cols)), shape=(size, size)).tocsc()
+        return coo_matrix((data, (self.k_rows, self.k_cols)), shape=(size, size)).tocsc()
