@@ -18,8 +18,22 @@ class BreguetRange(ExplicitComponent):
         Total coefficient of lift (CL) for the lifting surface.
     CD : float
         Total coefficient of drag (CD) for the lifting surface.
-    weight : float
-        Total weight of the structural spar.
+    CT : float
+        Specific fuel consumption for the entire aircraft.
+    speed_of_sound : float
+        The Mach speed, speed of sound, at the specified flight condition.
+    R : float
+        The total range of the aircraft, used to backcalculate the fuel mass.
+    Mach_number : float
+        The Mach number of the aircraft at the specified flight condition.
+    W0 : float
+        The operating empty weight of the aircraft, without fuel or structural
+        mass. Supplied in kg despite being a 'weight' due to convention.
+    load_factor : float
+        Multiplicative factor on gravity. 1.0 is normal flight; 2.5 would be
+        for a 2.5g manuever.
+    _structural_weight : float
+        Weight of a single lifting surface's structural spar.
 
     Returns
     -------

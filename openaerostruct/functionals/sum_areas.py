@@ -4,7 +4,8 @@ from openmdao.api import ExplicitComponent
 
 class SumAreas(ExplicitComponent):
     """
-    Compute the coefficients of lift (CL) and drag (CD) for the entire aircraft.
+    Compute the total surface area of the entire aircraft as a sum of its
+    individual surfaces' surface areas.
 
     Parameters
     ----------
@@ -13,6 +14,9 @@ class SumAreas(ExplicitComponent):
 
     Returns
     -------
+    S_ref_total : float
+        Total surface area of the aircraft based on the sum of individual
+        surface areas.
 
     """
 

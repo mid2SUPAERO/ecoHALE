@@ -29,6 +29,9 @@ class MomentCoefficient(ExplicitComponent):
         Freestream air velocity in m/s.
     rho : float
         Air density in kg/m^3.
+    S_ref_total : float
+        Total surface area of the aircraft based on the sum of individual
+        surface areas.
 
     Returns
     -------
