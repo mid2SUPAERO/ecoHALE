@@ -6,14 +6,58 @@ from openmdao.api import ExplicitComponent
 
 class SectionPropertiesWingbox(ExplicitComponent):
     """
-    Compute geometric properties for a wingbox element.
+    Compute geometric cross-section properties for the wingbox elements.
+    See Chauhan et al. (https://doi.org/10.1007/978-3-319-97773-7_38) for more.
 
     Parameters
     ----------
+    streamwise_chords : numpy array
+        Average streamwise chord lengths for each streamwise VLM panel.
+    fem_chords : numpy array
+        Effective chord lengths normal to the FEM elements.
+    fem_twists : numpy array
+        Twist angles in planes normal to the FEM elements.
+    spar_thickness : numpy array
+        Material thicknesses of the front and rear spars for each wingbox segment.
+    skin_thickness : numpy array
+        Material thicknesses of the top and bottom skins for each wingbox segment.
+    t_over_c : numpy array
+        Streamwise thickness-to-chord ratios for each wingbox segment.
+
 
     Returns
     -------
-
+    A : numpy array
+        Cross-sectional area of each wingbox segment.
+    A_enc : numpy array
+        Cross-sectional enclosed area (measured using the material midlines) of 
+        each wingbox segment.
+    A_int : numpy array
+        Cross-sectional internal area of each wingbox segment (used for fuel 
+        volume).
+    Iy : numpy array
+        Second moment of area about the neutral axis parallel to the local 
+        y-axis (for each wingbox segment).
+    Qz : numpy array
+        First moment of area above the neutral axis parallel to the local 
+        z-axis (for each wingbox segment).
+    Iz : numpy array
+        Second moment of area about the neutral axis parallel to the local 
+        z-axis (for each wingbox segment).
+    J : numpy array
+        Torsion constants for each wingbox segment.
+    htop : numpy array
+        Distance to the point on the top skin that is the farthest away from 
+        the local-z neutral axis (for each wingbox segment).
+    hbottom : numpy array
+        Distance to the point on the bottom skin that is the farthest away from 
+        the local-z neutral axis (for each wingbox segment).
+    hfront : numpy array
+        Distance to the point on the front spar that is the farthest away from 
+        the local-y neutral axis (for each wingbox segment).
+    hrear : numpy array
+        Distance to the point on the rear spar that is the farthest away 
+        from the local-y neutral axis (for each wingbox segment).
     """
 
     def initialize(self):
@@ -24,8 +68,11 @@ class SectionPropertiesWingbox(ExplicitComponent):
 
         self.mesh = surface['mesh']
         self.ny = self.mesh.shape[1]
+
+        # original thickness-to-chord ratio of the airfoil provided by the user
         self.orig_wb_af_t_over_c = surface['original_wingbox_airfoil_t_over_c']
 
+        # airfoil coordinates provided by the user
         self.data_x_upper = surface['data_x_upper']
         self.data_x_lower = surface['data_x_lower']
         self.data_y_upper = surface['data_y_upper']
@@ -54,6 +101,9 @@ class SectionPropertiesWingbox(ExplicitComponent):
         self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
+
+        # NOTE: In the code below, the x- and y-axes correspond to the element 
+        # local z- and y-axes, respectively.
 
         chord = inputs['fem_chords']
         spar_thickness = inputs['spar_thickness']

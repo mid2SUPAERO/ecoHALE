@@ -7,21 +7,42 @@ from openaerostruct.structures.utils import norm, unit
 
 
 class VonMisesWingbox(ExplicitComponent):
-    """ Compute the von Mises stress in each element.
+    """ Compute the von Mises stresses for each element.
+    See Chauhan et al. (https://doi.org/10.1007/978-3-319-97773-7_38) for more.
 
     Parameters
     ----------
     nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
-    radius[ny-1] : numpy array
-        Radii for each FEM element.
     disp[ny, 6] : numpy array
         Displacements of each FEM node.
+    Qz : numpy array
+        First moment of area above the neutral axis parallel to the local 
+        z-axis (for each wingbox segment).
+    J : numpy array
+        Torsion constants for each wingbox segment.
+    A_enc : numpy array
+        Cross-sectional enclosed area (measured using the material midlines) of 
+        each wingbox segment.
+    spar_thickness : numpy array
+        Material thicknesses of the front and rear spars for each wingbox segment.
+    htop : numpy array
+        Distance to the point on the top skin that is the farthest away from 
+        the local-z neutral axis (for each wingbox segment).
+    hbottom : numpy array
+        Distance to the point on the bottom skin that is the farthest away from 
+        the local-z neutral axis (for each wingbox segment).
+    hfront : numpy array
+        Distance to the point on the front spar that is the farthest away from 
+        the local-y neutral axis (for each wingbox segment).
+    hrear : numpy array
+        Distance to the point on the rear spar that is the farthest away 
+        from the local-y neutral axis (for each wingbox segment).
 
     Returns
     -------
-    vonmises[ny-1, 2] : numpy array
-        von Mises stress magnitudes for each FEM element.
+    vonmises[ny-1, 4] : numpy array
+        von Mises stresses for 4 stress combinations for each FEM element.
 
     """
 
@@ -34,15 +55,11 @@ class VonMisesWingbox(ExplicitComponent):
         self.ny = surface['mesh'].shape[1]
 
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
-
         self.add_input('disp', val=np.zeros((self.ny, 6)), units='m')
-
         self.add_input('Qz', val=np.zeros((self.ny - 1)), units='m**3')
         self.add_input('J', val=np.zeros((self.ny - 1)), units='m**4')
         self.add_input('A_enc', val=np.zeros((self.ny - 1)), units='m**2')
-
         self.add_input('spar_thickness', val=np.zeros((self.ny - 1)), units='m')
-
         self.add_input('htop', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hbottom', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hfront', val=np.zeros((self.ny - 1)), units='m')
@@ -98,14 +115,26 @@ class VonMisesWingbox(ExplicitComponent):
             u1x, u1y, u1z = T.dot(disp[ielem+1, :3])
             r1x, r1y, r1z = T.dot(disp[ielem+1, 3:])
 
-            axial_stress = E * (u1x - u0x) / L      # this is stress = modulus * strain; positive is tensile
-            torsion_stress = G * J[ielem] / L * (r1x - r0x) / 2 / spar_thickness[ielem] / A_enc[ielem]   # this is Torque / (2 * thickness_min * Area_enclosed)
-            top_bending_stress = E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * htop[ielem] # this is moment * htop / I
-            bottom_bending_stress = - E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * hbottom[ielem] # this is moment * htop / I
-            front_bending_stress = - E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hfront[ielem] # this is moment * htop / I
-            rear_bending_stress = E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hrear[ielem] # this is moment * htop / I
+            # this is stress = modulus * strain; positive is tensile
+            axial_stress = E * (u1x - u0x) / L
 
-            vertical_shear =  E / (L**3) *(-12 * u0y - 6 * r0z * L + 12 * u1y - 6 * r1z * L ) * Qy[ielem] / (2 * spar_thickness[ielem]) # shear due to bending (VQ/It) note: the I used to get V cancels the other I
+            # this is Torque / (2 * thickness_min * Area_enclosed)
+            torsion_stress = G * J[ielem] / L * (r1x - r0x) / 2 / spar_thickness[ielem] / A_enc[ielem]
+
+            # this is moment * h / I
+            top_bending_stress = E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * htop[ielem]
+
+            # this is moment * h / I
+            bottom_bending_stress = - E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * hbottom[ielem]
+
+            # this is moment * h / I
+            front_bending_stress = - E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hfront[ielem]
+
+            # this is moment * h / I
+            rear_bending_stress = E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hrear[ielem] 
+
+            # shear due to bending (VQ/It) note: the I used to get V cancels the other I
+            vertical_shear =  E / (L**3) *(-12 * u0y - 6 * r0z * L + 12 * u1y - 6 * r1z * L ) * Qy[ielem] / (2 * spar_thickness[ielem])
 
             # print("==========",ielem,"================")
             # print("vertical_shear", vertical_shear)
@@ -116,6 +145,7 @@ class VonMisesWingbox(ExplicitComponent):
             # print("axial", axial_stress)
             # print("torsion", torsion_stress)
 
+            # The 4 stress combinations:
             vonmises[ielem, 0] = np.sqrt((top_bending_stress + rear_bending_stress + axial_stress)**2 + 3*torsion_stress**2) / self.tssf
             vonmises[ielem, 1] = np.sqrt((bottom_bending_stress + front_bending_stress + axial_stress)**2 + 3*torsion_stress**2)
             vonmises[ielem, 2] = np.sqrt((front_bending_stress + axial_stress)**2 + 3*(torsion_stress-vertical_shear)**2)

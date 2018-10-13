@@ -6,7 +6,21 @@ from openaerostruct.structures.utils import norm
 
 class WingboxGeometry(ExplicitComponent):
     """
+    Compute effective chord lengths and twists normal to the wingbox elements.
 
+    Parameters
+    ----------
+    mesh[nx, ny, 3] : numpy array
+        VLM mesh
+
+    Returns
+    -------
+    streamwise_chords : numpy array
+        Average streamwise chord lengths for each streamwise VLM panel.
+    fem_chords : numpy array
+        Effective chord lengths normal to the FEM elements.
+    fem_twists : numpy array
+        Twist angles in planes normal to the FEM elements.
     """
 
     def initialize(self):

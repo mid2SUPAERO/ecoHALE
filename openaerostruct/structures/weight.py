@@ -14,13 +14,15 @@ class Weight(ExplicitComponent):
         Areas for each FEM element.
     nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
+    load_factor : float
+        Load factor for the flight point.
 
     Returns
     -------
     structural_weight : float
-        Weight of the structural spar.
+        Weight of the wing structure.
     elmenet_weight[ny-1] : float
-        weight of each elemnet
+        Weight of each element.
 
     """
 
