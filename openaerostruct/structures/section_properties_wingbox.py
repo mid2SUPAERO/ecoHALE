@@ -11,51 +11,51 @@ class SectionPropertiesWingbox(ExplicitComponent):
 
     Parameters
     ----------
-    streamwise_chords : numpy array
+    streamwise_chords[ny-1] : numpy array
         Average streamwise chord lengths for each streamwise VLM panel.
-    fem_chords : numpy array
+    fem_chords[ny-1] : numpy array
         Effective chord lengths normal to the FEM elements.
-    fem_twists : numpy array
+    fem_twists[ny-1] : numpy array
         Twist angles in planes normal to the FEM elements.
-    spar_thickness : numpy array
+    spar_thickness[ny-1] : numpy array
         Material thicknesses of the front and rear spars for each wingbox segment.
-    skin_thickness : numpy array
+    skin_thickness[ny-1] : numpy array
         Material thicknesses of the top and bottom skins for each wingbox segment.
-    t_over_c : numpy array
+    t_over_c[ny-1] : numpy array
         Streamwise thickness-to-chord ratios for each wingbox segment.
 
 
     Returns
     -------
-    A : numpy array
+    A[ny-1] : numpy array
         Cross-sectional area of each wingbox segment.
-    A_enc : numpy array
+    A_enc[ny-1] : numpy array
         Cross-sectional enclosed area (measured using the material midlines) of 
         each wingbox segment.
-    A_int : numpy array
+    A_int[ny-1] : numpy array
         Cross-sectional internal area of each wingbox segment (used for fuel 
         volume).
-    Iy : numpy array
+    Iy[ny-1] : numpy array
         Second moment of area about the neutral axis parallel to the local 
         y-axis (for each wingbox segment).
-    Qz : numpy array
+    Qz[ny-1] : numpy array
         First moment of area above the neutral axis parallel to the local 
         z-axis (for each wingbox segment).
-    Iz : numpy array
+    Iz[ny-1] : numpy array
         Second moment of area about the neutral axis parallel to the local 
         z-axis (for each wingbox segment).
-    J : numpy array
+    J[ny-1] : numpy array
         Torsion constants for each wingbox segment.
-    htop : numpy array
+    htop[ny-1] : numpy array
         Distance to the point on the top skin that is the farthest away from 
         the local-z neutral axis (for each wingbox segment).
-    hbottom : numpy array
+    hbottom[ny-1] : numpy array
         Distance to the point on the bottom skin that is the farthest away from 
         the local-z neutral axis (for each wingbox segment).
-    hfront : numpy array
+    hfront[ny-1] : numpy array
         Distance to the point on the front spar that is the farthest away from 
         the local-y neutral axis (for each wingbox segment).
-    hrear : numpy array
+    hrear[ny-1] : numpy array
         Distance to the point on the rear spar that is the farthest away 
         from the local-y neutral axis (for each wingbox segment).
     """

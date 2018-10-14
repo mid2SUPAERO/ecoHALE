@@ -16,26 +16,26 @@ class VonMisesWingbox(ExplicitComponent):
         Flattened array with coordinates for each FEM node.
     disp[ny, 6] : numpy array
         Displacements of each FEM node.
-    Qz : numpy array
+    Qz[ny-1] : numpy array
         First moment of area above the neutral axis parallel to the local 
         z-axis (for each wingbox segment).
-    J : numpy array
+    J[ny-1] : numpy array
         Torsion constants for each wingbox segment.
-    A_enc : numpy array
+    A_enc[ny-1] : numpy array
         Cross-sectional enclosed area (measured using the material midlines) of 
         each wingbox segment.
-    spar_thickness : numpy array
+    spar_thickness[ny-1] : numpy array
         Material thicknesses of the front and rear spars for each wingbox segment.
-    htop : numpy array
+    htop[ny-1] : numpy array
         Distance to the point on the top skin that is the farthest away from 
         the local-z neutral axis (for each wingbox segment).
-    hbottom : numpy array
+    hbottom[ny-1] : numpy array
         Distance to the point on the bottom skin that is the farthest away from 
         the local-z neutral axis (for each wingbox segment).
-    hfront : numpy array
+    hfront[ny-1] : numpy array
         Distance to the point on the front spar that is the farthest away from 
         the local-y neutral axis (for each wingbox segment).
-    hrear : numpy array
+    hrear[ny-1] : numpy array
         Distance to the point on the rear spar that is the farthest away 
         from the local-y neutral axis (for each wingbox segment).
 

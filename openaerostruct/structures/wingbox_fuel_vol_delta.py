@@ -21,7 +21,7 @@ class WingboxFuelVolDelta(ExplicitComponent):
 
     Returns
     -------
-    fuel_vol_delta : numpy array
+    fuel_vol_delta : float
         If the value is negative, then there isn't enough volume for the fuel.
     """
 

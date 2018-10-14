@@ -15,11 +15,11 @@ class WingboxGeometry(ExplicitComponent):
 
     Returns
     -------
-    streamwise_chords : numpy array
+    streamwise_chords[ny-1] : numpy array
         Average streamwise chord lengths for each streamwise VLM panel.
-    fem_chords : numpy array
+    fem_chords[ny-1] : numpy array
         Effective chord lengths normal to the FEM elements.
-    fem_twists : numpy array
+    fem_twists[ny-1] : numpy array
         Twist angles in planes normal to the FEM elements.
     """
 
