@@ -9,23 +9,20 @@ def norm(vec):
 
 class WingboxFuelVolDelta(ExplicitComponent):
     """
-    Create a constraint to ensure the wingbox has enough internal volume to store the required fuel.
+    Create a constraint to ensure the wingbox has enough internal volume to 
+    store the required fuel.
 
-    parameters
+    Parameters
     ----------
-    nodes[ny, 3] : numpy array
-        Coordinates of FEM nodes.
-    A_int[ny-1] : numpy array
-        Internal volume of each wingbox segment.
     fuelburn : float
         Fuel weight
+    fuel_vols[ny-1] : numpy array
+        The magnitude of each individual panel's fuel-carrying volumes.
 
     Returns
     -------
-    fuel_vol_delta : numpy array
+    fuel_vol_delta : float
         If the value is negative, then there isn't enough volume for the fuel.
-    fuel_vols[ny-1] : numpy array
-        The magnitude of each individual panel's fuel-carrying volumes.
     """
 
     def initialize(self):
