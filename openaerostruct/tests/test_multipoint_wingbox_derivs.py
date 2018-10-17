@@ -164,7 +164,7 @@ class Test(unittest.TestCase):
                 prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 
                 com_name = point_name + '.' + name + '_perf.'
-                prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+                prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
                 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect aerodyamic mesh to coupled group mesh

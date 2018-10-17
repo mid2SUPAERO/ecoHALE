@@ -10,7 +10,7 @@ class Test(unittest.TestCase):
         surface = get_default_surfaces()[0]
 
         ny = surface['mesh'].shape[1]
-        comp = FEM(size= ny * 6)
+        comp = FEM(surface=surface)
 
         run_test(self, comp)
 

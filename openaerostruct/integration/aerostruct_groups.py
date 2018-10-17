@@ -78,7 +78,8 @@ class AerostructGeometry(Group):
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
             promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'] + promotes,
-            promotes_outputs=['nodes', 'K', 'structural_weight', 'cg_location', 'element_weights'])
+            promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_weight', 'cg_location', 'element_weights'])
+
 
 class CoupledAS(Group):
 
@@ -96,7 +97,7 @@ class CoupledAS(Group):
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
-            promotes_inputs=['K', 'forces', 'loads'] + promotes, promotes_outputs=['disp'])
+            promotes_inputs=['local_stiff_transformed', 'forces', 'loads'] + promotes, promotes_outputs=['disp'])
 
         self.add_subsystem('def_mesh',
             DisplacementTransferGroup(surface=surface),

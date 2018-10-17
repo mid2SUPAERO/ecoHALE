@@ -18,12 +18,16 @@ class StructureWeightLoads(ExplicitComponent):
         Weight for each wing-structure segment.
     nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
+    load_factor : float
+        Load factor for the flight point.
 
     Returns
     -------
     struct_weight_loads[ny, 6] : numpy array
         Flattened array containing the loads applied on the FEM component,
         computed from the weight of the wing-structure segments.
+    element_lengths[ny-1] : numpy array
+        Lengths of the FEM finite elements.
     """
 
     def initialize(self):
@@ -36,8 +40,8 @@ class StructureWeightLoads(ExplicitComponent):
         self.add_input('element_weights', val=np.zeros((self.ny-1)), units='N')
         self.add_input('nodes', val=np.zeros((self.ny, 3), dtype=complex), units='m')
         self.add_input('load_factor', val=1.05)
-        self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
 
+        self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
         self.add_output('element_lengths', val=np.zeros(self.ny-1), units='N')
 
         nym1 = self.ny-1
