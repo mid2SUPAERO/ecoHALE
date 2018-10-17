@@ -9,12 +9,21 @@ from openaerostruct.structures.utils import radii
 
 class RadiusComp(ExplicitComponent):
     """
+    Compute the radius of a structural spar based on the mesh and thickness over
+    chord ratio.
 
     Parameters
     ----------
+    mesh[nx, ny, 3] : numpy array
+        Nodal mesh defining the initial aerodynamic surface..
+    t_over_c[ny-1] : numpy array
+        The streamwise thickness-to-chord ratio of each VLM panel.
 
     Returns
     -------
+    radius[ny-1] : numpy array
+        Radius of each element of the FEM spar.
+
     """
 
     def initialize(self):

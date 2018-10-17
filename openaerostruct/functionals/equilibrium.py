@@ -4,25 +4,45 @@ from openmdao.api import ExplicitComponent
 
 class Equilibrium(ExplicitComponent):
     """
-    Lift = weight constraint.
+    Computes L_equals_W, which is a normalized measure of the weight of the
+    aircraft minus the total generated lift. So if L_equals_W is positive,
+    the aircraft weighs more than the amount of lift it's producing.
+
+    Generally we use this measure to ensure that lift equals weight for a cruise
+    fligth condition.
     Note that we add information from each lifting surface.
 
     Parameters
     ----------
-    L : float
-        Total lift for the lifting surface.
     structural_weight : float
-        Total weight of the structural spar.
+        Total weight of the structural spar for a given surface.
+
     fuelburn : float
         Computed fuel burn in kg based on the Breguet range equation.
+    W0 : float
+        The operating empty weight of the aircraft, without fuel or structural
+        mass. Supplied in kg despite being a 'weight' due to convention.
+    load_factor : float
+        Multiplicative factor on gravity. 1.0 is normal flight; 2.5 would be
+        for a 2.5g manuever.
+    CL : float
+        Total coefficient of lift (CL) for the entire aircraft.
+    S_ref_total : float
+        Total surface area of the aircraft based on the sum of individual
+        surface areas.
+    v : float
+        Freestream air velocity in m/s.
+    rho : float
+        Air density in kg/m^3.
 
     Returns
     -------
     L_equals_W : float
-        Equality constraint for lift = total weight. L_equals_W = 0 for the constraint to be satisfied.
+        Equality constraint for lift = total weight. L_equals_W = 0 for the
+        constraint to be satisfied.
     total_weight : float
-        Total weight of the entire aircraft, including W0, all structural weights,
-        and fuel.
+        Total weight of the entire aircraft, including W0, all structural
+        weights, and fuel.
     """
 
     def initialize(self):
@@ -32,8 +52,8 @@ class Equilibrium(ExplicitComponent):
         for surface in self.options['surfaces']:
             name = surface['name']
             self.add_input(name + '_structural_weight', val=1., units='N')
-            self.declare_partials('L_equals_W',name+'_structural_weight')
-            self.declare_partials('total_weight',name+'_structural_weight')
+            self.declare_partials('L_equals_W', name+'_structural_weight')
+            self.declare_partials('total_weight', name+'_structural_weight')
 
         self.add_input('fuelburn', val=123., units='kg')
         self.add_input('W0', val=1000., units='kg')

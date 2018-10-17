@@ -289,8 +289,8 @@ def get_crm_points(wing_type):
     [0.9147562042, 1704.7921129921, 1057.0116118110, 246.4570961417, -2.5772473732, 131.9604036611],
     [0.9573780697, 1742.2943417323, 1106.2616814961, 254.9872060630, -3.0701697145, 119.9459942819],
     [1.0000000000, 1779.7950685039, 1155.5118259843, 263.5766389764, -3.6142545059, 107.9325590260]])
-    
-    elif wing_type == 'uCRM_based': 
+
+    elif wing_type == 'uCRM_based':
         # Modified CRM points to match the uCRM span
         # Made the z-corrdinates constant for 30% span and beyond
         # For more precise points use the uCRM geometry files on the modlab website

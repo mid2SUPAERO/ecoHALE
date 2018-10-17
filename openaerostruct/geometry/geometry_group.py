@@ -4,8 +4,15 @@ from openmdao.api import IndepVarComp, Group, BsplinesComp
 
 
 class Geometry(Group):
-    """ Group that contains everything needed for a structural-only problem. """
+    """
+    Group that contains all components needed for any type of OAS problem.
 
+    Because we use this general group, there's some logic to figure out which
+    components to add and which connections to make.
+    This is especially true for all of the geometric manipulation types, such
+    as twist, sweep, etc., in that we handle the creation of these parameters
+    differently if the user wants to have them vary in the optimization problem.    
+    """
     def initialize(self):
         self.options.declare('surface', types=dict)
         self.options.declare('DVGeo', default=None)
@@ -138,7 +145,7 @@ class Geometry(Group):
                 bsp_inputs.append('sweep')
                 if surface.get('sweep_dv', True):
                     indep_var_comp.add_output('sweep', val=surface['sweep'], units='deg')
-            
+
             if 'span' in surface.keys():
                 bsp_inputs.append('span')
                 if surface.get('span_dv', True):

@@ -1,4 +1,5 @@
-""" Components that manipulate geometry mesh based on high-level design parameters. """
+""" A set of components that manipulate geometry mesh
+    based on high-level design parameters. """
 
 from __future__ import division, print_function
 
@@ -20,7 +21,7 @@ class Taper(ExplicitComponent):
     Returns
     -------
     mesh[nx, ny, 3] : numpy array
-        Nodal mesh defining the tapered aerodynamic surface..
+        Nodal mesh defining the tapered aerodynamic surface.
     """
 
     def initialize(self):

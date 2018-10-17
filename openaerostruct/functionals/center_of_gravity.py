@@ -8,7 +8,7 @@ class CenterOfGravity(ExplicitComponent):
     """
     Compute the center of gravity of the entire aircraft based on the inputted W0
     and its corresponding cg and the weighted sum of each surface's structural
-    weight and location.
+    weight and location. We assume the fuel mass is acting at the cg point.
 
     Note that we add information from each lifting surface.
 
@@ -24,6 +24,15 @@ class CenterOfGravity(ExplicitComponent):
         and fuel.
     fuelburn : float
         Computed fuel burn in kg based on the Breguet range equation.
+    W0 : float
+        The operating empty weight of the aircraft, without fuel or structural
+        mass. Supplied in kg despite being a 'weight' due to convention.
+    load_factor : float
+        Multiplicative factor on gravity. 1.0 is normal flight; 2.5 would be
+        for a 2.5g manuever.
+    empty_cg[3] : numpy array
+        The location of the cg of the empty aircraft, without considering
+        the structural spar or fuel mass's contribution to the cg location.
 
     Returns
     -------
@@ -51,6 +60,7 @@ class CenterOfGravity(ExplicitComponent):
         self.add_input('W0', val=123., units='kg')
         self.add_input('load_factor', val=1.05)
         self.add_input('empty_cg', val=np.ones((3)), units='m')
+
         self.add_output('cg', val=np.ones(3), units='m')
 
         self.declare_partials('cg', 'total_weight')
