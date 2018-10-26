@@ -16,12 +16,12 @@ class WingboxFuelVol(ExplicitComponent):
     nodes[ny, 3] : numpy array
         Coordinates of FEM nodes.
     A_int[ny-1] : numpy array
-        Internal volume of each wingbox segment.
+        Internal cross-sectional area of each wingbox segment.
 
     Returns
     -------
     fuel_vols[ny-1] : numpy array
-        The magnitude of each individual panel's fuel-carrying volumes.
+        Internal volume of each wingbox segment.
     """
 
     def initialize(self):

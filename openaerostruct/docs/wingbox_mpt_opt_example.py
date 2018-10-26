@@ -83,7 +83,7 @@ surf_dict = {
             'CL0' : 0.0,            # CL delta
             'CD0' : 0.0078,         # CD delta
 
-            'with_viscous' : True,
+            'with_viscous' : True,  # if true, compute viscous drag
             'with_wave' : True,     # if true, compute wave drag
 
             # Airfoil properties for viscous drag calculation
@@ -193,7 +193,7 @@ for i in range(2):
     point_name = 'AS_point_{}'.format(i)
     # Connect the parameters within the model for each aero point
 
-    # Create the aero point group and add it to the model
+    # Create the aerostruct point group and add it to the model
     AS_point = AerostructPoint(surfaces=surfaces, internally_connect_fuelburn=False)
 
     prob.model.add_subsystem(point_name, AS_point)
@@ -289,9 +289,6 @@ prob.model.add_subsystem('fuel_diff', comp,
     promotes_inputs=['fuel_mass'],
     promotes_outputs=['fuel_diff'])
 prob.model.connect('AS_point_0.fuelburn', 'fuel_diff.fuelburn')
-
-#=======================================================================================
-#=======================================================================================
 
 #docs section 19 end
 
