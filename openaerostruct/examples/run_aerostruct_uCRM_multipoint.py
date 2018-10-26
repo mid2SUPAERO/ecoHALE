@@ -307,9 +307,11 @@ print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.struct
 
 #=======================================================================================
 #=======================================================================================
-# UNIT TEST to make sure that the above script works if there are changes to OAS.
+# UNIT TEST to check whether the above script works properly if there are changes to OAS.
 # The above example script has been copied below. If you fix something below, PLEASE fix
 # it above as well.
+# A user can delete the code below, it is only here for testing purposes for the
+# developers.
 #=======================================================================================
 #=======================================================================================
 
@@ -512,7 +514,7 @@ class Test(unittest.TestCase):
         prob.driver.options['optimizer'] = 'SLSQP'
         prob.driver.options['tol'] = 1e-8
 
-        recorder = SqliteRecorder("aerostruct.db")
+        recorder = SqliteRecorder("unit_test.db")
         prob.driver.add_recorder(recorder)
 
         # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.
