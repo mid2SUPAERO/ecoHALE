@@ -14,7 +14,7 @@ This page breaks down and describes an example optimization run-script that uses
 This example uses the same optimization problem used for the paper linked above, but with fewer design variables and a coarser mesh.
 The wing being optimized is based on the undeflected Common Research Model (uCRM), which is a long-range transport aircraft.
 A script to replicate the optimization problems described in the paper can be found in the examples directory (openaerostruct/examples/run_aerostruct_uCRM_multipoint.py).
-Please contact Shamsheer Chauhan (sschau@umich.edu) with an questions you have after reading the above paper and going throught this example.
+Please contact Shamsheer Chauhan (sschau@umich.edu) with any questions you have after reading the above paper and going through this example.
 
 The goal of the wingbox model is to allow more realistic preliminary structural sizing for commuter to long-range transport-type aircraft which typically have wingbox structures.
 Since more realistic sizing is one of the goals of the wingbox model, this example also shows how to use it with a multipoint optimization.
@@ -53,9 +53,9 @@ We use a very coarse mesh for this example to keep the computational time low.
 The `generate_mesh` function takes the inputs from the mesh dictionary and returns the mesh as well as values for the B-spline control points for the twist distribution (we specify the number of control points for this using `num_twist_cp` in the dictionary).
 Note that in this example we don't end up using this twist distribution, but instead use a better starting twist distribution which will be seen later.
 
- .. literalinclude:: ../wingbox_mpt_opt_example.py
-    :start-after: #docs section 2 begin
-    :end-before: #docs section 2 end
+.. literalinclude:: ../wingbox_mpt_opt_example.py
+  :start-after: #docs section 2 begin
+  :end-before: #docs section 2 end
 
 Next, we create a surface dictionary and provide necessary information for our lifting surface.
 After providing the relevant information for the `name`, `symmetry`, and `S_ref_type` settings, we provide the mesh and specify the string `'wingbox'` for the `fem_model_type` (if we wanted the tubular structure, we would specify `'tube'` instead).
@@ -291,7 +291,7 @@ Now we put the code together, run it, and see the output:
     openaerostruct.docs.wingbox_mpt_opt_example
     :layout: interleave
 
-The following are the visualization results for this problem (with the optimizer tolerance changed to 1e-8) using the `plot_wingbox.py` visualization script (located in the `utils` directory).
+The following are the visualization results for this problem using the `plot_wingbox.py` visualization script (located in the `utils` directory).
 This visualization script requires the `.db` file as an argument.
 For example, to use it for this example problem, from the example script's (wingbox_mpt_opt_example.py) location in the OpenAeroStruct `docs` directory, we would use:
 

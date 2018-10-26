@@ -499,7 +499,7 @@ class Display(object):
             self.ax4.locator_params(axis='x',nbins=3)
             self.ax4.set_ylim([self.min_t, self.max_t])
             self.ax4.set_xlim([-1, 1])
-            self.ax4.set_ylabel('thickness', rotation="horizontal", ha="right")
+            self.ax4.set_ylabel('thickness [m]', rotation="horizontal", ha="right")
 
             self.ax6.cla()
             self.ax6.locator_params(axis='y',nbins=4)
@@ -704,7 +704,7 @@ class Display(object):
             sw_val = self.struct_weights[self.curr_pos] / wing_weight_ratio / 9.80665
             self.ax.text2D(.05, -.1, self.obj_key + ' [kg]: {}'.format(obj_val),
                 transform=self.ax.transAxes, color='k')
-            self.ax.text2D(.05, -.15, 'wingbox mass' + ' [kg]: {}'.format(sw_val),
+            self.ax.text2D(.05, -.15, 'wingbox mass (w/o wing_weight_ratio)' + ' [kg]: {}'.format(sw_val),
                 transform=self.ax.transAxes, color='k')
 
         self.ax.view_init(elev=el, azim=az)  # Reproduce view
