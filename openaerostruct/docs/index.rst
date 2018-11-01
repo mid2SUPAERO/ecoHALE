@@ -4,7 +4,7 @@ OpenAeroStruct Documentation
 ============================
 
 OpenAeroStruct is a lightweight tool that performs aerostructural optimization using OpenMDAO.
-It couples a vortex-lattice method (VLM) and a 6 degrees of freedom 3-dimensional spatial beam model to simulate aerodynamic and structural analyses using lifting surfaces.
+It couples a vortex-lattice method (VLM) and a 6 degrees of freedom (per node) 3-dimensional spatial beam model to simulate aerodynamic and structural analyses using lifting surfaces.
 These simulations are wrapped with an optimizer using NASA's OpenMDAO framework.
 The analysis and optimization results can be visualized using included tools, producing figures such as this:
 
@@ -27,8 +27,9 @@ Please review these at a minimum to understand how aerodynamic, structural, and 
    aero_walkthrough.rst
    struct_example.rst
    aerostructural_walkthrough.rst
+   aerostructural_wingbox_walkthrough.rst
 
-Once you have reviewed and understand these basic examples, you can move on to these more advanced examples below.
+Once you have reviewed and understand these examples, you can move on to some more advanced examples below.
 
 .. toctree::
    :maxdepth: 2
