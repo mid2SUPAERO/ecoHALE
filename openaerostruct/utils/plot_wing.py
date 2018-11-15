@@ -26,23 +26,18 @@ from six import iteritems
 import numpy as np
 from openmdao.recorders.sqlite_reader import SqliteCaseReader
 
-try:
-    import matplotlib
-    matplotlib.use('TkAgg')
-    matplotlib.rcParams['lines.linewidth'] = 2
-    matplotlib.rcParams['axes.edgecolor'] = 'gray'
-    matplotlib.rcParams['axes.linewidth'] = 0.5
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
-        NavigationToolbar2Tk
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib import cm
-    import matplotlib.animation as manimation
-    import sqlitedict
-except:
-    print()
-    print("Correct plotting modules not available; please consult import list")
-    print()
+import matplotlib
+matplotlib.use('TkAgg')
+matplotlib.rcParams['lines.linewidth'] = 2
+matplotlib.rcParams['axes.edgecolor'] = 'gray'
+matplotlib.rcParams['axes.linewidth'] = 0.5
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
+    NavigationToolbar2Tk
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+import matplotlib.animation as manimation
+import sqlitedict
 
 #####################
 # User-set parameters
@@ -96,11 +91,12 @@ class Display(object):
             self.ax5 = plt.subplot2grid((4, 8), (3, 4), colspan=4)
 
     def load_db(self):
-        cr = self.case_reader = SqliteCaseReader(self.db_name)
-        cr.load_cases()
-        last_case = cr.driver_cases.get_case(-1)
+        cr = self.case_reader = SqliteCaseReader(self.db_name, pre_load=True)
+        last_case = next(reversed(cr.get_cases('driver')))
 
         names = []
+
+        # Aero or aerostructural
         for key in cr.system_metadata.keys():
             try:
                 surfaces = cr.system_metadata[key]['component_options']['surfaces']
@@ -109,6 +105,15 @@ class Display(object):
                 break
             except:
                 pass
+
+        # Structural-only
+        if not names:
+            for key in cr.system_metadata.keys():
+                try:
+                    surface = cr.system_metadata[key]['component_options']['surface']
+                    names = [surface['name']]
+                except:
+                    pass
 
         # figure out if this is an optimization and what the objective is
         obj_keys = last_case.get_objectives()
@@ -146,10 +151,13 @@ class Display(object):
 
             if 'CL' in key:
                 pt_names.append(key.split('.')[0])
+                break
 
         if pt_names:
             self.pt_names = pt_names = list(set(pt_names))
             pt_name = pt_names[0]
+        else:
+            pt_names = ['']
         self.names = names
         n_names = len(names)
 
@@ -602,7 +610,7 @@ class Display(object):
 
         # Get the number of current iterations
         # Minus one because OpenMDAO uses 1-indexing
-        self.num_iters = int(cr.driver_cases.list_cases()[-1].split('|')[-1])
+        self.num_iters = len(cr.get_cases('driver'))
 
     def get_list_limits(self, input_list):
         list_min = 1.e20
