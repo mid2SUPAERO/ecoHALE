@@ -20,22 +20,17 @@ from six import iteritems
 import numpy as np
 from openmdao.recorders.sqlite_reader import SqliteCaseReader
 
-try:
-    import matplotlib
-    matplotlib.use('TkAgg')
-    matplotlib.rcParams['lines.linewidth'] = 2
-    matplotlib.rcParams['axes.edgecolor'] = 'gray'
-    matplotlib.rcParams['axes.linewidth'] = 0.5
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
-        NavigationToolbar2Tk
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.animation as manimation
-    import sqlitedict
-except:
-    print()
-    print("Correct plotting modules not available; please consult import list")
-    print()
+import matplotlib
+matplotlib.use('TkAgg')
+matplotlib.rcParams['lines.linewidth'] = 2
+matplotlib.rcParams['axes.edgecolor'] = 'gray'
+matplotlib.rcParams['axes.linewidth'] = 0.5
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
+    NavigationToolbar2Tk
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as manimation
+import sqlitedict
 
 #####################
 # User-set parameters
@@ -95,9 +90,8 @@ class Display(object):
             self.ax6 = plt.subplot2grid((5, 8), (2, 4), colspan=4)
 
     def load_db(self):
-        cr = self.case_reader = SqliteCaseReader(self.db_name)
-        cr.load_cases()
-        last_case = cr.driver_cases.get_case(-1)
+        cr = self.case_reader = SqliteCaseReader(self.db_name, pre_load=True)
+        last_case = next(reversed(cr.get_cases('driver')))
 
         names = []
         for key in cr.system_metadata.keys():
@@ -748,11 +742,11 @@ class Display(object):
 
     def check_length(self):
         # Load the current sqlitedict
-        db = sqlitedict.SqliteDict(self.db_name, 'iterations')
+        cr = self.case_reader = SqliteCaseReader(self.db_name)
 
         # Get the number of current iterations
         # Minus one because OpenMDAO uses 1-indexing
-        self.num_iters = int(db.keys()[-1].split('|')[-1])
+        self.num_iters = len(cr.get_cases('driver'))
 
     def get_list_limits(self, input_list):
         list_min = 1.e20
