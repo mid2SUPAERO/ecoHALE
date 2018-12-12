@@ -235,7 +235,7 @@ class AerostructPoint(Group):
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nonlinear_solver.options['maxiter'] = 50
-        coupled.nonlinear_solver.options['iprint'] = 0
+        coupled.nonlinear_solver.options['iprint'] = 2
 
         """
         ### End change of solver settings ###
