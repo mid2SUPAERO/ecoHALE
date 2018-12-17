@@ -182,9 +182,6 @@ for i in range(2):
 
         name = surface['name']
 
-        if i==0:
-            # This load factor connects to a component used to compute weights in a mass sense. It's load factor should always just be 1.
-            prob.model.connect('load_factor', name + '.load_factor', src_indices=[i])
         if surf_dict['distributed_fuel_weight']:
             prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 

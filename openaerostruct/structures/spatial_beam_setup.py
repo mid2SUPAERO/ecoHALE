@@ -26,7 +26,7 @@ class SpatialBeamSetup(Group):
 
         self.add_subsystem('structural_weight',
                  Weight(surface=surface),
-                 promotes_inputs=['A', 'nodes', 'load_factor'],
+                 promotes_inputs=['A', 'nodes'],
                  promotes_outputs=['structural_weight', 'element_weights'])
 
         self.add_subsystem('structural_cg',

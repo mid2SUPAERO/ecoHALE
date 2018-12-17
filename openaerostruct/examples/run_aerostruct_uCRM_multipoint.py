@@ -174,9 +174,6 @@ for i in range(2):
 
         name = surface['name']
 
-        if i==0:
-            # This load factor connects to a component used to compute weights in a mass sense. It's load factor should always just be 1.
-            prob.model.connect('load_factor', name + '.load_factor', src_indices=[i])
         if surf_dict['distributed_fuel_weight']:
             prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 
@@ -455,9 +452,6 @@ class Test(unittest.TestCase):
 
                 name = surface['name']
 
-                if i==0:
-                    # This load factor connects to a component used to compute weights in a mass sense. It's load factor should always just be 1.
-                    prob.model.connect('load_factor', name + '.load_factor', src_indices=[i])
                 if surf_dict['distributed_fuel_weight']:
                     prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 
@@ -575,7 +569,7 @@ class Test(unittest.TestCase):
 
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 101946.723936, 1e-5)
         assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 358406.34121, 1e-5)
-        assert_rel_error(self, prob['wing.geometry.t_over_c_cp'], 
+        assert_rel_error(self, prob['wing.geometry.t_over_c_cp'],
         np.array([ 0.10305255,  0.08205957,  0.11089362,  0.13089362,  0.10205957,  0.09361004]), 1e-5)
 
 

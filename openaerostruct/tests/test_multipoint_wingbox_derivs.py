@@ -159,8 +159,6 @@ class Test(unittest.TestCase):
 
             for surface in surfaces:
 
-                if i==0:
-                    prob.model.connect('load_factor', name + '.load_factor', src_indices=[i])
                 prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 
                 com_name = point_name + '.' + name + '_perf.'

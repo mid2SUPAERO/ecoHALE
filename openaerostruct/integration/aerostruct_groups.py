@@ -77,7 +77,7 @@ class AerostructGeometry(Group):
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'] + promotes,
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'] + promotes,
             promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_weight', 'cg_location', 'element_weights'])
 
 
