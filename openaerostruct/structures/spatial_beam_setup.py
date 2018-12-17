@@ -24,14 +24,14 @@ class SpatialBeamSetup(Group):
                  AssembleKGroup(surface=surface),
                  promotes_inputs=['A', 'Iy', 'Iz', 'J', 'nodes'], promotes_outputs=['local_stiff_transformed'])
 
-        self.add_subsystem('structural_weight',
+        self.add_subsystem('structural_mass',
                  Weight(surface=surface),
                  promotes_inputs=['A', 'nodes'],
-                 promotes_outputs=['structural_weight', 'element_weights'])
+                 promotes_outputs=['structural_mass', 'element_mass'])
 
         self.add_subsystem('structural_cg',
             StructuralCG(surface=surface),
-            promotes_inputs=['nodes', 'structural_weight', 'element_weights'],
+            promotes_inputs=['nodes', 'structural_mass', 'element_mass'],
             promotes_outputs=['cg_location'])
 
         if surface['fem_model_type'] == 'wingbox':

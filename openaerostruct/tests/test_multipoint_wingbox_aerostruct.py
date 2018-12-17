@@ -112,7 +112,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('R', val=14.307e6, units='m')
         indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
         indep_var_comp.add_output('speed_of_sound', val=295.07, units='m/s')
-        indep_var_comp.add_output('load_factor', val=np.array([1., 2.5]))
+        indep_var_comp.add_output('', val=np.array([1., 2.5]))
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
         indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
 
@@ -167,12 +167,12 @@ class Test(unittest.TestCase):
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
-                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
+                prob.model.connect(name + '.element_mass', point_name + '.coupled.' + name + '.element_mass')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.nodes', com_name + 'nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+                prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
 
                 # Connect wingbox properties to von Mises stress calcs
                 prob.model.connect(name + '.Qz', com_name + 'Qz')
@@ -262,10 +262,10 @@ class Test(unittest.TestCase):
         # prob.check_partials(form='central', compact_print=True)
 
         # print(prob['AS_point_0.fuelburn'][0])
-        # print(prob['wing.structural_weight'][0]/1.25)
+        # print(prob['wing.structural_mass'][0]/1.25)
 
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 94556.9136969, 1e-5)
-        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 277535.59118440875, 1e-5)
+        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 277535.59118440875, 1e-5)
 
 
 if __name__ == '__main__':

@@ -192,12 +192,12 @@ for i in range(2):
         # Connect aerodyamic mesh to coupled group mesh
         prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
         if surf_dict['struct_weight_relief']:
-            prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
+            prob.model.connect(name + '.element_mass', point_name + '.coupled.' + name + '.element_mass')
 
         # Connect performance calculation variables
         prob.model.connect(name + '.nodes', com_name + 'nodes')
         prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-        prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+        prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
 
         # Connect wingbox properties to von Mises stress calcs
         prob.model.connect(name + '.Qz', com_name + 'Qz')
@@ -262,7 +262,7 @@ prob.driver.recording_options['includes'] = \
 'wing.geometry.t_over_c_bsp.t_over_c', \
 'AS_point_0.wing_perf.struct_funcs.vonmises.vonmises', \
 'AS_point_1.wing_perf.struct_funcs.vonmises.vonmises', \
-'wing.struct_setup.structural_weight.structural_weight', \
+'wing.struct_setup.structural_mass.structural_mass', \
 'AS_point_0.coupled.wing.def_mesh.displacement_transfer.def_mesh', \
 'AS_point_1.coupled.wing.def_mesh.displacement_transfer.def_mesh', \
 'AS_point_0.coupled.wing.aero_geom.normals', \
@@ -308,4 +308,4 @@ prob.run_driver()
 # prob.run_model()
 
 print('The fuel burn value is', prob['AS_point_0.fuelburn'][0], '[kg]')
-print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_weight'][0]/9.80665/surf_dict['wing_weight_ratio'], '[kg]')
+print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/9.80665/surf_dict['wing_weight_ratio'], '[kg]')

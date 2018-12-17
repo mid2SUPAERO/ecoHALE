@@ -31,7 +31,7 @@ class Test(unittest.TestCase):
 
         run_test(self, comp, complex_flag=True)
 
-    def test_structural_weight_loads(self):
+    def test_structural_mass_loads(self):
         surface = get_default_surfaces()[0]
 
         comp = StructureWeightLoads(surface=surface)
@@ -47,10 +47,10 @@ class Test(unittest.TestCase):
                             [20., 22., 7.],
                             [8., 17., 14.],
                             [13., 14., 16.]],dtype=complex)
-        element_weights_val = np.arange(ny-1)+1
+        element_mass_val = np.arange(ny-1)+1
 
         indep_var_comp.add_output('nodes', val=nodesval,units='m')
-        indep_var_comp.add_output('element_weights', val=element_weights_val,units='N')
+        indep_var_comp.add_output('element_mass', val=element_mass_val,units='kg')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('load', comp, promotes=['*'])

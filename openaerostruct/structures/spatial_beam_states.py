@@ -19,7 +19,7 @@ class SpatialBeamStates(Group):
         if surface['struct_weight_relief']:
             self.add_subsystem('struct_weight_loads',
                      StructureWeightLoads(surface=surface),
-                     promotes_inputs=['element_weights', 'nodes', 'load_factor'],
+                     promotes_inputs=['element_mass', 'nodes', 'load_factor'],
                      promotes_outputs=['struct_weight_loads'])
             wingbox_promotes.append('struct_weight_loads')
 

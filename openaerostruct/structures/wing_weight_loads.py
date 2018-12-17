@@ -14,7 +14,7 @@ class StructureWeightLoads(ExplicitComponent):
 
     Parameters
     ----------
-    element_weights[ny-1] : numpy array
+    element_mass[ny-1] : numpy array
         Weight for each wing-structure segment.
     nodes[ny, 3] : numpy array
         Flattened array with coordinates for each FEM node.
@@ -37,7 +37,7 @@ class StructureWeightLoads(ExplicitComponent):
         self.surface = surface = self.options['surface']
         self.ny = surface['mesh'].shape[1]
 
-        self.add_input('element_weights', val=np.zeros((self.ny-1)), units='N')
+        self.add_input('element_mass', val=np.zeros((self.ny-1)), units='kg')
         self.add_input('nodes', val=np.zeros((self.ny, 3), dtype=complex), units='m')
         self.add_input('load_factor', val=1.05)
 
@@ -158,17 +158,17 @@ class StructureWeightLoads(ExplicitComponent):
                               rows=self.dswl__dnodes_pattern.row,
                               cols=self.dswl__dnodes_pattern.col)
 
-        self.declare_partials('struct_weight_loads', 'element_weights',
+        self.declare_partials('struct_weight_loads', 'element_mass',
                               rows=self.dswl__dew_pattern.row,
                               cols=self.dswl__dew_pattern.col)
-        # self.declare_partials('struct_weight_loads', 'element_weights')
+        # self.declare_partials('struct_weight_loads', 'element_mass')
         self.set_check_partial_options(wrt='*', method='cs')
 
         np.set_printoptions(linewidth=400)
 
     def compute(self, inputs, outputs):
 
-        struct_weights = inputs['element_weights'] * inputs['load_factor']
+        struct_weights = inputs['element_mass'] * inputs['load_factor']
         nodes = inputs['nodes']
 
         element_lengths = norm(nodes[1:, :] - nodes[:-1, :], axis=1)
@@ -206,7 +206,7 @@ class StructureWeightLoads(ExplicitComponent):
 
     def compute_partials(self, inputs, J):
 
-        struct_weights = inputs['element_weights'] * inputs['load_factor']
+        struct_weights = inputs['element_mass'] * inputs['load_factor']
         nodes = inputs['nodes']
 
         element_lengths = norm(nodes[1:, :] - nodes[:-1, :], axis=1)
@@ -222,10 +222,10 @@ class StructureWeightLoads(ExplicitComponent):
                             * (del0**2 + del1**2)**0.5
 
         dzf__dew = .5*inputs['load_factor'][0]
-        dzf__dlf = inputs['element_weights']/2.
+        dzf__dlf = inputs['element_mass']/2.
 
         dzm__dew = diags((del0**2 + del1**2)**0.5/12*inputs['load_factor'])
-        dzm__dlf =  (del0**2 + del1**2)**.5/12. * inputs['element_weights']
+        dzm__dlf =  (del0**2 + del1**2)**.5/12. * inputs['element_mass']
 
         dbm3__dzm = diags(del1/element_lengths)
         dbm4__dzm = diags(del0/element_lengths)
@@ -242,7 +242,7 @@ class StructureWeightLoads(ExplicitComponent):
                     self.dswl__dzf  * dzf__dew).tolil()
 
         data = dswl__dew[self.dswl__dew_pattern.row, self.dswl__dew_pattern.col].toarray().flatten()
-        J['struct_weight_loads', 'element_weights'] = data
+        J['struct_weight_loads', 'element_mass'] = data
 
 
         # dstruct_weight_loads__dnodes (this one is super complicated)

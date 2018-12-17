@@ -202,7 +202,7 @@ class Display(object):
                     self.skin_thickness.append(case.outputs[name+'.skin_thickness'])
                     self.spar_thickness.append(case.outputs[name+'.spar_thickness'])
                     self.t_over_c.append(case.outputs[name+'.t_over_c'])
-                    self.struct_weights.append(case.outputs[name+'.structural_weight'])
+                    self.struct_weights.append(case.outputs[name+'.structural_mass'])
 
 
                     vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_names[1], surf_name=name)

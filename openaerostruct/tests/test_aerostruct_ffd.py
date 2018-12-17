@@ -153,7 +153,7 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.thickness', com_name + '.thickness')
                 prob.model.connect(name + '.nodes', com_name + '.nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+                prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
                 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
         # Import the Scipy Optimizer and set the driver of the problem to use

@@ -21,8 +21,8 @@ class Test(unittest.TestCase):
         ny = surface['mesh'].shape[1]
 
         indep_var_comp.add_output('nodes', val=np.random.random((ny, 3)), units='m')
-        indep_var_comp.add_output('structural_weight', val=1., units='N')
-        indep_var_comp.add_output('element_weights', val=np.ones((ny-1)), units='N')
+        indep_var_comp.add_output('structural_mass', val=1., units='kg')
+        indep_var_comp.add_output('element_mass', val=np.ones((ny-1)), units='kg')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('structural_cg', comp, promotes=['*'])
