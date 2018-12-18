@@ -203,7 +203,7 @@ class Test(unittest.TestCase):
         print(prob['AS_point_0.wing_perf.failure'][0])
 
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112532.399999, 1e-5)
-        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 235533.421185, 1e-5)
+        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 235533.421185 / 9.80665, 1e-5)
         assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 1.70644139941, 1e-5)
 
 

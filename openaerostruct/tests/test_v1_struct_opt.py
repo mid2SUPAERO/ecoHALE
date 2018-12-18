@@ -72,6 +72,7 @@ class Test(unittest.TestCase):
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['disp'] = True
+        prob.driver.options['tol'] = 1e-9
 
         # Setup problem and add design variables, constraint, and objective
         prob.model.add_design_var('wing.thickness_cp', lower=0.001, upper=0.25, scaler=1e2)
@@ -79,7 +80,7 @@ class Test(unittest.TestCase):
         prob.model.add_constraint('wing.thickness_intersects', upper=0.)
 
         # Add design variables, constraisnt, and objective on the problem
-        prob.model.add_objective('wing.structural_mass', scaler=1e-5)
+        prob.model.add_objective('wing.structural_mass', scaler=1e-4)
 
         # Set up the problem
         prob.setup()

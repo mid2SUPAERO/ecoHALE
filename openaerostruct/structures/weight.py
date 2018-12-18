@@ -66,8 +66,7 @@ class Weight(ExplicitComponent):
         element_mass = element_volumes * mrho * wwr * 9.81 / 9.80665
         weight = np.sum(element_mass)
 
-        # If the tube is symmetric, double the computed weight and set the
-        # y-location of the cg to 0, at the symmetry plane
+        # If the tube is symmetric, double the computed weight
         if self.surface['symmetry']:
             weight *= 2.
 

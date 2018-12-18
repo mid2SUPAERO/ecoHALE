@@ -139,7 +139,7 @@ class Display(object):
         self.AR = []
         self.S_ref = []
         self.obj = []
-        self.struct_weights = []
+        self.struct_masses = []
         self.cg = []
 
         # find the names of all surfaces
@@ -202,7 +202,7 @@ class Display(object):
                     self.skin_thickness.append(case.outputs[name+'.skin_thickness'])
                     self.spar_thickness.append(case.outputs[name+'.spar_thickness'])
                     self.t_over_c.append(case.outputs[name+'.t_over_c'])
-                    self.struct_weights.append(case.outputs[name+'.structural_mass'])
+                    self.struct_masses.append(case.outputs[name+'.structural_mass'])
 
 
                     vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_names[1], surf_name=name)
@@ -695,7 +695,7 @@ class Display(object):
             except:
                 print('temp_le_te.npy file not found')
 
-            sw_val = self.struct_weights[self.curr_pos] / wing_weight_ratio / 9.80665
+            sw_val = self.struct_masses[self.curr_pos] / wing_weight_ratio
             self.ax.text2D(.05, -.1, self.obj_key + ' [kg]: {}'.format(obj_val),
                 transform=self.ax.transAxes, color='k')
             self.ax.text2D(.05, -.15, 'wingbox mass (w/o wing_weight_ratio)' + ' [kg]: {}'.format(sw_val),
