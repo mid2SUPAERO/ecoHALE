@@ -63,7 +63,7 @@ class Weight(ExplicitComponent):
         element_volumes = norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
 
         # nodes[1:, :] - nodes[:-1, :] this is the delta array of the different between the points
-        element_mass = element_volumes * mrho * wwr * 9.81 / 9.80665
+        element_mass = element_volumes * mrho * wwr
         weight = np.sum(element_mass)
 
         # If the tube is symmetric, double the computed weight
@@ -102,7 +102,7 @@ class Weight(ExplicitComponent):
             dweight_dA *= 2.
 
         # Save the result to the jacobian dictionary
-        partials['structural_mass', 'A'] = dweight_dA * 9.81 / 9.80665
+        partials['structural_mass', 'A'] = dweight_dA
 
         # Next, we will compute the derivative of weight wrt nodes.
         # Here we're using results from AD to compute the derivative
@@ -119,10 +119,10 @@ class Weight(ExplicitComponent):
             nodesb *= 2.
 
         # Store the flattened array in the jacobian dictionary
-        partials['structural_mass', 'nodes'] = nodesb.reshape(1, -1) * 9.81 / 9.80665
+        partials['structural_mass', 'nodes'] = nodesb.reshape(1, -1)
 
         # Element_weight Partials
-        partials['element_mass','A'] = const1 * const2 * 9.81 / 9.80665
+        partials['element_mass','A'] = const1 * const2
 
         precalc = np.sum(np.power(const0,2),axis=1)
         d__dprecalc = 0.5 * precalc**(-.5)
@@ -131,4 +131,4 @@ class Weight(ExplicitComponent):
         for i in range(ny-1):
             first_part = const0[i,:] * d__dprecalc[i] * 2 * (-1) * A[i] * const2
             second_part = const0[i,:] * d__dprecalc[i] * 2 * A[i] * const2
-            partials['element_mass', 'nodes'][i*dimensions*2:(i+1)*dimensions*2] = np.append(first_part,second_part) * 9.81 / 9.80665
+            partials['element_mass', 'nodes'][i*dimensions*2:(i+1)*dimensions*2] = np.append(first_part,second_part)
