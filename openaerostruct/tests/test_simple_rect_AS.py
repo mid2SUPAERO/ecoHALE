@@ -8,6 +8,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver, LinearRunOnce
+from openaerostruct.utils.constants import grav_constant
 
 
 class Test(unittest.TestCase):
@@ -79,7 +80,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
+        indep_var_comp.add_output('CT', val=grav_constant * 17.e-6, units='1/s')
         indep_var_comp.add_output('R', val=11.165e6, units='m')
         indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
         indep_var_comp.add_output('speed_of_sound', val=295.4, units='m/s')

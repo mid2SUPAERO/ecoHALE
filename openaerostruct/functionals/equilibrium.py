@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 from openmdao.api import ExplicitComponent
+from openaerostruct.utils.constants import grav_constant
 
 
 class Equilibrium(ExplicitComponent):
@@ -81,7 +82,7 @@ class Equilibrium(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
-        g = 9.80665 * inputs['load_factor']
+        g = grav_constant * inputs['load_factor']
         W0 = inputs['W0']
         rho = inputs['rho']
         v = inputs['v']
@@ -99,7 +100,7 @@ class Equilibrium(ExplicitComponent):
         outputs['L_equals_W'] = 1 - (0.5 * rho * v**2 * S_ref_tot) * inputs['CL'] / tot_weight
 
     def compute_partials(self, inputs, partials):
-        g = 9.80665 * inputs['load_factor']
+        g = grav_constant * inputs['load_factor']
         W0 = inputs['W0']
         rho = inputs['rho']
         v = inputs['v']
@@ -118,12 +119,12 @@ class Equilibrium(ExplicitComponent):
         partials['total_weight', 'fuelburn'] = g
         partials['total_weight', 'W0'] = g
         partials['total_weight', 'load_factor'] = (inputs['fuelburn'] + \
-            inputs['W0'] + structural_mass) * 9.80665
+            inputs['W0'] + structural_mass) * grav_constant
 
         partials['L_equals_W', 'fuelburn'] = L / tot_weight**2 * g
         partials['L_equals_W', 'W0'] = L / tot_weight**2 * g
         partials['L_equals_W', 'load_factor'] = L / tot_weight**2 * (inputs['fuelburn'] + \
-            inputs['W0'] + structural_mass) * 9.80665
+            inputs['W0'] + structural_mass) * grav_constant
         partials['L_equals_W', 'rho'] = -.5 * S_ref_tot * v**2 * inputs['CL'] / tot_weight
         partials['L_equals_W', 'v'] = - rho * S_ref_tot * v * inputs['CL'] / tot_weight
         partials['L_equals_W', 'CL'] = - .5 * rho * v**2 * S_ref_tot / tot_weight

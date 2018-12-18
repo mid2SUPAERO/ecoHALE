@@ -27,6 +27,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp, SqliteRecorder
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
+from openaerostruct.utils.constants import grav_constant
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
 # These should be for an airfoil with the chord scaled to 1.
@@ -300,7 +301,7 @@ prob.run_driver()
 # prob.run_model()
 
 print('The fuel burn value is', prob['AS_point_0.fuelburn'][0], '[kg]')
-print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/9.80665/surf_dict['wing_weight_ratio'], '[kg]')
+print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/grav_constant/surf_dict['wing_weight_ratio'], '[kg]')
 
 #=======================================================================================
 #=======================================================================================

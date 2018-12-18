@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import numpy as np
 
 from openmdao.api import ExplicitComponent
+from openaerostruct.utils.constants import grav_constant
 
 
 class CenterOfGravity(ExplicitComponent):
@@ -71,7 +72,7 @@ class CenterOfGravity(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
-        g = 9.80665 * inputs['load_factor']
+        g = grav_constant * inputs['load_factor']
         W0_cg = inputs['W0'] * inputs['empty_cg']
 
         spar_cg = np.zeros(3)
@@ -88,7 +89,7 @@ class CenterOfGravity(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
 
-        g = 9.80665 * inputs['load_factor']
+        g = grav_constant * inputs['load_factor']
         W0 = inputs['W0']
         cg = inputs['empty_cg']
         fb = inputs['fuelburn']
@@ -105,7 +106,7 @@ class CenterOfGravity(ExplicitComponent):
 
         partials['cg', 'total_weight'] = - g * (W0_cg + spar_cg) / (tw - fb * g) ** 2
         partials['cg', 'fuelburn'] = g**2 * (W0_cg + spar_cg) / (tw - fb * g) ** 2
-        partials['cg', 'load_factor'] =  9.80665 * tw * (W0_cg + spar_cg) / (tw - fb * g)**2
+        partials['cg', 'load_factor'] =  grav_constant * tw * (W0_cg + spar_cg) / (tw - fb * g)**2
         partials['cg', 'empty_cg'] = W0 / (tw / g - fb)
 
         partials['cg', 'W0'] = cg / (tw / g - fb)

@@ -5,6 +5,7 @@ from scipy.sparse import coo_matrix, diags
 
 from openmdao.api import ExplicitComponent
 from openaerostruct.structures.utils import norm
+from openaerostruct.utils.constants import grav_constant
 
 
 class StructureWeightLoads(ExplicitComponent):
@@ -165,7 +166,7 @@ class StructureWeightLoads(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
-        struct_weights = inputs['element_mass'] * inputs['load_factor'] * 9.80665
+        struct_weights = inputs['element_mass'] * inputs['load_factor'] * grav_constant
         nodes = inputs['nodes']
 
         element_lengths = norm(nodes[1:, :] - nodes[:-1, :], axis=1)
@@ -203,7 +204,7 @@ class StructureWeightLoads(ExplicitComponent):
 
     def compute_partials(self, inputs, J):
 
-        struct_weights = inputs['element_mass'] * inputs['load_factor'] * 9.80665
+        struct_weights = inputs['element_mass'] * inputs['load_factor'] * grav_constant
         nodes = inputs['nodes']
 
         element_lengths = norm(nodes[1:, :] - nodes[:-1, :], axis=1)
@@ -232,14 +233,14 @@ class StructureWeightLoads(ExplicitComponent):
                     -self.dswl__dbm4*dbm4__dzm*coo_matrix(dzm__dlf).T +\
                     self.dswl__dzf*coo_matrix(dzf__dlf).T).tolil()
 
-        J['struct_weight_loads', 'load_factor'] = dswl__dlf[self.dswl__dlf_row, self.dswl__dlf_col].toarray().flatten() * 9.80665
+        J['struct_weight_loads', 'load_factor'] = dswl__dlf[self.dswl__dlf_row, self.dswl__dlf_col].toarray().flatten() * grav_constant
 
         dswl__dew = (-self.dswl__dbm4 * dbm4__dzm * dzm__dew +\
                     -self.dswl__dbm3 * dbm3__dzm * dzm__dew +\
                     self.dswl__dzf  * dzf__dew).tolil()
 
         data = dswl__dew[self.dswl__dew_pattern.row, self.dswl__dew_pattern.col].toarray().flatten()
-        J['struct_weight_loads', 'element_mass'] = data * 9.80665
+        J['struct_weight_loads', 'element_mass'] = data * grav_constant
 
 
         # dstruct_weight_loads__dnodes (this one is super complicated)

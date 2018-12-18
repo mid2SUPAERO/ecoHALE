@@ -17,6 +17,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
 from openmdao.api import IndepVarComp, Problem, SqliteRecorder
+from openaerostruct.utils.constants import grav_constant
 
 # Total number of nodes to use in the spanwise (num_y) and
 # chordwise (num_x) directions. Vary these to change the level of fidelity.
@@ -121,7 +122,7 @@ indep_var_comp.add_output('alpha', val=5., units='deg')
 indep_var_comp.add_output('Mach_number', val=0.071)
 indep_var_comp.add_output('re', val=1.e6, units='1/m')
 indep_var_comp.add_output('rho', val=0.770816, units='kg/m**3')
-indep_var_comp.add_output('CT', val=9.80665 * 8.6e-6, units='1/s')
+indep_var_comp.add_output('CT', val=grav_constant * 8.6e-6, units='1/s')
 indep_var_comp.add_output('R', val=1800e3, units='m')
 indep_var_comp.add_output('W0', val=10.,  units='kg')
 indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')

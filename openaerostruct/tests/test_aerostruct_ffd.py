@@ -2,6 +2,7 @@ from __future__ import division, print_function
 from openmdao.utils.assert_utils import assert_rel_error
 import unittest
 import numpy as np
+from openaerostruct.utils.constants import grav_constant
 
 try:
     import pygeo
@@ -90,7 +91,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
+        indep_var_comp.add_output('CT', val=grav_constant * 17.e-6, units='1/s')
         indep_var_comp.add_output('R', val=11.165e6, units='m')
         indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
         indep_var_comp.add_output('speed_of_sound', val=295.4, units='m/s')
