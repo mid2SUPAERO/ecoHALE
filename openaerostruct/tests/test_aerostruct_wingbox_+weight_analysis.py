@@ -205,7 +205,7 @@ class Test(unittest.TestCase):
         # print(prob['wing.structural_mass'][0]/1.25)
 
         assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 112474.928281, 1e-5)
-        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 235533.421185, 1e-5)
+        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 235533.421185 / 9.80665, 1e-5)
 
 if __name__ == '__main__':
     unittest.main()

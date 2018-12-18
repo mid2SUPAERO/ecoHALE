@@ -86,8 +86,6 @@ class CenterOfGravity(ExplicitComponent):
         # the structures cg. Here we assume the fuel weight is at the cg.
         outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] / g - inputs['fuelburn'])
 
-        print(outputs['cg'])
-
     def compute_partials(self, inputs, partials):
 
         g = 9.80665 * inputs['load_factor']

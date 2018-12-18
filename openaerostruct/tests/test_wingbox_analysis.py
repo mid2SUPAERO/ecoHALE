@@ -118,6 +118,6 @@ class Test(unittest.TestCase):
         assert_check_partials(data, atol=1e20, rtol=1e-6)
 
         prob.run_driver()
-        assert_rel_error(self, prob['wing.structural_mass'], 163866.96531213, 1e-6)
+        assert_rel_error(self, prob['wing.structural_mass'], 163866.96531213 / 9.80665, 1e-6)
 if __name__ == '__main__':
     unittest.main()

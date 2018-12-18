@@ -89,7 +89,7 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        assert_rel_error(self, prob['wing.structural_mass'][0], 988.13495481064024, 1e-4)
+        assert_rel_error(self, prob['wing.structural_mass'][0], 988.13495481064024 / 9.80665, 1e-4)
         assert_rel_error(self, prob['wing.disp'][0, 2], 0.696503988153, 1e-6)
         np.testing.assert_allclose(prob['wing.disp'][1, :], np.array([-0., 0., 0.39925232, -0.19102602, 0., 0.]))
 

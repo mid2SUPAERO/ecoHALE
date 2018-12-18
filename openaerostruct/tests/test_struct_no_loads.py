@@ -82,7 +82,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['wing.structural_mass'][0], 133427.40492929096, 1e-4)
+        assert_rel_error(self, prob['wing.structural_mass'][0], 133427.40492929096 / 9.80665, 1e-4)
         assert_rel_error(self, prob['wing.disp'][1, 2], 0., 1e-4)
 
 

@@ -70,7 +70,7 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        assert_rel_error(self, prob['wing.structural_mass'][0], 1155812.21925423, 1e-4)
+        assert_rel_error(self, prob['wing.structural_mass'][0], 1155812.21925423 / 9.80665, 1e-4)
 
 
 if __name__ == '__main__':
