@@ -161,7 +161,6 @@ class Test(unittest.TestCase):
 
             for surface in surfaces:
 
-                prob.model.connect('load_factor', name + '.load_factor')
                 prob.model.connect('load_factor', point_name + '.coupled.load_factor')
 
                 com_name = point_name + '.' + name + '_perf.'
@@ -170,12 +169,12 @@ class Test(unittest.TestCase):
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
-                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
+                prob.model.connect(name + '.element_mass', point_name + '.coupled.' + name + '.element_mass')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.nodes', com_name + 'nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+                prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
 
                 # Connect wingbox properties to von Mises stress calcs
                 prob.model.connect(name + '.Qz', com_name + 'Qz')

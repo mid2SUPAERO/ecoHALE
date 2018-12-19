@@ -151,21 +151,19 @@ class Test(unittest.TestCase):
 
             for surface in surfaces:
 
-                prob.model.connect('load_factor', name + '.load_factor')
-
                 com_name = point_name + '.' + name + '_perf.'
                 prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
                 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
-                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
+                prob.model.connect(name + '.element_mass', point_name + '.coupled.' + name + '.element_mass')
                 prob.model.connect('load_factor', point_name + '.coupled.' + name + '.load_factor')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.nodes', com_name + 'nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+                prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
 
                 # Connect wingbox properties to von Mises stress calcs
                 prob.model.connect(name + '.Qz', com_name + 'Qz')
@@ -219,10 +217,10 @@ class Test(unittest.TestCase):
         # prob.check_partials(form='central', compact_print=True)
 
         # print(prob['AS_point_0.fuelburn'][0])
-        # print(prob['wing.structural_weight'][0]/1.25)
+        # print(prob['wing.structural_mass'][0]/1.25)
         # print(prob['wing.geometry.span'])
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 87621.5146177, 1e-5)
-        assert_rel_error(self, prob['wing.structural_weight'][0]/1.25, 168925.384879, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 87618.3090845, 1e-5)
+        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 17221.5568854, 1e-5)
         assert_rel_error(self, prob['wing.geometry.span'][0], 60., 1e-5)
 
 

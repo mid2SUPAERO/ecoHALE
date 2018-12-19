@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 from openmdao.utils.assert_utils import assert_rel_error
 import unittest
+from openaerostruct.utils.constants import grav_constant
 
 
 class Test(unittest.TestCase):
@@ -78,7 +79,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
+        indep_var_comp.add_output('CT', val=grav_constant * 17.e-6, units='1/s')
         indep_var_comp.add_output('R', val=11.165e6, units='m')
         indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
         indep_var_comp.add_output('speed_of_sound', val=295.4, units='m/s')
@@ -94,8 +95,7 @@ class Test(unittest.TestCase):
         name = 'wing'
 
         # Add tmp_group to the problem with the name of the surface.
-        prob.model.add_subsystem(name, aerostruct_group,
-            promotes_inputs=['load_factor'])
+        prob.model.add_subsystem(name, aerostruct_group)
 
         point_name = 'AS_point_0'
 
@@ -118,7 +118,7 @@ class Test(unittest.TestCase):
         prob.model.connect(name + '.thickness', com_name + '.thickness')
         prob.model.connect(name + '.nodes', com_name + '.nodes')
         prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-        prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+        prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
         prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
         from openmdao.api import ScipyOptimizeDriver
@@ -146,7 +146,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 104400.0251030171, 1e-8)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 104393.448214, 1e-8)
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
+from openaerostruct.utils.constants import grav_constant
 
 # Create a dictionary to store options about the surface
 mesh_dict = {'num_y' : 5,
@@ -73,7 +74,7 @@ indep_var_comp.add_output('alpha', val=5., units='deg')
 indep_var_comp.add_output('Mach_number', val=0.84)
 indep_var_comp.add_output('re', val=1.e6, units='1/m')
 indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
+indep_var_comp.add_output('CT', val=grav_constant * 17.e-6, units='1/s')
 indep_var_comp.add_output('R', val=11.165e6, units='m')
 indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
 indep_var_comp.add_output('speed_of_sound', val=295.4, units='m/s')
@@ -113,7 +114,7 @@ prob.model.connect(name + '.radius', com_name + '.radius')
 prob.model.connect(name + '.thickness', com_name + '.thickness')
 prob.model.connect(name + '.nodes', com_name + '.nodes')
 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
 from openmdao.api import ScipyOptimizeDriver

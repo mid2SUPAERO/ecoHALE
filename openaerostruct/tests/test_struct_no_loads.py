@@ -73,7 +73,7 @@ class Test(unittest.TestCase):
         prob.model.add_constraint('wing.thickness_intersects', upper=0.)
 
         # Add design variables, constraisnt, and objective on the problem
-        prob.model.add_objective('wing.structural_weight', scaler=1e-5)
+        prob.model.add_objective('wing.structural_mass', scaler=1e-5)
 
         # Set up the problem
         prob.setup()
@@ -82,7 +82,7 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['wing.structural_weight'][0], 133427.40492929096, 1e-4)
+        assert_rel_error(self, prob['wing.structural_mass'][0], 13601.162582, 1e-4)
         assert_rel_error(self, prob['wing.disp'][1, 2], 0., 1e-4)
 
 

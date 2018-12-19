@@ -8,6 +8,7 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
+from openaerostruct.utils.constants import grav_constant
 
 
 class Test(unittest.TestCase):
@@ -80,7 +81,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
+        indep_var_comp.add_output('CT', val=grav_constant * 17.e-6, units='1/s')
         indep_var_comp.add_output('R', val=11.165e6, units='m')
         indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
         indep_var_comp.add_output('speed_of_sound', val=295.4, units='m/s')
@@ -129,8 +130,6 @@ class Test(unittest.TestCase):
 
             for surface in surfaces:
 
-                prob.model.connect('load_factor', name + '.load_factor')
-
                 com_name = point_name + '.' + name + '_perf'
                 prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
                 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
@@ -143,7 +142,7 @@ class Test(unittest.TestCase):
                 prob.model.connect(name + '.thickness', com_name + '.thickness')
                 prob.model.connect(name + '.nodes', com_name + '.nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
+                prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
                 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
         from openmdao.api import ScipyOptimizeDriver
@@ -169,8 +168,8 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['AS_point_0.wing_perf.CL'][0], 0.469152412337, 1e-6)
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 95396.2868311, 1.5e-6)
+        assert_rel_error(self, prob['AS_point_0.wing_perf.CL'][0], 0.469128339791, 1e-6)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 95393.7772462, 1.5e-6)
         assert_rel_error(self, prob['AS_point_0.wing_perf.failure'][0], 0., 1e-6)
         assert_rel_error(self, prob['AS_point_0.CM'][1], -1.3154462936779994, 1e-4)
 

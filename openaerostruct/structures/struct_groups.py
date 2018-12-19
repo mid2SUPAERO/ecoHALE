@@ -54,17 +54,17 @@ class SpatialBeamAlone(Group):
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'],
-                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_weight', 'cg_location', 'element_weights'])
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],
+                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass'])
         else:
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor', 'A_int'],
-                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_weight', 'cg_location', 'element_weights', ])
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'A_int'],
+                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass', ])
 
         promotes = []
         if surface['struct_weight_relief']:
-            promotes = promotes + list(set(['nodes', 'element_weights', 'load_factor']))
+            promotes = promotes + list(set(['nodes', 'element_mass', 'load_factor']))
         if surface['distributed_fuel_weight']:
             promotes = promotes + list(set(['nodes', 'load_factor']))
 

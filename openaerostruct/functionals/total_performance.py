@@ -41,17 +41,17 @@ class TotalPerformance(Group):
 
         self.add_subsystem('fuelburn',
              BreguetRange(surfaces=surfaces),
-             promotes_inputs=['*structural_weight', 'CL', 'CD', 'CT', 'speed_of_sound', 'R', 'Mach_number', 'W0', 'load_factor'],
+             promotes_inputs=['*structural_mass', 'CL', 'CD', 'CT', 'speed_of_sound', 'R', 'Mach_number', 'W0'],
              promotes_outputs=['fuelburn'])
 
         self.add_subsystem('L_equals_W',
              Equilibrium(surfaces=surfaces),
-             promotes_inputs=['CL', '*structural_weight', 'S_ref_total', 'W0', 'load_factor', 'rho', 'v'] + promote_fuelburn,
+             promotes_inputs=['CL', '*structural_mass', 'S_ref_total', 'W0', 'load_factor', 'rho', 'v'] + promote_fuelburn,
              promotes_outputs=['L_equals_W', 'total_weight'])
 
         self.add_subsystem('CG',
              CenterOfGravity(surfaces=surfaces),
-             promotes_inputs=['*structural_weight', '*cg_location', 'total_weight', 'W0', 'empty_cg', 'load_factor'] + promote_fuelburn,
+             promotes_inputs=['*structural_mass', '*cg_location', 'total_weight', 'W0', 'empty_cg', 'load_factor'] + promote_fuelburn,
              promotes_outputs=['cg'])
 
         self.add_subsystem('moment',

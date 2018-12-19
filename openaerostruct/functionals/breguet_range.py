@@ -32,7 +32,7 @@ class BreguetRange(ExplicitComponent):
     load_factor : float
         Multiplicative factor on gravity. 1.0 is normal flight; 2.5 would be
         for a 2.5g manuever.
-    _structural_weight : float
+    _structural_mass : float
         Weight of a single lifting surface's structural spar.
 
     Returns
@@ -48,7 +48,7 @@ class BreguetRange(ExplicitComponent):
     def setup(self):
         for surface in self.options['surfaces']:
             name = surface['name']
-            self.add_input(name + '_structural_weight', val=1., units='N')
+            self.add_input(name + '_structural_mass', val=1., units='kg')
 
         self.add_input('CT', val=0.25, units='1/s')
         self.add_input('CL', val=0.7)
@@ -57,7 +57,6 @@ class BreguetRange(ExplicitComponent):
         self.add_input('R', val=3000., units='m')
         self.add_input('Mach_number', val=1.2)
         self.add_input('W0', val=200., units='kg')
-        self.add_input('load_factor', val=1.05)
 
         self.add_output('fuelburn', val=1., units='kg')
 
@@ -66,70 +65,64 @@ class BreguetRange(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
-        g = 9.80665 * inputs['load_factor']
         CT = inputs['CT']
         a = inputs['speed_of_sound']
         R = inputs['R']
         M = inputs['Mach_number']
-        W0 = inputs['W0'] * g
+        W0 = inputs['W0']
 
         # Loop through the surfaces and add up the structural weights
         # to get the total structural weight.
         Ws = 0.
         for surface in self.options['surfaces']:
             name = surface['name']
-            Ws += inputs[name + '_structural_weight']
+            Ws += inputs[name + '_structural_mass']
 
         CL = inputs['CL']
         CD = inputs['CD']
 
-        fuelburn = (W0 + Ws * inputs['load_factor']) * (np.exp(R * CT / a / M * CD / CL) - 1)
-
-        # Convert fuelburn from N to kg
-        outputs['fuelburn'] = fuelburn / 9.80665
+        outputs['fuelburn'] = (W0 + Ws) * (np.exp(R * CT / a / M * CD / CL) - 1)
 
     def compute_partials(self, inputs, partials):
 
-        g = 9.80665 * inputs['load_factor']
         CT = inputs['CT']
         a = inputs['speed_of_sound']
         R = inputs['R']
         M = inputs['Mach_number']
-        W0 = inputs['W0'] * g
+        W0 = inputs['W0']
 
         Ws = 0.
         for surface in self.options['surfaces']:
             name = surface['name']
-            Ws += inputs[name + '_structural_weight']
+            Ws += inputs[name + '_structural_mass']
 
         CL = inputs['CL']
         CD = inputs['CD']
 
-        dfb_dCL = -(W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dCL = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M * CD / CL ** 2
-        dfb_dCD = (W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dCD = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M / CL
-        dfb_dCT = (W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dCT = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             * R / a / M / CL * CD
-        dfb_dR = (W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dR = (W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             / a / M / CL * CD * CT
-        dfb_da = -(W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_da = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a**2 / M * CD / CL
-        dfb_dM = -(W0 + Ws * inputs['load_factor']) * np.exp(R * CT / a / M * CD / CL) \
+        dfb_dM = -(W0 + Ws) * np.exp(R * CT / a / M * CD / CL) \
             * R * CT / a / M**2 * CD / CL
 
         dfb_dW = np.exp(R * CT / a / M * CD / CL) - 1
 
-        partials['fuelburn', 'CL'] = dfb_dCL / 9.80665
-        partials['fuelburn', 'CD'] = dfb_dCD / 9.80665
-        partials['fuelburn', 'CT'] = dfb_dCT / 9.80665
-        partials['fuelburn', 'speed_of_sound'] = dfb_da / 9.80665
-        partials['fuelburn', 'R'] = dfb_dR / 9.80665
-        partials['fuelburn', 'Mach_number'] = dfb_dM / 9.80665
-        partials['fuelburn', 'W0'] = dfb_dW * inputs['load_factor']
-        partials['fuelburn', 'load_factor'] = (W0 / inputs['load_factor'] + Ws) * dfb_dW / 9.80665
+        partials['fuelburn', 'CL'] = dfb_dCL
+        partials['fuelburn', 'CD'] = dfb_dCD
+        partials['fuelburn', 'CT'] = dfb_dCT
+        partials['fuelburn', 'speed_of_sound'] = dfb_da
+        partials['fuelburn', 'R'] = dfb_dR
+        partials['fuelburn', 'Mach_number'] = dfb_dM
+        partials['fuelburn', 'W0'] = dfb_dW
 
         for surface in self.options['surfaces']:
             name = surface['name']
-            inp_name = name + '_structural_weight'
-            partials['fuelburn', inp_name] = dfb_dW / 9.80665 * inputs['load_factor']
+            inp_name = name + '_structural_mass'
+            partials['fuelburn', inp_name] = dfb_dW

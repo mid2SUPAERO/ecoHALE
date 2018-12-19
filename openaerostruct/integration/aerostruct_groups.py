@@ -77,8 +77,8 @@ class AerostructGeometry(Group):
 
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'load_factor'] + promotes,
-            promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_weight', 'cg_location', 'element_weights'])
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'] + promotes,
+            promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass'])
 
 
 class CoupledAS(Group):
@@ -91,7 +91,7 @@ class CoupledAS(Group):
 
         promotes = []
         if surface['struct_weight_relief']:
-            promotes = promotes + list(set(['nodes', 'element_weights', 'load_factor']))
+            promotes = promotes + list(set(['nodes', 'element_mass', 'load_factor']))
         if surface['distributed_fuel_weight']:
             promotes = promotes + list(set(['nodes', 'load_factor']))
 
