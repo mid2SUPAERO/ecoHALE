@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
-# Ignore the #docs section begin/end comments. They are just used to split up the code for the documentation webpage.
-#docs section 0 begin
+# Ignore the #docs checkpoint comments. They are just used to split up the code for the documentation webpage.
+#docs checkpoint 0
 
 import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
@@ -10,9 +10,7 @@ from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, SqliteRecor
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 from openaerostruct.utils.constants import grav_constant
 
-#docs section 0 end
-
-#docs section 1 begin
+#docs checkpoint 1
 
 # Provide coordinates for a portion of an airfoil for the wingbox cross-section as an nparray with dtype=complex (to work with the complex-step approximation for derivatives).
 # These should be for an airfoil with the chord scaled to 1.
@@ -25,9 +23,7 @@ lower_x = np.array([0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0
 upper_y = np.array([ 0.0447,  0.046,  0.0472,  0.0484,  0.0495,  0.0505,  0.0514,  0.0523,  0.0531,  0.0538, 0.0545,  0.0551,  0.0557, 0.0563,  0.0568, 0.0573,  0.0577,  0.0581,  0.0585,  0.0588,  0.0591,  0.0593,  0.0595,  0.0597,  0.0599,  0.06,    0.0601,  0.0602,  0.0602,  0.0602,  0.0602,  0.0602,  0.0601,  0.06,    0.0599,  0.0598,  0.0596,  0.0594,  0.0592,  0.0589,  0.0586,  0.0583,  0.058,   0.0576,  0.0572,  0.0568,  0.0563,  0.0558,  0.0553,  0.0547,  0.0541], dtype = 'complex128')
 lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515, -0.0524, -0.0532, -0.054, -0.0547, -0.0554, -0.056, -0.0565, -0.057, -0.0575, -0.0579, -0.0583, -0.0586, -0.0589, -0.0592, -0.0594, -0.0595, -0.0596, -0.0597, -0.0598, -0.0598, -0.0598, -0.0598, -0.0597, -0.0596, -0.0594, -0.0592, -0.0589, -0.0586, -0.0582, -0.0578, -0.0573, -0.0567, -0.0561, -0.0554, -0.0546, -0.0538, -0.0529, -0.0519, -0.0509, -0.0497, -0.0485, -0.0472, -0.0458, -0.0444], dtype = 'complex128')
 
-#docs section 1 end
-
-#docs section 2 begin
+#docs checkpoint 2
 
 # Create a dictionary to store options about the surface
 mesh_dict = {'num_y' : 15,
@@ -41,9 +37,7 @@ mesh_dict = {'num_y' : 15,
 
 mesh, twist_cp = generate_mesh(mesh_dict)
 
-#docs section 2 end
-
-#docs section 3 begin
+#docs checkpoint 3
 
 surf_dict = {
             # Wing definition
@@ -59,9 +53,7 @@ surf_dict = {
             'data_y_upper' : upper_y,
             'data_y_lower' : lower_y,
 
-            #docs section 3 end
-
-            #docs section 4 begin
+            #docs checkpoint 4
 
             'twist_cp' : np.array([4., 5., 8., 9.]), # [deg]
 
@@ -71,9 +63,7 @@ surf_dict = {
             't_over_c_cp' : np.array([0.08, 0.08, 0.10, 0.08]),
             'original_wingbox_airfoil_t_over_c' : 0.12,
 
-            #docs section 4 end
-
-            #docs section 5 begin
+            #docs checkpoint 5
 
             # Aerodynamic deltas.
             # These CL0 and CD0 values are added to the CL and CD
@@ -92,9 +82,7 @@ surf_dict = {
                                     # flow, used for viscous drag
             'c_max_t' : .38,       # chordwise location of maximum thickness
 
-            #docs section 5 end
-
-            #docs section 6 begin
+            #docs checkpoint 6
 
             # Structural values are based on aluminum 7075
             'E' : 73.1e9,              # [Pa] Young's modulus
@@ -106,16 +94,12 @@ surf_dict = {
             'wing_weight_ratio' : 1.25,
             'exact_failure_constraint' : False, # if false, use KS function
 
-            #docs section 6 end
-
-            #docs section 7 begin
+            #docs checkpoint 7
 
             'struct_weight_relief' : True,
             'distributed_fuel_weight' : True,
 
-            #docs section 7 end
-
-            #docs section 8 begin
+            #docs checkpoint 8
 
             'fuel_density' : 803.,      # [kg/m^3] fuel density (only needed if the fuel-in-wing volume constraint is used)
             'Wf_reserve' :15000.,       # [kg] reserve fuel mass
@@ -124,9 +108,7 @@ surf_dict = {
 
 surfaces = [surf_dict]
 
-#docs section 8 end
-
-#docs section 9 begin
+#docs checkpoint 9
 
 # Create the problem and assign the model group
 prob = Problem()
@@ -140,17 +122,13 @@ indep_var_comp.add_output('re',val=np.array([0.348*295.07*.85*1./(1.43*1e-5), \
 indep_var_comp.add_output('rho', val=np.array([0.348, 1.225]), units='kg/m**3')
 indep_var_comp.add_output('speed_of_sound', val= np.array([295.07, 340.294]), units='m/s')
 
-#docs section 9 end
-
-#docs section 10 begin
+#docs checkpoint 10
 
 indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
 indep_var_comp.add_output('R', val=14.307e6, units='m')
 indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
 
-#docs section 10 end
-
-#docs section 11 begin
+#docs checkpoint 11
 
 indep_var_comp.add_output('load_factor', val=np.array([1., 2.5]))
 indep_var_comp.add_output('alpha', val=0., units='deg')
@@ -158,9 +136,7 @@ indep_var_comp.add_output('alpha_maneuver', val=0., units='deg')
 
 indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 
-#docs section 11 end
-
-#docs section 12 begin
+#docs checkpoint 12
 
 indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
 
@@ -168,9 +144,7 @@ prob.model.add_subsystem('prob_vars',
      indep_var_comp,
      promotes=['*'])
 
-#docs section 12 end
-
-#docs section 13 begin
+#docs checkpoint 13
 
 # Loop over each surface in the surfaces list
 for surface in surfaces:
@@ -184,9 +158,7 @@ for surface in surfaces:
     # Add groups to the problem with the name of the surface.
     prob.model.add_subsystem(name, aerostruct_group)
 
-#docs section 13 end
-
-#docs section 14 begin
+#docs checkpoint 14
 
 # Loop through and add a certain number of aerostruct points
 for i in range(2):
@@ -199,9 +171,7 @@ for i in range(2):
 
     prob.model.add_subsystem(point_name, AS_point)
 
-    #docs section 14 end
-
-    #docs section 15 begin
+    #docs checkpoint 15
 
     # Connect flow properties to the analysis point
     prob.model.connect('v', point_name + '.v', src_indices=[i])
@@ -217,9 +187,7 @@ for i in range(2):
     prob.model.connect('fuel_mass', point_name + '.total_perf.L_equals_W.fuelburn')
     prob.model.connect('fuel_mass', point_name + '.total_perf.CG.fuelburn')
 
-    #docs section 15 end
-
-    #docs section 16 begin
+    #docs checkpoint 16
 
     for surface in surfaces:
 
@@ -254,16 +222,13 @@ for i in range(2):
         prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
         prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
-        #docs section 16 end
 
-#docs section 17 begin
+#docs checkpoint 17
 
 prob.model.connect('alpha', 'AS_point_0' + '.alpha')
 prob.model.connect('alpha_maneuver', 'AS_point_1' + '.alpha')
 
-#docs section 17 end
-
-#docs section 18 begin
+#docs checkpoint 18
 
 # Here we add the fuel volume constraint componenet to the model
 prob.model.add_subsystem('fuel_vol_delta', WingboxFuelVolDelta(surface=surface))
@@ -277,9 +242,7 @@ if surf_dict['distributed_fuel_weight']:
     prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
     prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
 
-#docs section 18 end
-
-#docs section 19 begin
+#docs checkpoint 19
 
 comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
 prob.model.add_subsystem('fuel_diff', comp,
@@ -287,9 +250,7 @@ prob.model.add_subsystem('fuel_diff', comp,
     promotes_outputs=['fuel_diff'])
 prob.model.connect('AS_point_0.fuelburn', 'fuel_diff.fuelburn')
 
-#docs section 19 end
-
-#docs section 20 begin
+#docs checkpoint 20
 
 prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
 
@@ -299,43 +260,31 @@ prob.model.add_design_var('wing.skin_thickness_cp', lower=0.003, upper=0.1, scal
 prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.07, upper=0.2, scaler=10.)
 prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
 
-#docs section 20 end
-
-#docs section 21 begin
+#docs checkpoint 21
 
 prob.model.add_constraint('AS_point_0.CL', equals=0.5)
 
-#docs section 21 end
-
-#docs section 22 begin
+#docs checkpoint 22
 
 prob.model.add_constraint('AS_point_1.L_equals_W', equals=0.)
 prob.model.add_constraint('AS_point_1.wing_perf.failure', upper=0.)
 
-#docs section 22 end
-
-#docs section 23 begin
+#docs checkpoint 23
 
 prob.model.add_constraint('fuel_vol_delta.fuel_vol_delta', lower=0.)
 
-#docs section 23 end
-
-#docs section 24 begin
+#docs checkpoint 24
 
 prob.model.add_design_var('fuel_mass', lower=0., upper=2e5, scaler=1e-5)
 prob.model.add_constraint('fuel_diff', equals=0.)
 
-#docs section 24 end
-
-#docs section 25 begin
+#docs checkpoint 25
 
 prob.driver = ScipyOptimizeDriver()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['tol'] = 1e-2
 
-#docs section 25 end
-
-#docs section 26 begin
+#docs checkpoint 26
 
 recorder = SqliteRecorder("aerostruct.db")
 prob.driver.add_recorder(recorder)
@@ -370,9 +319,7 @@ prob.driver.recording_options['record_constraints'] = True
 prob.driver.recording_options['record_desvars'] = True
 prob.driver.recording_options['record_inputs'] = True
 
-#docs section 26 end
-
-#docs section 27 begin
+#docs checkpoint 27
 
 # Set up the problem
 prob.setup()
@@ -387,4 +334,4 @@ prob.run_driver()
 print('The fuel burn value is', prob['AS_point_0.fuelburn'][0], '[kg]')
 print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/grav_constant/surf_dict['wing_weight_ratio'], '[kg]')
 
-#docs section 27 end
+#docs checkpoint 28
