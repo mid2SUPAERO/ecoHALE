@@ -25,8 +25,8 @@ This tutorial assumes that the reader has gone through the other examples and tu
 Let's begin and look at the run-script now. First we import some modules.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-   :start-after: #docs section 0 begin
-   :end-before: #docs section 0 end
+   :start-after: checkpoint 0
+   :end-before: checkpoint 1
 
 Next, we provide some airfoil coordinates.
 These coordinates are used to define the shape of the wingbox cross-section.
@@ -39,8 +39,8 @@ These coordinates will be scaled based on the effective chord and thickness-to-c
 However, we currently have not implemented the functionality to specify different airfoil coordinates for different segments of the wing, so the same coordinates are used for the entire wing.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-   :start-after: #docs section 1 begin
-   :end-before: #docs section 1 end
+  :start-after: checkpoint 1
+  :end-before: checkpoint 2
 
 Next, we create the dictionary with information for the mesh and create the mesh.
 For this example we use the uCRM-based geometry (undeflected Common Research Model) already defined and available in OpenAeroStruct.
@@ -54,16 +54,16 @@ The `generate_mesh` function takes the inputs from the mesh dictionary and retur
 Note that in this example we don't end up using this twist distribution, but instead use a better starting twist distribution which will be seen later.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 2 begin
-  :end-before: #docs section 2 end
+  :start-after: checkpoint 2
+  :end-before: checkpoint 3
 
 Next, we create a surface dictionary and provide necessary information for our lifting surface.
 After providing the relevant information for the `name`, `symmetry`, and `S_ref_type` settings, we provide the mesh and specify the string `'wingbox'` for the `fem_model_type` (if we wanted the tubular structure, we would specify `'tube'` instead).
 We also provide the airfoil coordinates for the wingbox cross-section here as the four arrays defined earlier.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-   :start-after: #docs section 3 begin
-   :end-before: #docs section 3 end
+  :start-after: checkpoint 3
+  :end-before: checkpoint 4
 
 Next, we provide some initial values for the wingbox spar and skin thickness distributions (B-spline control points), along with the wing twist distribution (note that these distributions do not need to have the same number of control points).
 For the wingbox model, to maintain simplicity, we use the same thickness variables for both the top and bottom wing skins.
@@ -80,9 +80,9 @@ Note that the thickness-to-chord ratio variable is the streamwise value.
 Using the sweep angle for the wingbox elements OpenAeroStruct computes the effective values for the wingbox cross-sections normal to the elements.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-   :start-after: #docs section 4 begin
-   :end-before: #docs section 4 end
-   
+  :start-after: checkpoint 4
+  :end-before: checkpoint 5
+
 Next, we provide some information related to aerodynamics and specify some options.
 We set `CDO` to 0.0078 to account for the drag from the fuselage, tail surfaces, nacelles, and pylons (which are not being modeled).
 We set `with_viscous` to `True` to make OpenAeroStruct include an estimate for viscous drag (empirical equations) when computing the drag of the wing.
@@ -96,8 +96,8 @@ The `k_lam` value is the fraction of the chord assumed to have laminar flow, and
 The `c_max_t` value is the location of the maximum thickness of the airfoil along the chord, and is also used for OpenAeroStruct's viscous drag estimates.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-   :start-after: #docs section 5 begin
-   :end-before: #docs section 5 end
+  :start-after: checkpoint 5
+  :end-before: checkpoint 6
 
 Next we provide some information related to structures.
 We provide the Young's and shear moduli, as well as the allowable yield stress and density of the material being used (the wingbox model currently assumes that the material is isotropic).
@@ -109,24 +109,24 @@ With the `exact_failure_constraint` set to `False`, we aggregate the stress cons
 This helps reduce computational cost during optimization by replacing a large number of constraints (one for each stress combination for each element) with a single constraint.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-   :start-after: #docs section 6 begin
-   :end-before: #docs section 6 end
+  :start-after: checkpoint 6
+  :end-before: checkpoint 7
 
 The next two options `struct_weight_relief` and `distributed_fuel_weight` are used to specify whether the user wants the loads from the weight of the wingbox structure and the weight of the fuel to be distributed on the wing structure to provide load relief.
 The `struct_weight_relief` is for the loads from the weight of the structure (including the `wing_weight_ratio` factor).
 The `distributed_fuel_weight` is for the loads from the weight of the fuel, which is assumed to be distributed across the entire wing (the fraction of the total fuel that each wingbox segment, corresponding to each finite element, holds is equal to the ratio of its enclosed volume to the total enclosed volume of all the wingbox segments).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 7 begin
-  :end-before: #docs section 7 end
+  :start-after: checkpoint 7
+  :end-before: checkpoint 8
 
 Next, we specify the density of the fuel (used to compute fuel volume from fuel mass) and also specify how much fuel we are carrying as reserves.
 This reserve fuel weight is added to the weight of the aircraft for performance calculations as well as computing the loads from the fuel on the wing when using the `distributed_fuel_weight` option.
 With these two final options, we are done with the surface dictionary and add it to a list called surfaces (here we only have one surface, but in general we might have multiple).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 8 begin
-  :end-before: #docs section 8 end
+  :start-after: checkpoint 8
+  :end-before: checkpoint 9
 
 Next, we instantiate the OpenMDAO `Problem` and specify the independent variables.
 We will use some of these variables later as design variables and some simply as inputs.
@@ -135,8 +135,8 @@ Since we want to consider two flight points in this example (a nominal cruise ca
 For example, our cruise Mach number is 0.85 and our maneuver Mach number is 0.64.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 9 begin
-  :end-before: #docs section 9 end
+  :start-after: checkpoint 9
+  :end-before: checkpoint 10
 
 The following are some more independent variables.
 We have the thrust-specific fuel consumption, `CT`, cruise range, `R`, and the weight of the aircraft without the fuel required for the cruise point and without the weight of the wing structure, `W0`.
@@ -144,8 +144,8 @@ Since we are not interested in the fuel burn or range at the maneuver point, we 
 Note that `W0` includes the reserve fuel weight, which is why it is added here.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 10 begin
-  :end-before: #docs section 10 end
+  :start-after: checkpoint 10
+  :end-before: checkpoint 11
 
 Next, we specify the load factor for each flight point (1g for cruise and 2.5g for the maneuver case).
 We also provide values for the angle of attack.
@@ -154,8 +154,8 @@ We create two variables just for convenience because, for this example, we allow
 We also include the empty center of gravity location here as a reminder that we could use it later for studies in which we include tail surfaces and consider pitching moments (not done in this example).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 11 begin
-  :end-before: #docs section 11 end
+  :start-after: checkpoint 11
+  :end-before: checkpoint 12
 
 Finally, we also add the fuel mass as an independent variable to use it as a design variable.
 This may seem like a strange design variable to have, but we do this from an optimization architecture point of view.
@@ -163,21 +163,21 @@ Instead of directly transferring the fuel burn value from the cruise point to th
 This also allows the flexibility to later decide that you want to use a different value for the fuel mass for the maneuver case (or any other flight point you may have) that does not depend on the cruise point (or any other flight point you may have).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 12 begin
-  :end-before: #docs section 12 end
+  :start-after: checkpoint 12
+  :end-before: checkpoint 13
 
 Next, we instantiate aerostructual `groups` for each surface (only one in this example) and add them to the model.
 We use a loop for generality but it is not necessary for this example because we only have one surface (just the wing).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 13 begin
-  :end-before: #docs section 13 end
+  :start-after: checkpoint 13
+  :end-before: checkpoint 14
 
 Now we have to instantiate aerostructural flight points (one for cruise and one for the maneuver case in this example), add them to the model, and after that connect the inputs to the points.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 14 begin
-  :end-before: #docs section 14 end
+  :start-after: checkpoint 14
+  :end-before: checkpoint 15
 
 Here we make connect the inputs to the flight points.
 For the inputs that have different values for each flight point, we also specify the `src_indices` to specify which one of the input values to use.
@@ -188,22 +188,22 @@ If you are unsure about where variables have been promoted to, while making conn
 Hovering over variables in this diagram should tell you what names to use for them.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 15 begin
-  :end-before: #docs section 15 end
+  :start-after: checkpoint 15
+  :end-before: checkpoint 16
 
 Now we have to make a few more internal connections that are not made automatically.
 Once again, if you are unsure about whether variables have been connected correctly, use OpenMDAO's N2 diagram visualization feature (commands shown later).
 That diagram should show the connections, and the variables that have not been connected will be highlighted in red.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 16 begin
-  :end-before: #docs section 16 end
+  :start-after: checkpoint 16
+  :end-before: checkpoint 17
 
 We have a couple more connections to make outside the loop because of the variable naming.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 17 begin
-  :end-before: #docs section 17 end
+  :start-after: checkpoint 17
+  :end-before: checkpoint 18
 
 For this example, we are also interested in adding a fuel-volume constraint that makes sure that the wingbox has enough internal volume to store the required fuel mass (estimated from the cruise flight point plus the reserve fuel).
 First we instantiate and add the component that computes the difference between the available internal volume and the required fuel volume (`WingboxFuelVolDelta`).
@@ -212,14 +212,14 @@ We connect the fuel burn computed from the cruise condition to this component be
 We also have an `if` statement to make some more connections if we want the loads from the weight of the fuel to be applied to the FEM model.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 18 begin
-  :end-before: #docs section 18 end
+  :start-after: checkpoint 18
+  :end-before: checkpoint 19
 
 Next, we use OpenMDAO's ExecComp feature (which can be used to quickly create simple components) to create a component that is used later for the constraint that ensures that the fuel mass value (used to compute the aircraft weight and fuel loads) is the same as the fuel burn mass computed from the cruise point (i.e., AS_point_0 here).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 19 begin
-  :end-before: #docs section 19 end
+  :start-after: checkpoint 19
+  :end-before: checkpoint 20
 
 Now it is time to specify the objective function and design variables.
 For this example, the objective function is the fuel burn computed using the cruise point (AS_point_0).
@@ -232,49 +232,49 @@ In this example, the cruise angle of attack (which rotates the entire wing) is f
 Then using this same twist distribution, the maneuver case is trimmed using the maneuver angle of attack design variable.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 20 begin
-  :end-before: #docs section 20 end
-  
+  :start-after: checkpoint 20
+  :end-before: checkpoint 21
+
 Next we add some constraints.
 For the cruise point, we specify a nominal coefficient of lift of 0.5.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 21 begin
-  :end-before: #docs section 21 end
+  :start-after: checkpoint 21
+  :end-before: checkpoint 22
 
 For the maneuver point, we use the following constraints to ensure that the lift equals the weight, and that the stresses in the structure do not exceed the specified allowable value.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 22 begin
-  :end-before: #docs section 22 end
+  :start-after: checkpoint 22
+  :end-before: checkpoint 23
 
 For this example, we also add a constraint that ensures that the wingbox has enough internal volume for the fuel.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 23 begin
-  :end-before: #docs section 23 end
+  :start-after: checkpoint 23
+  :end-before: checkpoint 24
 
 Now we add `fuel_mass` as a design variable and add the consistency constraint that ensures that the fuel mass value is the same as the fuel burn mass computed from the cruise point.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 24 begin
-  :end-before: #docs section 24 end
+  :start-after: checkpoint 24
+  :end-before: checkpoint 25
 
 Next, we specify an optimizer and its tolerance.
 Here we use the easily available SLSQP optimizer from SciPy and specify a very low tolerance to keep the computational cost very low for the purposes of this example.
 We recommend that the user experiments with tolerances and uses much tighter tolerances for their studies.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 25 begin
-  :end-before: #docs section 25 end
+  :start-after: checkpoint 25
+  :end-before: checkpoint 26
 
 We also include the following recorder settings so that OpenMDAO stores the optimization history in a database that can be used with the plot_wingbox.py visualization script in the `utils` sub-directory.
 It isn't necessary to specify the long list of variables (`prob.driver.recording_options['includes']`), and instead we could just use `prob.driver.recording_options['includes'] = ['*']` to include all variables.
 However, for finer meshes, the database becomes extremely large and the visualization script does not work due to memory requirements.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 26 begin
-  :end-before: #docs section 26 end
+  :start-after: checkpoint 26
+  :end-before: checkpoint 27
 
 Finally, we call the usual commands to setup and run the optimization problem.
 Notice that we also have some commands commented out.
@@ -282,8 +282,8 @@ The `view_model` command can be used to generate a .html script that can be open
 The `check_partials` command can be used to check partial derivatives when modifying or creating components.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: #docs section 27 begin
-  :end-before: #docs section 27 end
+  :start-after: checkpoint 27
+  :end-before: checkpoint 28
 
 Now we put the code together, run it, and see the output:
 

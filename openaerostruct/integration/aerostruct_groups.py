@@ -225,7 +225,7 @@ class AerostructPoint(Group):
 
         coupled.nonlinear_solver = NonlinearBlockGS(use_aitken=True)
         coupled.nonlinear_solver.options['maxiter'] = 100
-        coupled.nonlinear_solver.options['atol'] = 1e-9
+        coupled.nonlinear_solver.options['atol'] = 1e-7
         coupled.nonlinear_solver.options['rtol'] = 1e-30
 
         # coupled.linear_solver = DirectSolver()
