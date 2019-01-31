@@ -160,7 +160,7 @@ com_name = point_name + '.' + name + '_perf'
 prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
-# Connect aerodyamic mesh to coupled group mesh
+# Connect aerodynamic mesh to coupled group mesh
 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
 
 # Connect performance calculation variables
