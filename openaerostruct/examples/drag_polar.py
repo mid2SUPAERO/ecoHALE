@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pylab as plt
 
 from openmdao.api import IndepVarComp, Problem, NewtonSolver, BroydenSolver, \
-            DirectSolver, BalanceComp
+            DirectSolver, BalanceComp, ArmijoGoldsteinLS, BoundsEnforceLS, \
+            NonlinearBlockGS
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
@@ -60,20 +61,12 @@ def compute_drag_polar(Mach, alphas, surfaces, trimmed=False):
         prob.model.add_subsystem('balance', bal,
             promotes_outputs = ['tail_rotation'])
         prob.model.connect('aero.CM', 'balance.lhs:tail_rotation', src_indices = [1])
-        prob.model.connect('tail_rotation', 'tail.twist_cp', src_indices = np.zeros((1,5), dtype = int))
+        prob.model.connect('tail_rotation', 'tail.twist_cp')
 
-        # Use Newton Solver
-        # prob.model.nonlinear_solver = NewtonSolver()
-        # prob.model.nonlinear_solver.options['solve_subsystems'] = True
-
-        # Use Broyden Solver
-        prob.model.nonlinear_solver = BroydenSolver()
-        prob.model.nonlinear_solver.options['state_vars'] = ['tail_rotation']
-
-        # prob.model.nonlinear_solver.linesearch = ArmijoGoldsteinLS()
+        prob.model.nonlinear_solver = NonlinearBlockGS(use_aitken=True)
 
         prob.model.nonlinear_solver.options['iprint'] = 2
-        prob.model.nonlinear_solver.options['maxiter'] = 20
+        prob.model.nonlinear_solver.options['maxiter'] = 100
         prob.model.linear_solver = DirectSolver()
 
 
@@ -147,6 +140,7 @@ if __name__=='__main__':
                 'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                         # thickness
                 'with_viscous' : True,  # if true, compute viscous drag
+                'with_wave' : False,
                 }
 
     # Create a dictionary to store options about the tail surface
@@ -165,7 +159,7 @@ if __name__=='__main__':
                                         # reflected across the plane y = 0
                 'S_ref_type' : 'wetted', # how we compute the wing area,
                                             # can be 'wetted' or 'projected'
-                'twist_cp' : twist_cp,
+                'twist_cp' : np.zeros((1)),
                 'twist_cp_dv' : False,
                 'mesh' : mesh,
 
@@ -187,6 +181,7 @@ if __name__=='__main__':
                 'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                         # thickness
                 'with_viscous' : True,  # if true, compute viscous drag
+                'with_wave' : False,
                 }
 
     surfaces = [wing_surface, tail_surface]

@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 import numpy as np
+from numpy import matlib
 
 from openmdao.api import ExplicitComponent
 
@@ -132,7 +133,7 @@ class LiftCoeff2D(ExplicitComponent):
 #                    partials['Cl', 'sec_forces'][jy, ix*(self.ny-1)*3 + jy*3 + ind] = \
 #                        tmp[ind] / widths[jy] / ( 0.5 * rho * v**2 * chord[jy] )
 #
-        partials['Cl', 'sec_forces'] = np.ravel(np.matlib.repmat(np.einsum('i,j,j->ji', \
+        partials['Cl', 'sec_forces'] = np.ravel(matlib.repmat(np.einsum('i,j,j->ji', \
                                                           tmp, 1/widths, \
                                                           1/( 0.5 * rho * v**2 * chord )), self.nx-1,1))
 

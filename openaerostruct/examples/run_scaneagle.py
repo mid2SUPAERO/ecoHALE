@@ -141,8 +141,7 @@ aerostruct_group = AerostructGeometry(surface=surface)
 name = 'wing'
 
 # Add the group to the problem
-prob.model.add_subsystem(name, aerostruct_group,
-    promotes_inputs=['load_factor'])
+prob.model.add_subsystem(name, aerostruct_group)
 
 point_name = 'AS_point_0'
 
@@ -160,7 +159,7 @@ com_name = point_name + '.' + name + '_perf'
 prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
 prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
-# Connect aerodyamic mesh to coupled group mesh
+# Connect aerodynamic mesh to coupled group mesh
 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
 
 # Connect performance calculation variables

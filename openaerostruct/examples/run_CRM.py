@@ -90,8 +90,7 @@ aerostruct_group = AerostructGeometry(surface=surface)
 name = 'wing'
 
 # Add tmp_group to the problem with the name of the surface.
-prob.model.add_subsystem(name, aerostruct_group,
-    promotes_inputs=['load_factor'])
+prob.model.add_subsystem(name, aerostruct_group)
 
 point_name = 'AS_point_0'
 

@@ -40,7 +40,7 @@ class StructureWeightLoads(ExplicitComponent):
 
         self.add_input('element_mass', val=np.zeros((self.ny-1)), units='kg')
         self.add_input('nodes', val=np.zeros((self.ny, 3), dtype=complex), units='m')
-        self.add_input('load_factor', val=1.05)
+        self.add_input('load_factor', val=1.0)
 
         self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
         self.add_output('element_lengths', val=np.zeros(self.ny-1), units='N')
