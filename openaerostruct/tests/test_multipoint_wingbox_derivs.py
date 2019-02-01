@@ -7,7 +7,7 @@ from openaerostruct.geometry.utils import generate_mesh
 
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp
+from openmdao.api import IndepVarComp, Problem, Group, ScipyOptimizeDriver, SqliteRecorder, ExecComp
 from openmdao.utils.assert_utils import assert_check_partials
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 
