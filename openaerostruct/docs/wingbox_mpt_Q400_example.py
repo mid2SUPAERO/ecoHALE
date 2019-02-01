@@ -17,7 +17,7 @@ import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
-from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, pyOptSparseDriver, SqliteRecorder, ExecComp, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, SqliteRecorder, ExecComp, SqliteRecorder
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 from openaerostruct.utils.constants import grav_constant
 
