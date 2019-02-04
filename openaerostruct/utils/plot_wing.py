@@ -333,7 +333,7 @@ class Display(object):
                     forces = np.sum(sec_forces[i*n_names+j], axis=0)
 
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                        widths[i*n_names+j]/0.5/rho[i]/v[i]**2
+                        widths[i*n_names+j]/0.5/rho[i][j]/v[i][j]**2
 
                     span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                     span = span - (span[0] + .5)
