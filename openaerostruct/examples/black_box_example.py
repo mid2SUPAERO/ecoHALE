@@ -1,3 +1,13 @@
+"""
+This script is an example of a black box setup using OpenAeroStruct.
+We first construct and setup a problem, then manually change values in the
+prob instance and run analysis at different points. Through this method,
+we can manually explore the design space.
+
+Although this example varies angle of attack (alpha), you could vary any input
+into the problem, including wing geometry and flight conditions.
+"""
+
 from __future__ import division, print_function
 import numpy as np
 
@@ -5,7 +15,7 @@ from openaerostruct.geometry.utils import generate_mesh
 
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
-from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
+from openmdao.api import IndepVarComp, Problem, Group
 from openaerostruct.utils.constants import grav_constant
 
 # Create a dictionary to store options about the surface
@@ -114,35 +124,20 @@ prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + nam
 prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
-from openmdao.api import ScipyOptimizeDriver
-prob.driver = ScipyOptimizeDriver()
-prob.driver.options['tol'] = 1e-9
-
-recorder = SqliteRecorder("aerostruct.db")
-prob.driver.add_recorder(recorder)
-prob.driver.recording_options['record_derivatives'] = True
-prob.driver.recording_options['includes'] = ['*']
-
-# Setup problem and add design variables, constraint, and objective
-prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
-prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
-prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
-
-# Add design variables, constraisnt, and objective on the problem
-prob.model.add_design_var('alpha', lower=-10., upper=10.)
-prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
-prob.model.add_objective('AS_point_0.fuelburn', scaler=1e-5)
-
 # Set up the problem
-prob.setup(check=True)
+prob.setup()
 
-# Only run analysis
-# prob.run_model()
+# Choose the angle of attack (alpha) values to sweep through
+alphas = np.linspace(-5., 5., 11)
 
-# Run optimization
-prob.run_driver()
+# Loopo through each alpha
+for alpha in alphas:
 
-print()
-print('CL:', prob['AS_point_0.wing_perf.CL'])
-print('CD:', prob['AS_point_0.wing_perf.CD'])
+    # Set the alpha in the problem and run analysis
+    prob['alpha'] = alpha
+    prob.run_model()
+
+    print()
+    print('Angle of attack:', prob['alpha'])
+    print('CL:', prob['AS_point_0.wing_perf.CL'])
+    print('CD:', prob['AS_point_0.wing_perf.CD'])
