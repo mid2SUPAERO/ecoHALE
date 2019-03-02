@@ -150,7 +150,7 @@ class Display(object):
             if 'coupled' in key:
                 self.aerostruct = True
 
-            if 'CL' in key:
+            if 'loads' in key:
                 pt_names.append(key.split('.')[0])
 
         if pt_names:
@@ -176,7 +176,7 @@ class Display(object):
                     self.mesh.append(case.outputs[name+'.mesh'])
 
                     try:
-                        self.radius.append(case.outputs[name+'.radius'])
+                        self.radius.append(np.squeeze(case.outputs[name+'.radius']))
                         self.thickness.append(case.outputs[name+'.thickness'])
                         self.vonmises.append(
                             np.max(case.outputs[name+'.vonmises'], axis=1))
@@ -203,7 +203,6 @@ class Display(object):
                     self.spar_thickness.append(case.outputs[name+'.spar_thickness'])
                     self.t_over_c.append(case.outputs[name+'.t_over_c'])
                     self.struct_masses.append(case.outputs[name+'.structural_mass'])
-
 
                     vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_names[1], surf_name=name)
                     self.vonmises.append(np.max(case.outputs[vm_var_name], axis=1))
