@@ -70,7 +70,6 @@ class Weight(ExplicitComponent):
         if self.surface['symmetry']:
             weight *= 2.
 
-        #outputs['structural_mass'] = weight
         outputs['structural_mass'] = weight
         outputs['element_mass'] = element_mass
 
