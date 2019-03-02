@@ -6,6 +6,7 @@ Aerostructural with Wingbox Walkthrough
 In addition to the tubular-spar structural model available in OpenAeroStruct, you can use a wingbox-based model.
 This model is described in Chauhan and Martins' paper `here <https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct>`_.
 We strongly recommend reading this relatively short conference paper to learn about the model and see some example results.
+The presentation slides for this conference paper can be found `here <https://www.researchgate.net/publication/327802989_Presentation_slides_for_Low-fidelity_Aerostructural_Optimization_of_Aircraft_Wings_with_a_Simplified_Wingbox_Model_Using_OpenAeroStruct>`_.
 Analytic derivatives are not provided for some components of this model, so any optimization problem will use the complex-step approximation to obtain the relevant partial derivatives for these components.
 
 .. image:: wingbox_fine.png
@@ -291,7 +292,7 @@ Now we put the code together, run it, and see the output:
     openaerostruct.docs.wingbox_mpt_opt_example
     :layout: interleave
 
-The following are the visualization results for this problem using the `plot_wingbox.py` visualization script (located in the `utils` directory).
+The following are the visualization results (keep in mind that this is with a very large optimization tolerance) for this problem using the `plot_wingbox.py` visualization script (located in the `utils` directory).
 This visualization script requires the `.db` file as an argument.
 For example, to use it for this example problem, from the example script's (wingbox_mpt_opt_example.py) location in the OpenAeroStruct `docs` directory, we would use:
 
@@ -300,3 +301,5 @@ For example, to use it for this example problem, from the example script's (wing
   python ../utils/plot_wingbox.py aerostruct.db
 
 .. image:: wingbox_opt.png
+
+This plotting script currently only works for two-flight-point problems like the one described in this walkthrough.

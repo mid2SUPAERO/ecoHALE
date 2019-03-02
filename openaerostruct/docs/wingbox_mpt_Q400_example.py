@@ -252,29 +252,32 @@ recorder = SqliteRecorder("aerostruct.db")
 prob.driver.add_recorder(recorder)
 
 # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.
-prob.driver.recording_options['includes'] = \
-['prob_vars.alpha', 'prob_vars.rho', 'prob_vars.v', 'prob_vars.cg', \
-'AS_point_1.total_perf.CG.cg', 'AS_point_0.total_perf.CG.cg', \
-'AS_point_0.coupled.wing_loads.loads', 'AS_point_1.coupled.wing_loads.loads', \
-'wing.wingbox_group.skin_thickness_bsp.skin_thickness', \
-'wing.geometry.mesh.rotate.mesh',\
-'wing.wingbox_group.spar_thickness_bsp.spar_thickness', \
-'wing.wingbox_group.spar_thickness_bsp.spar_thickness', \
-'wing.geometry.t_over_c_bsp.t_over_c', \
-'AS_point_0.wing_perf.struct_funcs.vonmises.vonmises', \
-'AS_point_1.wing_perf.struct_funcs.vonmises.vonmises', \
-'wing.struct_setup.structural_mass.structural_mass', \
-'AS_point_0.coupled.wing.def_mesh.displacement_transfer.def_mesh', \
-'AS_point_1.coupled.wing.def_mesh.displacement_transfer.def_mesh', \
-'AS_point_0.coupled.wing.aero_geom.normals', \
-'AS_point_1.coupled.wing.aero_geom.normals', \
-'AS_point_0.coupled.wing.aero_geom.widths',  'AS_point_1.coupled.wing.aero_geom.widths', \
-'AS_point_0.coupled.aero_states.panel_forces_surf.wing_sec_forces', \
-'AS_point_1.coupled.aero_states.panel_forces_surf.wing_sec_forces', \
-'AS_point_0.wing_perf.aero_funcs.coeffs.CL1', 'AS_point_1.wing_perf.aero_funcs.coeffs.CL1', \
-'AS_point_0.coupled.wing.aero_geom.S_ref',
-'AS_point_1.coupled.wing.aero_geom.S_ref',
-'wing.geometry.twist_bsp.twist']
+prob.driver.recording_options['includes'] = [
+    'alpha', 'rho', 'v', 'cg',
+    'AS_point_1.cg', 'AS_point_0.cg',
+    'AS_point_0.coupled.wing_loads.loads',
+    'AS_point_1.coupled.wing_loads.loads',
+    'AS_point_0.coupled.wing.normals',
+    'AS_point_1.coupled.wing.normals',
+    'AS_point_0.coupled.wing.widths',
+    'AS_point_1.coupled.wing.widths',
+    'AS_point_0.coupled.aero_states.wing_sec_forces',
+    'AS_point_1.coupled.aero_states.wing_sec_forces',
+    'AS_point_0.wing_perf.CL1',
+    'AS_point_1.wing_perf.CL1',
+    'AS_point_0.coupled.wing.S_ref',
+    'AS_point_1.coupled.wing.S_ref',
+    'wing.geometry.twist',
+    'wing.mesh',
+    'wing.skin_thickness',
+    'wing.spar_thickness',
+    'wing.t_over_c',
+    'wing.structural_mass',
+    'AS_point_0.wing_perf.vonmises',
+    'AS_point_1.wing_perf.vonmises',
+    'AS_point_0.coupled.wing.def_mesh',
+    'AS_point_1.coupled.wing.def_mesh',
+    ]
 
 prob.driver.recording_options['record_objectives'] = True
 prob.driver.recording_options['record_constraints'] = True
@@ -309,4 +312,4 @@ prob.run_driver()
 # prob.run_model()
 
 print('The fuel burn value is', prob['AS_point_0.fuelburn'][0], '[kg]')
-print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/grav_constant/surf_dict['wing_weight_ratio'], '[kg]')
+print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/surf_dict['wing_weight_ratio'], '[kg]')

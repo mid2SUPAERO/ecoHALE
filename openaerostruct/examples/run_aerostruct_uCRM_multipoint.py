@@ -304,7 +304,7 @@ prob.run_driver()
 # prob.run_model()
 
 print('The fuel burn value is', prob['AS_point_0.fuelburn'][0], '[kg]')
-print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/grav_constant/surf_dict['wing_weight_ratio'], '[kg]')
+print('The wingbox mass (excluding the wing_weight_ratio) is', prob['wing.structural_mass'][0]/surf_dict['wing_weight_ratio'], '[kg]')
 
 #=======================================================================================
 #=======================================================================================
@@ -569,16 +569,14 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-
         # print(prob['AS_point_0.fuelburn'][0])
-        # print(prob['wing.structural_mass'][0]/1.25)
+        # print(prob['wing.structural_mass'][0]/surf_dict['wing_weight_ratio'])
         # print(prob['wing.geometry.t_over_c_cp'])
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 101946.723936, 1e-5)
-        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 358406.34121, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 101937.827384, 1e-5)
+        assert_rel_error(self, prob['wing.structural_mass'][0]/surf_dict['wing_weight_ratio'], 36539.6437566, 1e-5)
         assert_rel_error(self, prob['wing.geometry.t_over_c_cp'],
-        np.array([ 0.10305255,  0.08205957,  0.11089362,  0.13089362,  0.10205957,  0.09361004]), 1e-5)
-
+        np.array([0.10247881, 0.08207636, 0.11114547, 0.13114547, 0.10207636, 0.09365598]), 1e-5)
 
 if __name__ == '__main__':
     unittest.main()
