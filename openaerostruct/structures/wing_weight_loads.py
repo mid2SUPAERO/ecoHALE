@@ -43,7 +43,7 @@ class StructureWeightLoads(ExplicitComponent):
         self.add_input('load_factor', val=1.0)
 
         self.add_output('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
-        self.add_output('element_lengths', val=np.zeros(self.ny-1), units='N')
+        self.add_output('element_lengths', val=np.zeros(self.ny-1), units='m')
 
         nym1 = self.ny-1
 
