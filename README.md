@@ -24,11 +24,31 @@ Documentation
 
 Please see the [documentation](https://mdolab.github.io/OpenAeroStruct/) for more installation details, walkthroughs, and examples.
 
-Citing OpenAeroStruct
-=====================
+Citation
+========
 
 For more background, theory, and figures, see the [OpenAeroStruct journal article](http://mdolab.engin.umich.edu/sites/default/files/OAS_SMO_preprint_0.pdf).
 Please cite this article when using OpenAeroStruct in your research or curricula.
+
+Plain text
+----------
+John P. Jasa, John T. Hwang, and Joaquim RRA Martins. "Open-source coupled aerostructural optimization using Python." Structural and Multidisciplinary Optimization 57.4 (2018): 1815-1827. DOI: 10.1007/s00158-018-1912-8
+
+Bibtex
+------
+```
+@article{Jasa2018a,
+	Author = {John P. Jasa and John T. Hwang and Joaquim R. R. A. Martins},
+	Doi = {10.1007/s00158-018-1912-8},
+	Journal = {Structural and Multidisciplinary Optimization},
+	Month = {April},
+	Number = {4},
+	Pages = {1815--1827},
+	Publisher = {Springer},
+	Title = {Open-source coupled aerostructural optimization using {Python}},
+	Volume = {57},
+	Year = {2018}}
+```
 
 Version Information
 ===================
