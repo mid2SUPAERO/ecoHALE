@@ -17,10 +17,7 @@ Then do:
 
 `pip install -e .`
 
-Version Information
-===================
-This version of OpenAeroStruct requires [OpenMDAO](https://github.com/OpenMDAO/openmdao) v2.5+.
-If you are looking to use the previous version of OpenAeroStruct which uses OpenMDAO 1.7.4, use OpenAeroStruct v1.0 from [here](https://github.com/mdolab/OpenAeroStruct/releases).
+If you encounter any problems while using OpenAeroStruct, please create an issue on this GitHub repository.
 
 Documentation
 =============
@@ -32,6 +29,11 @@ Citing OpenAeroStruct
 
 For more background, theory, and figures, see the [OpenAeroStruct journal article](http://mdolab.engin.umich.edu/sites/default/files/OAS_SMO_preprint_0.pdf).
 Please cite this article when using OpenAeroStruct in your research or curricula.
+
+Version Information
+===================
+This version of OpenAeroStruct requires [OpenMDAO](https://github.com/OpenMDAO/openmdao) v2.5+.
+If you are looking to use the previous version of OpenAeroStruct which uses OpenMDAO 1.7.4, use OpenAeroStruct v1.0 from [here](https://github.com/mdolab/OpenAeroStruct/releases).
 
 License
 =======
