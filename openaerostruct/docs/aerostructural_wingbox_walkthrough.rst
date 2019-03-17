@@ -4,7 +4,7 @@ Aerostructural with Wingbox Walkthrough
 =======================================
 
 In addition to the tubular-spar structural model available in OpenAeroStruct, you can use a wingbox-based model.
-This model is described in Chauhan and Martins' paper `here <https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct>`_.
+This model is described in Chauhan and Martins' paper `here <https://www.researchgate.net/publication/327654423_Low-Fidelity_Aerostructural_Optimization_of_Aircraft_Wings_with_a_Simplified_Wingbox_Model_Using_OpenAeroStruct>`_.
 We strongly recommend reading this relatively short conference paper to learn about the model and see some example results.
 The presentation slides for this conference paper can be found `online <https://www.researchgate.net/publication/327802989_Presentation_slides_for_Low-fidelity_Aerostructural_Optimization_of_Aircraft_Wings_with_a_Simplified_Wingbox_Model_Using_OpenAeroStruct>`_.
 Analytic derivatives are not provided for some components of this model, so any optimization problem will use the complex-step approximation to obtain the relevant partial derivatives for these components.
