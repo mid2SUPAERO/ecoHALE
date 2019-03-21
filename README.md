@@ -20,12 +20,12 @@ Then do:
 If you encounter any problems while using OpenAeroStruct, please create an issue on this GitHub repository.
 
 Documentation
-=============
+-------------
 
 Please see the [documentation](https://mdolab.github.io/OpenAeroStruct/) for more installation details, walkthroughs, and examples.
 
 Citation
-========
+--------
 
 For more background, theory, and figures, see the [OpenAeroStruct journal article](http://mdolab.engin.umich.edu/sites/default/files/OAS_SMO_preprint_0.pdf).
 Please cite this article when using OpenAeroStruct in your research or curricula.
@@ -47,12 +47,12 @@ John P. Jasa, John T. Hwang, and Joaquim RRA Martins. "Open-source coupled aeros
 ```
 
 Version Information
-===================
+-------------------
 This version of OpenAeroStruct requires [OpenMDAO](https://github.com/OpenMDAO/openmdao) v2.5+.
 If you are looking to use the previous version of OpenAeroStruct which uses OpenMDAO 1.7.4, use OpenAeroStruct v1.0 from [here](https://github.com/mdolab/OpenAeroStruct/releases).
 
 License
-=======
+-------
 Copyright 2018 MDO Lab
 
 Licensed under the Apache License, Version 2.0 (the "License");
