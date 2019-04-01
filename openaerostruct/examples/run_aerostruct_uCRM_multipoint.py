@@ -7,7 +7,7 @@ The fuel burn from the cruise case is the objective function and the 2.5g
 maneuver case is used for the structural sizing. The wing is based on the
 uCRM (undeflected Common Research Model wing).
 See the paper for more:
-https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
+https://www.researchgate.net/publication/327654423_Low-Fidelity_Aerostructural_Optimization_of_Aircraft_Wings_with_a_Simplified_Wingbox_Model_Using_OpenAeroStruct
 (https://doi.org/10.1007/978-3-319-97773-7_38)
 After running the optimization, use the 'plot_wingbox.py' script in the utils/
 directory (e.g., as 'python ../utils/plot_wingbox.py aerostruct.db' if running
