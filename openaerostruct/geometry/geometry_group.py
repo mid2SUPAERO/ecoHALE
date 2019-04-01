@@ -11,14 +11,17 @@ class Geometry(Group):
     components to add and which connections to make.
     This is especially true for all of the geometric manipulation types, such
     as twist, sweep, etc., in that we handle the creation of these parameters
-    differently if the user wants to have them vary in the optimization problem.    
+    differently if the user wants to have them vary in the optimization problem.
     """
+
     def initialize(self):
         self.options.declare('surface', types=dict)
         self.options.declare('DVGeo', default=None)
+        self.options.declare('connect_geom_DVs', default=True)
 
     def setup(self):
         surface = self.options['surface']
+        connect_geom_DVs = self.options['connect_geom_DVs']
 
         # Get the surface name and create a group to contain components
         # only for this surface
@@ -38,10 +41,20 @@ class Geometry(Group):
             # Add independent variables that do not belong to a specific component
             indep_var_comp = IndepVarComp()
 
-            # Add structural components to the surface-specific group
-            self.add_subsystem('indep_vars',
-                     indep_var_comp,
-                     promotes=['*'])
+            # If connect_geom_DVs is true, then we promote all of the geometric
+            # design variables to their appropriate manipulation functions.
+            # If it's false, then we do not connect them, and the user can
+            # choose to provide different values to those manipulation functions.
+            # This is useful when you want to have morphing DVs, such as twist
+            # or span, that are different at each point in a multipoint scheme.
+            if connect_geom_DVs:
+                self.add_subsystem('indep_vars',
+                    indep_var_comp,
+                    promotes=['*'])
+            else:
+                self.add_subsystem('indep_vars',
+                    indep_var_comp,
+                    promotes=[])
 
         if self.options['DVGeo']:
             from openaerostruct.geometry.ffd_component import GeometryMesh
