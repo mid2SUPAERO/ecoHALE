@@ -19,10 +19,12 @@ class AerostructGeometry(Group):
     def initialize(self):
         self.options.declare('surface', types=dict)
         self.options.declare('DVGeo', default=None)
+        self.options.declare('connect_geom_DVs', default=True)
 
     def setup(self):
         surface = self.options['surface']
         DVGeo = self.options['DVGeo']
+        connect_geom_DVs = self.options['connect_geom_DVs']
 
         geom_promotes = []
 
@@ -38,7 +40,7 @@ class AerostructGeometry(Group):
             geom_promotes.append('shape')
 
         self.add_subsystem('geometry',
-            Geometry(surface=surface, DVGeo=DVGeo),
+            Geometry(surface=surface, DVGeo=DVGeo, connect_geom_DVs=connect_geom_DVs),
             promotes_inputs=[],
             promotes_outputs=['mesh'] + geom_promotes)
 
