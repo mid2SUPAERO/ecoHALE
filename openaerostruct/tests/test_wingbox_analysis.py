@@ -110,11 +110,14 @@ class Test(unittest.TestCase):
         # Add design variables, constraisnt, and objective on the problem
         prob.model.add_objective('wing.structural_mass', scaler=1e-5)
 
+        import warnings
+        #warnings.filterwarnings('error')
+
         # Set up the problem
-        prob.setup(force_alloc_complex=False)
+        prob.setup()
 
         prob.run_model()
-        data = prob.check_partials(compact_print=True, out_stream=None, method='fd')
+        data = prob.check_partials(compact_print=True, out_stream=None, method='cs')
         assert_check_partials(data, atol=1e20, rtol=1e-6)
 
         prob.run_driver()
