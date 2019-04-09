@@ -97,9 +97,7 @@ class ConvertVelocity(ExplicitComponent):
 
             self.declare_partials('freestream_velocities', 'coll_pts', rows=rows, cols=cols)
 
-            kernel = np.empty(0)
-            for j, n in enumerate(sizes):
-                kernel = np.concatenate([kernel, np.repeat(j, n)])
+            kernel = np.repeat(np.arange(len(sizes), dtype=int), sizes)
 
             cols1 = np.tile(col, system_size) + np.repeat(3*kernel, 3)
             cols2 = np.tile(row, system_size) + np.repeat(3*kernel, 3)

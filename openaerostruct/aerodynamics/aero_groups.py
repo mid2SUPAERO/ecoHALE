@@ -20,6 +20,7 @@ class AeroPoint(Group):
 
     def setup(self):
         surfaces = self.options['surfaces']
+        rotational = self.options['rotational']
 
         # Loop through each surface and connect relevant parameters
         for surface in surfaces:
@@ -55,12 +56,16 @@ class AeroPoint(Group):
         # While other components only depends on a single surface,
         # this component requires information from all surfaces because
         # each surface interacts with the others.
-        aero_states = VLMStates(surfaces=surfaces)
+        aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
         aero_states.linear_solver = LinearRunOnce()
+
+        prom_in = ['v', 'alpha', 'rho']
+        if rotational:
+            prom_in.extend(['omega', 'cg'])
 
         self.add_subsystem('aero_states',
                  aero_states,
-                 promotes_inputs=['v', 'alpha', 'rho'],
+                 promotes_inputs=prom_in,
                  promotes_outputs=['circulations'])
 
         # Explicitly connect parameters from each surface's group and the common
