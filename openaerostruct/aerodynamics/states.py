@@ -20,9 +20,12 @@ class VLMStates(Group):
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
+        self.options.declare('rotational', False, types=bool,
+                             desc="Set to True to turn on support for computing angular velocities")
 
     def setup(self):
         surfaces = self.options['surfaces']
+        rotational = self.options['rotational']
 
         num_collocation_points = 0
         for surface in surfaces:
@@ -61,7 +64,7 @@ class VLMStates(Group):
 
         # Convert freestream velocity to array of velocities
         self.add_subsystem('convert_velocity',
-             ConvertVelocity(surfaces=surfaces),
+             ConvertVelocity(surfaces=surfaces, rotational=rotational),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 
