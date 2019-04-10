@@ -15,6 +15,8 @@ class ConvertVelocity(ExplicitComponent):
     ----------
     alpha : float
         The angle of attack for the aircraft (all lifting surfaces) in degrees.
+    beta : float
+        The sideslip angle for the aircraft (all lifting surfaces) in degrees.
     v : float
         The freestream velocity magnitude.
     omega[num_surface, 3] : ndarray
@@ -61,6 +63,7 @@ class ConvertVelocity(ExplicitComponent):
         self.system_size = system_size
 
         self.add_input('alpha', val=0., units='deg')
+        self.add_input('beta', val=0., units='deg')
         self.add_input('v', val=1., units='m/s')
 
         if rotational:
@@ -71,6 +74,7 @@ class ConvertVelocity(ExplicitComponent):
         self.add_output('freestream_velocities', shape=(system_size, 3), units='m/s')
 
         self.declare_partials('freestream_velocities', 'alpha')
+        self.declare_partials('freestream_velocities', 'beta')
         self.declare_partials('freestream_velocities', 'v')
 
         if rotational:
@@ -107,12 +111,16 @@ class ConvertVelocity(ExplicitComponent):
             self.declare_partials('freestream_velocities', 'omega', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
-        # Rotate the freestream velocities based on the angle of attack.
-        # Here we assume there is no beta, or sideslip angle.
+        # Rotate the freestream velocities based on the angle of attack and the sideslip angle.
         alpha = inputs['alpha'][0] * np.pi / 180.
+        beta = inputs['beta'][0] * np.pi / 180.
+
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
-        v_inf = inputs['v'][0] * np.array([cosa, 0., sina])
+        cosb = np.cos(beta)
+        sinb = np.sin(beta)
+
+        v_inf = inputs['v'][0] * np.array([cosa*cosb, -sinb, sina*cosb])
         outputs['freestream_velocities'][:, :] = v_inf
 
         # Add angular velocity term
@@ -137,11 +145,18 @@ class ConvertVelocity(ExplicitComponent):
 
     def compute_partials(self, inputs, J):
         alpha = inputs['alpha'][0] * np.pi / 180.
+        beta = inputs['beta'][0] * np.pi / 180.
+
         cosa = np.cos(alpha)
         sina = np.sin(alpha)
+        cosb = np.cos(beta)
+        sinb = np.sin(beta)
 
-        J['freestream_velocities','v'] = np.tile(np.array([cosa, 0., sina]), self.system_size)
-        J['freestream_velocities','alpha'] = np.tile(inputs['v'][0] * np.array([-sina, 0., cosa]) * np.pi/180., self.system_size)
+        J['freestream_velocities','v'] = np.tile(np.array([cosa*cosb, -sinb, sina*cosb]), self.system_size)
+        J['freestream_velocities','alpha'] = np.tile(inputs['v'][0] * np.array([-sina*cosb, 0., cosa*cosb]) * np.pi/180.,
+                                                     self.system_size)
+        J['freestream_velocities','beta'] = np.tile(inputs['v'][0] * np.array([-cosa*sinb, -cosb, -sina*sinb]) * np.pi/180.,
+                                                    self.system_size)
 
         if self.options['rotational']:
             cg = inputs['cg']

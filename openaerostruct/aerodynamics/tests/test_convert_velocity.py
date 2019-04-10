@@ -30,6 +30,7 @@ class Test(unittest.TestCase):
         prob['comp.omega'] = np.array(([[.3, .4, -.1], [0, np.pi/2, 0]]))
         prob['comp.cg'] = np.array([.1, .6, .4])
         prob['comp.coll_pts'] = np.random.random(prob['comp.coll_pts'].shape)
+        prob['comp.beta'] = 15.0
         prob.run_model()
 
         check = prob.check_partials(compact_print=True, method='cs', step=1e-40)

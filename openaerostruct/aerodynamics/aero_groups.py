@@ -59,7 +59,7 @@ class AeroPoint(Group):
         aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
         aero_states.linear_solver = LinearRunOnce()
 
-        prom_in = ['v', 'alpha', 'rho']
+        prom_in = ['v', 'alpha', 'beta', 'rho']
         if rotational:
             prom_in.extend(['omega', 'cg'])
 
@@ -76,7 +76,7 @@ class AeroPoint(Group):
         for surface in surfaces:
             self.add_subsystem(surface['name'] +'_perf',
                 VLMFunctionals(surface=surface),
-                promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho'])
+                promotes_inputs=['v', 'alpha', 'beta', 'Mach_number', 're', 'rho'])
 
         # Add the total aero performance group to compute the CL, CD, and CM
         # of the total aircraft. This accounts for all lifting surfaces.
