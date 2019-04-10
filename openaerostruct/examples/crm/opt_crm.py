@@ -106,7 +106,7 @@ for surface in surfaces:
     prob.model.add_subsystem(surface['name'], geom_group)
 
 # Create the aero point group and add it to the model
-aero_group = AeroPoint(surfaces=surfaces, rotational=True)
+aero_group = AeroPoint(surfaces=surfaces, rotational=True, user_specified_Sref=True)
 point_name = 'aero_point_0'
 prob.model.add_subsystem(point_name, aero_group, promotes_inputs=['*'])
 
