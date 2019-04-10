@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
         prob.model.add_subsystem('comp', comp)
         prob.setup(force_alloc_complex=True)
 
-        prob['comp.omega'] = np.array(([[.3, .4, -.1], [0, np.pi/2, 0]]))
+        prob['comp.omega'] = np.array([.3, .4, -.1])
         prob['comp.cg'] = np.array([.1, .6, .4])
         prob['comp.coll_pts'] = np.random.random(prob['comp.coll_pts'].shape)
         prob['comp.beta'] = 15.0
