@@ -19,7 +19,7 @@ class ConvertVelocity(ExplicitComponent):
         The sideslip angle for the aircraft (all lifting surfaces) in degrees.
     v : float
         The freestream velocity magnitude.
-    omega[num_surface, 3] : ndarray
+    omega[3] : ndarray
         Angular velocity vector for each surface about center of gravity.
         Only available if the rotational options is set to True.
     cg[3] : ndarray
@@ -68,7 +68,7 @@ class ConvertVelocity(ExplicitComponent):
 
         if rotational:
             self.add_input('coll_pts', shape=(system_size, 3), units='m')
-            self.add_input('omega', val=np.zeros((len(surfaces), 3)), units='rad/s')
+            self.add_input('omega', val=np.zeros((3, )), units='rad/s')
             self.add_input('cg', val=np.ones((3, )), units='m')
 
         self.add_output('freestream_velocities', shape=(system_size, 3), units='m/s')
@@ -94,6 +94,7 @@ class ConvertVelocity(ExplicitComponent):
             cols = np.concatenate([cols1, cols2])
 
             self.declare_partials('freestream_velocities', 'cg', rows=rows, cols=cols)
+            self.declare_partials('freestream_velocities', 'omega', rows=rows, cols=cols)
 
             cols1 = np.tile(col, system_size) + np.repeat(3*np.arange(system_size), 3)
             cols2 = np.tile(row, system_size) + np.repeat(3*np.arange(system_size), 3)
@@ -101,14 +102,6 @@ class ConvertVelocity(ExplicitComponent):
 
             self.declare_partials('freestream_velocities', 'coll_pts', rows=rows, cols=cols)
 
-            kernel = np.repeat(np.arange(len(sizes), dtype=int), sizes)
-
-            cols1 = np.tile(col, system_size) + np.repeat(3*kernel, 3)
-            cols2 = np.tile(row, system_size) + np.repeat(3*kernel, 3)
-
-            cols = np.concatenate([cols1, cols2])
-
-            self.declare_partials('freestream_velocities', 'omega', rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         # Rotate the freestream velocities based on the angle of attack and the sideslip angle.
@@ -139,7 +132,7 @@ class ConvertVelocity(ExplicitComponent):
 
                 r = c_pts[idx:idx+size, :] - cg
 
-                outputs['freestream_velocities'][idx:idx+size, :] += np.cross(omega[j, :], r)
+                outputs['freestream_velocities'][idx:idx+size, :] += np.cross(omega, r)
 
                 idx += size
 
@@ -173,15 +166,14 @@ class ConvertVelocity(ExplicitComponent):
                 size = (nx - 1) * (ny - 1)
 
                 r = c_pts[jdx:jdx+size, :] - cg
-                omega_j = omega[j, :]
 
                 # Cross product derivatives organized so we can tile a variable directly into slices
 
-                J['freestream_velocities', 'cg'][idx:idx+size*3] = np.tile(omega_j, size)
-                J['freestream_velocities', 'cg'][idx+ii:idx+ii+size*3] = -np.tile(omega_j, size)
+                J['freestream_velocities', 'cg'][idx:idx+size*3] = np.tile(omega, size)
+                J['freestream_velocities', 'cg'][idx+ii:idx+ii+size*3] = -np.tile(omega, size)
 
-                J['freestream_velocities', 'coll_pts'][idx:idx+size*3] = -np.tile(omega_j, size)
-                J['freestream_velocities', 'coll_pts'][idx+ii:idx+ii+size*3] = np.tile(omega_j, size)
+                J['freestream_velocities', 'coll_pts'][idx:idx+size*3] = -np.tile(omega, size)
+                J['freestream_velocities', 'coll_pts'][idx+ii:idx+ii+size*3] = np.tile(omega, size)
 
                 J['freestream_velocities', 'omega'][idx:idx+size*3] = r.flatten()
                 J['freestream_velocities', 'omega'][idx+ii:idx+ii+size*3] = -r.flatten()
