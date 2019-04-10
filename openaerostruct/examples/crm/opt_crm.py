@@ -4,20 +4,16 @@ incidence, and angle of attack; subject to lift and pitching moment constraint.
 Check output directory for Tecplot solution files.
 '''
 from __future__ import division, print_function
+import os
+
 import numpy as np
+
+from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver
 
 from openaerostruct.geometry.utils import plot3D_meshes
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem
-import os
-
-# Specify output directory
-output_dir = './Outputs/'
-# If directory does not exist, then create it
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
 plot3dFile = './Inputs/crm.xyz'
 meshes = plot3D_meshes(plot3dFile, 1e-8)
@@ -93,7 +89,7 @@ indep_var_comp.add_output('re', val=1.e6, units='1/m')
 indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
 indep_var_comp.add_output('cg', val=np.array([33.68, 0.0, 4.52]), units='m')
 indep_var_comp.add_output('S_ref_total', val=383.7, units='m**2')
-indep_var_comp.add_output('Omega', val=np.array([0.0, 0.0, 0.0]), units='deg/s')
+indep_var_comp.add_output('omega', val=np.array([0.0, 0.0, 0.0]), units='deg/s')
 
 prob.model.add_subsystem('prob_vars',
     indep_var_comp,
@@ -110,13 +106,11 @@ for surface in surfaces:
     prob.model.add_subsystem(surface['name'], geom_group)
 
 # Create the aero point group and add it to the model
-aero_group = AeroPoint(surfaces=surfaces, output_dir=output_dir,
-                           user_specified_Sref=True, compressible=True)
+aero_group = AeroPoint(surfaces=surfaces, rotational=True)
 point_name = 'aero_point_0'
 prob.model.add_subsystem(point_name, aero_group, promotes_inputs=['*'])
 
 # Set optimizer as model driver
-from openmdao.api import ScipyOptimizeDriver
 prob.driver = ScipyOptimizeDriver()
 prob.driver.options['debug_print'] = ['nl_cons','objs', 'desvars']
 
