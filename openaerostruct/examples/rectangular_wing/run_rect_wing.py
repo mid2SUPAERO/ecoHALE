@@ -3,20 +3,16 @@ Perform incompressible inviscid aerodynamic anlysis on flat rectangular wing.
 Print out lift and drag coefficient when complete. Check output directory for
 Tecplot solution files.
 '''
+import os
+
 import numpy as np
+
+from openmdao.api import IndepVarComp, Problem, Group
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem, Group
-import os
-
-# Specify output directory
-output_dir = './Outputs/'
-# If directory does not exist, then create it
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
 # Instantiate the problem and the model group
 prob = Problem()
@@ -26,7 +22,7 @@ indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=248.136, units='m/s') # Freestream Velocity
 indep_var_comp.add_output('alpha', val=5., units='deg') # Angle of Attack
 indep_var_comp.add_output('beta', val=0., units='deg') # Sideslip angle
-indep_var_comp.add_output('Omega', val=np.zeros(3), units='deg/s') # Rotation rate
+indep_var_comp.add_output('omega', val=np.zeros(3), units='deg/s') # Rotation rate
 indep_var_comp.add_output('M', val=0.0) # Freestream Mach number
 indep_var_comp.add_output('re', val=1.e6, units='1/m') # Freestream Reynolds number
 indep_var_comp.add_output('rho', val=0.38, units='kg/m**3') # Freestream air density
@@ -77,7 +73,9 @@ surface = {
             't_over_c' : 0.12,      # thickness over chord ratio (NACA0015)
             'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                     # thickness
+
             'with_viscous' : False,  # if true, compute viscous drag,
+            'with_wave' : False,
             } # end of surface dictionary
 
 # Add geometry group to the problem and add wing suface as a sub group.
@@ -89,7 +87,7 @@ surf_group = Geometry(surface=surface)
 geom_group.add_subsystem(surface['name'], surf_group)
 
 # Create the aero point group for this flight condition and add it to the model
-aero_group = AeroPoint(surfaces=[surface], output_dir=output_dir)
+aero_group = AeroPoint(surfaces=[surface])
 point_name = 'flight_condition_0'
 prob.model.add_subsystem(point_name, aero_group, promotes_inputs=['*'])
 
@@ -106,5 +104,3 @@ prob.run_model()
 print('CL', prob['aero_point_0.wing.CL'][0])
 print('CD', prob['aero_point_0.wing.CD'][0])
 
-# Write out resulting wing to AVL input file
-aero_group.write_AVL(output_dir+'rectangle.avl')

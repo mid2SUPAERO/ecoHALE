@@ -4,20 +4,16 @@ Print out lift, drag and moment coefficient when complete. Check output
 directory for Tecplot solution files.
 '''
 from __future__ import division, print_function
+import os
+
 import numpy as np
+
+from openmdao.api import IndepVarComp, Problem
 
 from openaerostruct.geometry.utils import plot3D_meshes
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem
-import os
-
-# Specify output directory
-output_dir = './Outputs/'
-# If directory does not exist, then create it
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
 plot3dFile = './Inputs/crm.xyz'
 meshes = plot3D_meshes(plot3dFile, 1e-8)
@@ -106,8 +102,7 @@ for surface in surfaces:
     prob.model.add_subsystem(surface['name'], geom_group)
 
 # Create the aero point group and add it to the model
-aero_group = AeroPoint(surfaces=surfaces, output_dir=output_dir,
-                           user_specified_Sref=True, compressible=True)
+aero_group = AeroPoint(surfaces=surfaces, user_specified_Sref=True)
 point_name = 'aero_point_0'
 prob.model.add_subsystem(point_name, aero_group, promotes_inputs=['*'])
 
