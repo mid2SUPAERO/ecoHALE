@@ -4,20 +4,16 @@ Print out lift, drag and moment coefficient when complete. Check output
 directory for Tecplot solution files.
 '''
 from __future__ import division, print_function
+import os
+
 import numpy as np
+
+from openmdao.api import IndepVarComp, Problem
 
 from openaerostruct.geometry.utils import plot3D_meshes
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem
-import os
-
-# Specify output directory
-output_dir = './Outputs/'
-# If directory does not exist, then create it
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
 plot3dFile = './Inputs/crm.xyz'
 meshes = plot3D_meshes(plot3dFile, 1e-8)
@@ -84,32 +80,43 @@ indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=248.136, units='m/s')
 indep_var_comp.add_output('alpha', val=5., units='deg')
 indep_var_comp.add_output('beta', val=0., units='deg')
-indep_var_comp.add_output('M', val=0.84)
+indep_var_comp.add_output('Mach_number', val=0.84)
 indep_var_comp.add_output('re', val=1.e6, units='1/m')
 indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
 indep_var_comp.add_output('cg', val=np.array([33.68, 0.0, 4.52]), units='m')
 indep_var_comp.add_output('S_ref_total', val=383.7, units='m**2')
-indep_var_comp.add_output('Omega', val=np.array([0.0, 0.0, 0.0]), units='deg/s')
+indep_var_comp.add_output('omega', val=np.array([0.0, 0.0, 0.0]), units='deg/s')
 
 prob.model.add_subsystem('prob_vars',
     indep_var_comp,
     promotes=['*'])
 
+point_name = 'aero_point_0'
+
 # Loop over each surface in the surfaces list
 for surface in surfaces:
 
     geom_group = Geometry(surface=surface)
+    name = surface['name']
 
     # Add tmp_group to the problem as the name of the surface.
     # Note that is a group and performance group for each
     # individual surface.
     prob.model.add_subsystem(surface['name'], geom_group)
 
+    # Connect the mesh from the geometry component to the analysis point
+    prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
+
+    # Perform the connections with the modified names within the
+    # 'aero_states' group.
+    prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
+    prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
+
 # Create the aero point group and add it to the model
-aero_group = AeroPoint(surfaces=surfaces, output_dir=output_dir,
+aero_group = AeroPoint(surfaces=surfaces, rotational=True,
                            user_specified_Sref=True, compressible=True)
-point_name = 'aero_point_0'
-prob.model.add_subsystem(point_name, aero_group, promotes_inputs=['*'])
+prob.model.add_subsystem(point_name, aero_group,
+                         promotes_inputs=['v', 'alpha', 'beta', 'omega', 'Mach_number', 're', 'rho', 'cg', 'S_ref_total'])
 
 # Set up the problem
 prob.setup()

@@ -23,7 +23,7 @@ indep_var_comp.add_output('v', val=248.136, units='m/s') # Freestream Velocity
 indep_var_comp.add_output('alpha', val=5., units='deg') # Angle of Attack
 indep_var_comp.add_output('beta', val=0., units='deg') # Sideslip angle
 indep_var_comp.add_output('omega', val=np.zeros(3), units='deg/s') # Rotation rate
-indep_var_comp.add_output('M', val=0.0) # Freestream Mach number
+indep_var_comp.add_output('Mach_number', val=0.0) # Freestream Mach number
 indep_var_comp.add_output('re', val=1.e6, units='1/m') # Freestream Reynolds number
 indep_var_comp.add_output('rho', val=0.38, units='kg/m**3') # Freestream air density
 indep_var_comp.add_output('cg', val=np.zeros((3)), units='m') # Aircraft center of gravity
@@ -78,18 +78,26 @@ surface = {
             'with_wave' : False,
             } # end of surface dictionary
 
+name = surface['name']
+
 # Add geometry group to the problem and add wing suface as a sub group.
 # These groups are responsible for manipulating the geometry of the mesh,
 # in this case spanwise twist.
-geom_group = Group()
-prob.model.add_subsystem('geometry', geom_group, promotes=['*'])
-surf_group = Geometry(surface=surface)
-geom_group.add_subsystem(surface['name'], surf_group)
+geom_group = Geometry(surface=surface)
+prob.model.add_subsystem(name, geom_group)
 
 # Create the aero point group for this flight condition and add it to the model
-aero_group = AeroPoint(surfaces=[surface])
+aero_group = AeroPoint(surfaces=[surface], rotational=True)
 point_name = 'flight_condition_0'
-prob.model.add_subsystem(point_name, aero_group, promotes_inputs=['*'])
+prob.model.add_subsystem(point_name, aero_group,
+                         promotes_inputs=['v', 'alpha', 'beta', 'omega', 'Mach_number', 're', 'rho', 'cg'])
+
+# Connect the mesh from the geometry component to the analysis point
+prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
+
+# Perform the connections with the modified names within the
+# 'aero_states' group.
+prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
 # Set up the problem
 prob.setup()
@@ -101,6 +109,6 @@ view_model(prob)
 # Run analysis
 prob.run_model()
 
-print('CL', prob['aero_point_0.wing.CL'][0])
-print('CD', prob['aero_point_0.wing.CD'][0])
+print('CL', prob['flight_condition_0.wing_perf.CL'][0])
+print('CD', prob['flight_condition_0.wing_perf.CD'][0])
 

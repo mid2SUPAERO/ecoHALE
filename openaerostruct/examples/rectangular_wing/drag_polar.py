@@ -2,20 +2,16 @@
 Compute viscous drag polar by running sweep of anlaysis over different angle of
 attacks. Plot drag polar at end. Check output directory for Tecplot solution files.
 '''
+import os
+
 import numpy as np
+
+from openmdao.api import IndepVarComp, Problem
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem
-import os
-
-# Specify output directory
-output_dir = './Outputs/'
-# If directory does not exist, then create it
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
 # Instantiate the problem and the model group
 prob = Problem()
@@ -25,8 +21,8 @@ indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('v', val=248.136, units='m/s') # Freestream Velocity
 indep_var_comp.add_output('alpha', val=5., units='deg') # Angle of Attack
 indep_var_comp.add_output('beta', val=0., units='deg') # Sideslip angle
-indep_var_comp.add_output('Omega', val=np.zeros(3), units='deg/s') # Rotation rate
-indep_var_comp.add_output('M', val=0.84) # Freestream Mach number
+indep_var_comp.add_output('omega', val=np.zeros(3), units='deg/s') # Rotation rate
+indep_var_comp.add_output('Mach_number', val=0.84) # Freestream Mach number
 indep_var_comp.add_output('re', val=1.e6, units='1/m') # Freestream Reynolds number
 indep_var_comp.add_output('rho', val=0.38, units='kg/m**3') # Freestream air density
 indep_var_comp.add_output('cg', val=np.zeros((3)), units='m') # Aircraft center of gravity
@@ -77,18 +73,29 @@ surface = {
             'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                     # thickness
             'with_viscous' : True,  # if true, compute viscous drag,
+            'with_wave' : False,
             } # end of surface dictionary
+
+name = surface['name']
 
 # Add geometry to the problem as the name of the surface.
 # These groups are responsible for manipulating the geometry of the mesh,
 # in this case spanwise twist.
 geom_group = Geometry(surface=surface)
-prob.model.add_subsystem(surface['name'], geom_group)
+prob.model.add_subsystem(name, geom_group)
 
 # Create the aero point group for this flight condition and add it to the model
-aero_group = AeroPoint(surfaces=[surface], output_dir=output_dir)
+aero_group = AeroPoint(surfaces=[surface], rotational=True)
 point_name = 'aero_point_0'
-prob.model.add_subsystem(point_name, aero_group, promotes_inputs=['*'])
+prob.model.add_subsystem(point_name, aero_group,
+                         promotes_inputs=['v', 'alpha', 'beta', 'omega', 'Mach_number', 're', 'rho', 'cg'])
+
+# Connect the mesh from the geometry component to the analysis point
+prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
+
+# Perform the connections with the modified names within the
+# 'aero_states' group.
+prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
 # Set up the problem
 prob.setup()
@@ -107,8 +114,8 @@ for i in range(len(alpha)):
     prob.run_model()
 
     # Record CL, CD
-    CL[i] = prob['aero_point_0.wing.CL'][0]
-    CD[i] = prob['aero_point_0.wing.CD'][0]
+    CL[i] = prob['aero_point_0.wing_perf.CL'][0]
+    CD[i] = prob['aero_point_0.wing_perf.CD'][0]
 
 # Plot polar
 import matplotlib.pyplot as plt
