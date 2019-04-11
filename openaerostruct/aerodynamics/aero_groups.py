@@ -17,6 +17,9 @@ class AeroPoint(Group):
         self.options.declare('user_specified_Sref', types=bool, default=False)
         self.options.declare('rotational', False, types=bool,
                              desc="Set to True to turn on support for computing angular velocities")
+        self.options.declare('compressible', types=bool, default=False,
+                             desc='Turns on compressibility correction for moderate Mach number '
+                             'flows. Defaults to False.')
 
     def setup(self):
         surfaces = self.options['surfaces']
@@ -56,10 +59,15 @@ class AeroPoint(Group):
         # While other components only depends on a single surface,
         # this component requires information from all surfaces because
         # each surface interacts with the others.
-        aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
+        if self.options['compressible'] == True:
+            aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
+            prom_in = ['v', 'alpha', 'beta', 'rho', 'M']
+        else:
+            aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
+            prom_in = ['v', 'alpha', 'beta', 'rho']
+
         aero_states.linear_solver = LinearRunOnce()
 
-        prom_in = ['v', 'alpha', 'beta', 'rho']
         if rotational:
             prom_in.extend(['omega', 'cg'])
 
