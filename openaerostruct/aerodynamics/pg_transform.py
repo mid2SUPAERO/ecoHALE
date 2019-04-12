@@ -1,9 +1,7 @@
 from openmdao.api import Group, IndepVarComp
 
-from openaerostruct.aerodynamics.rotate_to_wind import RotateToWindFrame
-from openaerostruct.aerodynamics.scale_to_pg import ScaleToPrandtlGlauert
-from openaerostruct.aerodynamics.rotate_from_wind import RotateFromWindFrame
-from openaerostruct.aerodynamics.scale_from_pg import ScaleFromPrandtlGlauert
+from openaerostruct.aerodynamics.pg_wind_rotation import RotateToWindFrame, RotateFromWindFrame
+from openaerostruct.aerodynamics.pg_scale import ScaleToPrandtlGlauert, ScaleFromPrandtlGlauert
 
 
 class PGTransform(Group):
@@ -29,17 +27,18 @@ class PGTransform(Group):
 
     def setup(self):
         surfaces = self.options['surfaces']
+        rotational = self.options['rotational']
 
         # Create component to rotate mesh geometry to wind frame,
         # s.t. the freestream velocity is along the x-axis
-        surface_group.add_subsystem('rotate', RotateToWindFrame(surfaces=surfaces),
-            promotes_inputs=['*'],
-            promotes_outputs=['*'])
+        self.add_subsystem('rotate', RotateToWindFrame(surfaces=surfaces, rotational=rotational),
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
 
         # Scale y and z direction by Prandtl Glauert factor
-        surface_group.add_subsystem('scale', ScaleToPrandtlGlauert(surfaces=surfaces),
-            promotes_inputs=['*'],
-            promotes_outputs=['*'])
+        self.add_subsystem('scale', ScaleToPrandtlGlauert(surfaces=surfaces, rotational=rotational),
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
 
         # This portion has been commented out because it gives problems when
         # converging the adjoint when used in an aerostructural problem. This
@@ -78,26 +77,18 @@ class InversePGTransform(Group):
 
     def setup(self):
         surfaces = self.options['surfaces']
+        rotational = self.options['rotational']
 
-        surfaces_group = Group()
+        # Scale force vectors back to compressible values
+        scale_sys = ScaleFromPrandtlGlauert(surfaces=surfaces, rotational=rotational)
+        self.add_subsystem('scale', scale_sys,
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
 
-        for surface in surfaces:
-            name = surface['name']
-            surface_group = Group()
+        # Rotate forces back to aerodynamic frame
+        rot_sys = RotateFromWindFrame(surfaces=surfaces, rotational=rotational)
+        self.add_subsystem('rotate', rot_sys,
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
 
-            # Scale force vectors back to compressible values
-            surface_group.add_subsystem('scale', ScaleFromPrandtlGlauert(surface=surface),
-                promotes_inputs=['Mach_number', 'sec_forces_pg', 'node_forces_pg'],
-                promotes_outputs=['sec_forces_w_frame', 'node_forces_w_frame'])
 
-            # Rotate forces back to aerodynamic frame
-            surface_group.add_subsystem('rotate', RotateFromWindFrame(surface=surface),
-                promotes_inputs=['alpha', 'beta', 'sec_forces_w_frame',
-                    'node_forces_w_frame'],
-                promotes_outputs=['sec_forces', 'node_forces'])
-
-            surfaces_group.add_subsystem(name,
-                 surface_group,
-                 promotes_inputs=['alpha', 'beta', 'Mach_number'])
-
-        self.add_subsystem('surfaces', surfaces_group, promotes=['*'])

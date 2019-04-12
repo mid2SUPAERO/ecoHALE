@@ -66,7 +66,7 @@ class CompressibleVLMStates(Group):
         if rotational:
             self.add_subsystem('rotational_velocity',
                  RotationalVelocity(surfaces=surfaces),
-                 promotes_inputs=['*'])
+                 promotes_inputs=['alpha', 'beta', 'MachNumber'])
 
         #----------------------------------------
         # Step 1: Transform geometry to PG domain

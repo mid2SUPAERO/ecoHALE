@@ -24,10 +24,10 @@ class RotationalVelocity(ExplicitComponent):
 
     Returns
     -------
-    rotational_velocities[system_size, 3] : numpy array
+    rotational_velocities[num_eval_points, 3] : numpy array
         The rotated freestream velocities at each evaluation point for all
-        lifting surfaces. system_size is the sum of the count of all panels
-        for all lifting surfaces.
+        lifting surfaces.
+        This array contains points for all lifting surfaces in the problem.
     """
 
     def initialize(self):
