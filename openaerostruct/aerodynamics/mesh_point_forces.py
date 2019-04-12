@@ -1,5 +1,5 @@
 """
-Class definition for the NodeForces component.
+Class definition for the MeshPointForces component.
 """
 from __future__ import print_function
 
@@ -9,25 +9,25 @@ from scipy.sparse import csr_matrix
 from openmdao.api import ExplicitComponent
 
 
-class NodeForces(ExplicitComponent):
+class MeshPointForces(ExplicitComponent):
     """
     Component that simply converts the forces on the panel to an equivalent set of forces at the
-    nodes.
+    mesh points.
 
-    Here we just assume the leading edge nodes take slightly more of the load so that the centroid
-    ends up at the quarter chord. The corresponding weights are stored in the le_node_wt and
-    te_node_wt options.
+    Here we just assume the leading edge points take slightly more of the load so that the centroid
+    ends up at the quarter chord. The corresponding weights are stored in the le_wt and
+    te_wt options.
 
     """
     def initialize(self):
         self.options.declare('surfaces', types=list)
-        self.options.declare('le_node_wt', default=0.75 * 0.5)
-        self.options.declare('te_node_wt', default=0.25 * 0.5)
+        self.options.declare('le_wt', default=0.75 * 0.5)
+        self.options.declare('te_wt', default=0.25 * 0.5)
 
     def setup(self):
         surfaces = self.options['surfaces']
-        le_node_wt = self.options['le_node_wt']
-        te_node_wt = self.options['te_node_wt']
+        le_wt = self.options['le_wt']
+        te_wt = self.options['te_wt']
 
         for surface in surfaces:
             mesh = surface['mesh']
@@ -36,12 +36,12 @@ class NodeForces(ExplicitComponent):
             name = surface['name']
 
             sec_forces_name = '{}_sec_forces'.format(name)
-            node_forces_name = '{}_node_forces'.format(name)
+            mesh_point_forces_name = '{}_mesh_point_forces'.format(name)
 
             self.add_input(sec_forces_name, shape=(nx - 1, ny - 1, 3), units='N')
 
             # TODO: what should res_ref be when it was np.sqrt(self.comm.size)
-            self.add_output(node_forces_name, val=np.zeros((nx, ny, 3)), units='N')
+            self.add_output(mesh_point_forces_name, val=np.zeros((nx, ny, 3)), units='N')
 
             # Sparse partials
             rowcol = np.arange(3*(ny-1))
@@ -62,19 +62,19 @@ class NodeForces(ExplicitComponent):
             nn2 = int(nn/2)
             vals = np.empty((nn, ))
 
-            vals[:nn2] = le_node_wt
-            vals[nn2:] = te_node_wt
+            vals[:nn2] = le_wt
+            vals[nn2:] = te_wt
 
-            self.declare_partials(node_forces_name, sec_forces_name, rows=rows, cols=cols, val=vals)
+            self.declare_partials(mesh_point_forces_name, sec_forces_name, rows=rows, cols=cols, val=vals)
 
     def compute(self, inputs, outputs):
         """
-        Compute the forces on the nodes from the panel section force.
+        Compute the forces on the nodmesh points from the panel section force.
         """
         surfaces = self.options['surfaces']
 
-        le_node_wt = self.options['le_node_wt']
-        te_node_wt = self.options['te_node_wt']
+        le_wt = self.options['le_wt']
+        te_wt = self.options['te_wt']
         for surface in surfaces:
             mesh = surface['mesh']
             nx = mesh.shape[0]
@@ -82,12 +82,12 @@ class NodeForces(ExplicitComponent):
 
             name = surface['name']
             sec_forces_name = '{}_sec_forces'.format(name)
-            node_forces_name = '{}_node_forces'.format(name)
+            mesh_point_forces_name = '{}_mesh_point_forces'.format(name)
 
             sec_forces = inputs[sec_forces_name]
 
-            outputs[node_forces_name][:] = 0.0
-            outputs[node_forces_name][:-1, :-1, :] += sec_forces * le_node_wt
-            outputs[node_forces_name][1:, :-1, :] += sec_forces * te_node_wt
-            outputs[node_forces_name][1:, 1:, :] += sec_forces * te_node_wt
-            outputs[node_forces_name][:-1, 1:, :] += sec_forces * le_node_wt
+            outputs[mesh_point_forces_name][:] = 0.0
+            outputs[mesh_point_forces_name][:-1, :-1, :] += sec_forces * le_wt
+            outputs[mesh_point_forces_name][1:, :-1, :] += sec_forces * te_wt
+            outputs[mesh_point_forces_name][1:, 1:, :] += sec_forces * te_wt
+            outputs[mesh_point_forces_name][:-1, 1:, :] += sec_forces * le_wt
