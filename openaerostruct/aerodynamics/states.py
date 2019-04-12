@@ -71,7 +71,7 @@ class VLMStates(Group):
                  promotes_outputs=['*'])
 
         self.add_subsystem('convert_velocity',
-             ConvertVelocity(surfaces=surfaces, rotational=False),
+             ConvertVelocity(surfaces=surfaces, rotational=rotational),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 
