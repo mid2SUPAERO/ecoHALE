@@ -7,6 +7,7 @@ from openaerostruct.aerodynamics.mtx_rhs import VLMMtxRHSComp
 from openaerostruct.aerodynamics.solve_matrix import SolveMatrix
 from openaerostruct.aerodynamics.horseshoe_circulations import HorseshoeCirculations
 from openaerostruct.aerodynamics.eval_velocities import EvalVelocities
+from openaerostruct.aerodynamics.mesh_point_forces import MeshPointForces
 from openaerostruct.aerodynamics.panel_forces import PanelForces
 from openaerostruct.aerodynamics.panel_forces_surf import PanelForcesSurf
 from openaerostruct.aerodynamics.vortex_mesh import VortexMesh
@@ -112,5 +113,11 @@ class VLMStates(Group):
         # Get panel forces for each lifting surface individually
         self.add_subsystem('panel_forces_surf',
              PanelForcesSurf(surfaces=surfaces),
+             promotes_inputs=['*'],
+             promotes_outputs=['*'])
+
+        # Get nodal forces for each lifting surface individually
+        self.add_subsystem('mesh_point_forces_surf',
+             MeshPointForces(surfaces=surfaces),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
