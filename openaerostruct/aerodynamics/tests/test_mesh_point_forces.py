@@ -5,7 +5,7 @@ import numpy as np
 from openmdao.api import Problem
 from openmdao.utils.assert_utils import assert_check_partials
 
-from openaerostruct.aerodynamics.node_forces import NodeForces
+from openaerostruct.aerodynamics.mesh_point_forces import MeshPointForces
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
@@ -15,7 +15,7 @@ class Test(unittest.TestCase):
     def test(self):
         surfaces = get_default_surfaces()
 
-        comp = NodeForces(surfaces=surfaces)
+        comp = MeshPointForces(surfaces=surfaces)
 
         run_test(self, comp)
 
@@ -48,12 +48,12 @@ class Test(unittest.TestCase):
         prob = Problem()
         group = prob.model
 
-        comp = NodeForces(surfaces=surfaces)
-        group.add_subsystem('nodeforces', comp)
+        comp = MeshPointForces(surfaces=surfaces)
+        group.add_subsystem('comp', comp)
 
         prob.setup()
 
-        prob['nodeforces.wing_sec_forces'] = np.random.random(prob['nodeforces.wing_sec_forces'].shape)
+        prob['comp.wing_sec_forces'] = np.random.random(prob['comp.wing_sec_forces'].shape)
 
         prob.run_model()
 
