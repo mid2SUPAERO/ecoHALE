@@ -63,11 +63,6 @@ class CompressibleVLMStates(Group):
              promotes_inputs=['*'],
              promotes_outputs=['force_pts'])
 
-        # Convert freestream velocity to array of velocities
-        self.add_subsystem('convert_velocity',
-             ConvertVelocity(surfaces=surfaces, rotational=rotational),
-             promotes_inputs=['*'])
-
         #----------------------------------------
         # Step 1: Transform geometry to PG domain
         #----------------------------------------
@@ -116,6 +111,12 @@ class CompressibleVLMStates(Group):
         self.add_subsystem('mtx_assy',
              EvalVelMtx(surfaces=surfaces, num_eval_points=num_collocation_points,
                 eval_name='coll_pts'),
+             promotes_inputs=['*'],
+             promotes_outputs=['*'])
+
+        # Convert freestream velocity to array of velocities
+        self.add_subsystem('convert_velocity',
+             ConvertVelocity(surfaces=surfaces, rotational=rotational),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 
