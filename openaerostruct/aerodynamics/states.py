@@ -7,6 +7,7 @@ from openaerostruct.aerodynamics.mtx_rhs import VLMMtxRHSComp
 from openaerostruct.aerodynamics.solve_matrix import SolveMatrix
 from openaerostruct.aerodynamics.horseshoe_circulations import HorseshoeCirculations
 from openaerostruct.aerodynamics.eval_velocities import EvalVelocities
+from openaerostruct.aerodynamics.rotational_velocity import RotationalVelocity
 from openaerostruct.aerodynamics.mesh_point_forces import MeshPointForces
 from openaerostruct.aerodynamics.panel_forces import PanelForces
 from openaerostruct.aerodynamics.panel_forces_surf import PanelForcesSurf
@@ -63,8 +64,14 @@ class VLMStates(Group):
              promotes_outputs=['*'])
 
         # Convert freestream velocity to array of velocities
+        if rotational:
+            self.add_subsystem('rotational_velocity',
+                 RotationalVelocity(surfaces=surfaces),
+                 promotes_inputs=['*'],
+                 promotes_outputs=['*'])
+
         self.add_subsystem('convert_velocity',
-             ConvertVelocity(surfaces=surfaces, rotational=rotational),
+             ConvertVelocity(surfaces=surfaces, rotational=False),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 
