@@ -15,8 +15,7 @@ from openaerostruct.aerodynamics.panel_forces import PanelForces
 from openaerostruct.aerodynamics.panel_forces_surf import PanelForcesSurf
 from openaerostruct.aerodynamics.vortex_mesh import VortexMesh
 
-from openaerostruct.aerodynamics.pg_transform import PGTransform
-from openaerostruct.aerodynamics.inverse_pg_transform import InversePGTransform
+from openaerostruct.aerodynamics.pg_transform import PGTransform, InversePGTransform
 
 
 class CompressibleVLMStates(Group):
@@ -62,6 +61,12 @@ class CompressibleVLMStates(Group):
              CollocationPoints(surfaces=surfaces),
              promotes_inputs=['*'],
              promotes_outputs=['force_pts'])
+
+        # Convert freestream velocity to array of velocities
+        if rotational:
+            self.add_subsystem('rotational_velocity',
+                 RotationalVelocity(surfaces=surfaces),
+                 promotes_inputs=['*'])
 
         #----------------------------------------
         # Step 1: Transform geometry to PG domain

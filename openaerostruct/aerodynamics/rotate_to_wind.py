@@ -60,6 +60,8 @@ class RotateToWindFrame(ExplicitComponent):
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
+        self.options.declare('rotational', False, types=bool,
+                             desc="Set to True to turn on support for computing angular velocities")
 
     def setup(self):
         surfaces = self.options['surfaces']
