@@ -1,4 +1,5 @@
 from openmdao.api import Group, LinearRunOnce
+from openaerostruct.aerodynamics.compressible_states import CompressibleVLMStates
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -46,7 +47,7 @@ class AeroPoint(Group):
             self.connect(name + '.S_ref', 'total_perf.' + name + '_S_ref')
             self.connect(name + '.widths', 'total_perf.' + name + '_widths')
             self.connect(name + '.chords', 'total_perf.' + name + '_chords')
-            self.connect(name + '.b_pts', 'total_perf.' + name + '_b_pts')
+            self.connect(name + '.bound_vecs', 'total_perf.' + name + '_bound_vecs')
             self.connect(name + '_perf' + '.CL', 'total_perf.' + name + '_CL')
             self.connect(name + '_perf' + '.CD', 'total_perf.' + name + '_CD')
             self.connect('aero_states.' + name + '_sec_forces',
