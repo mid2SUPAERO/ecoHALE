@@ -23,7 +23,7 @@ class Test(unittest.TestCase):
 
         mesh, twist_cp = generate_mesh(mesh_dict)
 
-        surf_dict = {
+        surface = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
                     'symmetry' : True,     # if true, model one half of wing
@@ -49,42 +49,36 @@ class Test(unittest.TestCase):
         # Create the problem and assign the model group
         prob = Problem()
 
-        ny = surf_dict['mesh'].shape[1]
+        ny = surface['mesh'].shape[1]
+        surface['n_point_masses'] = 1
 
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('loads', val=np.zeros((ny, 6)), units='N')
         indep_var_comp.add_output('load_factor', val=1.)
 
-        struct_group = SpatialBeamAlone(surface=surf_dict)
+        point_masses = np.array([[8000.]])
+
+        point_mass_locations = np.array([[25, -10., 0.]])
+
+        indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+        indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
+
+        struct_group = SpatialBeamAlone(surface=surface)
 
         # Add indep_vars to the structural group
         struct_group.add_subsystem('indep_vars',
              indep_var_comp,
              promotes=['*'])
 
-        prob.model.add_subsystem(surf_dict['name'], struct_group, promotes=['*'])
-
-        from openmdao.api import ScipyOptimizeDriver
-        prob.driver = ScipyOptimizeDriver()
-
-        # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-        prob.model.add_constraint('failure', upper=0.)
-        prob.model.add_constraint('thickness_intersects', upper=0.)
-
-        # Add design variables, constraisnt, and objective on the problem
-        prob.model.add_objective('structural_mass', scaler=1e-5)
+        prob.model.add_subsystem(surface['name'], struct_group, promotes=['*'])
 
         # Set up the problem
         prob.setup()
 
-        from openmdao.api import view_model
+        prob.run_model()
 
-        prob.run_driver()
-
-        assert_rel_error(self, prob['structural_mass'][0], 13601.162582, 1e-4)
-        assert_rel_error(self, prob['disp'][1, 2], 0., 1e-4)
-
+        assert_rel_error(self, prob['structural_mass'][0], 124229.646011, 1e-4)
+        assert_rel_error(self, prob['disp'][1, 2:5], np.array([-2.91474315e-03, 4.78977910e-04, -5.48429013e-04]), 1e-4)
 
 
 if __name__ == '__main__':

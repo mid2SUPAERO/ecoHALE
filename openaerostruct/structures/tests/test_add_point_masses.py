@@ -31,9 +31,9 @@ class Test(unittest.TestCase):
         point_mass_locations = np.array([[2., 0., 0.],
                                          [3., 1., 0.]])
 
-        indep_var_comp.add_output('nodes', val=nodesval)
-        indep_var_comp.add_output('point_masses', val=point_masses)
-        indep_var_comp.add_output('point_mass_locations', val=point_mass_locations)
+        indep_var_comp.add_output('nodes', val=nodesval, units='m')
+        indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+        indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('add_point_masses', comp, promotes=['*'])
@@ -66,9 +66,9 @@ class Test(unittest.TestCase):
 
         point_mass_locations = np.array([[.55012, 0., 0.]])
 
-        indep_var_comp.add_output('nodes', val=nodesval)
-        indep_var_comp.add_output('point_masses', val=point_masses)
-        indep_var_comp.add_output('point_mass_locations', val=point_mass_locations)
+        indep_var_comp.add_output('nodes', val=nodesval, units='m')
+        indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+        indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
         group.add_subsystem('add_point_masses', comp, promotes=['*'])
