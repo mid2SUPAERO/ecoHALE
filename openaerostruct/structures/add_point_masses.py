@@ -1,16 +1,16 @@
 from __future__ import division, print_function
 import numpy as np
 
-from scipy.sparse import coo_matrix, diags
-
 from openmdao.api import ExplicitComponent
-from openaerostruct.structures.utils import norm, unit
+from openaerostruct.structures.utils import norm
 from openaerostruct.utils.constants import grav_constant
 
 
 class AddPointMasses(ExplicitComponent):
     """
-    Add point mass to the structure and find the moment arm to each node.
+    Add point mass to the structure and compute the loads due to the point masses.
+    The current method adds loads and moments to all of the structural nodes, but
+    the nodes closest to the point masses receive proportionally larger loads.
 
     Parameters
     ----------
@@ -25,7 +25,14 @@ class AddPointMasses(ExplicitComponent):
 
     Returns
     -------
-
+    distances[n_point_masses, ny] : numpy array
+        Actual Euclidean distance from each point mass to each node.
+    loading_weights[n_point_masses, ny] : numpy array
+        The normalized weight that each point mass has on each node. The closest
+        nodes have the greatest weighting, while farther away nodes have less.
+    loads_from_point_masses[ny, 6] : numpy array
+        The actual loads array that will be added to the total loads array.
+        This is cumulative and includes the forces and moments from all point masses.
     """
 
     def initialize(self):
@@ -56,7 +63,6 @@ class AddPointMasses(ExplicitComponent):
         loads_from_point_masses[:] = 0.
 
         for idx, point_mass_location in enumerate(inputs['point_mass_locations']):
-            print()
             xyz_dist = point_mass_location - nodes
             dist = norm(xyz_dist, axis=1)
             distances[idx, :] = dist
@@ -70,7 +76,5 @@ class AddPointMasses(ExplicitComponent):
 
             moments = np.cross(xyz_dist, weight_forces)
 
-            loads_from_point_masses[:, :3] = weight_forces
-            loads_from_point_masses[:, 3:] = moments
-
-            print(loads_from_point_masses)
+            loads_from_point_masses[:, :3] += weight_forces
+            loads_from_point_masses[:, 3:] += moments
