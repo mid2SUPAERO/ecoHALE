@@ -1,0 +1,76 @@
+from __future__ import division, print_function
+import numpy as np
+
+from scipy.sparse import coo_matrix, diags
+
+from openmdao.api import ExplicitComponent
+from openaerostruct.structures.utils import norm, unit
+from openaerostruct.utils.constants import grav_constant
+
+
+class AddPointMasses(ExplicitComponent):
+    """
+    Add point mass to the structure and find the moment arm to each node.
+
+    Parameters
+    ----------
+    point_mass_locations[n_point_masses, 3] : numpy array
+        XYZ location for each point mass, relative to the spar and symmetry plane.
+    point_masses[n_point_masses] : numpy array
+        Actual magnitude of each point mass, in same order as point_mass_locations.
+    nodes[ny, 3] : numpy array
+        Flattened array with coordinates for each FEM node.
+    load_factor : float
+        Load factor for the flight point. Multiplier on the effects of gravity.
+
+    Returns
+    -------
+
+    """
+
+    def initialize(self):
+        self.options.declare('surface', types=dict)
+
+    def setup(self):
+        self.surface = surface = self.options['surface']
+        self.ny = surface['mesh'].shape[1]
+        self.n_point_masses = surface['n_point_masses']
+
+        self.add_input('point_mass_locations', val=np.zeros((self.n_point_masses, 3)), units='m')
+        self.add_input('point_masses', val=np.zeros((self.n_point_masses)), units='kg')
+        self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
+        self.add_input('load_factor', val=1.0)
+
+        self.add_output('distances', val=np.zeros((self.n_point_masses, self.ny)), units='m')
+        self.add_output('loading_weights', val=np.zeros((self.n_point_masses, self.ny)))
+        self.add_output('loads_from_point_masses', val=np.zeros((self.ny, 6)), units='N') ## WARNING!!! UNITS ARE A MIXTURE OF N & N*m
+
+        self.set_check_partial_options(wrt='*', method='fd')
+        self.declare_partials('*', '*', method='cs')
+
+    def compute(self, inputs, outputs):
+        nodes = inputs['nodes']
+        loading_weights = outputs['loading_weights']
+        distances = outputs['distances']
+        loads_from_point_masses = outputs['loads_from_point_masses']
+        loads_from_point_masses[:] = 0.
+
+        for idx, point_mass_location in enumerate(inputs['point_mass_locations']):
+            print()
+            xyz_dist = point_mass_location - nodes
+            dist = norm(xyz_dist, axis=1)
+            distances[idx, :] = dist
+
+            dist10 = dist**10
+            inv_dist10 = 1 / dist10
+            loading_weights[idx, :] = inv_dist10 / np.sum(inv_dist10)
+
+            directional_weights = np.outer(loading_weights[idx, :], np.array([[0., 0., -1.]]))
+            weight_forces = directional_weights * grav_constant * inputs['load_factor'] * inputs['point_masses'][idx]
+
+            moments = np.cross(xyz_dist, weight_forces)
+
+            loads_from_point_masses[:, :3] = weight_forces
+            loads_from_point_masses[:, 3:] = moments
+
+            print(loads_from_point_masses)
