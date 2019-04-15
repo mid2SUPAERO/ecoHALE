@@ -96,6 +96,9 @@ class CoupledAS(Group):
             promotes = promotes + list(set(['nodes', 'element_mass', 'load_factor']))
         if surface['distributed_fuel_weight']:
             promotes = promotes + list(set(['nodes', 'load_factor']))
+        if 'n_point_masses' in surface.keys():
+            promotes = promotes + list(set(['point_mass_locations',
+                'point_masses', 'nodes', 'load_factor']))
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
@@ -196,7 +199,7 @@ class AerostructPoint(Group):
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
 
-            if surface['distributed_fuel_weight']:
+            if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys():
                 promotes = ['load_factor']
             else:
                 promotes = []
