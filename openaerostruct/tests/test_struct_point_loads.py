@@ -78,7 +78,7 @@ class Test(unittest.TestCase):
         prob.run_model()
 
         assert_rel_error(self, prob['structural_mass'][0], 124229.646011, 1e-4)
-        assert_rel_error(self, prob['disp'][1, 2:5], np.array([-2.91474315e-03, 4.78977910e-04, -5.48429013e-04]), 1e-4)
+        assert_rel_error(self, prob['disp'][1, 2:5], np.array([-0.00289067, 0.00049986, -0.00058962]), 1e-4)
 
 
 if __name__ == '__main__':

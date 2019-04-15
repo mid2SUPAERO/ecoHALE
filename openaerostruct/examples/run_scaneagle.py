@@ -79,6 +79,7 @@ surface = {
             # Give OAS the radius and mesh from before
             'radius_cp' : radius_cp,
             'mesh' : mesh,
+            'n_point_masses' : 1,
 
             # Aerodynamic performance of the lifting surface at
             # an angle of attack of 0 (alpha=0).
@@ -128,6 +129,12 @@ indep_var_comp.add_output('W0', val=10.,  units='kg')
 indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')
 indep_var_comp.add_output('load_factor', val=1.)
 indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
+point_masses = np.array([[5.]])
+
+point_mass_locations = np.array([[2, -1., 0.]])
+
+indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
 prob.model.add_subsystem('prob_vars',
      indep_var_comp,
@@ -170,6 +177,10 @@ prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + nam
 prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
+coupled_name = point_name + '.coupled.' + name
+prob.model.connect('point_masses', coupled_name + '.point_masses')
+prob.model.connect('point_mass_locations', coupled_name + '.point_mass_locations')
+
 # Set the optimizer type
 from openmdao.api import ScipyOptimizeDriver
 prob.driver = ScipyOptimizeDriver()
@@ -210,6 +221,3 @@ prob.setup()
 
 # Actually run the optimization problem
 prob.run_driver()
-
-print(prob['wing.thickness'].shape)
-print(prob['wing.struct_setup.structural_cg.nodes'][:,1].shape)

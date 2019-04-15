@@ -39,6 +39,8 @@ from matplotlib import cm
 import matplotlib.animation as manimation
 import sqlitedict
 
+from traceback import print_exc
+
 #####################
 # User-set parameters
 #####################
@@ -51,6 +53,7 @@ class Display(object):
         try:
             self.zoom_scale = args[2]
         except:
+            print_exc()
             self.zoom_scale = 2.8
 
         self.root = Tk.Tk()
@@ -104,6 +107,7 @@ class Display(object):
                     names.append(surface['name'])
                 break
             except:
+                print_exc()
                 pass
 
         # Structural-only
@@ -113,6 +117,7 @@ class Display(object):
                     surface = cr.system_metadata[key]['component_options']['surface']
                     names = [surface['name']]
                 except:
+                    print_exc()
                     pass
 
         # figure out if this is an optimization and what the objective is
@@ -146,6 +151,7 @@ class Display(object):
         pt_names = []
         for key in last_case.outputs:
             # Aerostructural
+            print(key)
             if 'coupled' in key:
                 self.aerostruct = True
 
@@ -160,6 +166,11 @@ class Display(object):
             pt_names = ['']
         self.names = names
         n_names = len(names)
+
+        print(self.aerostruct)
+
+
+        exit()
 
         # loop to pull data out of case reader and organize it into arrays
         for i, case in enumerate(cr.get_cases()):
@@ -184,6 +195,7 @@ class Display(object):
                             np.max(case.outputs[name+'.vonmises'], axis=1))
                         self.show_tube = True
                     except:
+                        # print_exc()
                         self.show_tube = False
                     try:
                         self.def_mesh.append(case.outputs[name+'.mesh'])
@@ -195,6 +207,7 @@ class Display(object):
                         self.show_wing = True
 
                     except:
+                        print_exc()
                         self.show_wing = False
                 else:
                     self.show_wing, self.show_tube = True, True
@@ -230,6 +243,7 @@ class Display(object):
                     else:
                         self.twist.append(case.outputs[name+'.twist'])
                 except:
+                    # print_exc()
                     ny = self.mesh[0].shape[1]
                     self.twist.append(np.atleast_2d(np.zeros(ny)))
 
@@ -488,6 +502,7 @@ class Display(object):
                         self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
                         self.c2.grid_forget()
                 except:
+                    print_exc()
                     self.ax.plot_wireframe(x, y, z, rstride=1, cstride=1, color='k')
 
                 # cg = self.cg[self.curr_pos]
@@ -547,6 +562,7 @@ class Display(object):
                         self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                             facecolors=cm.viridis(col), linewidth=0)
                     except:
+                        print_exc()
                         self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                             facecolors=cm.coolwarm(col), linewidth=0)
 

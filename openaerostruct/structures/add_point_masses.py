@@ -48,7 +48,6 @@ class AddPointMasses(ExplicitComponent):
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('load_factor', val=1.0)
 
-        self.add_output('distances', val=np.zeros((self.n_point_masses, self.ny)), units='m')
         self.add_output('loading_weights', val=np.zeros((self.n_point_masses, self.ny)))
         self.add_output('loads_from_point_masses', val=np.zeros((self.ny, 6)), units='N') ## WARNING!!! UNITS ARE A MIXTURE OF N & N*m
 
@@ -58,23 +57,27 @@ class AddPointMasses(ExplicitComponent):
     def compute(self, inputs, outputs):
         nodes = inputs['nodes']
         loading_weights = outputs['loading_weights']
-        distances = outputs['distances']
         loads_from_point_masses = outputs['loads_from_point_masses']
         loads_from_point_masses[:] = 0.
 
         for idx, point_mass_location in enumerate(inputs['point_mass_locations']):
             xyz_dist = point_mass_location - nodes
-            dist = norm(xyz_dist, axis=1)
-            distances[idx, :] = dist
+            span_dist = xyz_dist[:, 1]
 
-            dist10 = dist**10
-            inv_dist10 = 1 / dist10
+            # vec_to_nodes = nodes[1:, :] - nodes[:-1, :]
+
+            torsional_moment_arms = xyz_dist.copy()
+            torsional_moment_arms[:] = 0.
+            torsional_moment_arms[:, 0] = xyz_dist[:, 0]
+
+            dist10 = span_dist**10
+            inv_dist10 = 1 / dist10# + 1e-10)
             loading_weights[idx, :] = inv_dist10 / np.sum(inv_dist10)
 
             directional_weights = np.outer(loading_weights[idx, :], np.array([[0., 0., -1.]]))
             weight_forces = directional_weights * grav_constant * inputs['load_factor'] * inputs['point_masses'][idx]
 
-            moments = np.cross(xyz_dist, weight_forces)
-
             loads_from_point_masses[:, :3] += weight_forces
+
+            moments = np.cross(torsional_moment_arms, weight_forces)
             loads_from_point_masses[:, 3:] += moments
