@@ -38,6 +38,69 @@ class Test(unittest.TestCase):
 
         assert_check_partials(check)
 
+    def test_from_wind_derivs(self):
+        surfaces = get_default_surfaces()
+
+        comp = RotateFromWindFrame(surfaces=surfaces)
+
+        prob = Problem()
+        prob.model.add_subsystem('comp', comp)
+        prob.setup(force_alloc_complex=True)
+
+        prob['comp.alpha'] = np.random.random(prob['comp.alpha'].shape)
+        prob['comp.beta'] = np.random.random(prob['comp.beta'].shape)
+        prob['comp.wing_sec_forces_w_frame'] = np.random.random(prob['comp.wing_sec_forces_w_frame'].shape)
+        prob['comp.tail_sec_forces_w_frame'] = np.random.random(prob['comp.tail_sec_forces_w_frame'].shape)
+
+        prob.run_model()
+
+        check = prob.check_partials(compact_print=True, method='cs', step=1e-40)
+
+        assert_check_partials(check)
+
+    def test_scale_to_pg(self):
+        surfaces = get_default_surfaces()
+
+        comp = ScaleToPrandtlGlauert(surfaces=surfaces, rotational=True)
+
+        prob = Problem()
+        prob.model.add_subsystem('comp', comp)
+        prob.setup(force_alloc_complex=True)
+
+        prob['comp.MachNumber'] = np.random.random(prob['comp.MachNumber'].shape)
+        prob['comp.coll_pts_w_frame'] = np.random.random(prob['comp.coll_pts_w_frame'].shape)
+        prob['comp.bound_vecs_w_frame'] = np.random.random(prob['comp.bound_vecs_w_frame'].shape)
+        prob['comp.rotational_velocities_w_frame'] = np.random.random(prob['comp.rotational_velocities_w_frame'].shape)
+        prob['comp.wing_def_mesh_w_frame'] = np.random.random(prob['comp.wing_def_mesh_w_frame'].shape)
+        prob['comp.tail_def_mesh_w_frame'] = np.random.random(prob['comp.tail_def_mesh_w_frame'].shape)
+        prob['comp.tail_normals_w_frame'] = np.random.random(prob['comp.tail_normals_w_frame'].shape)
+        prob['comp.wing_normals_w_frame'] = np.random.random(prob['comp.wing_normals_w_frame'].shape)
+
+        prob.run_model()
+
+        check = prob.check_partials(compact_print=True, method='cs', step=1e-40)
+
+        assert_check_partials(check)
+
+    def test_scale_from_pg(self):
+        surfaces = get_default_surfaces()
+
+        comp = ScaleFromPrandtlGlauert(surfaces=surfaces)
+
+        prob = Problem()
+        prob.model.add_subsystem('comp', comp)
+        prob.setup(force_alloc_complex=True)
+
+        prob['comp.MachNumber'] = np.random.random(prob['comp.MachNumber'].shape)
+        prob['comp.wing_sec_forces_pg'] = np.random.random(prob['comp.wing_sec_forces_pg'].shape)
+        prob['comp.tail_sec_forces_pg'] = np.random.random(prob['comp.tail_sec_forces_pg'].shape)
+
+        prob.run_model()
+
+        check = prob.check_partials(compact_print=True, method='cs', step=1e-40)
+
+        assert_check_partials(check)
+
     #def test_derivatives(self):
         #surfaces = get_default_surfaces()
 
