@@ -35,16 +35,28 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
     Parameters
     ----------
     def_mesh_w_frame[nx, ny, 3] : numpy array
-        Array defining the nodal coordinates of the lifting surface in wind frame.
-    bound_vecs_w_frame[nx-1, ny, 3] : numpy array
-        Bound points for the horseshoe vortices in wind frame.
-    coll_pts_w_frame[nx-1, ny-1, 3] : numpy array
-        Collocation points on the 3/4 chord line where the flow tangency
-        condition is satisfed in wind frame.
+        Array defining the nodal coordinates of the lifting surface in aero
+        frame.
+    bound_vecs_w_frame[num_eval_points, 3] : numpy array
+        The vectors representing the bound vortices for each panel in the
+        problem.
+        This array contains points for all lifting surfaces in the problem.
+    coll_pts_w_frame[num_eval_points, 3] : numpy array
+        The xyz coordinates of the collocation points used in the VLM analysis.
+        This array contains points for all lifting surfaces in the problem.
+    force_pts_w_frame[num_eval_points, 3] : numpy array
+        The xyz coordinates of the force points used in the VLM analysis.
+        We evaluate the velocity of the air at these points to get the sectional
+        forces acting on the panel. This includes both the freestream and the
+        induced velocity acting at these points.
+        This array contains points for all lifting surfaces in the problem.
     normals_w_frame[nx-1, ny-1, 3] : numpy array
-        The normal vector for each panel in wind frame.
-    v_rot_w_frame[nx-1, ny-1, 3] : numpy array
-        Velocity component at collocation points due to rotational velocity in wind frame.
+        The normal vector for each panel in aero frame, computed as the cross of
+        the two diagonals from the mesh points.
+    rotational_velocities_w_frame[num_eval_points, 3] : numpy array
+        The rotated freestream velocities at each evaluation point for all
+        lifting surfaces.
+        This array contains points for all lifting surfaces in the problem.
 
     M : float
         Freestream Mach number.
@@ -53,13 +65,15 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
     -------
     def_mesh_pg[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface in PG frame.
-    bound_vecs_pg[nx-1, ny, 3] : numpy array
+    bound_vecs_pg[num_eval_points, 3] : numpy array
         Bound points in PG frame.
-    coll_pts_pg[nx-1, ny-1, 3] : numpy array
+    coll_pts_pg[num_eval_points, 3] : numpy array
         Collocation points in PG frame.
+    force_pts_pg[num_eval_points, 3] : numpy array
+        Force points in PG frame.
     normals_pg[nx-1, ny-1, 3] : numpy array
         The normal vector for each panel in PG frame.
-    v_rot_pg[nx-1, ny-1, 3] : numpy array
+    rotational_velocities_pg[num_eval_points, 3] : numpy array
         Velocity component at collocation points due to rotational velocity in PG frame.
     """
 
@@ -82,12 +96,14 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
 
             num_eval_points += (nx - 1) * (ny - 1)
 
-        self.add_input('MachNumber', val=0.)
+        self.add_input('Mach_number', val=0.)
 
         self.add_input('coll_pts_w_frame', shape=(num_eval_points, 3), units='m')
+        self.add_input('force_pts_w_frame', shape=(num_eval_points, 3), units='m')
         self.add_input('bound_vecs_w_frame', shape=(num_eval_points, 3), units='m')
 
         self.add_output('coll_pts_pg', shape=(num_eval_points, 3), units='m')
+        self.add_output('force_pts_pg', shape=(num_eval_points, 3), units='m')
         self.add_output('bound_vecs_pg', shape=(num_eval_points, 3), units='m')
 
         if rotational:
@@ -114,11 +130,12 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
 
         # We'll compute all of sensitivities associated with Mach number through
         # complex-step. Since it's a scalar this is pretty cheap.
-        self.declare_partials('*', 'MachNumber', method='cs')
+        self.declare_partials('*', 'Mach_number', method='cs')
 
         row_col = np.arange(num_eval_points*3)
 
         self.declare_partials('coll_pts_pg', 'coll_pts_w_frame', rows=row_col, cols=row_col)
+        self.declare_partials('force_pts_pg', 'force_pts_w_frame', rows=row_col, cols=row_col)
         self.declare_partials('bound_vecs_pg', 'bound_vecs_w_frame', rows=row_col, cols=row_col)
 
         if rotational:
@@ -147,7 +164,7 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
     def compute(self, inputs, outputs):
         rotational = self.options['rotational']
 
-        M = inputs['MachNumber']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
 
         outputs['bound_vecs_pg'] = inputs['bound_vecs_w_frame']
@@ -157,6 +174,10 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
         outputs['coll_pts_pg'] = inputs['coll_pts_w_frame']
         outputs['coll_pts_pg'][:, 1] *= betaPG
         outputs['coll_pts_pg'][:, 2] *= betaPG
+
+        outputs['force_pts_pg'] = inputs['force_pts_w_frame']
+        outputs['force_pts_pg'][:, 1] *= betaPG
+        outputs['force_pts_pg'][:, 2] *= betaPG
 
         if rotational:
             outputs['rotational_velocities_pg'] = inputs['rotational_velocities_w_frame']
@@ -183,7 +204,7 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         rotational = self.options['rotational']
 
-        M = inputs['MachNumber']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
         fact = np.array([1.0, betaPG, betaPG], M.dtype).flatten()
         fact_norm = np.array([betaPG, 1.0, 1.0], M.dtype).flatten()
@@ -191,6 +212,7 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
 
         partials['bound_vecs_pg', 'bound_vecs_w_frame'] = np.tile(fact, num_eval_pts)
         partials['coll_pts_pg', 'coll_pts_w_frame'] = np.tile(fact, num_eval_pts)
+        partials['force_pts_pg', 'force_pts_w_frame'] = np.tile(fact, num_eval_pts)
 
         if rotational:
             fact_rot = np.array([betaPG**2, betaPG, betaPG], M.dtype).flatten()
@@ -245,11 +267,11 @@ class ScaleFromPrandtlGlauert(ExplicitComponent):
 
     def setup(self):
 
-        self.add_input('MachNumber', val=0.)
+        self.add_input('Mach_number', val=0.)
 
         # We'll compute all of sensitivities associated with Mach number through
         # complex-step. Since it's a scalar this is pretty cheap.
-        self.declare_partials('*', 'MachNumber', method='cs')
+        self.declare_partials('*', 'Mach_number', method='cs')
 
         for surface in self.options['surfaces']:
             mesh = surface['mesh']
@@ -269,7 +291,7 @@ class ScaleFromPrandtlGlauert(ExplicitComponent):
             self.declare_partials(of_name, wrt_name, rows=row_col, cols=row_col)
 
     def compute(self, inputs, outputs):
-        M = inputs['MachNumber']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
 
         for surface in self.options['surfaces']:
@@ -283,7 +305,7 @@ class ScaleFromPrandtlGlauert(ExplicitComponent):
             outputs[of_name][:, :, 2] *= (1.0/betaPG**3)
 
     def compute_partials(self, inputs, partials):
-        M = inputs['MachNumber']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
 
         term1 = 1.0/betaPG**4

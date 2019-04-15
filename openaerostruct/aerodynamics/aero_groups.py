@@ -47,7 +47,7 @@ class AeroPoint(Group):
             self.connect(name + '.S_ref', 'total_perf.' + name + '_S_ref')
             self.connect(name + '.widths', 'total_perf.' + name + '_widths')
             self.connect(name + '.chords', 'total_perf.' + name + '_chords')
-            self.connect(name + '.bound_vecs', 'total_perf.' + name + '_bound_vecs')
+            self.connect(name + '.b_pts', 'total_perf.' + name + '_b_pts')
             self.connect(name + '_perf' + '.CL', 'total_perf.' + name + '_CL')
             self.connect(name + '_perf' + '.CD', 'total_perf.' + name + '_CD')
             self.connect('aero_states.' + name + '_sec_forces',
@@ -62,7 +62,7 @@ class AeroPoint(Group):
         # each surface interacts with the others.
         if self.options['compressible'] == True:
             aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
-            prom_in = ['v', 'alpha', 'beta', 'rho', 'M']
+            prom_in = ['v', 'alpha', 'beta', 'rho', 'Mach_number']
         else:
             aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
             prom_in = ['v', 'alpha', 'beta', 'rho']

@@ -13,6 +13,7 @@ from openaerostruct.aerodynamics.eval_velocities import EvalVelocities
 from openaerostruct.aerodynamics.mesh_point_forces import MeshPointForces
 from openaerostruct.aerodynamics.panel_forces import PanelForces
 from openaerostruct.aerodynamics.panel_forces_surf import PanelForcesSurf
+from openaerostruct.aerodynamics.rotational_velocity import RotationalVelocity
 from openaerostruct.aerodynamics.vortex_mesh import VortexMesh
 
 from openaerostruct.aerodynamics.pg_transform import PGTransform, InversePGTransform
@@ -59,41 +60,45 @@ class CompressibleVLMStates(Group):
         # Get collocation points
         self.add_subsystem('collocation_points',
              CollocationPoints(surfaces=surfaces),
-             promotes_inputs=['*'],
-             promotes_outputs=['force_pts'])
+             promotes_inputs=['*'])
 
         # Convert freestream velocity to array of velocities
         if rotational:
             self.add_subsystem('rotational_velocity',
                  RotationalVelocity(surfaces=surfaces),
-                 promotes_inputs=['alpha', 'beta', 'MachNumber'])
+                 promotes_inputs=['cg', 'omega'])
+
+            self.connect('collocation_points.coll_pts', 'rotational_velocity.coll_pts')
 
         #----------------------------------------
         # Step 1: Transform geometry to PG domain
         #----------------------------------------
 
-        self.add_subsystem('pg_transform', PGTransform(surfaces=surfaces),
-            promotes_inputs=['alpha', 'beta', 'MachNumber'])
+        self.connect('collocation_points.coll_pts', 'pg_transform.coll_pts')
+        self.connect('collocation_points.bound_vecs', 'pg_transform.bound_vecs')
+        self.connect('collocation_points.force_pts', 'pg_transform.force_pts')
+        if rotational:
+            self.connect('rotational_velocity.rotational_velocities', 'pg_transform.rotational_velocities')
 
+        prom_in = ['alpha', 'beta', 'Mach_number']
         for surface in surfaces:
             name = surface['name']
+            vname = surface['name'] + '_def_mesh'
+            prom_in.append(vname)
+            self.connect('pg_transform.' + vname + '_pg', 'vortex_mesh.' + vname)
 
-            self.connect('collocation_points.coll_pts', 'pg_transform')
+            vname = surface['name'] + '_normals'
+            prom_in.append(vname)
+            self.connect('pg_transform.' + vname + '_pg', 'mtx_rhs.' + vname)
 
-        ##self.connect('pg_transform.alpha_pg', 'pg_states.alpha')
-        ##self.connect('pg_transform.beta_pg', 'pg_states.beta')
-        #for surface in surfaces:
-            #name = surface['name']
-            #self.connect('pg_transform.' + name + '.def_mesh_pg',
-                #'pg_states.' + name + '.def_mesh')
-            #self.connect('pg_transform.' + name + '.bound_vecs_pg',
-                #'pg_states.' + name + '.bound_vecs')
-            #self.connect('pg_transform.' + name + '.coll_pts_pg',
-                #'pg_states.' + name + '.coll_pts')
-            #self.connect('pg_transform.' + name + '.normals_pg',
-                #'pg_states.' + name + '.normals')
-            #self.connect('pg_transform.' + name + '.v_rot_pg',
-                #'pg_states.' + name + '.v_rot')
+        self.add_subsystem('pg_transform', PGTransform(surfaces=surfaces, rotational=rotational),
+            promotes_inputs=prom_in)
+
+        self.connect('pg_transform.coll_pts_pg', 'coll_pts')
+        self.connect('pg_transform.bound_vecs_pg', 'bound_vecs')
+        self.connect('pg_transform.force_pts_pg', 'force_pts')
+        if rotational:
+            self.connect('pg_transform.rotational_velocities_pg', 'rotational_velocities')
 
         #---------------------------------------------------
         # Step 2: Solve incompressible problem in PG domain
@@ -102,7 +107,6 @@ class CompressibleVLMStates(Group):
         # Compute the vortex mesh based off the deformed aerodynamic mesh
         self.add_subsystem('vortex_mesh',
             VortexMesh(surfaces=surfaces),
-            promotes_inputs=['*'],
             promotes_outputs=['*'])
 
         # Get vectors from mesh points to collocation points
@@ -128,7 +132,7 @@ class CompressibleVLMStates(Group):
         # Construct RHS and full matrix of system
         self.add_subsystem('mtx_rhs',
              VLMMtxRHSComp(surfaces=surfaces),
-             promotes_inputs=['*'],
+             promotes_inputs=['freestream_velocities', '*coll_pts_vel_mtx'],
              promotes_outputs=['*'])
 
         # Solve Mtx RHS to get ring circs
@@ -173,26 +177,30 @@ class CompressibleVLMStates(Group):
         # Get panel forces for each lifting surface individually
         self.add_subsystem('panel_forces_surf',
              PanelForcesSurf(surfaces=surfaces),
-             promotes_inputs=['*'],
-             promotes_outputs=['*'])
-
-        # Get nodal forces for each lifting surface individually
-        self.add_subsystem('mesh_point_forces_surf',
-             MeshPointForces(surfaces=surfaces),
-             promotes_inputs=['*'],
-             promotes_outputs=['*'])
-        #sec_force_prom_list = []
-        #node_force_prom_list = []
-        #for surface in surfaces:
-            #name = surface['name']
-            #self.connect('pg_states.' + name + '.sec_forces',
-                #'inverse_pg_transform.' + name + '.sec_forces_pg')
-            #self.connect('pg_states.' + name + '.node_forces',
-                #'inverse_pg_transform.' + name + '.node_forces_pg')
+             promotes_inputs=['*'])
 
         #-----------------------------------------------------------
         # Step 3: Transform forces from PG domain to physical domain
         #-----------------------------------------------------------
 
+        prom_out = []
+        for surface in surfaces:
+            name = surface['name']
+            vname = surface['name'] + '_sec_forces'
+            prom_out.append(vname)
+            self.connect('panel_forces_surf.' + vname, 'inverse_pg_transform.' + vname + '_pg')
+
         self.add_subsystem('inverse_pg_transform', InversePGTransform(surfaces=surfaces),
-            promotes_inputs=['alpha', 'beta', 'M'], promotes_outputs=['*forces'])
+            promotes_inputs=['alpha', 'beta', 'Mach_number'],
+            promotes_outputs=prom_out)
+
+        #---------------------------------------------------------------
+        # Step 4: Mesh point forces are downatream, already transformed.
+        #---------------------------------------------------------------
+
+        # Get nodal forces for each lifting surface individually
+        self.add_subsystem('mesh_point_forces_surf',
+             MeshPointForces(surfaces=surfaces),
+             promotes_inputs=['*'],
+             promotes_outputs=['*'])
+

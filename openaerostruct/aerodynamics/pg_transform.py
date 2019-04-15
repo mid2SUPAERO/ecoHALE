@@ -72,21 +72,18 @@ class InversePGTransform(Group):
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
-        self.options.declare('rotational', False, types=bool,
-                             desc="Set to True to turn on support for computing angular velocities")
 
     def setup(self):
         surfaces = self.options['surfaces']
-        rotational = self.options['rotational']
 
         # Scale force vectors back to compressible values
-        scale_sys = ScaleFromPrandtlGlauert(surfaces=surfaces, rotational=rotational)
+        scale_sys = ScaleFromPrandtlGlauert(surfaces=surfaces)
         self.add_subsystem('scale', scale_sys,
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])
 
         # Rotate forces back to aerodynamic frame
-        rot_sys = RotateFromWindFrame(surfaces=surfaces, rotational=rotational)
+        rot_sys = RotateFromWindFrame(surfaces=surfaces)
         self.add_subsystem('rotate', rot_sys,
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])

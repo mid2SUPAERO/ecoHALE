@@ -85,7 +85,7 @@ class Test(unittest.TestCase):
         for i in range(1):
 
             # Create the aero point group and add it to the model
-            aero_group = AeroPoint(surfaces=surfaces, compressible=True)
+            aero_group = AeroPoint(surfaces=surfaces, compressible=True, rotational=True)
             point_name = 'aero_point_{}'.format(i)
             prob.model.add_subsystem(point_name, aero_group)
 
@@ -116,8 +116,8 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        assert_rel_error(self, prob['aero_point_0.wing.CD'][0], 0.042640338981881076, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.wing.CL'][0], 0.7007529249715114, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.042640338981881076, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.7007529249715114, 1e-6)
         assert_rel_error(self, prob['aero_point_0.CM'][1], -2.403067220302201, 1e-6)
 
 

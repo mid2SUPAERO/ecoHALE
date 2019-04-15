@@ -30,6 +30,12 @@ class RotateToWindFrame(ExplicitComponent):
     coll_pts[num_eval_points, 3] : numpy array
         The xyz coordinates of the collocation points used in the VLM analysis.
         This array contains points for all lifting surfaces in the problem.
+    force_pts[num_eval_points, 3] : numpy array
+        The xyz coordinates of the force points used in the VLM analysis.
+        We evaluate the velocity of the air at these points to get the sectional
+        forces acting on the panel. This includes both the freestream and the
+        induced velocity acting at these points.
+        This array contains points for all lifting surfaces in the problem.
     normals[nx-1, ny-1, 3] : numpy array
         The normal vector for each panel in aero frame, computed as the cross of
         the two diagonals from the mesh points.
@@ -47,14 +53,16 @@ class RotateToWindFrame(ExplicitComponent):
     def_mesh_w_frame[nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface in wind
         frame.
-    bound_vecs_w_frame[nx-1, ny, 3] : numpy array
+    bound_vecs_w_frame[num_eval_points, 3] : numpy array
         Bound points for the horseshoe vortices in wind frame.
-    coll_pts_w_frame[nx-1, ny-1, 3] : numpy array
+    coll_pts_w_frame[num_eval_points, 3] : numpy array
         Collocation points on the 3/4 chord line where the flow tangency
         condition is satisfed in wind frame.
+    force_pts_w_frame[num_eval_points, 3] : numpy array
+        Force pts in wind frame.
     normals_w_frame[nx-1, ny-1, 3] : numpy array
         The normal vector for each panel in wind frame.
-    v_rot_w_frame[nx-1, ny-1, 3] : numpy array
+    rotational_velocities_w_frame[num_eval_points, 3] : numpy array
         Velocity component at collecation points due to rotational velocity in
         wind frame.
     """
@@ -81,9 +89,11 @@ class RotateToWindFrame(ExplicitComponent):
         self.add_input('alpha', val=0., units='rad')
         self.add_input('beta', val=0., units='rad')
         self.add_input('coll_pts', shape=(num_eval_points, 3), units='m')
+        self.add_input('force_pts', shape=(num_eval_points, 3), units='m')
         self.add_input('bound_vecs', shape=(num_eval_points, 3), units='m')
 
         self.add_output('coll_pts_w_frame', shape=(num_eval_points, 3), units='m')
+        self.add_output('force_pts_w_frame', shape=(num_eval_points, 3), units='m')
         self.add_output('bound_vecs_w_frame', shape=(num_eval_points, 3), units='m')
 
         if rotational:
@@ -121,6 +131,7 @@ class RotateToWindFrame(ExplicitComponent):
         cols = np.tile(col, num_eval_points) + np.repeat(3*np.arange(num_eval_points), 9)
 
         self.declare_partials('coll_pts_w_frame', 'coll_pts', rows=rows, cols=cols)
+        self.declare_partials('force_pts_w_frame', 'force_pts', rows=rows, cols=cols)
         self.declare_partials('bound_vecs_w_frame', 'bound_vecs', rows=rows, cols=cols)
 
         if rotational:
@@ -167,6 +178,8 @@ class RotateToWindFrame(ExplicitComponent):
         # Use einsum for fast vectorized matrix multiplication
         outputs['bound_vecs_w_frame'] = np.einsum('lk,jk->jl', Tw, inputs['bound_vecs'])
         outputs['coll_pts_w_frame'] = np.einsum('lk,jk->jl', Tw, inputs['coll_pts'])
+        outputs['force_pts_w_frame'] = np.einsum('lk,jk->jl', Tw, inputs['force_pts'])
+
         if rotational:
             outputs['rotational_velocities_w_frame'] = \
                 np.einsum('lk,jk->jl', Tw, inputs['rotational_velocities'])
@@ -201,6 +214,7 @@ class RotateToWindFrame(ExplicitComponent):
 
 
         partials['coll_pts_w_frame', 'coll_pts'] = np.tile(Tw, num_eval_pts)
+        partials['force_pts_w_frame', 'force_pts'] = np.tile(Tw, num_eval_pts)
         partials['bound_vecs_w_frame', 'bound_vecs'] = np.tile(Tw, num_eval_pts)
 
         if rotational:
