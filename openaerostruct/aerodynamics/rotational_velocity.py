@@ -88,18 +88,10 @@ class RotationalVelocity(ExplicitComponent):
         c_pts = inputs['coll_pts']
 
         surfaces = self.options['surfaces']
-        idx = 0
-        for j, surface in enumerate(surfaces):
-            mesh = surface['mesh']
-            nx = mesh.shape[0]
-            ny = mesh.shape[1]
-            size = (nx - 1) * (ny - 1)
+        for j in np.arange(c_pts.shape[0]):
+            r = c_pts[j, :] - cg
 
-            r = c_pts[idx:idx+size, :] - cg
-
-            outputs['rotational_velocities'][idx:idx+size, :] += np.cross(omega, r)
-
-            idx += size
+            outputs['rotational_velocities'][j, :] = np.cross(omega, r)
 
     def compute_partials(self, inputs, J):
         cg = inputs['cg']

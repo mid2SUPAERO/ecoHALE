@@ -8,6 +8,7 @@ from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFuncti
 from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
+from openaerostruct.aerodynamics.compressible_states import CompressibleVLMStates
 from openaerostruct.structures.tube_group import TubeGroup
 from openaerostruct.structures.wingbox_group import WingboxGroup
 
@@ -143,9 +144,15 @@ class AerostructPoint(Group):
         self.options.declare('surfaces', types=list)
         self.options.declare('user_specified_Sref', types=bool, default=False)
         self.options.declare('internally_connect_fuelburn', types=bool, default=True)
+        self.options.declare('compressible', types=bool, default=False,
+                             desc='Turns on compressibility correction for moderate Mach number '
+                             'flows. Defaults to False.')
+        self.options.declare('rotational', False, types=bool,
+                             desc="Set to True to turn on support for computing angular velocities")
 
     def setup(self):
         surfaces = self.options['surfaces']
+        rotational = self.options['rotational']
 
         coupled = Group()
 
@@ -203,11 +210,17 @@ class AerostructPoint(Group):
 
             coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=promotes)
 
+        if self.options['compressible'] == True:
+            aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
+            prom_in = ['v', 'alpha', 'beta', 'rho', 'Mach_number']
+        else:
+            aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
+            prom_in = ['v', 'alpha', 'beta', 'rho']
+
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
-        coupled.add_subsystem('aero_states',
-            VLMStates(surfaces=surfaces),
-            promotes_inputs=['v', 'alpha', 'rho'])
+        coupled.add_subsystem('aero_states', aero_states,
+            promotes_inputs=prom_in)
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.

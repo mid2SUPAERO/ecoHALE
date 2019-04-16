@@ -124,9 +124,13 @@ class CompressibleVLMStates(Group):
              promotes_outputs=['*'])
 
         # Convert freestream velocity to array of velocities
+        # Note, don't want to promote Alpha or Beta here because we are in the transformed system.
+        prom_in = ['v']
+        if rotational:
+            prom_in.append('rotational_velocities')
         self.add_subsystem('convert_velocity',
              ConvertVelocity(surfaces=surfaces, rotational=rotational),
-             promotes_inputs=['*'],
+             promotes_inputs=prom_in,
              promotes_outputs=['*'])
 
         # Construct RHS and full matrix of system
@@ -155,10 +159,11 @@ class CompressibleVLMStates(Group):
              promotes_outputs=['*'])
 
         # Set up force mtx
+        # Note, don't want to promote Alpha here because we are in the transformed system.
         self.add_subsystem('mtx_assy_forces',
              EvalVelMtx(surfaces=surfaces, num_eval_points=num_force_points,
                 eval_name='force_pts'),
-             promotes_inputs=['*'],
+             promotes_inputs=['*_force_pts_vectors'],
              promotes_outputs=['*'])
 
         # Multiply by horseshoe circs to get velocities

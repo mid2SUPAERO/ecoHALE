@@ -4,11 +4,11 @@ import unittest
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
-from openaerostruct.geometry.geometry_group import Geometry
 
-from openaerostruct.integration.aerostruct_groups import Aerostruct, AerostructPoint
+from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
+from openaerostruct.utils.constants import grav_constant
 
 
 class Test(unittest.TestCase):
@@ -26,7 +26,6 @@ class Test(unittest.TestCase):
         surf_dict = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
-                    'type' : 'aerostruct',
                     'symmetry' : True,     # if true, model one half of wing
                                             # reflected across the plane y = 0
                     'S_ref_type' : 'wetted', # how we compute the wing area,
@@ -50,10 +49,11 @@ class Test(unittest.TestCase):
                     # Airfoil properties for viscous drag calculation
                     'k_lam' : 0.05,         # percentage of chord with laminar
                                             # flow, used for viscous drag
-                    't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
                     'with_viscous' : True,
+                    'with_wave' : False,     # if true, compute wave drag
 
                     # Structural values are based on aluminum 7075
                     'E' : 70.e9,            # [Pa] Young's modulus of the spar
@@ -62,7 +62,8 @@ class Test(unittest.TestCase):
                     'mrho' : 3.e3,          # [kg/m^3] material density
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 2.,
-
+                    'struct_weight_relief' : False,    # True to add the weight of the structure to the loads on the structure
+                    'distributed_fuel_weight' : False,
                     # Constraints
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
@@ -76,13 +77,13 @@ class Test(unittest.TestCase):
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
         indep_var_comp.add_output('alpha', val=5., units='deg')
-        indep_var_comp.add_output('M', val=0.84)
+        indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
-        indep_var_comp.add_output('CT', val=9.80665 * 17.e-6, units='1/s')
+        indep_var_comp.add_output('CT', val=grav_constant * 17.e-6, units='1/s')
         indep_var_comp.add_output('R', val=11.165e6, units='m')
         indep_var_comp.add_output('W0', val=0.4 * 3e5,  units='kg')
-        indep_var_comp.add_output('a', val=295.4, units='m/s')
+        indep_var_comp.add_output('speed_of_sound', val=295.4, units='m/s')
         indep_var_comp.add_output('load_factor', val=1.)
         indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 
@@ -97,7 +98,7 @@ class Test(unittest.TestCase):
             # only for this surface
             name = surface['name']
 
-            aerostruct_group = Aerostruct(surface=surface)
+            aerostruct_group = AerostructGeometry(surface=surface)
 
             # Add tmp_group to the problem with the name of the surface.
             prob.model.add_subsystem(name, aerostruct_group)
@@ -116,34 +117,32 @@ class Test(unittest.TestCase):
             # Connect flow properties to the analysis point
             prob.model.connect('v', point_name + '.v')
             prob.model.connect('alpha', point_name + '.alpha')
-            prob.model.connect('M', point_name + '.M')
+            prob.model.connect('Mach_number', point_name + '.Mach_number')
             prob.model.connect('re', point_name + '.re')
             prob.model.connect('rho', point_name + '.rho')
             prob.model.connect('CT', point_name + '.CT')
             prob.model.connect('R', point_name + '.R')
             prob.model.connect('W0', point_name + '.W0')
-            prob.model.connect('a', point_name + '.a')
+            prob.model.connect('speed_of_sound', point_name + '.speed_of_sound')
             prob.model.connect('empty_cg', point_name + '.empty_cg')
             prob.model.connect('load_factor', point_name + '.load_factor')
 
             for surface in surfaces:
 
-                prob.model.connect('load_factor', name + '.load_factor')
-
                 com_name = point_name + '.' + name + '_perf'
-                prob.model.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+                prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
+                prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
                 # Connect aerodyamic mesh to coupled group mesh
                 prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
-                prob.model.connect(name + '.element_weights', point_name + '.coupled.' + name + '.element_weights')
 
                 # Connect performance calculation variables
                 prob.model.connect(name + '.radius', com_name + '.radius')
                 prob.model.connect(name + '.thickness', com_name + '.thickness')
                 prob.model.connect(name + '.nodes', com_name + '.nodes')
                 prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
-                prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
-
+                prob.model.connect(name + '.structural_mass', point_name + '.' + 'total_perf.' + name + '_structural_mass')
+                prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
         # Set up the problem
         prob.setup()
