@@ -1,7 +1,8 @@
 """
 Class definition for CompressibleVLMStates.
 """
-from openmdao.api import Group
+from openmdao.api import Group, IndepVarComp
+
 from openaerostruct.aerodynamics.get_vectors import GetVectors
 from openaerostruct.aerodynamics.collocation_points import CollocationPoints
 from openaerostruct.aerodynamics.eval_mtx import EvalVelMtx
@@ -116,12 +117,16 @@ class CompressibleVLMStates(Group):
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 
+        self.add_subsystem('fixed_alpha', IndepVarComp('alpha', 0.0))
+
         # Construct matrix based on rings, not horseshoes
         self.add_subsystem('mtx_assy',
              EvalVelMtx(surfaces=surfaces, num_eval_points=num_collocation_points,
                 eval_name='coll_pts'),
-             promotes_inputs=['*'],
+             promotes_inputs=['*_vectors'],
              promotes_outputs=['*'])
+
+        self.connect('fixed_alpha.alpha', 'mtx_assy.alpha')
 
         # Convert freestream velocity to array of velocities
         # Note, don't want to promote Alpha or Beta here because we are in the transformed system.
@@ -165,6 +170,8 @@ class CompressibleVLMStates(Group):
                 eval_name='force_pts'),
              promotes_inputs=['*_force_pts_vectors'],
              promotes_outputs=['*'])
+
+        self.connect('fixed_alpha.alpha', 'mtx_assy_forces.alpha')
 
         # Multiply by horseshoe circs to get velocities
         self.add_subsystem('eval_velocities',

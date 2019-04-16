@@ -235,7 +235,6 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
             partials[of_name, wrt_name] = np.tile(fact_norm, nn)
 
 
-
 class ScaleFromPrandtlGlauert(ExplicitComponent):
     """
     Scale the Prandtl-Glauert transformed forces to get the physical forces

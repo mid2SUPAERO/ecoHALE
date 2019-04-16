@@ -85,7 +85,7 @@ class Test(unittest.TestCase):
         for i in range(1):
 
             # Create the aero point group and add it to the model
-            aero_group = AeroPoint(surfaces=surfaces, compressible=True, rotational=True)
+            aero_group = AeroPoint(surfaces=surfaces, compressible=True, rotational=False)
             point_name = 'aero_point_{}'.format(i)
             prob.model.add_subsystem(point_name, aero_group)
 
