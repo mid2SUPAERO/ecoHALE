@@ -217,7 +217,9 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 prob.setup()
 
 # Use this if you just want to run analysis and not optimization
-# prob.run_model()
+prob.run_model()
 
+print(prob['wing.structural_mass'])
 # Actually run the optimization problem
 prob.run_driver()
+print(prob['wing.structural_mass'])
