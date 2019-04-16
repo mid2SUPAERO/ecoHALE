@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.utils.assert_utils import assert_rel_error
 from openmdao.api import Group, IndepVarComp
-from openaerostruct.structures.add_point_masses import AddPointMasses
+from openaerostruct.structures.compute_point_mass_loads import ComputePointMassLoads
 from openaerostruct.utils.testing import run_test, get_default_surfaces
 
 
@@ -17,7 +17,7 @@ class Test(unittest.TestCase):
 
         surface['n_point_masses'] = 2
 
-        comp = AddPointMasses(surface=surface)
+        comp = ComputePointMassLoads(surface=surface)
 
         group = Group()
 
@@ -40,7 +40,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
-        group.add_subsystem('add_point_masses', comp, promotes=['*'])
+        group.add_subsystem('compute_point_mass_loads', comp, promotes=['*'])
 
         prob = run_test(self, group,  complex_flag=True, step=1e-8, atol=1e-5, compact_print=True)
 
@@ -50,7 +50,7 @@ class Test(unittest.TestCase):
 
         surface['n_point_masses'] = 1
 
-        comp = AddPointMasses(surface=surface)
+        comp = ComputePointMassLoads(surface=surface)
 
         group = Group()
 
@@ -72,7 +72,7 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
         group.add_subsystem('indep_var_comp', indep_var_comp, promotes=['*'])
-        group.add_subsystem('add_point_masses', comp, promotes=['*'])
+        group.add_subsystem('compute_point_mass_loads', comp, promotes=['*'])
 
         prob = run_test(self, group,  complex_flag=True, step=1e-8, atol=1e-5, compact_print=True)
 
