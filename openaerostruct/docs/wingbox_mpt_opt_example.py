@@ -154,10 +154,10 @@ point_mass_locations = np.array([[25, -10., 0.]])
 indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
 indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
- # Compute the actual W0 to be used within OAS based on the sum of the point mass and other W0 weight
- prob.model.add_subsystem('W0_comp',
-     ExecComp('W0 = W0_without_point_masses + sum(point_masses)', units='kg'),
-     promotes=['*'])
+# Compute the actual W0 to be used within OAS based on the sum of the point mass and other W0 weight
+prob.model.add_subsystem('W0_comp',
+    ExecComp('W0 = W0_without_point_masses + sum(point_masses)', units='kg'),
+    promotes=['*'])
 
 #docs checkpoint 13
 
@@ -263,7 +263,7 @@ if surf_dict['distributed_fuel_weight']:
 
 #docs checkpoint 19
 
-comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
+comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
 prob.model.add_subsystem('fuel_diff', comp,
     promotes_inputs=['fuel_mass'],
     promotes_outputs=['fuel_diff'])

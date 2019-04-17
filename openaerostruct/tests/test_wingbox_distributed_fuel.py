@@ -193,7 +193,7 @@ class Test(unittest.TestCase):
             prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_0.coupled.wing.struct_states.fuel_vols')
             prob.model.connect('fuel_mass', 'AS_point_0.coupled.wing.struct_states.fuel_mass')
 
-            comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
+            comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
             prob.model.add_subsystem('fuel_diff', comp,
                 promotes_inputs=['fuel_mass'],
                 promotes_outputs=['fuel_diff'])

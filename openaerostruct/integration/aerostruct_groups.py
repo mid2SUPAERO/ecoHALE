@@ -232,7 +232,7 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['maxiter'] = 100
         coupled.nonlinear_solver.options['atol'] = 1e-7
         coupled.nonlinear_solver.options['rtol'] = 1e-30
-        coupled.nonlinear_solver.options['iprint'] = -1
+        coupled.nonlinear_solver.options['iprint'] = 1
         coupled.nonlinear_solver.options['err_on_maxiter'] = True
 
         # coupled.linear_solver = DirectSolver()
