@@ -262,7 +262,7 @@ prob.driver.add_recorder(recorder)
 
 # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.
 prob.driver.recording_options['includes'] = [
-    'alpha', 'rho', 'v', 'cg',
+    'alpha', 'rho', 'v', 'cg', 'point_mass_locations',
     'AS_point_1.cg', 'AS_point_0.cg',
     'AS_point_0.coupled.wing_loads.loads',
     'AS_point_1.coupled.wing_loads.loads',

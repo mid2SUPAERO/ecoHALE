@@ -144,6 +144,7 @@ class Display(object):
         self.S_ref = []
         self.obj = []
         self.cg = []
+        self.point_mass_locations = []
 
         pt_names = []
         for key in last_case.outputs:
@@ -243,6 +244,14 @@ class Display(object):
                     self.cg.append(case.outputs['{pt_name}.cg'.format(pt_name=pt_name)])
                 else:
                     self.cg.append(case.outputs['cg'])
+
+            # If there are point masses, save them
+            try:
+                self.point_mass_locations.append(case.outputs['point_mass_locations'])
+                self.point_masses_exist = True
+            except:
+                self.point_masses_exist = False
+                pass
 
         self.fem_origin_dict = {}
         self.yield_stress_dict = {}
@@ -358,6 +367,8 @@ class Display(object):
                 for j in range(n_names):
                     self.def_mesh[i*n_names+j] -= center / n_names
                 self.cg[i] -= center / n_names
+                if self.point_masses_exist:
+                    self.point_mass_locations[i] -= center / n_names
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters):
@@ -494,6 +505,12 @@ class Display(object):
 
                 # cg = self.cg[self.curr_pos]
                 # self.ax.scatter(cg[0], cg[1], cg[2], s=100, color='r')
+
+                if self.point_masses_exist:
+                    point_mass_loc = self.point_mass_locations[self.curr_pos][0]
+                    self.ax.scatter(point_mass_loc[0], point_mass_loc[1], point_mass_loc[2], s=100, color='b')
+                    if self.symmetry:
+                        self.ax.scatter(point_mass_loc[0], -point_mass_loc[1], point_mass_loc[2], s=100, color='b')
 
             if self.show_tube:
                 # Get the array of radii and thickness values for the FEM system
