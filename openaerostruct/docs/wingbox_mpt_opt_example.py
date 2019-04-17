@@ -102,7 +102,8 @@ surf_dict = {
             #docs checkpoint 8
 
             'fuel_density' : 803.,      # [kg/m^3] fuel density (only needed if the fuel-in-wing volume constraint is used)
-            'Wf_reserve' :15000.,       # [kg] reserve fuel mass
+            'Wf_reserve' : 15000.,       # [kg] reserve fuel mass
+            'n_point_masses' : 1,       # number of point masses in the system; in this case, the engine
 
             }
 
@@ -126,7 +127,7 @@ indep_var_comp.add_output('speed_of_sound', val= np.array([295.07, 340.294]), un
 
 indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
 indep_var_comp.add_output('R', val=14.307e6, units='m')
-indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
+indep_var_comp.add_output('W0_without_point_masses', val=148000 + surf_dict['Wf_reserve'] - 10.e3,  units='kg')
 
 #docs checkpoint 11
 
@@ -143,6 +144,20 @@ indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
 prob.model.add_subsystem('prob_vars',
      indep_var_comp,
      promotes=['*'])
+
+#docs checkpoint 12.5
+
+point_masses = np.array([[10.e3]])
+
+point_mass_locations = np.array([[25, -10., 0.]])
+
+indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
+
+# Compute the actual W0 to be used within OAS based on the sum of the point mass and other W0 weight
+prob.model.add_subsystem('W0_comp',
+    ExecComp('W0 = W0_without_point_masses + sum(point_masses)', units='kg'),
+    promotes=['*'])
 
 #docs checkpoint 13
 
@@ -222,6 +237,10 @@ for i in range(2):
         prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
         prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
+        coupled_name = point_name + '.coupled.' + name
+        prob.model.connect('point_masses', coupled_name + '.point_masses')
+        prob.model.connect('point_mass_locations', coupled_name + '.point_mass_locations')
+
 
 #docs checkpoint 17
 
@@ -244,7 +263,7 @@ if surf_dict['distributed_fuel_weight']:
 
 #docs checkpoint 19
 
-comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
+comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
 prob.model.add_subsystem('fuel_diff', comp,
     promotes_inputs=['fuel_mass'],
     promotes_outputs=['fuel_diff'])

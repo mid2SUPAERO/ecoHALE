@@ -42,8 +42,8 @@ lower_y = np.array([-0.0447, -0.046, -0.0473, -0.0485, -0.0496, -0.0506, -0.0515
 
 
 # Create a dictionary to store options about the surface
-mesh_dict = {'num_y' : 51,
-             'num_x' : 7,
+mesh_dict = {'num_y' : 31,
+             'num_x' : 3,
              'wing_type' : 'uCRM_based',
              'symmetry' : True,
              'chord_cos_spacing' : 0,
@@ -106,6 +106,8 @@ surf_dict = {
 
             'fuel_density' : 803.,      # [kg/m^3] fuel density (only needed if the fuel-in-wing volume constraint is used)
             'Wf_reserve' :15000.,       # [kg] reserve fuel mass
+
+            'n_point_masses' : 1,
             }
 
 surfaces = [surf_dict]
@@ -124,15 +126,27 @@ indep_var_comp.add_output('re',val=np.array([0.348*295.07*.85*1./(1.43*1e-5), \
 indep_var_comp.add_output('rho', val=np.array([0.348, 1.225]), units='kg/m**3')
 indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
 indep_var_comp.add_output('R', val=14.307e6, units='m')
-indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
 indep_var_comp.add_output('speed_of_sound', val= np.array([295.07, 340.294]), units='m/s')
 indep_var_comp.add_output('load_factor', val=np.array([1., 2.5]))
 indep_var_comp.add_output('empty_cg', val=np.zeros((3)), units='m')
 indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
+indep_var_comp.add_output('W0_without_point_masses', val=148000 + surf_dict['Wf_reserve'] - 10.e3,  units='kg')
+
+point_masses = np.array([[10.e3]])
+
+point_mass_locations = np.array([[25, -10., 0.]])
+
+indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
 prob.model.add_subsystem('prob_vars',
      indep_var_comp,
      promotes=['*'])
+
+# Compute the actual W0 to be used within OAS based on the sum of the point mass and other W0 weight
+prob.model.add_subsystem('W0_comp',
+    ExecComp('W0 = W0_without_point_masses + sum(point_masses)', units='kg'),
+    promotes=['*'])
 
 # Loop over each surface in the surfaces list
 for surface in surfaces:
@@ -204,6 +218,10 @@ for i in range(2):
         prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
         prob.model.connect(name + '.t_over_c', com_name + 't_over_c')
 
+        coupled_name = point_name + '.coupled.' + name
+        prob.model.connect('point_masses', coupled_name + '.point_masses')
+        prob.model.connect('point_mass_locations', coupled_name + '.point_mass_locations')
+
 prob.model.connect('alpha', 'AS_point_0' + '.alpha')
 prob.model.connect('alpha_maneuver', 'AS_point_1' + '.alpha')
 
@@ -219,14 +237,13 @@ if surf_dict['distributed_fuel_weight']:
     prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
     prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
 
-comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
+comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
 prob.model.add_subsystem('fuel_diff', comp,
     promotes_inputs=['fuel_mass'],
     promotes_outputs=['fuel_diff'])
 prob.model.connect('AS_point_0.fuelburn', 'fuel_diff.fuelburn')
 
-
-## Use these settings if you do not have pyOptSparse or SNOPT
+# Use these settings if you do not have pyOptSparse or SNOPT
 prob.driver = ScipyOptimizeDriver()
 prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['tol'] = 1e-8
@@ -245,7 +262,7 @@ prob.driver.add_recorder(recorder)
 
 # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.
 prob.driver.recording_options['includes'] = [
-    'alpha', 'rho', 'v', 'cg',
+    'alpha', 'rho', 'v', 'cg', 'point_mass_locations',
     'AS_point_1.cg', 'AS_point_0.cg',
     'AS_point_0.coupled.wing_loads.loads',
     'AS_point_1.coupled.wing_loads.loads',
@@ -294,9 +311,6 @@ prob.model.add_constraint('fuel_diff', equals=0.)
 
 # Set up the problem
 prob.setup()
-
-# from openmdao.api import view_model
-# view_model(prob)
 
 # prob.check_partials(form='central', compact_print=True)
 
@@ -500,7 +514,7 @@ class Test(unittest.TestCase):
             prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
             prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
 
-        comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
+        comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
         prob.model.add_subsystem('fuel_diff', comp,
             promotes_inputs=['fuel_mass'],
             promotes_outputs=['fuel_diff'])

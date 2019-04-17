@@ -62,18 +62,18 @@ class Test(unittest.TestCase):
              indep_var_comp,
              promotes=['*'])
 
-        prob.model.add_subsystem(surf_dict['name'], struct_group)
+        prob.model.add_subsystem(surf_dict['name'], struct_group, promotes=['*'])
 
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
 
         # Setup problem and add design variables, constraint, and objective
-        prob.model.add_design_var('wing.thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
-        prob.model.add_constraint('wing.failure', upper=0.)
-        prob.model.add_constraint('wing.thickness_intersects', upper=0.)
+        prob.model.add_design_var('thickness_cp', lower=0.01, upper=0.5, scaler=1e2)
+        prob.model.add_constraint('failure', upper=0.)
+        prob.model.add_constraint('thickness_intersects', upper=0.)
 
         # Add design variables, constraisnt, and objective on the problem
-        prob.model.add_objective('wing.structural_mass', scaler=1e-5)
+        prob.model.add_objective('structural_mass', scaler=1e-5)
 
         # Set up the problem
         prob.setup()
@@ -82,8 +82,8 @@ class Test(unittest.TestCase):
 
         prob.run_driver()
 
-        assert_rel_error(self, prob['wing.structural_mass'][0], 13601.162582, 1e-4)
-        assert_rel_error(self, prob['wing.disp'][1, 2], 0., 1e-4)
+        assert_rel_error(self, prob['structural_mass'][0], 13601.162582, 1e-4)
+        assert_rel_error(self, prob['disp'][1, 2], 0., 1e-4)
 
 
 

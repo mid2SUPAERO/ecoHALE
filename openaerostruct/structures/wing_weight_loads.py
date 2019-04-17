@@ -173,7 +173,7 @@ class StructureWeightLoads(ExplicitComponent):
 
         # And we also need the deltas between consecutive nodes
         deltas = nodes[1:, :] - nodes[:-1, :]
-        # save these slices cause I use them alot
+        # save these slices cause I use them a lot
         del0 = deltas[: , 0]
         del1 = deltas[: , 1]
 

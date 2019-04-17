@@ -140,9 +140,9 @@ For example, our cruise Mach number is 0.85 and our maneuver Mach number is 0.64
   :end-before: checkpoint 10
 
 The following are some more independent variables.
-We have the thrust-specific fuel consumption, `CT`, cruise range, `R`, and the weight of the aircraft without the fuel required for the cruise point and without the weight of the wing structure, `W0`.
+We have the thrust-specific fuel consumption, `CT`, cruise range, `R`, and the weight of the aircraft without the fuel required for the cruise point and without the weight of the wing structure and point masses, `W0_without_point_masses`.
 Since we are not interested in the fuel burn or range at the maneuver point, we only provide a single value for these inputs that will be used for the cruise fuel burn.
-Note that `W0` includes the reserve fuel weight, which is why it is added here.
+Note that `W0_without_point_masses` includes the reserve fuel weight, which is why it is added here.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
   :start-after: checkpoint 10
@@ -165,6 +165,18 @@ This also allows the flexibility to later decide that you want to use a differen
 
 .. literalinclude:: wingbox_mpt_opt_example.py
   :start-after: checkpoint 12
+  :end-before: checkpoint 12.5
+
+We next include the engine mass magnitude and locations in the problem.
+OpenAeroStruct can handle any generic point masses add to the structural system.
+In this case, we're adding the engine mass, which is set to 10,000 kg, to an appropriate location on the wing.
+The `point_mass_locations` coordinates are in the global frame.
+The loads caused by the point masses are transferred to the structural nodes based on the nodes' proximity to the point masses.
+We then compute the actual `W0` value by summing the `point_masses` and `W0_without_point_masses`.
+Thus, the `W0` value used in subsequent components includes the point masses, reserve fuel weight, and all weights of the aircraft except the wing structural mass and computed fuel burn.
+
+.. literalinclude:: wingbox_mpt_opt_example.py
+  :start-after: checkpoint 12.5
   :end-before: checkpoint 13
 
 Next, we instantiate aerostructual `groups` for each surface (only one in this example) and add them to the model.
