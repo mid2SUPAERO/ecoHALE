@@ -163,8 +163,6 @@ class Display(object):
         self.names = names
         n_names = len(names)
 
-        print(self.aerostruct)
-
         # loop to pull data out of case reader and organize it into arrays
         for i, case in enumerate(cr.get_cases()):
 
