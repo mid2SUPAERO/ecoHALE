@@ -11,7 +11,7 @@ from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.structures.tube_group import TubeGroup
 from openaerostruct.structures.wingbox_group import WingboxGroup
 
-from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce
+from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, NewtonSolver
 
 
 class AerostructGeometry(Group):
@@ -232,6 +232,8 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['maxiter'] = 100
         coupled.nonlinear_solver.options['atol'] = 1e-7
         coupled.nonlinear_solver.options['rtol'] = 1e-30
+        coupled.nonlinear_solver.options['iprint'] = -1
+        coupled.nonlinear_solver.options['err_on_maxiter'] = True
 
         # coupled.linear_solver = DirectSolver()
 
@@ -240,7 +242,6 @@ class AerostructPoint(Group):
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nonlinear_solver.options['maxiter'] = 50
-        coupled.nonlinear_solver.options['iprint'] = 2
 
         """
         ### End change of solver settings ###
