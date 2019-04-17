@@ -117,7 +117,7 @@ class CompressibleVLMStates(Group):
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 
-        self.add_subsystem('fixed_alpha', IndepVarComp('alpha', 0.0))
+        self.add_subsystem('fixed_alpha', IndepVarComp('alpha', 0.0, units='deg'))
 
         # Construct matrix based on rings, not horseshoes
         self.add_subsystem('mtx_assy',

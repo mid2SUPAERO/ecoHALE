@@ -50,7 +50,6 @@ default_dict = {
             'with_viscous' : False,  # if true, compute viscous drag
             'with_wave' : False,     # if true, compute wave drag
             'flexible':False,
-            't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
             'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
             'Cl_max': 1.2,
             'claf' : 1.0, # Lift curve slope multiplier, based on xfoil
@@ -113,9 +112,9 @@ for surface in surfaces:
     prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
 
 # Create the aero point group and add it to the model
-aero_group = AeroPoint(surfaces=surfaces, user_specified_Sref=True, rotational=True)
+aero_group = AeroPoint(surfaces=surfaces, user_specified_Sref=True, rotational=True, compressible=True)
 prob.model.add_subsystem(point_name, aero_group,
-                         promotes_inputs=['v', 'alpha', 'beta', 'omega', 'Mach_number', 're', 'rho', 'cg'])
+                         promotes_inputs=['v', 'alpha', 'beta', 'omega', 'Mach_number', 're', 'rho', 'cg', 'S_ref_total'])
 
 # Set up the problem
 prob.setup()
