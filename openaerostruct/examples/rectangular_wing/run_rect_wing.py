@@ -3,11 +3,9 @@ Perform incompressible inviscid aerodynamic anlysis on flat rectangular wing.
 Print out lift and drag coefficient when complete. Check output directory for
 Tecplot solution files.
 '''
-import os
-
 import numpy as np
 
-from openmdao.api import IndepVarComp, Problem, Group
+from openmdao.api import IndepVarComp, Problem
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry

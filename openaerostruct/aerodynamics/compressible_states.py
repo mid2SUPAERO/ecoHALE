@@ -142,8 +142,8 @@ class CompressibleVLMStates(Group):
              promotes_inputs=prom_in,
              promotes_outputs=['*'])
 
-        self.connect('pg_frame.alpha_pg', 'rotational_velocities.alpha')
-        self.connect('pg_frame.beta_pg', 'rotational_velocities.beta')
+        self.connect('pg_frame.alpha_pg', 'convert_velocity.alpha')
+        self.connect('pg_frame.beta_pg', 'convert_velocity.beta')
 
         # Construct RHS and full matrix of system
         self.add_subsystem('mtx_rhs',
@@ -204,7 +204,6 @@ class CompressibleVLMStates(Group):
 
         prom_out = []
         for surface in surfaces:
-            name = surface['name']
             vname = surface['name'] + '_sec_forces'
             prom_out.append(vname)
             self.connect('panel_forces_surf.' + vname, 'inverse_pg_transform.' + vname + '_pg')

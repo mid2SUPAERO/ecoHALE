@@ -1,4 +1,4 @@
-from openmdao.api import Group, IndepVarComp
+from openmdao.api import Group
 
 from openaerostruct.aerodynamics.pg_wind_rotation import RotateToWindFrame, RotateFromWindFrame
 from openaerostruct.aerodynamics.pg_scale import ScaleToPrandtlGlauert, ScaleFromPrandtlGlauert

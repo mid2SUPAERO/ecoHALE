@@ -5,7 +5,6 @@ to the twist optimization, the expected result from lifting line theory should
 produce an elliptical lift distrbution. Check output directory for Tecplot
 solution files.
 '''
-import os
 
 import numpy as np
 

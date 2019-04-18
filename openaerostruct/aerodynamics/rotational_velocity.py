@@ -86,7 +86,6 @@ class RotationalVelocity(ExplicitComponent):
         omega = inputs['omega']
         c_pts = inputs['coll_pts']
 
-        surfaces = self.options['surfaces']
         for j in np.arange(c_pts.shape[0]):
             r = c_pts[j, :] - cg
 

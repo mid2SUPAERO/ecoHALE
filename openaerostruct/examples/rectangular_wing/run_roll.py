@@ -3,7 +3,6 @@ Perform inviscid aerodynamic anlysis on flat rectangular wing under asymmetric
 roll. Print out lift and drag coefficient when complete. Check output directory
 for Tecplot solution files.
 '''
-import os
 
 import numpy as np
 

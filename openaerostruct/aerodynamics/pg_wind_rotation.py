@@ -79,7 +79,7 @@ class RotateToWindFrame(ExplicitComponent):
         # Loop through all the surfaces to determine the total number
         # of evaluation points.
         num_eval_points = 0
-        for surface in self.options['surfaces']:
+        for surface in surfaces:
             mesh = surface['mesh']
             nx = mesh.shape[0]
             ny = mesh.shape[1]
@@ -100,7 +100,7 @@ class RotateToWindFrame(ExplicitComponent):
             self.add_input('rotational_velocities', shape=(num_eval_points, 3), units='m/s')
             self.add_output('rotational_velocities_w_frame', shape=(num_eval_points, 3), units='m/s')
 
-        for surface in self.options['surfaces']:
+        for surface in surfaces:
             mesh = surface['mesh']
             nx = mesh.shape[0]
             ny = mesh.shape[1]
@@ -137,7 +137,7 @@ class RotateToWindFrame(ExplicitComponent):
         if rotational:
             self.declare_partials('rotational_velocities_w_frame', 'rotational_velocities', rows=rows, cols=cols)
 
-        for surface in self.options['surfaces']:
+        for surface in surfaces:
             mesh = surface['mesh']
             nx = mesh.shape[0]
             ny = mesh.shape[1]

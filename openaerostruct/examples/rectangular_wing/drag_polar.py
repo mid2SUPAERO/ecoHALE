@@ -2,7 +2,6 @@
 Compute viscous drag polar by running sweep of anlaysis over different angle of
 attacks. Plot drag polar at end. Check output directory for Tecplot solution files.
 '''
-import os
 
 import numpy as np
 
