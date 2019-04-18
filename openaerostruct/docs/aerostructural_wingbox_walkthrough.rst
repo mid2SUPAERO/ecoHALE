@@ -116,6 +116,9 @@ This helps reduce computational cost during optimization by replacing a large nu
 The next two options `struct_weight_relief` and `distributed_fuel_weight` are used to specify whether the user wants the loads from the weight of the wingbox structure and the weight of the fuel to be distributed on the wing structure to provide load relief.
 The `struct_weight_relief` is for the loads from the weight of the structure (including the `wing_weight_ratio` factor).
 The `distributed_fuel_weight` is for the loads from the weight of the fuel, which is assumed to be distributed across the entire wing (the fraction of the total fuel that each wingbox segment, corresponding to each finite element, holds is equal to the ratio of its enclosed volume to the total enclosed volume of all the wingbox segments).
+We can also use the option `n_point_masses` if we want to add loads from point masses on to the wing structure (e.g., for engines).
+Here we set `n_point_masses` to 1 because we have one engine on each side of the aircraft (recall that we are using symmetry).
+If we did not want to add point masses, we would omit this option (do not set it to 0).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
   :start-after: checkpoint 7
@@ -167,13 +170,14 @@ This also allows the flexibility to later decide that you want to use a differen
   :start-after: checkpoint 12
   :end-before: checkpoint 12.5
 
-We next include the engine mass magnitude and locations in the problem.
+Next, we include the engine mass magnitude and locations in the problem.
 OpenAeroStruct can handle any generic point masses add to the structural system.
-In this case, we're adding the engine mass, which is set to 10,000 kg, to an appropriate location on the wing.
+In this case, we're adding the engine mass, which is set to 10,000 kg, to an appropriate location in front of the wing.
 The `point_mass_locations` coordinates are in the global frame.
-The loads caused by the point masses are transferred to the structural nodes based on the nodes' proximity to the point masses.
+The loads caused by the point masses are transferred to the structural nodes based on the nodes' proximity to the point masses (using an inverse-distance approach).
 We then compute the actual `W0` value by summing the `point_masses` and `W0_without_point_masses`.
 Thus, the `W0` value used in subsequent components includes the point masses, reserve fuel weight, and all weights of the aircraft except the wing structural mass and computed fuel burn.
+We add `point_masses` and `point_mass_locations` using `indep_var_comp` so that they can be changed during optimization (although they are not in this example).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
   :start-after: checkpoint 12.5
