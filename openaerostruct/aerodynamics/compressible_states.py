@@ -117,7 +117,11 @@ class CompressibleVLMStates(Group):
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 
-        self.add_subsystem('fixed_alpha', IndepVarComp('alpha', 0.0, units='deg'))
+        # In the PG domain, alpha and beta are zero.
+        indep_var_comp = IndepVarComp()
+        indep_var_comp.add_output('alpha_pg', val=0., units='deg')
+        indep_var_comp.add_output('beta_pg', val=0., units='deg')
+        self.add_subsystem('pg_frame', indep_var_comp)
 
         # Construct matrix based on rings, not horseshoes
         self.add_subsystem('mtx_assy',
@@ -126,7 +130,7 @@ class CompressibleVLMStates(Group):
              promotes_inputs=['*_vectors'],
              promotes_outputs=['*'])
 
-        self.connect('fixed_alpha.alpha', 'mtx_assy.alpha')
+        self.connect('pg_frame.alpha_pg', 'mtx_assy.alpha')
 
         # Convert freestream velocity to array of velocities
         # Note, don't want to promote Alpha or Beta here because we are in the transformed system.
@@ -137,6 +141,9 @@ class CompressibleVLMStates(Group):
              ConvertVelocity(surfaces=surfaces, rotational=rotational),
              promotes_inputs=prom_in,
              promotes_outputs=['*'])
+
+        self.connect('pg_frame.alpha_pg', 'rotational_velocities.alpha')
+        self.connect('pg_frame.beta_pg', 'rotational_velocities.beta')
 
         # Construct RHS and full matrix of system
         self.add_subsystem('mtx_rhs',
@@ -171,7 +178,7 @@ class CompressibleVLMStates(Group):
              promotes_inputs=['*_force_pts_vectors'],
              promotes_outputs=['*'])
 
-        self.connect('fixed_alpha.alpha', 'mtx_assy_forces.alpha')
+        self.connect('pg_frame.alpha_pg', 'mtx_assy_forces.alpha')
 
         # Multiply by horseshoe circs to get velocities
         self.add_subsystem('eval_velocities',
@@ -207,7 +214,7 @@ class CompressibleVLMStates(Group):
             promotes_outputs=prom_out)
 
         #---------------------------------------------------------------
-        # Step 4: Mesh point forces are downatream, already transformed.
+        # Step 4: Mesh point forces are downstream, already transformed.
         #---------------------------------------------------------------
 
         # Get nodal forces for each lifting surface individually

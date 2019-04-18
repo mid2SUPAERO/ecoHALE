@@ -80,7 +80,6 @@ class RotationalVelocity(ExplicitComponent):
 
         self.declare_partials('rotational_velocities', 'coll_pts', rows=rows, cols=cols)
 
-
     def compute(self, inputs, outputs):
         # Angular velocity term
         cg = inputs['cg']
