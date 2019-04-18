@@ -15,7 +15,7 @@ class ComputePointMassLoads(ExplicitComponent):
     Parameters
     ----------
     point_mass_locations[n_point_masses, 3] : numpy array
-        XYZ location for each point mass, relative to the spar and symmetry plane.
+        XYZ location for each point mass in the global frame.
     point_masses[n_point_masses] : numpy array
         Actual magnitude of each point mass, in same order as point_mass_locations.
     nodes[ny, 3] : numpy array
@@ -26,8 +26,8 @@ class ComputePointMassLoads(ExplicitComponent):
     Returns
     -------
     nodal_weightings[n_point_masses, ny] : numpy array
-        The normalized weight that each point mass has on each node. The closest
-        nodes have the greatest weighting, while farther away nodes have less.
+        The normalized weighting factor for each node. The closest nodes have the
+        greatest weighting, while farther away nodes have less.
     loads_from_point_masses[ny, 6] : numpy array
         The actual loads array that will be added to the total loads array.
         This is cumulative and includes the forces and moments from all point masses.

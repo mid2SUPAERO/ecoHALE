@@ -98,13 +98,12 @@ surf_dict = {
 
             'struct_weight_relief' : True,
             'distributed_fuel_weight' : True,
+            'n_point_masses' : 1,       # number of point masses in the system; in this case, the engine (omit option if no point masses)
 
             #docs checkpoint 8
 
             'fuel_density' : 803.,      # [kg/m^3] fuel density (only needed if the fuel-in-wing volume constraint is used)
             'Wf_reserve' : 15000.,       # [kg] reserve fuel mass
-            'n_point_masses' : 1,       # number of point masses in the system; in this case, the engine
-
             }
 
 surfaces = [surf_dict]
