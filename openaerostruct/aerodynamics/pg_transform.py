@@ -40,20 +40,6 @@ class PGTransform(Group):
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])
 
-        # This portion has been commented out because it gives problems when
-        # converging the adjoint when used in an aerostructural problem. This
-        # is probably because OpenMDAO doesn't like independent variables being
-        # introduced inside a coupled cycle. Regardless, these values now default
-        # to zero if not specified in the incompressible_states group anyway.
-        '''
-        # Since we have rotated to the wind frame in the first step, the
-        # angle of attack and sideslip angle are by definition zero in PG frame
-        indep_var_comp = IndepVarComp()
-        indep_var_comp.add_output('alpha_pg', val=0., units='deg')
-        indep_var_comp.add_output('beta_pg', val=0., units='deg')
-        self.add_subsystem('flow_angles', indep_var_comp, promotes_outputs=['*'])
-        '''
-
 
 class InversePGTransform(Group):
     """
