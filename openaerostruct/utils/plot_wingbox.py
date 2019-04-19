@@ -687,10 +687,10 @@ class Display(object):
                 # self.ax.scatter(cg[0], cg[1], cg[2], s=100, color='r')
 
                 if self.point_masses_exist:
-                    point_mass_loc = self.point_mass_locations[self.curr_pos][0]
-                    self.ax.scatter(point_mass_loc[0], point_mass_loc[1], point_mass_loc[2], s=100, color='b')
-                    if self.symmetry:
-                        self.ax.scatter(point_mass_loc[0], -point_mass_loc[1], point_mass_loc[2], s=100, color='b')
+                    for point_mass_loc in self.point_mass_locations[self.curr_pos]:
+                        self.ax.scatter(point_mass_loc[0], point_mass_loc[1], point_mass_loc[2], s=100, color='b')
+                        if self.symmetry:
+                            self.ax.scatter(point_mass_loc[0], -point_mass_loc[1], point_mass_loc[2], s=100, color='b')
 
         lim = 0.
         for j in range(n_names):
