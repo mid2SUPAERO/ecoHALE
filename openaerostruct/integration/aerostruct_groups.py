@@ -12,7 +12,7 @@ from openaerostruct.aerodynamics.compressible_states import CompressibleVLMState
 from openaerostruct.structures.tube_group import TubeGroup
 from openaerostruct.structures.wingbox_group import WingboxGroup
 
-from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce
+from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, NewtonSolver
 
 
 class AerostructGeometry(Group):
@@ -97,6 +97,9 @@ class CoupledAS(Group):
             promotes = promotes + list(set(['nodes', 'element_mass', 'load_factor']))
         if surface['distributed_fuel_weight']:
             promotes = promotes + list(set(['nodes', 'load_factor']))
+        if 'n_point_masses' in surface.keys():
+            promotes = promotes + list(set(['point_mass_locations',
+                'point_masses', 'nodes', 'load_factor']))
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
@@ -203,7 +206,7 @@ class AerostructPoint(Group):
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
 
-            if surface['distributed_fuel_weight']:
+            if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys():
                 promotes = ['load_factor']
             else:
                 promotes = []
@@ -242,6 +245,8 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['maxiter'] = 100
         coupled.nonlinear_solver.options['atol'] = 1e-7
         coupled.nonlinear_solver.options['rtol'] = 1e-30
+        coupled.nonlinear_solver.options['iprint'] = 2
+        coupled.nonlinear_solver.options['err_on_maxiter'] = True
 
         # coupled.linear_solver = DirectSolver()
 
@@ -250,7 +255,6 @@ class AerostructPoint(Group):
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nonlinear_solver.options['maxiter'] = 50
-        coupled.nonlinear_solver.options['iprint'] = 2
 
         """
         ### End change of solver settings ###

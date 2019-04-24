@@ -210,6 +210,3 @@ prob.setup()
 
 # Actually run the optimization problem
 prob.run_driver()
-
-print(prob['wing.thickness'].shape)
-print(prob['wing.struct_setup.structural_cg.nodes'][:,1].shape)

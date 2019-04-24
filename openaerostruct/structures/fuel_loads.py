@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import numpy as np
 
 from openmdao.api import ExplicitComponent
+from openaerostruct.utils.constants import grav_constant
 
 
 def norm(vec):
@@ -46,7 +47,7 @@ class FuelLoads(ExplicitComponent):
         deltas = nodes[1:, :] - nodes[:-1, :]
 
         # Fuel weight
-        fuel_weight = (inputs['fuel_mass'] + self.surface['Wf_reserve']) * 9.81 * inputs['load_factor']
+        fuel_weight = (inputs['fuel_mass'] + self.surface['Wf_reserve']) * grav_constant * inputs['load_factor']
 
         if self.surface['symmetry']:
             fuel_weight /= 2.
