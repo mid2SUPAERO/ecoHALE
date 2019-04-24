@@ -10,11 +10,11 @@ class RotateToWindFrame(ExplicitComponent):
     In the wind frame the freestream will be along the x-axis.
 
     This transformation is given by the following rotation matrix:
-         -      -     -                           -     -      -
-        | x_wind |   | cosb*cosa, -sinb, cosb*sina |   | x_aero |
-        | y_wind | = | sinb*cosa,  cosb, sinb*sina | . | y_aero |
-        | z_wind |   | -sina,         0,      cosa |   | z_aero |
-         -      -     -                           -     -       -
+
+    | x_wind |   | cosb*cosa, -sinb, cosb*sina |   | x_aero |
+    | y_wind | = | sinb*cosa,  cosb, sinb*sina | . | y_aero |
+    | z_wind |   | -sina,         0,      cosa |   | z_aero |
+
 
     Where "a" is the angle of attack and "b" is the sideslip angle.
 
@@ -244,11 +244,11 @@ class RotateFromWindFrame(ExplicitComponent):
     RotateToWindFrame component.
 
     This transformation is given by the following rotation matrix:
-         -        -     -                           -     -        -
-        | F_x_aero |   | cosb*cosa, sinb*cosa, -sina |   | F_x_wind |
-        | F_y_aero | = | -sinb,          cosb,     0 | . | F_y_wind |
-        | F_z_aero |   | cosb*sina, sinb*sina,  cosa |   | F_z_wind |
-         -        -     -                           -     -        -
+
+    | F_x_aero |   | cosb*cosa, sinb*cosa, -sina |   | F_x_wind |
+    | F_y_aero | = | -sinb,          cosb,     0 | . | F_y_wind |
+    | F_z_aero |   | cosb*sina, sinb*sina,  cosa |   | F_z_wind |
+
 
     Where "a" is the angle of attack and "b" is the sideslip angle.
 

@@ -10,8 +10,8 @@ class Test(unittest.TestCase):
         import numpy as np
 
         from openaerostruct.geometry.utils import generate_mesh
-
         from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
+        from openaerostruct.utils.constants import grav_constant
 
         from openmdao.api import IndepVarComp, Problem, Group, SqliteRecorder
 
