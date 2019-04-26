@@ -11,19 +11,16 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
 
     The Prandtl glauert transformation is defined as below:
         Coordinates
-        -----------------------
         x_pg = x_wind
         y_pg = B*y_wind
         z_pg = B*z_wind
 
         Normals
-        -----------------------
         n_x_pg = B*n_x_wind
         n_y_pg = n_y_wind
         n_z_pg = n_z_wind
 
         Perturbation velocities
-        -----------------------
         v_x_pg = B^2*v_x_wind
         v_y_pg = B*v_y_wind
         v_z_pg = B*v_z_wind

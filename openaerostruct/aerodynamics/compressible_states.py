@@ -84,11 +84,11 @@ class CompressibleVLMStates(Group):
         prom_in = ['alpha', 'beta', 'Mach_number']
         for surface in surfaces:
             name = surface['name']
-            vname = surface['name'] + '_def_mesh'
+            vname = name + '_def_mesh'
             prom_in.append(vname)
             self.connect('pg_transform.' + vname + '_pg', 'vortex_mesh.' + vname)
 
-            vname = surface['name'] + '_normals'
+            vname = name + '_normals'
             prom_in.append(vname)
             self.connect('pg_transform.' + vname + '_pg', 'mtx_rhs.' + vname)
 
