@@ -11,7 +11,7 @@ from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.structures.tube_group import TubeGroup
 from openaerostruct.structures.wingbox_group import WingboxGroup
 
-from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, NewtonSolver
+from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, NewtonSolver, ScipyKrylov
 
 
 class AerostructGeometry(Group):
@@ -199,7 +199,7 @@ class AerostructPoint(Group):
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
 
-            if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys():
+            if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
                 promotes = ['load_factor']
             else:
                 promotes = []
@@ -225,7 +225,7 @@ class AerostructPoint(Group):
         """
 
         # Set solver properties for the coupled group
-        # coupled.linear_solver = ScipyIterativeSolver()
+        # coupled.linear_solver = ScipyKrylov()
         # coupled.linear_solver.precon = LinearRunOnce()
 
         coupled.nonlinear_solver = NonlinearBlockGS(use_aitken=True)
