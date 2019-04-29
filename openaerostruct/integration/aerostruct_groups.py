@@ -98,7 +98,7 @@ class CoupledAS(Group):
             promotes = promotes + list(set(['nodes', 'load_factor']))
         if 'n_point_masses' in surface.keys():
             promotes = promotes + list(set(['point_mass_locations',
-                'point_masses', 'nodes', 'load_factor']))
+                'point_masses', 'nodes', 'load_factor', 'engine_thrusts']))
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
@@ -232,7 +232,7 @@ class AerostructPoint(Group):
         coupled.nonlinear_solver.options['maxiter'] = 100
         coupled.nonlinear_solver.options['atol'] = 1e-7
         coupled.nonlinear_solver.options['rtol'] = 1e-30
-        coupled.nonlinear_solver.options['iprint'] = 1
+        coupled.nonlinear_solver.options['iprint'] = 2
         coupled.nonlinear_solver.options['err_on_maxiter'] = True
 
         # coupled.linear_solver = DirectSolver()

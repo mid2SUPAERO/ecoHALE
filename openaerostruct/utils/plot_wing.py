@@ -344,7 +344,7 @@ class Display(object):
                     forces = np.sum(sec_forces[i*n_names+j], axis=0)
 
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
-                        widths[i*n_names+j]/0.5/rho[i][j]/v[i][j]**2
+                        widths[i*n_names+j]/0.5/rho[i][0]/v[i][0]**2
 
                     span = (m_vals[0, :, 1] / (m_vals[0, -1, 1] - m_vals[0, 0, 1]))
                     span = span - (span[0] + .5)
@@ -507,10 +507,10 @@ class Display(object):
                 # self.ax.scatter(cg[0], cg[1], cg[2], s=100, color='r')
 
                 if self.point_masses_exist:
-                    point_mass_loc = self.point_mass_locations[self.curr_pos][0]
-                    self.ax.scatter(point_mass_loc[0], point_mass_loc[1], point_mass_loc[2], s=100, color='b')
-                    if self.symmetry:
-                        self.ax.scatter(point_mass_loc[0], -point_mass_loc[1], point_mass_loc[2], s=100, color='b')
+                    for point_mass_loc in self.point_mass_locations[self.curr_pos]:
+                        self.ax.scatter(point_mass_loc[0], point_mass_loc[1], point_mass_loc[2], s=100, color='b')
+                        if self.symmetry:
+                            self.ax.scatter(point_mass_loc[0], -point_mass_loc[1], point_mass_loc[2], s=100, color='b')
 
             if self.show_tube:
                 # Get the array of radii and thickness values for the FEM system

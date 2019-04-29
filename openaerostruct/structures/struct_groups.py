@@ -69,7 +69,7 @@ class SpatialBeamAlone(Group):
             promotes = promotes + list(set(['nodes', 'load_factor']))
         if 'n_point_masses' in surface.keys():
             promotes = promotes + list(set(['point_mass_locations',
-                'point_masses', 'nodes', 'load_factor']))
+                'point_masses', 'nodes', 'load_factor', 'engine_thrusts']))
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),

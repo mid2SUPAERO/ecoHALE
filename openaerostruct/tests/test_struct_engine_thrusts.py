@@ -56,11 +56,11 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('loads', val=np.zeros((ny, 6)), units='N')
         indep_var_comp.add_output('load_factor', val=1.)
 
-        point_masses = np.array([[10.]])
+        engine_thrusts = np.array([[10.]])
 
         point_mass_locations = np.array([[1., -10., 0.]])
 
-        indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+        indep_var_comp.add_output('engine_thrusts', val=engine_thrusts, units='N')
         indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
         struct_group = SpatialBeamAlone(surface=surface)
@@ -77,7 +77,7 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        assert_rel_error(self, prob['vonmises'][-1, 0], 2956850.70882332, 1e-4)
+        assert_rel_error(self, prob['vonmises'][-1, 0], 300352.285697, 1e-4)
 
     def test_multiple_masses(self):
 
@@ -122,12 +122,12 @@ class Test(unittest.TestCase):
         indep_var_comp.add_output('loads', val=np.zeros((ny, 6)), units='N')
         indep_var_comp.add_output('load_factor', val=1.)
 
-        point_masses = np.array([[10., 20.]])
+        engine_thrusts = np.array([[10., 20.]])
 
         point_mass_locations = np.array([[1., -1., 0.],
                                          [1., -2., 0.]])
 
-        indep_var_comp.add_output('point_masses', val=point_masses, units='kg')
+        indep_var_comp.add_output('engine_thrusts', val=engine_thrusts, units='N')
         indep_var_comp.add_output('point_mass_locations', val=point_mass_locations, units='m')
 
         struct_group = SpatialBeamAlone(surface=surface)
@@ -144,7 +144,7 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        assert_rel_error(self, prob['vonmises'][-1, 0], 1557126.5793494075, 1e-4)
+        assert_rel_error(self, prob['vonmises'][-1, 0], 137509.870021, 1e-4)
 
 
 if __name__ == '__main__':

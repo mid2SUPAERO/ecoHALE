@@ -42,6 +42,7 @@ class TotalLoads(ExplicitComponent):
             self.add_input('fuel_weight_loads', val=np.zeros((self.ny, 6)), units='N')
         if 'n_point_masses' in surface.keys():
             self.add_input('loads_from_point_masses', val=np.zeros((self.ny, 6)), units='N')
+            self.add_input('loads_from_thrusts', val=np.zeros((self.ny, 6)), units='N')
 
         self.add_output('total_loads', val=np.ones((self.ny, 6)), units='N')
 
@@ -61,6 +62,8 @@ class TotalLoads(ExplicitComponent):
         if 'n_point_masses' in surface.keys():
             self.declare_partials('total_loads', 'loads_from_point_masses',
                 rows=arange, cols=arange, val=1.)
+            self.declare_partials('total_loads', 'loads_from_thrusts',
+                rows=arange, cols=arange, val=1.)
 
     def compute(self, inputs, outputs):
         outputs['total_loads'] = inputs['loads']
@@ -73,3 +76,4 @@ class TotalLoads(ExplicitComponent):
 
         if 'n_point_masses' in self.surface.keys():
             outputs['total_loads'] += inputs['loads_from_point_masses']
+            outputs['total_loads'] += inputs['loads_from_thrusts']
