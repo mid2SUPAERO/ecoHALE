@@ -81,7 +81,7 @@ class CompressibleVLMStates(Group):
         if rotational:
             self.connect('rotational_velocity.rotational_velocities', 'pg_transform.rotational_velocities')
 
-        prom_in = ['alpha', 'beta', 'Mach_number']
+        prom_in = ['alpha', 'beta', 'normal_Mach']
         for surface in surfaces:
             name = surface['name']
             vname = name + '_def_mesh'
@@ -209,7 +209,7 @@ class CompressibleVLMStates(Group):
             self.connect('panel_forces_surf.' + vname, 'inverse_pg_transform.' + vname + '_pg')
 
         self.add_subsystem('inverse_pg_transform', InversePGTransform(surfaces=surfaces),
-            promotes_inputs=['alpha', 'beta', 'Mach_number'],
+            promotes_inputs=['alpha', 'beta', 'normal_Mach'],
             promotes_outputs=prom_out)
 
         #---------------------------------------------------------------
@@ -221,4 +221,3 @@ class CompressibleVLMStates(Group):
              MeshPointForces(surfaces=surfaces),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
-
