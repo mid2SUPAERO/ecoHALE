@@ -207,6 +207,7 @@ class AerostructPoint(Group):
             coupled_AS_group = CoupledAS(surface=surface)
 
             if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
+
                 promotes = ['load_factor']
             else:
                 promotes = []
