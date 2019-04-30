@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+
 import numpy as np
 from numpy import cos, sin, tan
 
@@ -878,3 +879,55 @@ def getFullMesh(left_mesh=None, right_mesh=None):
         left_mesh[:,:,1] *= -1
     full_mesh = np.concatenate((left_mesh,right_mesh[:,1:,:]),axis=1)
     return full_mesh
+
+
+def plot3D_meshes(file_name, zero_tol=0):
+    """
+    Reads in multi-surface meshes from a Plot3D mesh file for VLM analysis.
+
+    Parameters
+    ----------
+    fileName : str
+        Plot3D file name to be read in.
+    zero_tol : float
+        If a node location read in the file is below this magnitude we will just
+        make it zero. This is useful for getting rid of noise in the surface
+        that may be due to the meshing tools geometry tolerance.
+
+    Returns
+    -------
+    mesh_dict : dict
+        Dictionary holding the mesh of every surface included in the plot3D
+        sorted by surface name.
+    """
+    file_handle = open(file_name, 'r')
+    num_panels = int(file_handle.readline())
+    # Get the multi-block dimensions of every included surface
+    block_dims = file_handle.readline().split()
+
+    # Now loop through remainder of file and pluck out mesh node locations
+    mesh_list = []
+    mesh_dict = {}
+    for i in range(num_panels):
+        [nx, ny, nz] = block_dims[3*i:3*i+3]
+        # Use nx and ny to intialize mesh. Since these are surfaces nz always
+        # equals 1, so no need to use it
+        mesh = np.zeros(int(nx)*int(ny)*3)
+
+        for j in range(mesh.size):
+            line = file_handle.readline()
+            val = float(line)
+            if np.abs(val) < zero_tol:
+                val = 0
+            mesh[j] = val
+
+        # Restructure mesh as 3D array,
+        # Plot3D files are always written using Fortran order
+        mesh_list.append(mesh.reshape([int(nx), int(ny), 3], order='f'))
+
+    # Now read in names for each surface mesh
+    for i in range(num_panels):
+        name = file_handle.readline()[:-1]
+        mesh_dict[name] = mesh_list[i]
+
+    return mesh_dict

@@ -1,47 +1,39 @@
 from __future__ import division, print_function
-from openmdao.utils.assert_utils import assert_rel_error
 import unittest
+
 import numpy as np
+
+from openmdao.api import IndepVarComp, Problem
+from openmdao.utils.assert_utils import assert_rel_error
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
-
-from openmdao.api import IndepVarComp, Problem
 
 
 class Test(unittest.TestCase):
 
     def test(self):
 
-        import numpy as np
-
-        from openaerostruct.geometry.utils import generate_mesh
-        from openaerostruct.geometry.geometry_group import Geometry
-        from openaerostruct.aerodynamics.aero_groups import AeroPoint
-
-        from openmdao.api import IndepVarComp, Problem
-
-
         # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 7,
+        mesh_dict = {'num_y' : 5,
                      'num_x' : 2,
-                     'wing_type' : 'CRM',
-                     'symmetry' : True,
-                     'num_twist_cp' : 5}
+                     'wing_type' : 'rect',
+                     'symmetry' : False}
 
-        mesh, twist_cp = generate_mesh(mesh_dict)
+        mesh = generate_mesh(mesh_dict)
 
         surf_dict = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
-                    'symmetry' : True,     # if true, model one half of wing
+                    'type' : 'aero',
+                    'symmetry' : False,     # if true, model one half of wing
                                             # reflected across the plane y = 0
                     'S_ref_type' : 'wetted', # how we compute the wing area,
                                              # can be 'wetted' or 'projected'
-                    'fem_model_type' : 'tube',
 
-                    'twist_cp' : twist_cp,
+                    'twist_cp' : np.array([0.]),
+
                     'mesh' : mesh,
 
                     # Aerodynamic performance of the lifting surface at
@@ -59,52 +51,11 @@ class Test(unittest.TestCase):
                     't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
                     'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                             # thickness
-                    'with_viscous' : True,  # if true, compute viscous drag
+                    'with_viscous' : True,
                     'with_wave' : False,     # if true, compute wave drag
                     }
 
-        # Create a dictionary to store options about the surface
-        mesh_dict = {'num_y' : 7,
-                     'num_x' : 2,
-                     'wing_type' : 'rect',
-                     'symmetry' : True,
-                     'offset' : np.array([50, 0., 0.])}
-
-        mesh = generate_mesh(mesh_dict)
-
-        surf_dict2 = {
-                    # Wing definition
-                    'name' : 'tail',        # name of the surface
-                    'symmetry' : True,     # if true, model one half of wing
-                                            # reflected across the plane y = 0
-                    'S_ref_type' : 'wetted', # how we compute the wing area,
-                                             # can be 'wetted' or 'projected'
-
-                    'twist_cp' : twist_cp,
-                    'mesh' : mesh,
-
-                    # Aerodynamic performance of the lifting surface at
-                    # an angle of attack of 0 (alpha=0).
-                    # These CL0 and CD0 values are added to the CL and CD
-                    # obtained from aerodynamic analysis of the surface to get
-                    # the total CL and CD.
-                    # These CL0 and CD0 values do not vary wrt alpha.
-                    'CL0' : 0.0,            # CL of the surface at alpha=0
-                    'CD0' : 0.0,            # CD of the surface at alpha=0
-
-                    'fem_origin' : 0.35,
-
-                    # Airfoil properties for viscous drag calculation
-                    'k_lam' : 0.05,         # percentage of chord with laminar
-                                            # flow, used for viscous drag
-                    't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
-                    'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
-                                            # thickness
-                    'with_viscous' : True,  # if true, compute viscous drag
-                    'with_wave' : False,     # if true, compute wave drag
-                    }
-
-        surfaces = [surf_dict, surf_dict2]
+        surfaces = [surf_dict]
 
         # Create the problem and the model group
         prob = Problem()
@@ -112,6 +63,7 @@ class Test(unittest.TestCase):
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=248.136, units='m/s')
         indep_var_comp.add_output('alpha', val=5., units='deg')
+        indep_var_comp.add_output('omega', val=np.array([30.0, 0.0, 0.0]), units='deg/s')
         indep_var_comp.add_output('Mach_number', val=0.84)
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
@@ -135,13 +87,14 @@ class Test(unittest.TestCase):
         for i in range(1):
 
             # Create the aero point group and add it to the model
-            aero_group = AeroPoint(surfaces=surfaces)
+            aero_group = AeroPoint(surfaces=surfaces, rotational=True)
             point_name = 'aero_point_{}'.format(i)
             prob.model.add_subsystem(point_name, aero_group)
 
             # Connect flow properties to the analysis point
             prob.model.connect('v', point_name + '.v')
             prob.model.connect('alpha', point_name + '.alpha')
+            prob.model.connect('omega', point_name + '.omega')
             prob.model.connect('Mach_number', point_name + '.Mach_number')
             prob.model.connect('re', point_name + '.re')
             prob.model.connect('rho', point_name + '.rho')
@@ -166,11 +119,11 @@ class Test(unittest.TestCase):
 
         prob.run_model()
 
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.037210478659832125, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.5124736932248048, 1e-6)
-        assert_rel_error(self, prob['aero_point_0.CM'][1], -1.7028233361964462, 1e-6)
-
-
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.034758588209493596, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.46156798274410005, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][0],0.07287199378862094, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][1], -0.11507066985988826, 1e-6)
+        assert_rel_error(self, prob['aero_point_0.CM'][2], 0.010803003923282652, 1e-6)
 
 if __name__ == '__main__':
     unittest.main()
