@@ -7,6 +7,7 @@ from openaerostruct.aerodynamics.mtx_rhs import VLMMtxRHSComp
 from openaerostruct.aerodynamics.solve_matrix import SolveMatrix
 from openaerostruct.aerodynamics.horseshoe_circulations import HorseshoeCirculations
 from openaerostruct.aerodynamics.eval_velocities import EvalVelocities
+from openaerostruct.aerodynamics.rotational_velocity import RotationalVelocity
 from openaerostruct.aerodynamics.mesh_point_forces import MeshPointForces
 from openaerostruct.aerodynamics.panel_forces import PanelForces
 from openaerostruct.aerodynamics.panel_forces_surf import PanelForcesSurf
@@ -20,9 +21,12 @@ class VLMStates(Group):
 
     def initialize(self):
         self.options.declare('surfaces', types=list)
+        self.options.declare('rotational', False, types=bool,
+                             desc="Set to True to turn on support for computing angular velocities")
 
     def setup(self):
         surfaces = self.options['surfaces']
+        rotational = self.options['rotational']
 
         num_collocation_points = 0
         for surface in surfaces:
@@ -60,8 +64,14 @@ class VLMStates(Group):
              promotes_outputs=['*'])
 
         # Convert freestream velocity to array of velocities
+        if rotational:
+            self.add_subsystem('rotational_velocity',
+                 RotationalVelocity(surfaces=surfaces),
+                 promotes_inputs=['*'],
+                 promotes_outputs=['*'])
+
         self.add_subsystem('convert_velocity',
-             ConvertVelocity(surfaces=surfaces),
+             ConvertVelocity(surfaces=surfaces, rotational=rotational),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
 

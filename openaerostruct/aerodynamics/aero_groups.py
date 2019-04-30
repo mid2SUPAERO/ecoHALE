@@ -1,4 +1,5 @@
 from openmdao.api import Group, LinearRunOnce
+from openaerostruct.aerodynamics.compressible_states import CompressibleVLMStates
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -15,9 +16,15 @@ class AeroPoint(Group):
     def initialize(self):
         self.options.declare('surfaces', types=list)
         self.options.declare('user_specified_Sref', types=bool, default=False)
+        self.options.declare('rotational', False, types=bool,
+                             desc="Set to True to turn on support for computing angular velocities")
+        self.options.declare('compressible', types=bool, default=False,
+                             desc='Turns on compressibility correction for moderate Mach number '
+                             'flows. Defaults to False.')
 
     def setup(self):
         surfaces = self.options['surfaces']
+        rotational = self.options['rotational']
 
         # Loop through each surface and connect relevant parameters
         for surface in surfaces:
@@ -53,12 +60,21 @@ class AeroPoint(Group):
         # While other components only depends on a single surface,
         # this component requires information from all surfaces because
         # each surface interacts with the others.
-        aero_states = VLMStates(surfaces=surfaces)
+        if self.options['compressible'] == True:
+            aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
+            prom_in = ['v', 'alpha', 'beta', 'rho', 'Mach_number']
+        else:
+            aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
+            prom_in = ['v', 'alpha', 'beta', 'rho']
+
         aero_states.linear_solver = LinearRunOnce()
+
+        if rotational:
+            prom_in.extend(['omega', 'cg'])
 
         self.add_subsystem('aero_states',
                  aero_states,
-                 promotes_inputs=['v', 'alpha', 'rho'],
+                 promotes_inputs=prom_in,
                  promotes_outputs=['circulations'])
 
         # Explicitly connect parameters from each surface's group and the common
@@ -69,7 +85,7 @@ class AeroPoint(Group):
         for surface in surfaces:
             self.add_subsystem(surface['name'] +'_perf',
                 VLMFunctionals(surface=surface),
-                promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho'])
+                promotes_inputs=['v', 'alpha', 'beta', 'Mach_number', 're', 'rho'])
 
         # Add the total aero performance group to compute the CL, CD, and CM
         # of the total aircraft. This accounts for all lifting surfaces.
