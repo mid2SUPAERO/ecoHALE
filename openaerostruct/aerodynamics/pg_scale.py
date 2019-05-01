@@ -93,7 +93,7 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
 
             num_eval_points += (nx - 1) * (ny - 1)
 
-        self.add_input('normal_Mach', val=0.)
+        self.add_input('Mach_number', val=0.)
 
         self.add_input('coll_pts_w_frame', shape=(num_eval_points, 3), units='m')
         self.add_input('force_pts_w_frame', shape=(num_eval_points, 3), units='m')
@@ -127,7 +127,7 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
 
         # We'll compute all of sensitivities associated with Mach number through
         # complex-step. Since it's a scalar this is pretty cheap.
-        self.declare_partials('*', 'normal_Mach', method='cs')
+        self.declare_partials('*', 'Mach_number', method='cs')
 
         row_col = np.arange(num_eval_points*3)
 
@@ -161,7 +161,7 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
     def compute(self, inputs, outputs):
         rotational = self.options['rotational']
 
-        M = inputs['normal_Mach']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
 
         outputs['bound_vecs_pg'] = inputs['bound_vecs_w_frame']
@@ -201,7 +201,7 @@ class ScaleToPrandtlGlauert(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         rotational = self.options['rotational']
 
-        M = inputs['normal_Mach']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
         fact = np.array([1.0, betaPG, betaPG], M.dtype).flatten()
         fact_norm = np.array([betaPG, 1.0, 1.0], M.dtype).flatten()
@@ -263,11 +263,11 @@ class ScaleFromPrandtlGlauert(ExplicitComponent):
 
     def setup(self):
 
-        self.add_input('normal_Mach', val=0.)
+        self.add_input('Mach_number', val=0.)
 
         # We'll compute all of sensitivities associated with Mach number through
         # complex-step. Since it's a scalar this is pretty cheap.
-        self.declare_partials('*', 'normal_Mach', method='cs')
+        self.declare_partials('*', 'Mach_number', method='cs')
 
         for surface in self.options['surfaces']:
             mesh = surface['mesh']
@@ -287,7 +287,7 @@ class ScaleFromPrandtlGlauert(ExplicitComponent):
             self.declare_partials(of_name, wrt_name, rows=row_col, cols=row_col)
 
     def compute(self, inputs, outputs):
-        M = inputs['normal_Mach']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
 
         for surface in self.options['surfaces']:
@@ -301,7 +301,7 @@ class ScaleFromPrandtlGlauert(ExplicitComponent):
             outputs[of_name][:, :, 2] *= (1.0/betaPG**3)
 
     def compute_partials(self, inputs, partials):
-        M = inputs['normal_Mach']
+        M = inputs['Mach_number']
         betaPG = np.sqrt(1 - M**2)
 
         term1 = 1.0/betaPG**4

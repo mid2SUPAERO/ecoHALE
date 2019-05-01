@@ -67,7 +67,7 @@ class Test(unittest.TestCase):
         prob.model.add_subsystem('comp', comp)
         prob.setup(force_alloc_complex=True)
 
-        prob['comp.normal_Mach'] = np.random.random(prob['comp.normal_Mach'].shape)
+        prob['comp.Mach_number'] = np.random.random(prob['comp.Mach_number'].shape)
         prob['comp.coll_pts_w_frame'] = np.random.random(prob['comp.coll_pts_w_frame'].shape)
         prob['comp.bound_vecs_w_frame'] = np.random.random(prob['comp.bound_vecs_w_frame'].shape)
         prob['comp.rotational_velocities_w_frame'] = np.random.random(prob['comp.rotational_velocities_w_frame'].shape)
@@ -91,7 +91,7 @@ class Test(unittest.TestCase):
         prob.model.add_subsystem('comp', comp)
         prob.setup(force_alloc_complex=True)
 
-        prob['comp.normal_Mach'] = np.random.random(prob['comp.normal_Mach'].shape)
+        prob['comp.Mach_number'] = np.random.random(prob['comp.Mach_number'].shape)
         prob['comp.wing_sec_forces_pg'] = np.random.random(prob['comp.wing_sec_forces_pg'].shape)
         prob['comp.tail_sec_forces_pg'] = np.random.random(prob['comp.tail_sec_forces_pg'].shape)
 

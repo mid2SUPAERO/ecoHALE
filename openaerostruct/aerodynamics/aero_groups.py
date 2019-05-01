@@ -1,7 +1,6 @@
 from openmdao.api import Group, LinearRunOnce
 from openaerostruct.aerodynamics.compressible_states import CompressibleVLMStates
 from openaerostruct.aerodynamics.geometry import VLMGeometry
-from openaerostruct.aerodynamics.convert_mach import ConvertMach
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
 from openaerostruct.functionals.total_aero_performance import TotalAeroPerformance
@@ -56,15 +55,6 @@ class AeroPoint(Group):
 
             self.add_subsystem(name, VLMGeometry(surface=surface))
 
-            if self.options['compressible'] == True:
-                self.add_subsystem('convert_mach',
-                    ConvertMach(surface=surface),
-                    promotes_inputs=['Mach_number'], promotes_outputs=['normal_Mach'])
-
-                self.connect(name + '.widths', 'convert_mach.widths')
-                self.connect(name + '.chords', 'convert_mach.chords')
-                self.connect(name + '.cos_sweep', 'convert_mach.cos_sweep')
-
         # Add a single 'aero_states' component that solves for the circulations
         # and forces from all the surfaces.
         # While other components only depends on a single surface,
@@ -72,7 +62,7 @@ class AeroPoint(Group):
         # each surface interacts with the others.
         if self.options['compressible'] == True:
             aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
-            prom_in = ['v', 'alpha', 'beta', 'rho', 'normal_Mach']
+            prom_in = ['v', 'alpha', 'beta', 'rho', 'Mach_number']
         else:
             aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
             prom_in = ['v', 'alpha', 'beta', 'rho']

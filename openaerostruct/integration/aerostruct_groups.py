@@ -89,9 +89,6 @@ class CoupledAS(Group):
 
     def initialize(self):
         self.options.declare('surface', types=dict)
-        self.options.declare('compressible', types=bool, default=False,
-                             desc='Turns on compressibility correction for moderate Mach number '
-                             'flows. Defaults to False.')
 
     def setup(self):
         surface = self.options['surface']
@@ -116,11 +113,6 @@ class CoupledAS(Group):
         self.add_subsystem('aero_geom',
             VLMGeometry(surface=surface),
             promotes_inputs=['def_mesh'], promotes_outputs=['b_pts', 'widths', 'cos_sweep', 'lengths', 'chords', 'normals', 'S_ref'])
-
-        if self.options['compressible'] == True:
-            self.add_subsystem('convert_mach',
-                ConvertMach(surface=surface),
-                promotes_inputs=['widths', 'cos_sweep', 'chords', 'Mach_number'], promotes_outputs=['normal_Mach'])
 
         self.linear_solver = LinearRunOnce()
 
@@ -165,7 +157,6 @@ class AerostructPoint(Group):
     def setup(self):
         surfaces = self.options['surfaces']
         rotational = self.options['rotational']
-        compressible = self.options['compressible']
 
         coupled = Group()
 
@@ -217,25 +208,15 @@ class AerostructPoint(Group):
             coupled_AS_group = CoupledAS(surface=surface, compressible=compressible)
 
             if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
-<<<<<<< HEAD
                 prom_in = ['load_factor']
             else:
                 prom_in = []
-
-            if compressible:
-                prom_in.append('Mach_number')
-                prom_out = ['normal_Mach']
-=======
-                promotes = ['load_factor']
->>>>>>> parent of 32fcb8e... Fixing load_factor promotions
-            else:
-                prom_out = []
 
             coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=prom_in, promotes_outputs=prom_out)
 
         if self.options['compressible'] == True:
             aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
-            prom_in = ['v', 'alpha', 'beta', 'rho', 'normal_Mach']
+            prom_in = ['v', 'alpha', 'beta', 'rho', 'Mach_number']
         else:
             aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
             prom_in = ['v', 'alpha', 'beta', 'rho']
