@@ -6,8 +6,8 @@ from openmdao.api import ExplicitComponent
 
 class ConvertMach(ExplicitComponent):
     """
-    Calculate the perpendicular Mach number for a surface based on the freestream Mach
-    and the averaged quarter-chord sweep of the wing.
+    Compute the wave drag if the with_wave option is True. If not, the CDw is 0.
+    This component exists for each lifting surface.
 
     Parameters
     ----------
