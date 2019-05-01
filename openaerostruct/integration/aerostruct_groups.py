@@ -1,5 +1,4 @@
 from openaerostruct.aerodynamics.geometry import VLMGeometry
-from openaerostruct.aerodynamics.convert_mach import ConvertMach
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.transfer.displacement_transfer_group import DisplacementTransferGroup
 from openaerostruct.structures.spatial_beam_setup import SpatialBeamSetup
@@ -205,14 +204,14 @@ class AerostructPoint(Group):
             # Add components to the 'coupled' group for each surface.
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
-            coupled_AS_group = CoupledAS(surface=surface, compressible=compressible)
+            coupled_AS_group = CoupledAS(surface=surface)
 
             if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
                 prom_in = ['load_factor']
             else:
                 prom_in = []
 
-            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=prom_in, promotes_outputs=prom_out)
+            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=prom_in)
 
         if self.options['compressible'] == True:
             aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
