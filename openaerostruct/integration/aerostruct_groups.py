@@ -217,6 +217,7 @@ class AerostructPoint(Group):
             coupled_AS_group = CoupledAS(surface=surface, compressible=compressible)
 
             if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
+<<<<<<< HEAD
                 prom_in = ['load_factor']
             else:
                 prom_in = []
@@ -224,6 +225,9 @@ class AerostructPoint(Group):
             if compressible:
                 prom_in.append('Mach_number')
                 prom_out = ['normal_Mach']
+=======
+                promotes = ['load_factor']
+>>>>>>> parent of 32fcb8e... Fixing load_factor promotions
             else:
                 prom_out = []
 
