@@ -52,4 +52,4 @@ class ConvertMach(ExplicitComponent):
         panel_areas = mean_chords * inputs['cos_sweep']
         avg_cos_sweep = np.sum(actual_cos_sweep * panel_areas) / np.sum(panel_areas) # weighted average of 1/4 chord sweep
 
-        outputs['normal_Mach'] = M * avg_cos_sweep
+        outputs['normal_Mach'] = M #* avg_cos_sweep
