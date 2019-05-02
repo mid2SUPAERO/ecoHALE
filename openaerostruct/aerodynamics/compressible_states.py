@@ -221,4 +221,3 @@ class CompressibleVLMStates(Group):
              MeshPointForces(surfaces=surfaces),
              promotes_inputs=['*'],
              promotes_outputs=['*'])
-

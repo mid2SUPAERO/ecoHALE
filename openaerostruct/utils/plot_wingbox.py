@@ -154,9 +154,15 @@ class Display(object):
             if 'loads' in key:
                 pt_names.append(key.split('.')[0])
 
-        if pt_names:
-            self.pt_names = pt_names = list(set(pt_names))
-            pt_name = pt_names[0]
+        # This logic isn't guaranteed to always be in the same order.
+        # Hardcoding for now because this script is already non-general.
+        # if pt_names:
+        #     self.pt_names = pt_names = list(set(pt_names))
+        #     pt_name = pt_names[0]
+
+        self.pt_names = pt_names = ['AS_point_0', 'AS_point_1']
+        pt_name = self.pt_names[0]
+
         self.names = names
         n_names = len(names)
 

@@ -12,7 +12,7 @@ from openaerostruct.aerodynamics.compressible_states import CompressibleVLMState
 from openaerostruct.structures.tube_group import TubeGroup
 from openaerostruct.structures.wingbox_group import WingboxGroup
 
-from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, NewtonSolver
+from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, NewtonSolver, ScipyKrylov
 
 
 class AerostructGeometry(Group):
@@ -29,16 +29,17 @@ class AerostructGeometry(Group):
 
         geom_promotes = []
 
-        if 'twist_cp' in surface.keys():
-            geom_promotes.append('twist_cp')
-        if 't_over_c_cp' in surface.keys():
-            geom_promotes.append('t_over_c')
-        if 'sweep' in surface.keys():
-            geom_promotes.append('sweep')
-        if 'taper' in surface.keys():
-            geom_promotes.append('taper')
-        if 'mx' in surface.keys():
-            geom_promotes.append('shape')
+        if connect_geom_DVs:
+            if 'twist_cp' in surface.keys():
+                geom_promotes.append('twist_cp')
+            if 't_over_c_cp' in surface.keys():
+                geom_promotes.append('t_over_c')
+            if 'sweep' in surface.keys():
+                geom_promotes.append('sweep')
+            if 'taper' in surface.keys():
+                geom_promotes.append('taper')
+            if 'mx' in surface.keys():
+                geom_promotes.append('shape')
 
         self.add_subsystem('geometry',
             Geometry(surface=surface, DVGeo=DVGeo, connect_geom_DVs=connect_geom_DVs),
@@ -48,12 +49,12 @@ class AerostructGeometry(Group):
         if surface['fem_model_type'] == 'tube':
             tube_promotes = []
             tube_inputs = []
-            if 'thickness_cp' in surface.keys():
+            if 'thickness_cp' in surface.keys() and connect_geom_DVs:
                 tube_promotes.append('thickness_cp')
             if 'radius_cp' not in surface.keys():
                 tube_inputs = ['mesh', 't_over_c']
             self.add_subsystem('tube_group',
-                TubeGroup(surface=surface),
+                TubeGroup(surface=surface, connect_geom_DVs=connect_geom_DVs),
                 promotes_inputs=tube_inputs,
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
         elif surface['fem_model_type'] == 'wingbox':
@@ -206,12 +207,12 @@ class AerostructPoint(Group):
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
 
-            if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys():
-                promotes = ['load_factor']
+            if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
+                prom_in = ['load_factor']
             else:
-                promotes = []
+                prom_in = []
 
-            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=promotes)
+            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=prom_in)
 
         if self.options['compressible'] == True:
             aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
@@ -238,7 +239,7 @@ class AerostructPoint(Group):
         """
 
         # Set solver properties for the coupled group
-        # coupled.linear_solver = ScipyIterativeSolver()
+        # coupled.linear_solver = ScipyKrylov()
         # coupled.linear_solver.precon = LinearRunOnce()
 
         coupled.nonlinear_solver = NonlinearBlockGS(use_aitken=True)
