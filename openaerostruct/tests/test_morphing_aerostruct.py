@@ -165,7 +165,7 @@ class Test(unittest.TestCase):
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
 
-        recorder = SqliteRecorder("aerostruct.db")
+        recorder = SqliteRecorder("morphing_aerostruct.db")
         prob.driver.add_recorder(recorder)
         prob.driver.recording_options['record_derivatives'] = True
         prob.driver.recording_options['includes'] = ['*']

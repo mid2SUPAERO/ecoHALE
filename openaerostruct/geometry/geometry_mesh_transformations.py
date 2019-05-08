@@ -101,7 +101,11 @@ class Taper(ExplicitComponent):
             fp = np.array([taper_ratio, 1., taper_ratio])
 
         taper = np.interp(x, xp, fp)
-        dtaper = (1.0 - taper) / (1.0 - taper_ratio)
+
+        if taper_ratio == 1.:
+            dtaper = np.zeros(taper.shape)
+        else:
+            dtaper = (1.0 - taper) / (1.0 - taper_ratio)
 
         partials['mesh', 'taper'] = np.einsum('ijk, j->ijk', mesh - quarter_chord, dtaper)
 
