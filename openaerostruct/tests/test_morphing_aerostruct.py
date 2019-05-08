@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-from openmdao.utils.assert_utils import assert_rel_error
+from openmdao.utils.assert_utils import assert_rel_error, assert_check_partials
 import unittest
 from openaerostruct.utils.constants import grav_constant
 
@@ -164,6 +164,7 @@ class Test(unittest.TestCase):
         from openmdao.api import ScipyOptimizeDriver
         prob.driver = ScipyOptimizeDriver()
         prob.driver.options['tol'] = 1e-9
+        prob.driver.options['maxiter'] = 2
 
         recorder = SqliteRecorder("morphing_aerostruct.db")
         prob.driver.add_recorder(recorder)
@@ -191,9 +192,20 @@ class Test(unittest.TestCase):
         # from openmdao.api import view_model
         # view_model(prob)
 
+        prob.run_model()
+
+        # Check the partials at the initial point in the design space,
+        # only care about relative error
+        data = prob.check_partials(compact_print=True, out_stream=None, method='cs', step=1e-40)
+
+        assert_check_partials(data, atol=1e20, rtol=1e-6)
+
+        # Run the optimizer for 2 iterations
         prob.run_driver()
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 103899.3551309102, 1e-7)
+        # Check the partials at this point in the design space
+        data = prob.check_partials(compact_print=True, out_stream=None, method='cs', step=1e-40)
+        assert_check_partials(data, atol=1e20, rtol=1e-6)
 
 
 if __name__ == '__main__':
