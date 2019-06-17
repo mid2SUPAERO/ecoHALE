@@ -30,7 +30,7 @@ Citation
 For more background, theory, and figures, see the [OpenAeroStruct journal article](http://mdolab.engin.umich.edu/sites/default/files/OAS_SMO_preprint_0.pdf).
 Please cite this article when using OpenAeroStruct in your research or curricula.
 
-John P. Jasa, John T. Hwang, and Joaquim RRA Martins. "Open-source coupled aerostructural optimization using Python." Structural and Multidisciplinary Optimization 57.4 (2018): 1815-1827. DOI: 10.1007/s00158-018-1912-8
+John P. Jasa, John T. Hwang, and Joaquim R. R. A. Martins. "Open-source coupled aerostructural optimization using Python." Structural and Multidisciplinary Optimization 57.4 (2018): 1815-1827. DOI: 10.1007/s00158-018-1912-8
 
 ```
 @article{Jasa2018a,
@@ -43,6 +43,22 @@ John P. Jasa, John T. Hwang, and Joaquim RRA Martins. "Open-source coupled aeros
 	Publisher = {Springer},
 	Title = {Open-source coupled aerostructural optimization using {Python}},
 	Volume = {57},
+	Year = {2018}}
+```
+
+If using the wingbox model, please cite the following conference paper.
+
+Shamsheer S. Chauhan and Joaquim R. R. A. Martins, “Low-Fidelity Aerostructural Optimization of Aircraft Wings with a Simplified Wingbox Model Using OpenAeroStruct,” Proceedings of the 6th International Conference on Engineering Optimization, EngOpt 2018, Springer, Lisbon, Portugal, September 2018, pp. 418–431. doi:10.1007/978-3-319-97773-7 38
+
+```
+@inproceedings{Chauhan2018b,
+	Author = {Shamsheer S. Chauhan and Joaquim R. R. A. Martins},
+	Address = {Lisbon, Portugal},
+	Booktitle = {Proceedings of the 6th International Conference on Engineering Optimization, EngOpt 2018},
+	Doi = {10.1007/978-3-319-97773-7_38},
+	Pages = {418-431},
+	Publisher = {Springer},
+	Title = {Low-Fidelity Aerostructural Optimization of Aircraft Wings with a Simplified Wingbox Model Using {OpenAeroStruct}},
 	Year = {2018}}
 ```
 
