@@ -115,6 +115,7 @@ class VLMGeometry(ExplicitComponent):
         # And here actually all parts of the mesh influence the area, so it's
         # fully dense
         self.declare_partials('S_ref', 'def_mesh')
+        self.set_check_partial_options(wrt='def_mesh', method='fd', step=1e-6)
 
     def compute(self, inputs, outputs):
         mesh = inputs['def_mesh']

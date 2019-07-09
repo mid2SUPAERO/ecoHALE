@@ -28,6 +28,7 @@ class Length(ExplicitComponent):
             mesh_indices[1: , :].flatten(),
         ])
         self.declare_partials('element_lengths', 'nodes', rows=rows, cols=cols)
+        self.set_check_partial_options(wrt='nodes', method='fd', step=1e-6)
 
     def compute(self, inputs, outputs):
         vec = inputs['nodes'][1:, :] - inputs['nodes'][:-1, :]
