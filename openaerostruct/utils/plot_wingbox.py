@@ -64,7 +64,6 @@ class Display(object):
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
         self.ax = plt.subplot2grid((5, 8), (0, 0), rowspan=5,
                                    colspan=4, projection='3d')
-        self.ax.set_aspect('equal')
 
         self.num_iters = 0
         self.show_wing = True
