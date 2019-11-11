@@ -1,0 +1,222 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>spatial_beam_setup.py &#8212; OpenAeroStruct 2.1.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="spatial_beam_states.py" href="spatial_beam_states.html" />
+    <link rel="prev" title="spatial_beam_functionals.py" href="spatial_beam_functionals.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="spatial_beam_states.html" title="spatial_beam_states.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="spatial_beam_functionals.html" title="spatial_beam_functionals.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Source Docs</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../openaerostruct.structures.html" accesskey="U">openaerostruct.structures</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quick_example.html">Quick Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aero_walkthrough.html">Aerodynamic Optimization Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../struct_example.html">Structural Optimization Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aerostructural_walkthrough.html">Aerostructural Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aerostructural_wingbox_walkthrough.html">Aerostructural with Wingbox Walkthrough</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../more_examples.html">More Examples</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../specialty_topics.html">Specialty Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../v1_v2_conversion.html">OpenAeroStruct v1 to v2 Conversion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to_contribute.html">How to Contribute to OpenAeroStruct</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-openaerostruct.structures.spatial_beam_setup">
+<span id="spatial-beam-setup-py"></span><span id="openaerostruct-structures-spatial-beam-setup-py"></span><span id="index-0"></span><h1>spatial_beam_setup.py<a class="headerlink" href="#module-openaerostruct.structures.spatial_beam_setup" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup">
+<em class="property">class </em><code class="sig-prename descclassname">openaerostruct.structures.spatial_beam_setup.</code><code class="sig-name descname">SpatialBeamSetup</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/openaerostruct/structures/spatial_beam_setup.html#SpatialBeamSetup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">openmdao.core.group.Group</span></code></p>
+<p>Group that sets up the spatial beam components and assembles the
+stiffness matrix.</p>
+<dl class="method">
+<dt id="openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.declare_coloring">
+<code class="sig-name descname">declare_coloring</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">wrt=('*'</em>, <em class="sig-param">)</em>, <em class="sig-param">method='fd'</em>, <em class="sig-param">form=None</em>, <em class="sig-param">step=None</em>, <em class="sig-param">per_instance=True</em>, <em class="sig-param">num_full_jacs=3</em>, <em class="sig-param">tol=1e-25</em>, <em class="sig-param">orders=None</em>, <em class="sig-param">perturb_size=1e-09</em>, <em class="sig-param">min_improve_pct=5.0</em>, <em class="sig-param">show_summary=True</em>, <em class="sig-param">show_sparsity=False</em><span class="sig-paren">)</span><a class="headerlink" href="#openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.declare_coloring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set options for deriv coloring of a set of wrt vars matching the given pattern(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>wrt</strong><span class="classifier">str or list of str</span></dt><dd><p>The name or names of the variables that derivatives are taken with respect to.
+This can contain input names, output names, or glob patterns.</p>
+</dd>
+<dt><strong>method</strong><span class="classifier">str</span></dt><dd><p>Method used to compute derivative: “fd” for finite difference, “cs” for complex step.</p>
+</dd>
+<dt><strong>form</strong><span class="classifier">str</span></dt><dd><p>Finite difference form, can be “forward”, “central”, or “backward”. Leave
+undeclared to keep unchanged from previous or default value.</p>
+</dd>
+<dt><strong>step</strong><span class="classifier">float</span></dt><dd><p>Step size for finite difference. Leave undeclared to keep unchanged from previous
+or default value.</p>
+</dd>
+<dt><strong>per_instance</strong><span class="classifier">bool</span></dt><dd><p>If True, a separate coloring will be generated for each instance of a given class.
+Otherwise, only one coloring for a given class will be generated and all instances
+of that class will use it.</p>
+</dd>
+<dt><strong>num_full_jacs</strong><span class="classifier">int</span></dt><dd><p>Number of times to repeat partial jacobian computation when computing sparsity.</p>
+</dd>
+<dt><strong>tol</strong><span class="classifier">float</span></dt><dd><p>Tolerance used to determine if an array entry is nonzero during sparsity determination.</p>
+</dd>
+<dt><strong>orders</strong><span class="classifier">int</span></dt><dd><p>Number of orders above and below the tolerance to check during the tolerance sweep.</p>
+</dd>
+<dt><strong>perturb_size</strong><span class="classifier">float</span></dt><dd><p>Size of input/output perturbation during generation of sparsity.</p>
+</dd>
+<dt><strong>min_improve_pct</strong><span class="classifier">float</span></dt><dd><p>If coloring does not improve (decrease) the number of solves more than the given
+percentage, coloring will not be used.</p>
+</dd>
+<dt><strong>show_summary</strong><span class="classifier">bool</span></dt><dd><p>If True, display summary information after generating coloring.</p>
+</dd>
+<dt><strong>show_sparsity</strong><span class="classifier">bool</span></dt><dd><p>If True, display sparsity with coloring info after generating coloring.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.get_approx_coloring_fname">
+<code class="sig-name descname">get_approx_coloring_fname</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.get_approx_coloring_fname" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the full pathname to a coloring file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>system</strong><span class="classifier">System</span></dt><dd><p>The System having its coloring saved or loaded.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>str</strong><span class="classifier"></span></dt><dd><p>Full pathname of the coloring file.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.msginfo">
+<em class="property">property </em><code class="sig-name descname">msginfo</code><a class="headerlink" href="#openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.msginfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Our instance pathname, if available, or our class name.  For use in error messages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>str</strong><span class="classifier"></span></dt><dd><p>Either our instance pathname or class name.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.use_fixed_coloring">
+<code class="sig-name descname">use_fixed_coloring</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">coloring=&lt;object object at 0x7f5b21b00030&gt;</em>, <em class="sig-param">recurse=True</em><span class="sig-paren">)</span><a class="headerlink" href="#openaerostruct.structures.spatial_beam_setup.SpatialBeamSetup.use_fixed_coloring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use a precomputed coloring for this System.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>coloring</strong><span class="classifier">str</span></dt><dd><p>A coloring filename.  If no arg is passed, filename will be determined
+automatically.</p>
+</dd>
+<dt><strong>recurse</strong><span class="classifier">bool</span></dt><dd><p>If True, set fixed coloring in all subsystems that declare a coloring. Ignored
+if a specific coloring is passed in.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="spatial_beam_states.html" title="spatial_beam_states.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="spatial_beam_functionals.html" title="spatial_beam_functionals.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Source Docs</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../openaerostruct.structures.html" >openaerostruct.structures</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, John Jasa, Dr. John Hwang, Justin S. Gray.
+      Last updated on Nov 11, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
+    </div>
+  </body>
+</html>

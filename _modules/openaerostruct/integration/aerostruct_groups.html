@@ -1,0 +1,387 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>openaerostruct.integration.aerostruct_groups &#8212; OpenAeroStruct 2.1.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quick_example.html">Quick Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aero_walkthrough.html">Aerodynamic Optimization Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../struct_example.html">Structural Optimization Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aerostructural_walkthrough.html">Aerostructural Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aerostructural_wingbox_walkthrough.html">Aerostructural with Wingbox Walkthrough</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../more_examples.html">More Examples</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../specialty_topics.html">Specialty Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../v1_v2_conversion.html">OpenAeroStruct v1 to v2 Conversion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to_contribute.html">How to Contribute to OpenAeroStruct</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_srcdocs/index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for openaerostruct.integration.aerostruct_groups</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">openaerostruct.aerodynamics.geometry</span> <span class="k">import</span> <span class="n">VLMGeometry</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.geometry.geometry_group</span> <span class="k">import</span> <span class="n">Geometry</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.transfer.displacement_transfer_group</span> <span class="k">import</span> <span class="n">DisplacementTransferGroup</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.structures.spatial_beam_setup</span> <span class="k">import</span> <span class="n">SpatialBeamSetup</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.structures.spatial_beam_states</span> <span class="k">import</span> <span class="n">SpatialBeamStates</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.aerodynamics.functionals</span> <span class="k">import</span> <span class="n">VLMFunctionals</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.structures.spatial_beam_functionals</span> <span class="k">import</span> <span class="n">SpatialBeamFunctionals</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.functionals.total_performance</span> <span class="k">import</span> <span class="n">TotalPerformance</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.transfer.load_transfer</span> <span class="k">import</span> <span class="n">LoadTransfer</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.aerodynamics.states</span> <span class="k">import</span> <span class="n">VLMStates</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.aerodynamics.compressible_states</span> <span class="k">import</span> <span class="n">CompressibleVLMStates</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.structures.tube_group</span> <span class="k">import</span> <span class="n">TubeGroup</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.structures.wingbox_group</span> <span class="k">import</span> <span class="n">WingboxGroup</span>
+
+<span class="kn">from</span> <span class="nn">openmdao.api</span> <span class="k">import</span> <span class="n">Group</span><span class="p">,</span> <span class="n">NonlinearBlockGS</span><span class="p">,</span> <span class="n">DirectSolver</span><span class="p">,</span> <span class="n">LinearBlockGS</span><span class="p">,</span> <span class="n">LinearRunOnce</span><span class="p">,</span> <span class="n">NewtonSolver</span><span class="p">,</span> <span class="n">ScipyKrylov</span>
+
+
+<div class="viewcode-block" id="AerostructGeometry"><a class="viewcode-back" href="../../../_srcdocs/packages/integration/aerostruct_groups.html#openaerostruct.integration.aerostruct_groups.AerostructGeometry">[docs]</a><span class="k">class</span> <span class="nc">AerostructGeometry</span><span class="p">(</span><span class="n">Group</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;surface&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;DVGeo&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;connect_geom_DVs&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">surface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;surface&#39;</span><span class="p">]</span>
+        <span class="n">DVGeo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;DVGeo&#39;</span><span class="p">]</span>
+        <span class="n">connect_geom_DVs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;connect_geom_DVs&#39;</span><span class="p">]</span>
+
+        <span class="n">geom_promotes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">connect_geom_DVs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;twist_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">geom_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;twist_cp&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;t_over_c_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">geom_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;t_over_c&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;sweep&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">geom_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;sweep&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;taper&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">geom_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;taper&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;mx&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">geom_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;geometry&#39;</span><span class="p">,</span>
+            <span class="n">Geometry</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">,</span> <span class="n">DVGeo</span><span class="o">=</span><span class="n">DVGeo</span><span class="p">,</span> <span class="n">connect_geom_DVs</span><span class="o">=</span><span class="n">connect_geom_DVs</span><span class="p">),</span>
+            <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">geom_promotes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;fem_model_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;tube&#39;</span><span class="p">:</span>
+            <span class="n">tube_promotes</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tube_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="s1">&#39;thickness_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">connect_geom_DVs</span><span class="p">:</span>
+                <span class="n">tube_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;thickness_cp&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;radius_cp&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">tube_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="s1">&#39;t_over_c&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;tube_group&#39;</span><span class="p">,</span>
+                <span class="n">TubeGroup</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">,</span> <span class="n">connect_geom_DVs</span><span class="o">=</span><span class="n">connect_geom_DVs</span><span class="p">),</span>
+                <span class="n">promotes_inputs</span><span class="o">=</span><span class="n">tube_inputs</span><span class="p">,</span>
+                <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;Iy&#39;</span><span class="p">,</span> <span class="s1">&#39;Iz&#39;</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="s1">&#39;radius&#39;</span><span class="p">,</span> <span class="s1">&#39;thickness&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">tube_promotes</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;fem_model_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;wingbox&#39;</span><span class="p">:</span>
+            <span class="n">wingbox_promotes</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="s1">&#39;skin_thickness_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="s1">&#39;spar_thickness_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">wingbox_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;skin_thickness_cp&#39;</span><span class="p">)</span>
+                <span class="n">wingbox_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;spar_thickness_cp&#39;</span><span class="p">)</span>
+                <span class="n">wingbox_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;skin_thickness&#39;</span><span class="p">)</span>
+                <span class="n">wingbox_promotes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;spar_thickness&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s1">&#39;skin_thickness_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="s1">&#39;spar_thickness_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s1">&#39;Please have both skin and spar thickness as design variables, not one or the other.&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;wingbox_group&#39;</span><span class="p">,</span>
+                <span class="n">WingboxGroup</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+                <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="s1">&#39;t_over_c&#39;</span><span class="p">],</span>
+                <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;Iy&#39;</span><span class="p">,</span> <span class="s1">&#39;Iz&#39;</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="s1">&#39;Qz&#39;</span><span class="p">,</span> <span class="s1">&#39;A_enc&#39;</span><span class="p">,</span> <span class="s1">&#39;A_int&#39;</span><span class="p">,</span> <span class="s1">&#39;htop&#39;</span><span class="p">,</span> <span class="s1">&#39;hbottom&#39;</span><span class="p">,</span> <span class="s1">&#39;hfront&#39;</span><span class="p">,</span> <span class="s1">&#39;hrear&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">wingbox_promotes</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s1">&#39;Please select a valid `fem_model_type` from either `tube` or `wingbox`.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;fem_model_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;wingbox&#39;</span><span class="p">:</span>
+            <span class="n">promotes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;A_int&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">promotes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;struct_setup&#39;</span><span class="p">,</span>
+            <span class="n">SpatialBeamSetup</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+            <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;Iy&#39;</span><span class="p">,</span> <span class="s1">&#39;Iz&#39;</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">promotes</span><span class="p">,</span>
+            <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;nodes&#39;</span><span class="p">,</span> <span class="s1">&#39;local_stiff_transformed&#39;</span><span class="p">,</span> <span class="s1">&#39;structural_mass&#39;</span><span class="p">,</span> <span class="s1">&#39;cg_location&#39;</span><span class="p">,</span> <span class="s1">&#39;element_mass&#39;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="CoupledAS"><a class="viewcode-back" href="../../../_srcdocs/packages/integration/aerostruct_groups.html#openaerostruct.integration.aerostruct_groups.CoupledAS">[docs]</a><span class="k">class</span> <span class="nc">CoupledAS</span><span class="p">(</span><span class="n">Group</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;surface&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">surface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;surface&#39;</span><span class="p">]</span>
+
+        <span class="n">promotes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;struct_weight_relief&#39;</span><span class="p">]:</span>
+            <span class="n">promotes</span> <span class="o">=</span> <span class="n">promotes</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s1">&#39;nodes&#39;</span><span class="p">,</span> <span class="s1">&#39;element_mass&#39;</span><span class="p">,</span> <span class="s1">&#39;load_factor&#39;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;distributed_fuel_weight&#39;</span><span class="p">]:</span>
+            <span class="n">promotes</span> <span class="o">=</span> <span class="n">promotes</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s1">&#39;nodes&#39;</span><span class="p">,</span> <span class="s1">&#39;load_factor&#39;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="s1">&#39;n_point_masses&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">promotes</span> <span class="o">=</span> <span class="n">promotes</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s1">&#39;point_mass_locations&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;point_masses&#39;</span><span class="p">,</span> <span class="s1">&#39;nodes&#39;</span><span class="p">,</span> <span class="s1">&#39;load_factor&#39;</span><span class="p">,</span> <span class="s1">&#39;engine_thrusts&#39;</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;struct_states&#39;</span><span class="p">,</span>
+            <span class="n">SpatialBeamStates</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+            <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;local_stiff_transformed&#39;</span><span class="p">,</span> <span class="s1">&#39;forces&#39;</span><span class="p">,</span> <span class="s1">&#39;loads&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">promotes</span><span class="p">,</span> <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;disp&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;def_mesh&#39;</span><span class="p">,</span>
+            <span class="n">DisplacementTransferGroup</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+            <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;nodes&#39;</span><span class="p">,</span> <span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="s1">&#39;disp&#39;</span><span class="p">],</span> <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;def_mesh&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;aero_geom&#39;</span><span class="p">,</span>
+            <span class="n">VLMGeometry</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+            <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;def_mesh&#39;</span><span class="p">],</span> <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;b_pts&#39;</span><span class="p">,</span> <span class="s1">&#39;widths&#39;</span><span class="p">,</span> <span class="s1">&#39;cos_sweep&#39;</span><span class="p">,</span> <span class="s1">&#39;lengths&#39;</span><span class="p">,</span> <span class="s1">&#39;chords&#39;</span><span class="p">,</span> <span class="s1">&#39;normals&#39;</span><span class="p">,</span> <span class="s1">&#39;S_ref&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">linear_solver</span> <span class="o">=</span> <span class="n">LinearRunOnce</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="CoupledPerformance"><a class="viewcode-back" href="../../../_srcdocs/packages/integration/aerostruct_groups.html#openaerostruct.integration.aerostruct_groups.CoupledPerformance">[docs]</a><span class="k">class</span> <span class="nc">CoupledPerformance</span><span class="p">(</span><span class="n">Group</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;surface&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">surface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;surface&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;aero_funcs&#39;</span><span class="p">,</span>
+            <span class="n">VLMFunctionals</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+            <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;Mach_number&#39;</span><span class="p">,</span> <span class="s1">&#39;re&#39;</span><span class="p">,</span> <span class="s1">&#39;rho&#39;</span><span class="p">,</span> <span class="s1">&#39;widths&#39;</span><span class="p">,</span> <span class="s1">&#39;cos_sweep&#39;</span><span class="p">,</span> <span class="s1">&#39;lengths&#39;</span><span class="p">,</span> <span class="s1">&#39;S_ref&#39;</span><span class="p">,</span> <span class="s1">&#39;sec_forces&#39;</span><span class="p">,</span> <span class="s1">&#39;t_over_c&#39;</span><span class="p">],</span> <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;CDv&#39;</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;CL1&#39;</span><span class="p">,</span> <span class="s1">&#39;CDi&#39;</span><span class="p">,</span> <span class="s1">&#39;CD&#39;</span><span class="p">,</span> <span class="s1">&#39;CL&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;fem_model_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;tube&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;struct_funcs&#39;</span><span class="p">,</span>
+                <span class="n">SpatialBeamFunctionals</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+                <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;thickness&#39;</span><span class="p">,</span> <span class="s1">&#39;radius&#39;</span><span class="p">,</span> <span class="s1">&#39;nodes&#39;</span><span class="p">,</span> <span class="s1">&#39;disp&#39;</span><span class="p">],</span> <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;thickness_intersects&#39;</span><span class="p">,</span> <span class="s1">&#39;vonmises&#39;</span><span class="p">,</span> <span class="s1">&#39;failure&#39;</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;fem_model_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;wingbox&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;struct_funcs&#39;</span><span class="p">,</span>
+                <span class="n">SpatialBeamFunctionals</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">),</span>
+                <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Qz&#39;</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="s1">&#39;A_enc&#39;</span><span class="p">,</span> <span class="s1">&#39;spar_thickness&#39;</span><span class="p">,</span> <span class="s1">&#39;htop&#39;</span><span class="p">,</span> <span class="s1">&#39;hbottom&#39;</span><span class="p">,</span> <span class="s1">&#39;hfront&#39;</span><span class="p">,</span> <span class="s1">&#39;hrear&#39;</span><span class="p">,</span> <span class="s1">&#39;nodes&#39;</span><span class="p">,</span> <span class="s1">&#39;disp&#39;</span><span class="p">],</span> <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vonmises&#39;</span><span class="p">,</span> <span class="s1">&#39;failure&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s1">&#39;Please select a valid `fem_model_type` from either `tube` or `wingbox`.&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AerostructPoint"><a class="viewcode-back" href="../../../_srcdocs/packages/integration/aerostruct_groups.html#openaerostruct.integration.aerostruct_groups.AerostructPoint">[docs]</a><span class="k">class</span> <span class="nc">AerostructPoint</span><span class="p">(</span><span class="n">Group</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;surfaces&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;user_specified_Sref&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;internally_connect_fuelburn&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;compressible&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                             <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Turns on compressibility correction for moderate Mach number &#39;</span>
+                             <span class="s1">&#39;flows. Defaults to False.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;rotational&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+                             <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Set to True to turn on support for computing angular velocities&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">surfaces</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;surfaces&#39;</span><span class="p">]</span>
+        <span class="n">rotational</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;rotational&#39;</span><span class="p">]</span>
+
+        <span class="n">coupled</span> <span class="o">=</span> <span class="n">Group</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="n">surfaces</span><span class="p">:</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Connect the output of the loads component with the FEM</span>
+            <span class="c1"># displacement parameter. This links the coupling within the coupled</span>
+            <span class="c1"># group that necessitates the subgroup solver.</span>
+            <span class="n">coupled</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_loads.loads&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.loads&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Perform the connections with the modified names within the</span>
+            <span class="c1"># &#39;aero_states&#39; group.</span>
+            <span class="n">coupled</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.normals&#39;</span><span class="p">,</span> <span class="s1">&#39;aero_states.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">)</span>
+            <span class="n">coupled</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.def_mesh&#39;</span><span class="p">,</span> <span class="s1">&#39;aero_states.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_def_mesh&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Connect the results from &#39;coupled&#39; to the performance groups</span>
+            <span class="n">coupled</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.def_mesh&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_loads.def_mesh&#39;</span><span class="p">)</span>
+            <span class="n">coupled</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;aero_states.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_sec_forces&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_loads.sec_forces&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Connect the results from &#39;aero_states&#39; to the performance groups</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.aero_states.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_sec_forces&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf&#39;</span> <span class="o">+</span> <span class="s1">&#39;.sec_forces&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Connection performance functional variables</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.CL&#39;</span><span class="p">,</span> <span class="s1">&#39;total_perf.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_CL&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.CD&#39;</span><span class="p">,</span> <span class="s1">&#39;total_perf.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_CD&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.aero_states.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_sec_forces&#39;</span><span class="p">,</span> <span class="s1">&#39;total_perf.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_sec_forces&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.chords&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.aero_funcs.chords&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Connect parameters from the &#39;coupled&#39; group to the performance</span>
+            <span class="c1"># groups for the individual surfaces.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.disp&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.disp&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.S_ref&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.S_ref&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.widths&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.widths&#39;</span><span class="p">)</span>
+            <span class="c1"># self.connect(&#39;coupled.&#39; + name + &#39;.chords&#39;, name + &#39;_perf.chords&#39;)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.lengths&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.lengths&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.cos_sweep&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf.cos_sweep&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Connect parameters from the &#39;coupled&#39; group to the total performance group.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.S_ref&#39;</span><span class="p">,</span> <span class="s1">&#39;total_perf.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_S_ref&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.widths&#39;</span><span class="p">,</span> <span class="s1">&#39;total_perf.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_widths&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.chords&#39;</span><span class="p">,</span> <span class="s1">&#39;total_perf.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_chords&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;coupled.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.b_pts&#39;</span><span class="p">,</span> <span class="s1">&#39;total_perf.&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_b_pts&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Add components to the &#39;coupled&#39; group for each surface.</span>
+            <span class="c1"># The &#39;coupled&#39; group must contain all components and parameters</span>
+            <span class="c1"># needed to converge the aerostructural system.</span>
+            <span class="n">coupled_AS_group</span> <span class="o">=</span> <span class="n">CoupledAS</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;distributed_fuel_weight&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;n_point_masses&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;struct_weight_relief&#39;</span><span class="p">]:</span>
+                <span class="n">prom_in</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;load_factor&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prom_in</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">coupled</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">coupled_AS_group</span><span class="p">,</span> <span class="n">promotes_inputs</span><span class="o">=</span><span class="n">prom_in</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;compressible&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">aero_states</span> <span class="o">=</span> <span class="n">CompressibleVLMStates</span><span class="p">(</span><span class="n">surfaces</span><span class="o">=</span><span class="n">surfaces</span><span class="p">,</span> <span class="n">rotational</span><span class="o">=</span><span class="n">rotational</span><span class="p">)</span>
+            <span class="n">prom_in</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;rho&#39;</span><span class="p">,</span> <span class="s1">&#39;Mach_number&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">aero_states</span> <span class="o">=</span> <span class="n">VLMStates</span><span class="p">(</span><span class="n">surfaces</span><span class="o">=</span><span class="n">surfaces</span><span class="p">,</span> <span class="n">rotational</span><span class="o">=</span><span class="n">rotational</span><span class="p">)</span>
+            <span class="n">prom_in</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;rho&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Add a single &#39;aero_states&#39; component for the whole system within the</span>
+        <span class="c1"># coupled group.</span>
+        <span class="n">coupled</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;aero_states&#39;</span><span class="p">,</span> <span class="n">aero_states</span><span class="p">,</span>
+            <span class="n">promotes_inputs</span><span class="o">=</span><span class="n">prom_in</span><span class="p">)</span>
+
+        <span class="c1"># Explicitly connect parameters from each surface&#39;s group and the common</span>
+        <span class="c1"># &#39;aero_states&#39; group.</span>
+        <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="n">surfaces</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Add a loads component to the coupled group</span>
+            <span class="n">coupled</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_loads&#39;</span><span class="p">,</span> <span class="n">LoadTransfer</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">))</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ### Change the solver settings here ###</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Set solver properties for the coupled group</span>
+        <span class="c1"># coupled.linear_solver = ScipyKrylov()</span>
+        <span class="c1"># coupled.linear_solver.precon = LinearRunOnce()</span>
+
+        <span class="n">coupled</span><span class="o">.</span><span class="n">nonlinear_solver</span> <span class="o">=</span> <span class="n">NonlinearBlockGS</span><span class="p">(</span><span class="n">use_aitken</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">coupled</span><span class="o">.</span><span class="n">nonlinear_solver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;maxiter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">coupled</span><span class="o">.</span><span class="n">nonlinear_solver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;atol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-7</span>
+        <span class="n">coupled</span><span class="o">.</span><span class="n">nonlinear_solver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;rtol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-30</span>
+        <span class="n">coupled</span><span class="o">.</span><span class="n">nonlinear_solver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;iprint&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">coupled</span><span class="o">.</span><span class="n">nonlinear_solver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;err_on_maxiter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># coupled.linear_solver = DirectSolver()</span>
+
+        <span class="n">coupled</span><span class="o">.</span><span class="n">linear_solver</span> <span class="o">=</span> <span class="n">DirectSolver</span><span class="p">(</span><span class="n">assemble_jac</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">coupled</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;assembled_jac_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;csc&#39;</span>
+
+        <span class="c1"># coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)</span>
+        <span class="c1"># coupled.nonlinear_solver.options[&#39;maxiter&#39;] = 50</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ### End change of solver settings ###</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prom_in</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;rho&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;compressible&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">prom_in</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Mach_number&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Add the coupled group to the model problem</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;coupled&#39;</span><span class="p">,</span> <span class="n">coupled</span><span class="p">,</span> <span class="n">promotes_inputs</span><span class="o">=</span><span class="n">prom_in</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="n">surfaces</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Add a performance group which evaluates the data after solving</span>
+            <span class="c1"># the coupled system</span>
+            <span class="n">perf_group</span> <span class="o">=</span> <span class="n">CoupledPerformance</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">surface</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_perf&#39;</span><span class="p">,</span> <span class="n">perf_group</span><span class="p">,</span> <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;re&#39;</span><span class="p">,</span> <span class="s1">&#39;Mach_number&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Add functionals to evaluate performance of the system.</span>
+        <span class="c1"># Note that only the interesting results are promoted here; not all</span>
+        <span class="c1"># of the parameters.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;total_perf&#39;</span><span class="p">,</span>
+                 <span class="n">TotalPerformance</span><span class="p">(</span><span class="n">surfaces</span><span class="o">=</span><span class="n">surfaces</span><span class="p">,</span>
+                 <span class="n">user_specified_Sref</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;user_specified_Sref&#39;</span><span class="p">],</span>
+                 <span class="n">internally_connect_fuelburn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;internally_connect_fuelburn&#39;</span><span class="p">]),</span>
+                 <span class="n">promotes_inputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;rho&#39;</span><span class="p">,</span> <span class="s1">&#39;empty_cg&#39;</span><span class="p">,</span> <span class="s1">&#39;total_weight&#39;</span><span class="p">,</span> <span class="s1">&#39;CT&#39;</span><span class="p">,</span> <span class="s1">&#39;speed_of_sound&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">,</span> <span class="s1">&#39;Mach_number&#39;</span><span class="p">,</span> <span class="s1">&#39;W0&#39;</span><span class="p">,</span> <span class="s1">&#39;load_factor&#39;</span><span class="p">,</span> <span class="s1">&#39;S_ref_total&#39;</span><span class="p">],</span>
+                 <span class="n">promotes_outputs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;L_equals_W&#39;</span><span class="p">,</span> <span class="s1">&#39;fuelburn&#39;</span><span class="p">,</span> <span class="s1">&#39;CL&#39;</span><span class="p">,</span> <span class="s1">&#39;CD&#39;</span><span class="p">,</span> <span class="s1">&#39;CM&#39;</span><span class="p">,</span> <span class="s1">&#39;cg&#39;</span><span class="p">])</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, John Jasa, Dr. John Hwang, Justin S. Gray.
+      Last updated on Nov 11, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
+    </div>
+  </body>
+</html>

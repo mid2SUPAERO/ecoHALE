@@ -1,0 +1,8 @@
+openaerostruct.integration
+--------------------------
+
+.. toctree::
+    :maxdepth: 1
+
+    integration/aerostruct_groups
+    integration/multipoint_comps
