@@ -23,22 +23,28 @@ class Weight(ExplicitComponent):
         Weight of each element.
 
     """
+    
 
     def initialize(self):
         self.options.declare('surface', types=dict)
 
     def setup(self):
         self.surface = surface = self.options['surface']
-
+        
         self.ny = ny = surface['mesh'].shape[1]
 
         self.add_input('A', val=np.ones((self.ny - 1)), units='m**2')
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
-
+        self.add_input('mrho', val=1000, units='kg/m**3') #ED
+     
         self.add_output('structural_mass', val=0., units='kg')
         self.add_output('element_mass', val=np.zeros((self.ny-1)), units='kg')
 
-        self.declare_partials('structural_mass', ['A','nodes'])
+        self.declare_partials('structural_mass', ['A','nodes','mrho'])
+#        self.declare_partials('structural_mass', ['A','nodes'])
+#        self.declare_partials('structural_mass', 'mrho', method='fd', step=10, step_calc='abs')
+#        self.declare_partials('element_mass', 'mrho', method='fd', step=10, step_calc='abs')
+        self.declare_partials('element_mass', 'mrho')
 
         row_col = np.arange(self.ny-1, dtype=int)
         self.declare_partials('element_mass','A', rows=row_col, cols=row_col)
@@ -56,13 +62,13 @@ class Weight(ExplicitComponent):
     def compute(self, inputs, outputs):
         A = inputs['A']
         nodes = inputs['nodes']
-        mrho = self.surface['mrho']
+        mrho = inputs['mrho']
         wwr = self.surface['wing_weight_ratio']
 
         # Calculate the volume and weight of the structure
         element_volumes = norm(nodes[1:, :] - nodes[:-1, :], axis=1) * A
 
-        # nodes[1:, :] - nodes[:-1, :] this is the delta array of the different between the points
+        # nodes[1:, :] - nodes[:-1, :] this is the delta array of the difference between the points
         element_mass = element_volumes * mrho * wwr
         weight = np.sum(element_mass)
 
@@ -70,6 +76,8 @@ class Weight(ExplicitComponent):
         if self.surface['symmetry']:
             weight *= 2.
 
+        if weight < 0 :
+            print("negative weight")
         outputs['structural_mass'] = weight
         outputs['element_mass'] = element_mass
 
@@ -77,13 +85,14 @@ class Weight(ExplicitComponent):
 
         A = inputs['A']
         nodes = inputs['nodes']
-        mrho = self.surface['mrho']
+        mrho = inputs['mrho']
         wwr = self.surface['wing_weight_ratio']
         ny = self.ny
+        
 
         # Calculate the volume and weight of the structure
         const0 = nodes[1:, :] - nodes[:-1, :]
-        const1 = np.linalg.norm(const0, axis=1)
+        const1 = np.linalg.norm(const0, axis=1) #length of elements
         element_volumes = const1 * A
         volume = np.sum(element_volumes)
         const2 = mrho * wwr
@@ -91,17 +100,20 @@ class Weight(ExplicitComponent):
 
         # First we will solve for dweight_dA
         # Calculate the volume and weight of the total structure
-        norms = const1.reshape(1, -1)
+        norms = const1.reshape(1, -1)  #length of elements
 
         # Multiply by the material density and force of gravity
         dweight_dA = norms * const2
+        dweight_dmrho = volume * wwr
 
         # Account for symmetry
         if self.surface['symmetry']:
             dweight_dA *= 2.
+            dweight_dmrho *= 2.
 
         # Save the result to the jacobian dictionary
         partials['structural_mass', 'A'] = dweight_dA
+        partials['structural_mass', 'mrho'] = dweight_dmrho
 
         # Next, we will compute the derivative of weight wrt nodes.
         # Here we're using results from AD to compute the derivative
@@ -122,6 +134,7 @@ class Weight(ExplicitComponent):
 
         # Element_weight Partials
         partials['element_mass','A'] = const1 * const2
+        partials['element_mass', 'mrho'] = element_volumes * wwr
 
         precalc = np.sum(np.power(const0,2),axis=1)
         d__dprecalc = 0.5 * precalc**(-.5)

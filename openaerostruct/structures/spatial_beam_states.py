@@ -3,7 +3,7 @@ from openaerostruct.structures.create_rhs import CreateRHS
 from openaerostruct.structures.fem import FEM
 from openaerostruct.structures.disp import Disp
 from openaerostruct.structures.wing_weight_loads import StructureWeightLoads
-from openaerostruct.structures.fuel_loads import FuelLoads
+from openaerostruct.structures.pv_loads import PVLoads
 from openaerostruct.structures.total_loads import TotalLoads
 
 class SpatialBeamStates(Group):
@@ -23,12 +23,19 @@ class SpatialBeamStates(Group):
                      promotes_outputs=['struct_weight_loads'])
             wingbox_promotes.append('struct_weight_loads')
 
-        if surface['distributed_fuel_weight']:
-            self.add_subsystem('fuel_loads',
-                     FuelLoads(surface=surface),
-                     promotes_inputs=['nodes', 'load_factor', 'fuel_vols', 'fuel_mass'],
-                     promotes_outputs=['fuel_weight_loads'])
-            wingbox_promotes.append('fuel_weight_loads')
+#        if surface['distributed_fuel_weight']:
+#            self.add_subsystem('fuel_loads',
+#                     FuelLoads(surface=surface),
+#                     promotes_inputs=['nodes', 'load_factor', 'fuel_vols', 'fuel_mass'],
+#                     promotes_outputs=['fuel_weight_loads'])
+#            wingbox_promotes.append('fuel_weight_loads')
+
+        self.add_subsystem('pv_loads',
+                 PVLoads(surface=surface),
+                 promotes_inputs=['nodes', 'load_factor', 'PV_areas', 'PV_mass'],
+                 promotes_outputs=['PV_weight_loads'])
+        wingbox_promotes.append('PV_weight_loads')
+
 
         self.add_subsystem('total_loads',
                  TotalLoads(surface=surface),

@@ -54,12 +54,12 @@ class SpatialBeamAlone(Group):
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],   
                 promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass'])
         else:
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'A_int'],
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'A_int'],   
                 promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass', ])
 
         promotes = []

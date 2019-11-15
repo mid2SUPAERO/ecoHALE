@@ -136,6 +136,7 @@ prob.model.add_subsystem('prob_vars',
 # Add the AerostructGeometry group, which computes all the intermediary
 # parameters for the aero and structural analyses, like the structural
 # stiffness matrix and some aerodynamic geometry arrays
+
 aerostruct_group = AerostructGeometry(surface=surface)
 
 name = 'wing'

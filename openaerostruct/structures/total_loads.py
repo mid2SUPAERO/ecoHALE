@@ -36,8 +36,7 @@ class TotalLoads(ExplicitComponent):
         self.add_input('loads', val=np.ones((self.ny, 6)), units='N')
         if surface['struct_weight_relief']:
             self.add_input('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
-        if surface['distributed_fuel_weight']:
-            self.add_input('fuel_weight_loads', val=np.zeros((self.ny, 6)), units='N')
+        self.add_input('PV_weight_loads', val=np.zeros((self.ny, 6)), units='N')
 
         self.add_output('total_loads', val=np.ones((self.ny, 6)), units='N')
 
@@ -50,9 +49,8 @@ class TotalLoads(ExplicitComponent):
             self.declare_partials('total_loads', 'struct_weight_loads',
                 rows=arange, cols=arange, val=1.)
 
-        if self.surface['distributed_fuel_weight']:
-            self.declare_partials('total_loads', 'fuel_weight_loads',
-                rows=arange, cols=arange, val=1.)
+        self.declare_partials('total_loads', 'PV_weight_loads',
+            rows=arange, cols=arange, val=1.)
 
     def compute(self, inputs, outputs):
         outputs['total_loads'] = inputs['loads']
@@ -60,5 +58,4 @@ class TotalLoads(ExplicitComponent):
         if self.surface['struct_weight_relief']:
             outputs['total_loads'] += inputs['struct_weight_loads']
 
-        if self.surface['distributed_fuel_weight']:
-            outputs['total_loads'] += inputs['fuel_weight_loads']
+        outputs['total_loads'] += inputs['PV_weight_loads']

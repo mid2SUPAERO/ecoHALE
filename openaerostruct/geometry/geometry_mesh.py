@@ -161,7 +161,6 @@ class GeometryMesh(Group):
         else:
             val = np.zeros(ny)
             promotes = []
-
         self.add_subsystem('rotate', Rotate(val=val, mesh_shape=mesh_shape, symmetry=symmetry),
                            promotes_inputs=promotes, promotes_outputs=['mesh'])
 

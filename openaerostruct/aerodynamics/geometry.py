@@ -186,7 +186,7 @@ class VLMGeometry(ExplicitComponent):
         outputs['normals'] = normals
         outputs['S_ref'] = S_ref
         outputs['chords'] = chords
-
+        
     def compute_partials(self, inputs, partials):
         """ Jacobian for VLM geometry."""
 

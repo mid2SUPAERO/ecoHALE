@@ -140,5 +140,4 @@ def get_default_surfaces():
                  'mesh' : mesh}
 
     surfaces = [wing_dict, tail_dict]
-
     return surfaces

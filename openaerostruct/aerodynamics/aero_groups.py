@@ -73,6 +73,7 @@ class AeroPoint(Group):
 
         # Add the total aero performance group to compute the CL, CD, and CM
         # of the total aircraft. This accounts for all lifting surfaces.
+        
         self.add_subsystem('total_perf',
             TotalAeroPerformance(surfaces=surfaces,
             user_specified_Sref=self.options['user_specified_Sref']),

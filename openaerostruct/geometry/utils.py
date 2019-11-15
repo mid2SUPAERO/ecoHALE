@@ -629,7 +629,6 @@ def get_default_geo_dict():
     return defaults
 
 def generate_mesh(input_dict):
-
     # Get defaults and update surface with the user-provided input
     surf_dict = get_default_geo_dict()
     surf_dict.update(input_dict)
@@ -699,11 +698,9 @@ def generate_mesh(input_dict):
             else:
                 twist = np.interp(np.linspace(0, 1, num_twist/2), eta, surf_dict['crm_twist'])
                 twist = np.hstack((twist, twist[::-1]))
-
         return mesh, twist
 
     else:
-
         return mesh
 
 def write_FFD_file(surface, mx, my):
