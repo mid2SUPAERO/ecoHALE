@@ -71,7 +71,7 @@ class BucklingKS(ExplicitComponent):
         G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
         E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])        
         
-        sigmaBuc=kc*math.pi**2*skin**2/b**2*G**2/(3*(4*G-E))
+        sigmaBuc=kc*math.pi**2*skin**2/b**2*G**2/(3*(4*G-E))/1.5
         fmax = np.max(tbc/sigmaBuc - 1)
 
         nlog, nsum, nexp = np.log, np.sum, np.exp
@@ -95,7 +95,7 @@ class BucklingKS(ExplicitComponent):
         G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
         E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])        
         
-        sigmaBuc=kc*math.pi**2*skin**2/b**2*G**2/(3*(4*G-E))
+        sigmaBuc=kc*math.pi**2*skin**2/b**2*G**2/(3*(4*G-E))/1.5
 
         rho=self.options['rho']
 

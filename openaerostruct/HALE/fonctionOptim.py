@@ -22,7 +22,7 @@ from math import atan, pi
 from random import randint
 
 
-def fctOptim(mrhoi,skin,spar,span,tc): 
+def fctOptim(mrhoi,skin,spar,span,toverc): 
 #def fctOptim(mrhoi,skin,):  #ED2
     
 #    puissanceMM=1 #ED2
@@ -32,7 +32,10 @@ def fctOptim(mrhoi,skin,spar,span,tc):
 #    sandw2=material(174.5,14.15e9,5.44e9,195.6e6/1.5,43.4,"sandw2")
     sandw3=material(483,42.5e9,16.3e9,586e6/1.5,46.8,"sandw3")
     sandw4=material(504.5,42.5e9,16.3e9,586e6/1.5,44.9,"sandw4")
-    sandw5=material(574.5,42.5e9,16.3e9,586e6/1.5,39.3,"sandw5")
+#    sandw5=material(574.5,42.5e9,16.3e9,586e6/1.5,39.3,"sandw5")
+    sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,40.3,"sandw5")
+    sandw6=material(529,42.5e9,16.3e9,237e6/1.5,42.75,"sandw6")
+
 
 
 
@@ -47,7 +50,7 @@ def fctOptim(mrhoi,skin,spar,span,tc):
     fakemat=material((2.80e3+7750)/2,(72.5e9+200e9)/2,(27e9+78.5e9)/2,(444.5e6/1.5+562e6/1.5)/2,(13.15*(1-0.426)+2.61*0.426+4.55*(1-0.374)+1.15*0.374)/2,"fakemat")
     nomatEnd=material(10000,5e9,2e9,20e6/1.5,60,"nomatEnd")
     
-    materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd, sandw3, sandw4, sandw5]
+    materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd, sandw3, sandw4, sandw5, sandw6]
 #    materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd,sandw1,sandw2,sandw3]
 #    materials=[al7075, fakemat, steel, nomat]
     
@@ -78,11 +81,13 @@ def fctOptim(mrhoi,skin,spar,span,tc):
     
     densityPV=0.3 #kg/m^2
     energeticDensityBattery=400 #Wh/kg
+#    energeticDensityBattery=800 #Wh/kg
     night_hours=13 #h
 #    night_hours=hours #h #ED2
     productivityPV=54. #[W/m^2]
     emissionPV=0.05 #[kgCO2/W] emissions of the needed PV surface to produce 1W
     emissionBat=0.104 #[kgCO2/Wh]
+#    emissionBat=0.052 #[kgCO2/Wh]
     emissionsPerW=emissionPV+emissionBat*night_hours #[kgCO2/W]
     
     
@@ -103,15 +108,15 @@ def fctOptim(mrhoi,skin,spar,span,tc):
                 'twist_cp' : np.array([4., 5., 8., 9.]), # [deg]
 #                'twist_cp' : np.array([15.        +0.j, 15.        +0.j, 15.        +0.j,  7.32414355+0.j]), # [deg] #TODELETE
     
-                'spar_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
-#                'spar_thickness_cp' : np.array([0.0001, 0.0001, 0.0002, 0.0003]), # [m]
+#                'spar_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
+                'spar_thickness_cp' : np.array([spar, spar, spar, spar]), # [m]
 #                'spar_thickness_cp' : np.array([0.00298327+0.j, 0.00411879+0.j, 0.00702408+0.j, 0.00855659+0.j]), # [m] #TODELETE
-                'skin_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
-#                'skin_thickness_cp' : np.array([0.0001, 0.0001, 0.0002, 0.0003]), # [m]
+#                'skin_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
+                'skin_thickness_cp' : np.array([skin, skin, skin, skin]), # [m]
 #                'skin_thickness_cp' : np.array([0.0001    +0.j, 0.00274638+0.j, 0.00698719+0.j, 0.01217181+0.j]), # [m] #TODELETE
     
-                't_over_c_cp' : np.array([0.08, 0.08, 0.10, 0.08]),
-#                't_over_c_cp' : np.array([0.07+0.j, 0.07+0.j, 0.07+0.j, 0.07+0.j]), #TODELETE
+#                't_over_c_cp' : np.array([0.08, 0.08, 0.10, 0.08]),
+                't_over_c_cp' : np.array([toverc, toverc, toverc, toverc]), #TODELETE
                 'original_wingbox_airfoil_t_over_c' : 0.12,
                  # Aerodynamic deltas.
                 # These CL0 and CD0 values are added to the CL and CD
@@ -144,10 +149,10 @@ def fctOptim(mrhoi,skin,spar,span,tc):
 #                'distributed_fuel_weight' : True,
 #                'fuel_density' : 803.,      # [kg/m^3] fuel density (only needed if the fuel-in-wing volume constraint is used)
 #                'Wf_reserve' :15000.,       # [kg] reserve fuel mass
-                'puissanceMM' : puissanceMM,    #power used in muli-material function
+                'puissanceMM' : 1,    #power used in muli-material function
     #            'mrho' : 2000.,
-                'span' : 50., #[m]
-#                'span' : 30., #[m]
+#                'span' : 50., #[m]
+                'span' : span, #[m]
 #                'span' : [100.+0.j], #TODELETE
                 'taper' : 0.1,
 #                'taper' : [1.+0.j], #TODELETE
@@ -385,7 +390,7 @@ def fctOptim(mrhoi,skin,spar,span,tc):
     #prob.driver.options['tol'] = 1e-3
 #    prob.driver.options['debug_print'] = ['desvars','ln_cons','nl_cons','totals']
     
-    recorder = SqliteRecorder("aerostructMrhoi"+str(mrhoi)+"p"+str(puissanceMM)+"limh"+str(limhauterho)+".db")
+    recorder = SqliteRecorder("aerostructMrhoi"+str(mrhoi)+"sk"+str(skin)+"sr"+str(spar)+"sn"+str(span)+"tc"+str(toverc)+".db")
     prob.driver.add_recorder(recorder)
     
     # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.
