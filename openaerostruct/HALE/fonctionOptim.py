@@ -30,7 +30,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     
 #    sandw1=material(66.35,4.25e9,1.63e9,58.7e6/1.5,34.7,"sandw1")
 #    sandw2=material(174.5,14.15e9,5.44e9,195.6e6/1.5,43.4,"sandw2")
-    sandw3=material(483,42.5e9,16.3e9,586e6/1.5,46.8,"sandw3")
+#    sandw3=material(483,42.5e9,16.3e9,586e6/1.5,46.8,"sandw3")
     sandw4=material(504.5,42.5e9,16.3e9,586e6/1.5,44.9,"sandw4")
 #    sandw5=material(574.5,42.5e9,16.3e9,586e6/1.5,39.3,"sandw5")
     sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,40.3,"sandw5")
@@ -45,12 +45,13 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     steel=material(7750,200e9,78.5e9,562e6/1.5,4.55*(1-0.374)+1.15*0.374,"steel")
     gfrp=material(1860,21.4e9,8.14e9,255e6,6.18,"gfrp")            #epoxy-Eglass,woven,QI
     #nomat=material(1370,0.01,0.01,0.01,60,"noMaterial")
-    nomat=material(50,1e8,1e4,1e5,600,"noMaterial")    
+    nomat=material(50,1e8,1e4,1e5,6000,"noMaterial")    
 #    nomat=material(50,1e8,1e4,1e5,60,"noMaterial")    
     fakemat=material((2.80e3+7750)/2,(72.5e9+200e9)/2,(27e9+78.5e9)/2,(444.5e6/1.5+562e6/1.5)/2,(13.15*(1-0.426)+2.61*0.426+4.55*(1-0.374)+1.15*0.374)/2,"fakemat")
     nomatEnd=material(10000,5e9,2e9,20e6/1.5,60,"nomatEnd")
     
-    materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd, sandw3, sandw4, sandw5, sandw6]
+    materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd, sandw4, sandw5, sandw6]
+#    materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd, sandw3, sandw4, sandw5, sandw6]
 #    materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd,sandw1,sandw2,sandw3]
 #    materials=[al7075, fakemat, steel, nomat]
     
@@ -109,10 +110,10 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #                'twist_cp' : np.array([15.        +0.j, 15.        +0.j, 15.        +0.j,  7.32414355+0.j]), # [deg] #TODELETE
     
 #                'spar_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
-                'spar_thickness_cp' : np.array([spar, spar, spar, spar]), # [m]
+                'spar_thickness_cp' : np.array([spar/2, spar/2, spar, 1.5*spar]), # [m]
 #                'spar_thickness_cp' : np.array([0.00298327+0.j, 0.00411879+0.j, 0.00702408+0.j, 0.00855659+0.j]), # [m] #TODELETE
 #                'skin_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
-                'skin_thickness_cp' : np.array([skin, skin, skin, skin]), # [m]
+                'skin_thickness_cp' : np.array([skin/2, skin/2, skin, 1.5*skin]), # [m]
 #                'skin_thickness_cp' : np.array([0.0001    +0.j, 0.00274638+0.j, 0.00698719+0.j, 0.01217181+0.j]), # [m] #TODELETE
     
 #                't_over_c_cp' : np.array([0.08, 0.08, 0.10, 0.08]),
@@ -154,7 +155,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #                'span' : 50., #[m]
                 'span' : span, #[m]
 #                'span' : [100.+0.j], #TODELETE
-                'taper' : 0.1,
+                'taper' : 0.2,
 #                'taper' : [1.+0.j], #TODELETE
 #                'taper' : 0.99,
                 'chord_cp' : [2.],
@@ -341,6 +342,9 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #        prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
     prob.model.connect('wing.struct_setup.PV_areas', 'AS_point_1.coupled.wing.struct_states.PV_areas')
     prob.model.connect('AS_point_0.total_perf.PV_mass', 'AS_point_1.coupled.wing.struct_states.PV_mass')
+    
+    prob.model.connect('wing.chord_cp','AS_point_1.wing_perf.struct_funcs.chord')
+    prob.model.connect('wing.taper','AS_point_1.wing_perf.struct_funcs.taper')
         
 #    comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
 #    prob.model.add_subsystem('fuel_diff', comp,
@@ -352,16 +356,16 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     
     prob.model.add_design_var('wing.twist_cp', lower=-15., upper=15., scaler=0.1)
 #    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
-    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e2)
+    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
 #    prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
-    prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e2)
+    prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.span', lower=1., upper=1000., scaler=0.1)
     prob.model.add_design_var('wing.chord_cp', lower=1., upper=500., scaler=0.1)
     prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.2, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
-#    prob.model.add_design_var('mrho', lower=1400, upper=9900, scaler=0.001) #ED
-    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
+    prob.model.add_design_var('mrho', lower=400, upper=700, scaler=0.001) #ED
+#    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
     
 #    prob.model.add_constraint('AS_point_0.CL', equals=0.5)
     
@@ -437,10 +441,10 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     
     # Set up the problem
     prob.setup()
-    #prob.run_model() #ED2
-
-    #data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
-    #print(data)  #ED2
+#    prob.run_model() #ED2
+#
+#    data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
+#    print(data)  #ED2
     #from openmdao.api import view_model
     #view_model(prob)
     

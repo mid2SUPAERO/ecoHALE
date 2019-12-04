@@ -52,12 +52,16 @@ class BucklingKS(ExplicitComponent):
         self.add_input('top_bending_stress', val=np.zeros(self.ny-1), units='N/m**2')
         self.add_input('skin_thickness', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('mrho', val=1000, units='kg/m**3')
-
+        self.add_input('chord', val=1, units='m')
+        self.add_input('taper', val=1, units='m')
+        
         self.add_output('buckling', val=1.)
 
         self.declare_partials('buckling','top_bending_stress')
         self.declare_partials('buckling','skin_thickness')
         self.declare_partials('buckling', 'mrho', method='cs')
+        self.declare_partials('buckling','chord')
+        self.declare_partials('buckling','taper')
 
 
     def compute(self, inputs, outputs):
@@ -66,12 +70,17 @@ class BucklingKS(ExplicitComponent):
         tbc=-inputs['top_bending_stress'] #"-" to turn compression into positive value
         skin=inputs['skin_thickness']
         kc=surface['buckling_coef']
-        b=surface['inter_stringer']
+
+        rootchord=inputs['chord']/2 # half the chord between two spars
+        taper=inputs['taper']
+        chords=rootchord*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))
+
+        #b=surface['inter_stringer']
         mrho = inputs['mrho']
         G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
         E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])        
         
-        sigmaBuc=kc*math.pi**2*skin**2/b**2*G**2/(3*(4*G-E))/1.5
+        sigmaBuc=kc*math.pi**2*skin**2/chords**2*G**2/(3*(4*G-E))
         fmax = np.max(tbc/sigmaBuc - 1)
 
         nlog, nsum, nexp = np.log, np.sum, np.exp
@@ -90,12 +99,16 @@ class BucklingKS(ExplicitComponent):
         tbc=-inputs['top_bending_stress'] # "-" to turn compression into positive value
         skin=inputs['skin_thickness']
         kc=surface['buckling_coef']
-        b=surface['inter_stringer']
+        
+        rootchord=inputs['chord']/2
+        taper=inputs['taper']
+        chords=rootchord*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))
+        #b=surface['inter_stringer']
         mrho = inputs['mrho']
         G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
         E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])        
         
-        sigmaBuc=kc*math.pi**2*skin**2/b**2*G**2/(3*(4*G-E))/1.5
+        sigmaBuc=kc*math.pi**2*skin**2/chords**2*G**2/(3*(4*G-E))
 
         rho=self.options['rho']
 
@@ -115,3 +128,7 @@ class BucklingKS(ExplicitComponent):
         # Reshape and save them to the jac dict
         partials['buckling', 'top_bending_stress'] = -derivs.reshape(-1)  #  "-" because tbc = - input...   again in next line
         partials['buckling', 'skin_thickness'] = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*2*(sigmaBuc/skin)
+        derivChord=-partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))/2
+        partials['buckling', 'chord'] = derivChord[0][i]
+        derivTaper = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*rootchord*(1-(np.arange(len(skin))+0.5)/(len(skin)))
+        partials['buckling', 'taper'] =derivTaper[0][i]

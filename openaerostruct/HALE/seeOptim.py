@@ -10,7 +10,7 @@ import numpy as np
 
 
 #cr = CaseReader("aerostructMrhoi504sk0.003sr0.001sn60tc0.19000000000000003.db")
-cr = CaseReader("aerostructMrhoi504sk0.003sr0.001sn60tc0.19000000000000003.db")
+cr = CaseReader("aerostructMrhoi500sk0.003sr0.001sn40tc0.11000000000000001.db")
 
 driver_cases = cr.list_cases('driver')
 
@@ -88,7 +88,8 @@ plt.show()
 plt.plot(mrho)
 plt.xlabel('iteration')
 plt.ylabel('mrho')
-#plt.xlim((0,150))
+plt.ylim((0.4,2))
+plt.xlim((0,250))
 
 plt.show()
 
@@ -104,7 +105,7 @@ plt.plot(taper)
 plt.xlabel('iteration')
 plt.ylabel('taper')
 #plt.xlim((0,150))
-plt.ylim((0,0.2))
+plt.ylim((0,0.5))
 
 plt.show()
 
@@ -119,7 +120,7 @@ plt.plot(chord)
 plt.xlabel('iteration')
 plt.ylabel('chord')
 #plt.xlim((0,150))
-#plt.ylim((1,1.5))
+plt.ylim((0,10))
 
 plt.show()
 
@@ -128,7 +129,7 @@ plt.plot(skinThicknessTip)
 plt.xlabel('iteration')
 plt.ylabel('skin')
 #plt.xlim((250,300))
-plt.ylim((0,4))
+#plt.ylim((0,4))
 
 plt.show()
 
@@ -137,7 +138,7 @@ plt.plot(sparThicknessTip)
 plt.xlabel('iteration')
 plt.ylabel('spar')
 #plt.xlim((250,300))
-plt.ylim((0,4))
+#plt.ylim((0,4))
 
 plt.show()
 

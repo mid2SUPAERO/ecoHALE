@@ -61,5 +61,5 @@ class SpatialBeamFunctionals(Group):
             
         self.add_subsystem('buckling',
                     BucklingKS(surface=surface),
-                    promotes_inputs=['top_bending_stress','skin_thickness','mrho'],
+                    promotes_inputs=['top_bending_stress','skin_thickness','mrho','chord','taper'],
                     promotes_outputs=['buckling'])
