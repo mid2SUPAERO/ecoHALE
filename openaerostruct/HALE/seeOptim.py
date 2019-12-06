@@ -10,7 +10,7 @@ import numpy as np
 
 
 #cr = CaseReader("aerostructMrhoi504sk0.003sr0.001sn60tc0.19000000000000003.db")
-cr = CaseReader("aerostructMrhoi500sk0.003sr0.001sn40tc0.11000000000000001.db")
+cr = CaseReader("aerostructMrhoi505sk0.004sr0.0001sn65tc0.07.db")
 
 driver_cases = cr.list_cases('driver')
 
@@ -88,8 +88,8 @@ plt.show()
 plt.plot(mrho)
 plt.xlabel('iteration')
 plt.ylabel('mrho')
-plt.ylim((0.4,2))
-plt.xlim((0,250))
+plt.ylim((0.5,0.6))
+#plt.xlim((0,250))
 
 plt.show()
 

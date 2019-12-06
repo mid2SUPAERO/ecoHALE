@@ -81,14 +81,15 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     mesh = generate_mesh(mesh_dict)
     
     densityPV=0.3 #kg/m^2
-    energeticDensityBattery=400 #Wh/kg
+#    energeticDensityBattery=400 #Wh/kg
+    energeticDensityBattery=400*0.995*0.95*0.875*0.97 #Wh/kg 0.995=battery controller efficiency, 0.95=end of life capacity loss of 5%, 0.97=min battery SOC of 3%, 0.875=packaging efficiency
 #    energeticDensityBattery=800 #Wh/kg
+#    emissionBat=0.104 #[kgCO2/Wh]
+    emissionBat=0.104/0.995/0.95/0.875/0.97 #[kgCO2/Wh]
     night_hours=13 #h
 #    night_hours=hours #h #ED2
-    productivityPV=54. #[W/m^2]
-    emissionPV=0.05 #[kgCO2/W] emissions of the needed PV surface to produce 1W
-    emissionBat=0.104 #[kgCO2/Wh]
-#    emissionBat=0.052 #[kgCO2/Wh]
+    productivityPV=54.0*0.97*0.95 #[W/m^2] 54 from FBHALE power figure, 0.97=MPPT efficiency, 0.95=battery round trip efficiency
+    emissionPV=0.05/0.97/0.95 #[kgCO2/W] emissions of the needed PV surface to produce 1W
     emissionsPerW=emissionPV+emissionBat*night_hours #[kgCO2/W]
     
     
@@ -106,18 +107,18 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
                 'data_y_upper' : upper_y,
                 'data_y_lower' : lower_y,
     
-                'twist_cp' : np.array([4., 5., 8., 9.]), # [deg]
+                'twist_cp' : np.array([10., 20., 20., 20.]), # [deg]
 #                'twist_cp' : np.array([15.        +0.j, 15.        +0.j, 15.        +0.j,  7.32414355+0.j]), # [deg] #TODELETE
     
 #                'spar_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
-                'spar_thickness_cp' : np.array([spar/2, spar/2, spar, 1.5*spar]), # [m]
+                'spar_thickness_cp' : np.array([spar, spar, spar, spar]), # [m]
 #                'spar_thickness_cp' : np.array([0.00298327+0.j, 0.00411879+0.j, 0.00702408+0.j, 0.00855659+0.j]), # [m] #TODELETE
 #                'skin_thickness_cp' : np.array([0.001, 0.001, 0.002, 0.003]), # [m]
-                'skin_thickness_cp' : np.array([skin/2, skin/2, skin, 1.5*skin]), # [m]
+                'skin_thickness_cp' : np.array([skin/2, skin, skin*1.5, 2*skin]), # [m]
 #                'skin_thickness_cp' : np.array([0.0001    +0.j, 0.00274638+0.j, 0.00698719+0.j, 0.01217181+0.j]), # [m] #TODELETE
     
 #                't_over_c_cp' : np.array([0.08, 0.08, 0.10, 0.08]),
-                't_over_c_cp' : np.array([toverc, toverc, toverc, toverc]), #TODELETE
+                't_over_c_cp' : np.array([0.75*toverc, toverc, toverc, 1.25*toverc]), #TODELETE
                 'original_wingbox_airfoil_t_over_c' : 0.12,
                  # Aerodynamic deltas.
                 # These CL0 and CD0 values are added to the CL and CD
@@ -166,7 +167,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
                 'payload_power' : 361, #[W] payload=150 + avionics=211
                 'motor_propeller_efficiency' : 0.84, #thrusting power/electrical power used by propulsion
                 'co2PV' : emissionsPerW*productivityPV/(densityPV+productivityPV/energeticDensityBattery*night_hours), #[kgCO2/kg] #co2 burden of PV cells and battery
-                'prop_density' : 0.00173, #[kg/W]
+                'prop_density' : 0.0058, #[kg/W]
                 'mppt_density' : 0.00045, #[kg/W]
                 'buckling_coef' : 4, #buckling coeficient
                 'inter_stringer' : 0.25, #[m] distance between two stringers
@@ -354,15 +355,15 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
         
     prob.model.add_objective('emitted_co2', scaler=1e-4)
     
-    prob.model.add_design_var('wing.twist_cp', lower=-15., upper=15., scaler=0.1)
+    prob.model.add_design_var('wing.twist_cp', lower=-30., upper=30., scaler=0.1)
 #    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
-    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
+    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e4)
 #    prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.span', lower=1., upper=1000., scaler=0.1)
-    prob.model.add_design_var('wing.chord_cp', lower=1., upper=500., scaler=0.1)
+    prob.model.add_design_var('wing.chord_cp', lower=1., upper=500., scaler=1)
     prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
-    prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.2, scaler=10.)
+    prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
     prob.model.add_design_var('mrho', lower=400, upper=700, scaler=0.001) #ED
 #    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED

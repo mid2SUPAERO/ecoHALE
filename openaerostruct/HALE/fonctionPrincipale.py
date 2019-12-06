@@ -10,20 +10,20 @@ import os
 import numpy as np
 
 #define x0
-spanRange=np.arange(40,70,2)
-tcRange=np.arange(0.07,0.16,0.04)
-skinRange=np.arange(0.003,0.005,0.001)
-rhoRange=[500,530,560,600]
+spanRange=np.arange(55,70,5)
+tcRange=np.arange(0.07,0.20,0.11)
+skinRange=np.arange(0.003,0.0045,0.001)
+rhoRange=[505,530]
 
 
 #50
 #0.08
 #0.001
 #0.001
-#spanRange=[61]
-#tcRange=[0.19]
+#spanRange=[54]
+#tcRange=[0.11000000000000001]
 #skinRange=[0.003]
-#sparRange=[0.001]
+#rhoRange=[600]
 
 caseArray=np.zeros((len(skinRange),len(rhoRange),len(spanRange),len(tcRange),4),dtype=object)
 for i in range(0,len(skinRange),1):
@@ -71,7 +71,7 @@ for case in range(0,len(cases),1):
     limhauterho=8220
 
     try:
-        resu=fctOptim(cases[case][1],cases[case][0],0.001,cases[case][2],cases[case][3])  
+        resu=fctOptim(cases[case][1],cases[case][0],0.0001,cases[case][2],cases[case][3])  
     ##            resu=fctOptim(mrhof+1,hour,limbasserho,limhauterho) #ED2 
     ##            resu=fctOptim(mrhof+1,1,limbasserho,limhauterho,epmin)  
         weight=resu[0]

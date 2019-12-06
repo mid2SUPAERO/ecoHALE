@@ -89,7 +89,7 @@ class Equilibrium(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
-        g = grav_constant * inputs['load_factor']
+        g = grav_constant * inputs['load_factor']*1.1  #1.1 to acount for missing masses : landing gear, boom, tail, pod
         W0 = inputs['W0']
         rho = inputs['rho']
         v = inputs['v']
@@ -119,8 +119,6 @@ class Equilibrium(ExplicitComponent):
 
 #        tot_weight = (structural_mass + inputs['fuelburn'] + W0) * g
         tot_weight = (structural_mass + W0 + PVmass + mppt_mass + prop_mass) * g
-        if math.floor(100000*structural_mass)==74729:  #TODELETE
-            print('there we are')  #TODELETE      
         outputs['PV_mass'] = PVmass
         outputs['total_weight'] = tot_weight
         outputs['L_equals_W'] = 1 - (0.5 * rho * v**2 * S_ref_tot) * inputs['CL'] / tot_weight
@@ -128,7 +126,7 @@ class Equilibrium(ExplicitComponent):
 
 
     def compute_partials(self, inputs, partials):
-        g = grav_constant * inputs['load_factor']
+        g = grav_constant * inputs['load_factor']*1.1
         W0 = inputs['W0']
         rho = inputs['rho']
         v = inputs['v']
@@ -164,7 +162,7 @@ class Equilibrium(ExplicitComponent):
 #        partials['total_weight', 'load_factor'] = (inputs['fuelburn'] + \
 #            inputs['W0'] + structural_mass) * grav_constant
         partials['total_weight', 'load_factor'] = ( \
-            inputs['W0'] + structural_mass + PVmass + mppt_mass + prop_mass) * grav_constant
+            inputs['W0'] + structural_mass + PVmass + mppt_mass + prop_mass) * grav_constant*1.1
 
         partials['total_weight', 'PV_surface'] = g*(PVdensity + mppt_density*productivityPV + productivityPV*prop_density)
 
@@ -174,7 +172,7 @@ class Equilibrium(ExplicitComponent):
 #        partials['L_equals_W', 'load_factor'] = L / tot_weight**2 * (inputs['fuelburn'] + \
 #            inputs['W0'] + structural_mass) * grav_constant
         partials['L_equals_W', 'load_factor'] = L / tot_weight**2 * ( \
-            inputs['W0'] + structural_mass + PVsurf*PVdensity + mppt_mass + prop_mass) * grav_constant
+            inputs['W0'] + structural_mass + PVsurf*PVdensity + mppt_mass + prop_mass) * grav_constant*1.1
         partials['L_equals_W', 'rho'] = -.5 * S_ref_tot * v**2 * inputs['CL'] / tot_weight
         partials['L_equals_W', 'v'] = - rho * S_ref_tot * v * inputs['CL'] / tot_weight
         partials['L_equals_W', 'CL'] = - .5 * rho * v**2 * S_ref_tot / tot_weight
