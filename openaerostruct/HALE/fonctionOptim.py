@@ -365,7 +365,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
-    prob.model.add_design_var('mrho', lower=400, upper=700, scaler=0.001) #ED
+    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
 #    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
     
 #    prob.model.add_constraint('AS_point_0.CL', equals=0.5)
@@ -445,9 +445,9 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #    prob.run_model() #ED2
 #
 #    data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
-#    print(data)  #ED2
-    #from openmdao.api import view_model
-    #view_model(prob)
+#    print(data)  #ED2   
+#    from openmdao.api import view_model
+#    view_model(prob)
     
     
     prob.run_driver()
