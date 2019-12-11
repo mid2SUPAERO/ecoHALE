@@ -156,10 +156,10 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #                'span' : 50., #[m]
                 'span' : span, #[m]
 #                'span' : [100.+0.j], #TODELETE
-                'taper' : 0.2,
+                'taper' : 0.3,
 #                'taper' : [1.+0.j], #TODELETE
 #                'taper' : 0.99,
-                'chord_cp' : [2.],
+                'chord_cp' : [1.5],
 #                'chord_cp' : [2.],
 #                'chord_cp' : [32.49012623+0.j], #TODELETE
                 'productivityPV' : productivityPV, #[W/m^2]
@@ -361,8 +361,9 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #    prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.span', lower=1., upper=1000., scaler=0.1)
-    prob.model.add_design_var('wing.chord_cp', lower=1., upper=500., scaler=1)
-    prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
+    prob.model.add_design_var('wing.chord_cp', lower=1.4, upper=500., scaler=1)
+    prob.model.add_design_var('wing.taper', lower=0.3, upper=0.99, scaler=10)
+#    prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
     prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED

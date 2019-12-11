@@ -10,9 +10,9 @@ import os
 import numpy as np
 
 #define x0
-spanRange=np.arange(40,80,7)
-tcRange=np.arange(0.07,0.20,0.04)
-skinRange=np.arange(0.002,0.0055,0.001)
+spanRange=np.arange(25,70,20)
+tcRange=np.arange(0.05,0.18,0.04)
+skinRange=np.arange(0.002,0.0045,0.001)
 sparRange=np.arange(0.0001,0.0004,0.0001)
 
 
@@ -20,10 +20,10 @@ sparRange=np.arange(0.0001,0.0004,0.0001)
 #0.08
 #0.001
 #0.001
-#spanRange=[54]
-#tcRange=[0.11000000000000001]
-#skinRange=[0.003]
-#spanRange=[0.0001]
+#spanRange=[25,45,65]
+#tcRange=[0.07,0.11,0.19]
+#skinRange=[0.0005,0.002,0.004]
+#sparRange=[0.0001]
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),4),dtype=object)
 for i in range(0,len(skinRange),1):
@@ -127,10 +127,10 @@ for case in range(0,len(cases),1):
 ###        co2Fix=0
 #
 #    
-#    resuWeight.append(weight)
-#    resuTime.append(time)
-#    resuMrho.append(rhorho)
-#    resuCO2.append(co2)
+    resuWeight.append(weight)
+    resuTime.append(time)
+    resuMrho.append(rhorho)
+    resuCO2.append(co2)
 #    resuWeightFix.append(weightFix)
 #    resuTimeFix.append(timeFix)
 #    resuMrhoFix.append(rhorhoFix)
@@ -143,54 +143,54 @@ for case in range(0,len(cases),1):
 #
 #
 ##print("rho=504")
-#weightP=[]
-#timeP=[]
-#mrhofP=[]
-#mrhoiP=[]
-#co2P=[]
-#caseP=[]
-#casesP=[]
-#
-#for case in range(0,len(cases),1):
-#    if resuTime[case]!=0:
-#        weightP.append(resuWeight[case])
-#        timeP.append(resuTime[case])
-#        mrhofP.append(resuMrho[case])
-#        co2P.append(resuCO2[case])
-#        caseP.append(case)
-#        casesP.append(cases[case])
-#
-##    plt.plot(mrhoInit,resuTimeP[i])
-#plt.plot(caseP,timeP,'ob')
-#plt.xlabel('case')
-#plt.ylabel('time')
-##plt.ylim((3.1,3.3))
-#
-#plt.show()
-#
-##    plt.plot(mrhoInit,resuWeightP[i])
-#plt.plot(caseP,weightP,'ob')
-#plt.xlabel('case')
-#plt.ylabel('weight')
-#plt.ylim((0,60))
-#
-#plt.show()
-#
-##    plt.plot(mrhoInit,resuMrhoP[i])
-#plt.plot(caseP,mrhofP,'ob')
-#plt.xlabel('case')
-#plt.ylabel('mrhof')
-##    plt.ylim((1500,5000))
-#
-#plt.show()
-#
-##    plt.plot(mrhoInit,resuCO2P[i])
-#plt.plot(caseP,co2P,'ob')
-#plt.xlabel('case')
-#plt.ylabel('co2')
-#plt.ylim((0,20000))
-#
-#plt.show()
+weightP=[]
+timeP=[]
+mrhofP=[]
+mrhoiP=[]
+co2P=[]
+caseP=[]
+casesP=[]
+
+for case in range(0,len(cases),1):
+    if resuTime[case]!=0:
+        weightP.append(resuWeight[case])
+        timeP.append(resuTime[case])
+        mrhofP.append(resuMrho[case])
+        co2P.append(resuCO2[case])
+        caseP.append(case)
+        casesP.append(cases[case])
+
+#    plt.plot(mrhoInit,resuTimeP[i])
+plt.plot(caseP,timeP,'ob')
+plt.xlabel('case')
+plt.ylabel('time')
+#plt.ylim((3.1,3.3))
+
+plt.show()
+
+#    plt.plot(mrhoInit,resuWeightP[i])
+plt.plot(caseP,weightP,'ob')
+plt.xlabel('case')
+plt.ylabel('weight')
+plt.ylim((0,60))
+
+plt.show()
+
+#    plt.plot(mrhoInit,resuMrhoP[i])
+plt.plot(caseP,mrhofP,'ob')
+plt.xlabel('case')
+plt.ylabel('mrhof')
+#    plt.ylim((1500,5000))
+
+plt.show()
+
+#    plt.plot(mrhoInit,resuCO2P[i])
+plt.plot(caseP,co2P,'ob')
+plt.xlabel('case')
+plt.ylabel('co2')
+plt.ylim((0,20000))
+
+plt.show()
 #    
 #print("rho=574")
 #weightPFix=[]
