@@ -30,33 +30,33 @@ class SectionPropertiesWingbox(ExplicitComponent):
     A[ny-1] : numpy array
         Cross-sectional area of each wingbox segment.
     A_enc[ny-1] : numpy array
-        Cross-sectional enclosed area (measured using the material midlines) of
+        Cross-sectional enclosed area (measured using the material midlines) of 
         each wingbox segment.
     A_int[ny-1] : numpy array
-        Cross-sectional internal area of each wingbox segment (used for fuel
+        Cross-sectional internal area of each wingbox segment (used for fuel 
         volume).
     Iy[ny-1] : numpy array
-        Second moment of area about the neutral axis parallel to the local
+        Second moment of area about the neutral axis parallel to the local 
         y-axis (for each wingbox segment).
     Qz[ny-1] : numpy array
-        First moment of area above the neutral axis parallel to the local
+        First moment of area above the neutral axis parallel to the local 
         z-axis (for each wingbox segment).
     Iz[ny-1] : numpy array
-        Second moment of area about the neutral axis parallel to the local
+        Second moment of area about the neutral axis parallel to the local 
         z-axis (for each wingbox segment).
     J[ny-1] : numpy array
         Torsion constants for each wingbox segment.
     htop[ny-1] : numpy array
-        Distance to the point on the top skin that is the farthest away from
+        Distance to the point on the top skin that is the farthest away from 
         the local-z neutral axis (for each wingbox segment).
     hbottom[ny-1] : numpy array
-        Distance to the point on the bottom skin that is the farthest away from
+        Distance to the point on the bottom skin that is the farthest away from 
         the local-z neutral axis (for each wingbox segment).
     hfront[ny-1] : numpy array
-        Distance to the point on the front spar that is the farthest away from
+        Distance to the point on the front spar that is the farthest away from 
         the local-y neutral axis (for each wingbox segment).
     hrear[ny-1] : numpy array
-        Distance to the point on the rear spar that is the farthest away
+        Distance to the point on the rear spar that is the farthest away 
         from the local-y neutral axis (for each wingbox segment).
     """
 
@@ -78,31 +78,31 @@ class SectionPropertiesWingbox(ExplicitComponent):
         self.data_y_upper = surface['data_y_upper']
         self.data_y_lower = surface['data_y_lower']
 
-        self.add_input('streamwise_chords', val=np.ones((self.ny - 1)),units='m')
-        self.add_input('fem_chords', val=np.ones((self.ny - 1)),units='m')
-        self.add_input('fem_twists', val=np.ones((self.ny - 1)),units='deg')
+        self.add_input('streamwise_chords', val=np.ones((self.ny - 1), dtype = complex),units='m')
+        self.add_input('fem_chords', val=np.ones((self.ny - 1), dtype = complex),units='m')
+        self.add_input('fem_twists', val=np.ones((self.ny - 1),  dtype = complex),units='deg')
 
-        self.add_input('spar_thickness', val=np.ones((self.ny - 1)),units='m')
-        self.add_input('skin_thickness', val=np.ones((self.ny - 1)),units='m')
-        self.add_input('t_over_c', val=np.ones((self.ny - 1)))
+        self.add_input('spar_thickness', val=np.ones((self.ny - 1), dtype = complex),units='m')
+        self.add_input('skin_thickness', val=np.ones((self.ny - 1),  dtype = complex),units='m')
+        self.add_input('t_over_c', val=np.ones((self.ny - 1),  dtype = complex))
 
-        self.add_output('A', val=np.ones((self.ny - 1)),units='m**2')
-        self.add_output('A_enc', val=np.ones((self.ny - 1)),units='m**2')
-        self.add_output('A_int', val=np.ones((self.ny - 1)),units='m**2')
-        self.add_output('Iy', val=np.ones((self.ny - 1)),units='m**4')
-        self.add_output('Qz', val=np.ones((self.ny - 1)),units='m**3')
-        self.add_output('Iz', val=np.ones((self.ny - 1)),units='m**4')
-        self.add_output('J', val=np.ones((self.ny - 1)),units='m**4')
-        self.add_output('htop', val=np.ones((self.ny - 1)),units='m')
-        self.add_output('hbottom', val=np.ones((self.ny - 1)),units='m')
-        self.add_output('hfront', val=np.ones((self.ny - 1)),units='m')
-        self.add_output('hrear', val=np.ones((self.ny - 1)),units='m')
+        self.add_output('A', val=np.ones((self.ny - 1),  dtype = complex),units='m**2')
+        self.add_output('A_enc', val=np.ones((self.ny - 1),  dtype = complex),units='m**2')
+        self.add_output('A_int', val=np.ones((self.ny - 1),  dtype = complex),units='m**2')
+        self.add_output('Iy', val=np.ones((self.ny - 1),  dtype = complex),units='m**4')
+        self.add_output('Qz', val=np.ones((self.ny - 1),  dtype = complex),units='m**3')
+        self.add_output('Iz', val=np.ones((self.ny - 1),  dtype = complex),units='m**4')
+        self.add_output('J', val=np.ones((self.ny - 1),  dtype = complex),units='m**4')
+        self.add_output('htop', val=np.ones((self.ny - 1),  dtype = complex),units='m')
+        self.add_output('hbottom', val=np.ones((self.ny - 1),  dtype = complex),units='m')
+        self.add_output('hfront', val=np.ones((self.ny - 1),  dtype = complex),units='m')
+        self.add_output('hrear', val=np.ones((self.ny - 1),  dtype = complex),units='m')
 
         self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
 
-        # NOTE: In the code below, the x- and y-axes correspond to the element
+        # NOTE: In the code below, the x- and y-axes correspond to the element 
         # local z- and y-axes, respectively.
 
         chord = inputs['fem_chords']

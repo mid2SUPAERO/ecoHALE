@@ -2,10 +2,10 @@ from __future__ import division, print_function
 import numpy as np
 
 
-def norm(vec, axis=None):
+def norm(vec, axis=None):  #norm of vector
     return np.sqrt(np.sum(vec**2, axis=axis))
 
-def unit(vec):
+def unit(vec):  #normalised vector
     return vec / norm(vec)
 
 def norm_d(vec):

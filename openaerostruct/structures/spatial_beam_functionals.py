@@ -7,6 +7,7 @@ from openaerostruct.structures.vonmises_wingbox import VonMisesWingbox
 from openaerostruct.structures.non_intersecting_thickness import NonIntersectingThickness
 from openaerostruct.structures.failure_exact import FailureExact
 from openaerostruct.structures.failure_ks import FailureKS
+from openaerostruct.HALE.buckling import BucklingKS
 
 class SpatialBeamFunctionals(Group):
     """ Group that contains the spatial beam functionals used to evaluate
@@ -37,7 +38,7 @@ class SpatialBeamFunctionals(Group):
             self.add_subsystem('vonmises',
                      VonMisesWingbox(surface=surface),
                      promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
-                     promotes_outputs=['vonmises'])
+                     promotes_outputs=['vonmises','top_bending_stress'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
@@ -57,3 +58,8 @@ class SpatialBeamFunctionals(Group):
                     FailureKS(surface=surface),
                     promotes_inputs=['vonmises'],
                     promotes_outputs=['failure'])
+            
+        self.add_subsystem('buckling',
+                    BucklingKS(surface=surface),
+                    promotes_inputs=['top_bending_stress','skin_thickness','mrho','chord','taper'],
+                    promotes_outputs=['buckling'])

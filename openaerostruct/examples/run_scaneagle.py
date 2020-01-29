@@ -136,6 +136,7 @@ prob.model.add_subsystem('prob_vars',
 # Add the AerostructGeometry group, which computes all the intermediary
 # parameters for the aero and structural analyses, like the structural
 # stiffness matrix and some aerodynamic geometry arrays
+
 aerostruct_group = AerostructGeometry(surface=surface)
 
 name = 'wing'
@@ -210,3 +211,6 @@ prob.setup()
 
 # Actually run the optimization problem
 prob.run_driver()
+
+print(prob['wing.thickness'].shape)
+print(prob['wing.struct_setup.structural_cg.nodes'][:,1].shape)

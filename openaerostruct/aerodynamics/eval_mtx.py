@@ -10,6 +10,10 @@ from openaerostruct.utils.vector_algebra import compute_norm, compute_norm_deriv
 
 
 tol = 1e-10
+# Ignore division errors since we zero those entries out anyway.
+# These crop up in the `_compute_finite_vortex` function when we have a
+# collocation point on top of a vortex filament.
+np.seterr(divide='ignore', invalid='ignore')
 
 def _compute_finite_vortex(r1, r2):
     r1_norm = compute_norm(r1)
@@ -21,8 +25,8 @@ def _compute_finite_vortex(r1, r2):
     num = (1. / r1_norm + 1. / r2_norm) * r1_x_r2
     den = r1_norm * r2_norm + r1_d_r2
 
-    result = np.divide(num, den * 4 * np.pi, out=np.zeros_like(num), where=np.abs(den)>tol)
-
+    result = num / den / 4 / np.pi
+    result[np.abs(den) < tol] = 0.
     return result
 
 def _compute_finite_vortex_deriv1(r1, r2, r1_deriv):
@@ -42,13 +46,8 @@ def _compute_finite_vortex_deriv1(r1, r2, r1_deriv):
     den = r1_norm * r2_norm + r1_d_r2
     den_deriv = r1_norm_deriv * r2_norm + r1_d_r2_deriv
 
-    result = np.divide(
-        num_deriv * den - num * den_deriv,
-        den ** 2 * 4 * np.pi,
-        out=np.zeros_like(num),
-        where=np.abs(den)>tol
-        )
-
+    result = (num_deriv * den - num * den_deriv) / den ** 2 / 4 / np.pi
+    result[np.abs(den) < tol] = 0.
     return result
 
 def _compute_finite_vortex_deriv2(r1, r2, r2_deriv):
@@ -68,13 +67,8 @@ def _compute_finite_vortex_deriv2(r1, r2, r2_deriv):
     den = r1_norm * r2_norm + r1_d_r2
     den_deriv = r1_norm * r2_norm_deriv + r1_d_r2_deriv
 
-    result = np.divide(
-        num_deriv * den - num * den_deriv,
-        den ** 2 * 4 * np.pi,
-        out=np.zeros_like(num),
-        where=np.abs(den)>tol
-        )
-
+    result = (num_deriv * den - num * den_deriv) / den ** 2 / 4 / np.pi
+    result[np.abs(den) < tol] = 0.
     return result
 
 def _compute_semi_infinite_vortex(u, r):

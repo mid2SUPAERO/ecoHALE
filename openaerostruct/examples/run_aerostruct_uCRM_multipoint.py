@@ -7,7 +7,7 @@ The fuel burn from the cruise case is the objective function and the 2.5g
 maneuver case is used for the structural sizing. The wing is based on the
 uCRM (undeflected Common Research Model wing).
 See the paper for more:
-https://www.researchgate.net/publication/327654423_Low-Fidelity_Aerostructural_Optimization_of_Aircraft_Wings_with_a_Simplified_Wingbox_Model_Using_OpenAeroStruct
+https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct
 (https://doi.org/10.1007/978-3-319-97773-7_38)
 After running the optimization, use the 'plot_wingbox.py' script in the utils/
 directory (e.g., as 'python ../utils/plot_wingbox.py aerostruct.db' if running
@@ -25,7 +25,7 @@ import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
-from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, SqliteRecorder, ExecComp
+from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, SqliteRecorder, ExecComp, SqliteRecorder
 from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 from openaerostruct.utils.constants import grav_constant
 
@@ -219,7 +219,7 @@ if surf_dict['distributed_fuel_weight']:
     prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
     prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
 
-comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
+comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
 prob.model.add_subsystem('fuel_diff', comp,
     promotes_inputs=['fuel_mass'],
     promotes_outputs=['fuel_diff'])
@@ -500,7 +500,7 @@ class Test(unittest.TestCase):
             prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
             prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
 
-        comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
+        comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
         prob.model.add_subsystem('fuel_diff', comp,
             promotes_inputs=['fuel_mass'],
             promotes_outputs=['fuel_diff'])

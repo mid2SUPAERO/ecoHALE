@@ -3,6 +3,8 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct.HALE.fctMultiMatos import*
+
 
 class FailureKS(ExplicitComponent):
     """
@@ -50,15 +52,24 @@ class FailureKS(ExplicitComponent):
         self.ny = surface['mesh'].shape[1]
 
         self.add_input('vonmises', val=np.zeros((self.ny-1, num_failure_criteria)), units='N/m**2')
+        self.add_input('mrho', val=1000, units='kg/m**3') #ED
         self.add_output('failure', val=0.)
 
-        self.sigma = surface['yield']
+#        self.sigma = yieldMM(surface['mrho'],surface['materlist'])  #ED
+        self.surface = surface #ED
         self.rho = rho
 
-        self.declare_partials('*', '*')
+#        self.declare_partials('*','*')
+        self.declare_partials('failure', 'vonmises')
+#        self.declare_partials('failure', 'mrho', method='fd', step=0.1, step_calc='abs')
+        self.declare_partials('failure', 'mrho', method='cs')
 
     def compute(self, inputs, outputs):
-        sigma = self.sigma
+#        sigma = self.sigma  #ED
+        mrho = inputs['mrho'] #ED
+#        print('failure') #ED
+#        print(mrho)  #ED
+        sigma = yieldMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
         rho = self.rho
         vonmises = inputs['vonmises']
 
@@ -70,7 +81,9 @@ class FailureKS(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         vonmises = inputs['vonmises']
-        sigma = self.sigma
+        mrho = inputs['mrho']  #ED
+#        sigma = self.sigma
+        sigma = yieldMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
         rho = self.rho
 
         # Find the location of the max stress constraint

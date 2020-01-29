@@ -155,8 +155,8 @@ class Test(unittest.TestCase):
         prob.run_model()
 
         # Check the partials at this point in the design space
-        data = prob.check_partials(compact_print=True, out_stream=None, method='fd', step=1e-5)
-        assert_check_partials(data, atol=1e20, rtol=1e-3)
+        data = prob.check_partials(compact_print=True, out_stream=None, method='cs', step=1e-40)
+        assert_check_partials(data, atol=1e20, rtol=1e-6)
 
 if __name__ == '__main__':
     unittest.main()

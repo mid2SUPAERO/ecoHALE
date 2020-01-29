@@ -227,7 +227,7 @@ if surf_dict['distributed_fuel_weight']:
     prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_1.coupled.wing.struct_states.fuel_vols')
     prob.model.connect('fuel_mass', 'AS_point_1.coupled.wing.struct_states.fuel_mass')
 
-comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
+comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
 prob.model.add_subsystem('fuel_diff', comp,
     promotes_inputs=['fuel_mass'],
     promotes_outputs=['fuel_diff'])

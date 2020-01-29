@@ -55,6 +55,7 @@ class Coeffs(ExplicitComponent):
 
         outputs['CL1'] = L / (0.5 * rho * v**2 * S_ref)
         outputs['CDi'] = D / (0.5 * rho * v**2 * S_ref)
+        
 
     def compute_partials(self, inputs, partials):
         S_ref = inputs['S_ref']

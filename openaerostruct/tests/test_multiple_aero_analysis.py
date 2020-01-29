@@ -7,21 +7,12 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-from openmdao.api import IndepVarComp, Problem
+from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, DirectSolver, LinearBlockGS, PetscKSP, ScipyOptimizeDriver
 
 
 class Test(unittest.TestCase):
 
     def test(self):
-
-        import numpy as np
-
-        from openaerostruct.geometry.utils import generate_mesh
-        from openaerostruct.geometry.geometry_group import Geometry
-        from openaerostruct.aerodynamics.aero_groups import AeroPoint
-
-        from openmdao.api import IndepVarComp, Problem
-
 
         # Create a dictionary to store options about the surface
         mesh_dict = {'num_y' : 7,

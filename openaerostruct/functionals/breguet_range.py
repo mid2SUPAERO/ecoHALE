@@ -71,6 +71,7 @@ class BreguetRange(ExplicitComponent):
         M = inputs['Mach_number']
         W0 = inputs['W0']
 
+        
         # Loop through the surfaces and add up the structural weights
         # to get the total structural weight.
         Ws = 0.

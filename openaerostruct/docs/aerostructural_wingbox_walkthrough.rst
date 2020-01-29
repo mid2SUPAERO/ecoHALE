@@ -4,7 +4,7 @@ Aerostructural with Wingbox Walkthrough
 =======================================
 
 In addition to the tubular-spar structural model available in OpenAeroStruct, you can use a wingbox-based model.
-This model is described in Chauhan and Martins' paper `here <https://www.researchgate.net/publication/327654423_Low-Fidelity_Aerostructural_Optimization_of_Aircraft_Wings_with_a_Simplified_Wingbox_Model_Using_OpenAeroStruct>`_.
+This model is described in Chauhan and Martins' paper `here <https://www.researchgate.net/publication/325986597_Low-fidelity_aerostructural_optimization_of_aircraft_wings_with_a_simplified_wingbox_model_using_OpenAeroStruct>`_.
 We strongly recommend reading this relatively short conference paper to learn about the model and see some example results.
 The presentation slides for this conference paper can be found `online <https://www.researchgate.net/publication/327802989_Presentation_slides_for_Low-fidelity_Aerostructural_Optimization_of_Aircraft_Wings_with_a_Simplified_Wingbox_Model_Using_OpenAeroStruct>`_.
 Analytic derivatives are not provided for some components of this model, so any optimization problem will use the complex-step approximation to obtain the relevant partial derivatives for these components.
@@ -116,9 +116,6 @@ This helps reduce computational cost during optimization by replacing a large nu
 The next two options `struct_weight_relief` and `distributed_fuel_weight` are used to specify whether the user wants the loads from the weight of the wingbox structure and the weight of the fuel to be distributed on the wing structure to provide load relief.
 The `struct_weight_relief` is for the loads from the weight of the structure (including the `wing_weight_ratio` factor).
 The `distributed_fuel_weight` is for the loads from the weight of the fuel, which is assumed to be distributed across the entire wing (the fraction of the total fuel that each wingbox segment, corresponding to each finite element, holds is equal to the ratio of its enclosed volume to the total enclosed volume of all the wingbox segments).
-We can also use the option `n_point_masses` if we want to add loads from point masses on to the wing structure (e.g., for engines).
-Here we set `n_point_masses` to 1 because we have one engine on each side of the aircraft (recall that we are using symmetry).
-If we did not want to add point masses, we would omit this option (do not set it to 0).
 
 .. literalinclude:: wingbox_mpt_opt_example.py
   :start-after: checkpoint 7
@@ -143,9 +140,9 @@ For example, our cruise Mach number is 0.85 and our maneuver Mach number is 0.64
   :end-before: checkpoint 10
 
 The following are some more independent variables.
-We have the thrust-specific fuel consumption, `CT`, cruise range, `R`, and the weight of the aircraft without the fuel required for the cruise point and without the weight of the wing structure and point masses, `W0_without_point_masses`.
+We have the thrust-specific fuel consumption, `CT`, cruise range, `R`, and the weight of the aircraft without the fuel required for the cruise point and without the weight of the wing structure, `W0`.
 Since we are not interested in the fuel burn or range at the maneuver point, we only provide a single value for these inputs that will be used for the cruise fuel burn.
-Note that `W0_without_point_masses` includes the reserve fuel weight, which is why it is added here.
+Note that `W0` includes the reserve fuel weight, which is why it is added here.
 
 .. literalinclude:: wingbox_mpt_opt_example.py
   :start-after: checkpoint 10
@@ -168,19 +165,6 @@ This also allows the flexibility to later decide that you want to use a differen
 
 .. literalinclude:: wingbox_mpt_opt_example.py
   :start-after: checkpoint 12
-  :end-before: checkpoint 12.5
-
-Next, we include the engine mass magnitude and locations in the problem.
-OpenAeroStruct can handle any generic point masses add to the structural system.
-In this case, we're adding the engine mass, which is set to 10,000 kg, to an appropriate location in front of the wing.
-The `point_mass_locations` coordinates are in the global frame.
-The loads caused by the point masses are transferred to the structural nodes based on the nodes' proximity to the point masses (using an inverse-distance approach).
-We then compute the actual `W0` value by summing the `point_masses` and `W0_without_point_masses`.
-Thus, the `W0` value used in subsequent components includes the point masses, reserve fuel weight, and all weights of the aircraft except the wing structural mass and computed fuel burn.
-We add `point_masses` and `point_mass_locations` using `indep_var_comp` so that they can be changed during optimization (although they are not in this example).
-
-.. literalinclude:: wingbox_mpt_opt_example.py
-  :start-after: checkpoint 12.5
   :end-before: checkpoint 13
 
 Next, we instantiate aerostructual `groups` for each surface (only one in this example) and add them to the model.

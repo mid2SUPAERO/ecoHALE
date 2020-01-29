@@ -193,7 +193,7 @@ class Test(unittest.TestCase):
             prob.model.connect('wing.struct_setup.fuel_vols', 'AS_point_0.coupled.wing.struct_states.fuel_vols')
             prob.model.connect('fuel_mass', 'AS_point_0.coupled.wing.struct_states.fuel_mass')
 
-            comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn', units='kg')
+            comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
             prob.model.add_subsystem('fuel_diff', comp,
                 promotes_inputs=['fuel_mass'],
                 promotes_outputs=['fuel_diff'])
@@ -245,8 +245,8 @@ class Test(unittest.TestCase):
         print(prob['AS_point_0.fuelburn'][0])
         print(prob['wing.structural_mass'][0]/1.25)
 
-        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 82444.7895704, 1e-5)
-        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 15174.9970923, 1e-5)
+        assert_rel_error(self, prob['AS_point_0.fuelburn'][0], 82443.8436066, 1e-5)
+        assert_rel_error(self, prob['wing.structural_mass'][0]/1.25, 15173.6606621, 1e-5)
 
 
 if __name__ == '__main__':

@@ -3,7 +3,8 @@ from openaerostruct.structures.compute_nodes import ComputeNodes
 from openaerostruct.structures.assemble_k_group import AssembleKGroup
 from openaerostruct.structures.weight import Weight
 from openaerostruct.structures.structural_cg import StructuralCG
-from openaerostruct.structures.fuel_vol import WingboxFuelVol
+#from openaerostruct.structures.fuel_vol import WingboxFuelVol
+from openaerostruct.structures.pv_areas import PVAreas
 
 
 class SpatialBeamSetup(Group):
@@ -26,16 +27,20 @@ class SpatialBeamSetup(Group):
 
         self.add_subsystem('structural_mass',
                  Weight(surface=surface),
-                 promotes_inputs=['A', 'nodes'],
+#                 promotes_inputs=['A', 'nodes','mrho'], #ED
+                 promotes_inputs=['A', 'nodes'], #ED
                  promotes_outputs=['structural_mass', 'element_mass'])
 
         self.add_subsystem('structural_cg',
             StructuralCG(surface=surface),
             promotes_inputs=['nodes', 'structural_mass', 'element_mass'],
             promotes_outputs=['cg_location'])
-
-        if surface['fem_model_type'] == 'wingbox':
-            self.add_subsystem('fuel_vol',
-                WingboxFuelVol(surface=surface),
-                promotes_inputs=['nodes', 'A_int'],
-                promotes_outputs=['fuel_vols'])
+        # if surface['fem_model_type'] == 'wingbox':
+            # self.add_subsystem('fuel_vol',
+                # WingboxFuelVol(surface=surface),
+                # promotes_inputs=['nodes', 'A_int'],
+                # promotes_outputs=['fuel_vols'])
+        self.add_subsystem('pv_areas',
+            PVAreas(surface=surface),
+            promotes_inputs=['mesh'],
+            promotes_outputs=['PV_areas'])

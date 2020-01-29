@@ -5,6 +5,8 @@ from openmdao.api import ExplicitComponent
 
 from openaerostruct.structures.utils import norm, unit
 
+from openaerostruct.HALE.fctMultiMatos import*
+
 
 class VonMisesWingbox(ExplicitComponent):
     """ Compute the von Mises stresses for each element.
@@ -64,11 +66,10 @@ class VonMisesWingbox(ExplicitComponent):
         self.add_input('hbottom', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hfront', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hrear', val=np.zeros((self.ny - 1)), units='m')
+        self.add_input('mrho', val=1000, units='kg/m**3') #ED
 
         self.add_output('vonmises', val=np.zeros((self.ny-1, 4)),units='N/m**2')
-
-        self.E = surface['E']
-        self.G = surface['G']
+        self.add_output('top_bending_stress', val=np.zeros((self.ny-1)),units='N/m**2')
 
         self.tssf = surface['strength_factor_for_upper_skin']
 
@@ -85,15 +86,19 @@ class VonMisesWingbox(ExplicitComponent):
         hfront = inputs['hfront']
         hrear = inputs['hrear']
         spar_thickness = inputs['spar_thickness']
+        mrho= inputs['mrho']  #ED
         vonmises = outputs['vonmises']
-
+        tbs = outputs['top_bending_stress']
+		
         # Only use complex type for these arrays if we're using cs to check derivs
         dtype = type(disp[0, 0])
         T = np.zeros((3, 3), dtype=dtype)
         x_gl = np.array([1, 0, 0], dtype=dtype)
 
-        E = self.E
-        G = self.G
+#        E = self.E
+#        G = self.G
+        E = youngMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
+        G = shearMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
 
         num_elems = self.ny - 1
         for ielem in range(num_elems):
@@ -150,3 +155,5 @@ class VonMisesWingbox(ExplicitComponent):
             vonmises[ielem, 1] = np.sqrt((bottom_bending_stress + front_bending_stress + axial_stress)**2 + 3*torsion_stress**2)
             vonmises[ielem, 2] = np.sqrt((front_bending_stress + axial_stress)**2 + 3*(torsion_stress-vertical_shear)**2)
             vonmises[ielem, 3] = np.sqrt((rear_bending_stress + axial_stress)**2 + 3*(torsion_stress+vertical_shear)**2) / self.tssf
+
+            tbs[ielem] = top_bending_stress

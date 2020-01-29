@@ -40,11 +40,11 @@ def view_mat(mat1, mat2=None, key='Title', tol=1e-10):  # pragma: no cover
         vmin = vmin - tol
         vmax = vmax + tol
 
+    fig, ax = plt.subplots(ncols=3,figsize=(12,6))
+    ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
+    ax[0].set_title('Approximated Jacobian')
+
     if mat2 is not None:
-        fig, ax = plt.subplots(ncols=3,figsize=(12,6))
-        ax[0].imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
-        ax[0].set_title('Approximated Jacobian')
-        
         im = ax[1].imshow(mat2.real, interpolation='none',vmin=vmin,vmax=vmax)
         fig.colorbar(im, orientation='horizontal',ax=ax[0:2].ravel().tolist())
         ax[1].set_title('User-Defined Jacobian')
@@ -56,18 +56,6 @@ def view_mat(mat1, mat2=None, key='Title', tol=1e-10):  # pragma: no cover
         im2 = ax[2].imshow(diff, interpolation='none', vmin=vmin,vmax=vmax)
         fig.colorbar(im2, orientation='horizontal',ax=ax[2],aspect=10)
         ax[2].set_title('Difference')
-        
-    else:
-        mtx = np.hstack((mat1.flatten()))
-        vmin = np.nanmin(mtx[mtx != -np.inf])
-        vmax = np.nanmax(mtx[mtx != np.inf])
-        print(vmin, vmax)
-        fig = plt.figure(figsize=(12,6))
-        ax = plt.gca()
-        im = plt.imshow(mat1.real, interpolation='none',vmin=vmin,vmax=vmax)
-        fig.colorbar(im, orientation='horizontal', ax=ax, aspect=10)
-        plt.title('Jacobian')
-        
     plt.suptitle(key)
     plt.show()
 
@@ -152,5 +140,4 @@ def get_default_surfaces():
                  'mesh' : mesh}
 
     surfaces = [wing_dict, tail_dict]
-
     return surfaces

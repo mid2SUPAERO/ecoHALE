@@ -8,11 +8,10 @@ from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFuncti
 from openaerostruct.functionals.total_performance import TotalPerformance
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
-from openaerostruct.aerodynamics.compressible_states import CompressibleVLMStates
 from openaerostruct.structures.tube_group import TubeGroup
 from openaerostruct.structures.wingbox_group import WingboxGroup
 
-from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce, NewtonSolver, ScipyKrylov
+from openmdao.api import Group, NonlinearBlockGS, DirectSolver, LinearBlockGS, LinearRunOnce
 
 
 class AerostructGeometry(Group):
@@ -20,41 +19,43 @@ class AerostructGeometry(Group):
     def initialize(self):
         self.options.declare('surface', types=dict)
         self.options.declare('DVGeo', default=None)
-        self.options.declare('connect_geom_DVs', default=True)
 
     def setup(self):
         surface = self.options['surface']
         DVGeo = self.options['DVGeo']
-        connect_geom_DVs = self.options['connect_geom_DVs']
+		
 
         geom_promotes = []
 
-        if connect_geom_DVs:
-            if 'twist_cp' in surface.keys():
-                geom_promotes.append('twist_cp')
-            if 't_over_c_cp' in surface.keys():
-                geom_promotes.append('t_over_c')
-            if 'sweep' in surface.keys():
-                geom_promotes.append('sweep')
-            if 'taper' in surface.keys():
-                geom_promotes.append('taper')
-            if 'mx' in surface.keys():
-                geom_promotes.append('shape')
+        if 'twist_cp' in surface.keys():
+            geom_promotes.append('twist_cp')
+        if 't_over_c_cp' in surface.keys():
+            geom_promotes.append('t_over_c')
+        if 'sweep' in surface.keys():
+            geom_promotes.append('sweep')
+        if 'taper' in surface.keys():
+            geom_promotes.append('taper')
+        if 'mx' in surface.keys():
+            geom_promotes.append('shape')
+        if 'span' in surface.keys():
+            geom_promotes.append('span')
+        if 'chord_cp' in surface.keys():
+            geom_promotes.append('chord_cp')
 
         self.add_subsystem('geometry',
-            Geometry(surface=surface, DVGeo=DVGeo, connect_geom_DVs=connect_geom_DVs),
+            Geometry(surface=surface, DVGeo=DVGeo),
             promotes_inputs=[],
             promotes_outputs=['mesh'] + geom_promotes)
 
         if surface['fem_model_type'] == 'tube':
             tube_promotes = []
             tube_inputs = []
-            if 'thickness_cp' in surface.keys() and connect_geom_DVs:
+            if 'thickness_cp' in surface.keys():
                 tube_promotes.append('thickness_cp')
             if 'radius_cp' not in surface.keys():
                 tube_inputs = ['mesh', 't_over_c']
             self.add_subsystem('tube_group',
-                TubeGroup(surface=surface, connect_geom_DVs=connect_geom_DVs),
+                TubeGroup(surface=surface),
                 promotes_inputs=tube_inputs,
                 promotes_outputs=['A', 'Iy', 'Iz', 'J', 'radius', 'thickness'] + tube_promotes)
         elif surface['fem_model_type'] == 'wingbox':
@@ -74,14 +75,16 @@ class AerostructGeometry(Group):
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
-        if surface['fem_model_type'] == 'wingbox':
-            promotes = ['A_int']
-        else:
-            promotes = []
-
+        # if surface['fem_model_type'] == 'wingbox':
+            # promotes = ['A_int']
+        # else:
+            # promotes = []
+			
         self.add_subsystem('struct_setup',
             SpatialBeamSetup(surface=surface),
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'] + promotes,
+#            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J','mrho'] + promotes,   #ED
+#            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'] + promotes,   #ED
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],   #ED
             promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass'])
 
 
@@ -96,12 +99,9 @@ class CoupledAS(Group):
         promotes = []
         if surface['struct_weight_relief']:
             promotes = promotes + list(set(['nodes', 'element_mass', 'load_factor']))
-        if surface['distributed_fuel_weight']:
-            promotes = promotes + list(set(['nodes', 'load_factor']))
-        if 'n_point_masses' in surface.keys():
-            promotes = promotes + list(set(['point_mass_locations',
-                'point_masses', 'nodes', 'load_factor', 'engine_thrusts']))
-
+#        if surface['distributed_fuel_weight']:
+#            promotes = promotes + list(set(['nodes', 'load_factor']))
+        promotes = promotes + list(set(['nodes', 'load_factor'])) #ED
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
             promotes_inputs=['local_stiff_transformed', 'forces', 'loads'] + promotes, promotes_outputs=['disp'])
@@ -137,7 +137,7 @@ class CoupledPerformance(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('struct_funcs',
                 SpatialBeamFunctionals(surface=surface),
-                promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'], promotes_outputs=['vonmises', 'failure'])
+                promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness','skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp','mrho'], promotes_outputs=['vonmises', 'failure','buckling'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
@@ -147,16 +147,10 @@ class AerostructPoint(Group):
     def initialize(self):
         self.options.declare('surfaces', types=list)
         self.options.declare('user_specified_Sref', types=bool, default=False)
-        self.options.declare('internally_connect_fuelburn', types=bool, default=True)
-        self.options.declare('compressible', types=bool, default=False,
-                             desc='Turns on compressibility correction for moderate Mach number '
-                             'flows. Defaults to False.')
-        self.options.declare('rotational', False, types=bool,
-                             desc="Set to True to turn on support for computing angular velocities")
+#        self.options.declare('internally_connect_fuelburn', types=bool, default=True)
 
     def setup(self):
         surfaces = self.options['surfaces']
-        rotational = self.options['rotational']
 
         coupled = Group()
 
@@ -206,25 +200,20 @@ class AerostructPoint(Group):
             # The 'coupled' group must contain all components and parameters
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
-
-            if surface['distributed_fuel_weight'] or 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
-                prom_in = ['load_factor']
-            else:
-                prom_in = []
-
-            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=prom_in)
-
-        if self.options['compressible'] == True:
-            aero_states = CompressibleVLMStates(surfaces=surfaces, rotational=rotational)
-            prom_in = ['v', 'alpha', 'beta', 'rho', 'Mach_number']
-        else:
-            aero_states = VLMStates(surfaces=surfaces, rotational=rotational)
-            prom_in = ['v', 'alpha', 'beta', 'rho']
+            
+            promotes = []
+            # if surface['distributed_fuel_weight']:
+                # promotes = ['load_factor']
+            # else:
+                # promotes = []
+            promotes = ['load_factor'] #ED
+            coupled.add_subsystem(name, coupled_AS_group, promotes_inputs=promotes)
 
         # Add a single 'aero_states' component for the whole system within the
         # coupled group.
-        coupled.add_subsystem('aero_states', aero_states,
-            promotes_inputs=prom_in)
+        coupled.add_subsystem('aero_states',
+            VLMStates(surfaces=surfaces),
+            promotes_inputs=['v', 'alpha', 'rho'])
 
         # Explicitly connect parameters from each surface's group and the common
         # 'aero_states' group.
@@ -239,15 +228,13 @@ class AerostructPoint(Group):
         """
 
         # Set solver properties for the coupled group
-        # coupled.linear_solver = ScipyKrylov()
+        # coupled.linear_solver = ScipyIterativeSolver()
         # coupled.linear_solver.precon = LinearRunOnce()
 
         coupled.nonlinear_solver = NonlinearBlockGS(use_aitken=True)
         coupled.nonlinear_solver.options['maxiter'] = 100
         coupled.nonlinear_solver.options['atol'] = 1e-7
         coupled.nonlinear_solver.options['rtol'] = 1e-30
-        coupled.nonlinear_solver.options['iprint'] = 2
-        coupled.nonlinear_solver.options['err_on_maxiter'] = True
 
         # coupled.linear_solver = DirectSolver()
 
@@ -256,16 +243,14 @@ class AerostructPoint(Group):
 
         # coupled.nonlinear_solver = NewtonSolver(solve_subsystems=True)
         # coupled.nonlinear_solver.options['maxiter'] = 50
+        coupled.nonlinear_solver.options['iprint'] = 2
 
         """
         ### End change of solver settings ###
         """
-        prom_in = ['v', 'alpha', 'rho']
-        if self.options['compressible'] == True:
-            prom_in.append('Mach_number')
 
         # Add the coupled group to the model problem
-        self.add_subsystem('coupled', coupled, promotes_inputs=prom_in)
+        self.add_subsystem('coupled', coupled, promotes_inputs=['v', 'alpha', 'rho'])
 
         for surface in surfaces:
             name = surface['name']
@@ -274,14 +259,19 @@ class AerostructPoint(Group):
             # the coupled system
             perf_group = CoupledPerformance(surface=surface)
 
-            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=['rho', 'v', 'alpha', 're', 'Mach_number'])
+            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=['rho', 'v', 'alpha', 're', 'Mach_number','mrho'])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all
         # of the parameters.
+        # self.add_subsystem('total_perf',
+                 # TotalPerformance(surfaces=surfaces,
+                 # user_specified_Sref=self.options['user_specified_Sref'],
+                 # internally_connect_fuelburn=self.options['internally_connect_fuelburn']),
+                 # promotes_inputs=['v', 'rho', 'empty_cg', 'total_weight', 'CT', 'speed_of_sound', 'R', 'Mach_number', 'W0', 'load_factor', 'S_ref_total'],
+                 # promotes_outputs=['L_equals_W', 'fuelburn', 'CL', 'CD', 'CM', 'cg'])
         self.add_subsystem('total_perf',
                  TotalPerformance(surfaces=surfaces,
-                 user_specified_Sref=self.options['user_specified_Sref'],
-                 internally_connect_fuelburn=self.options['internally_connect_fuelburn']),
-                 promotes_inputs=['v', 'rho', 'empty_cg', 'total_weight', 'CT', 'speed_of_sound', 'R', 'Mach_number', 'W0', 'load_factor', 'S_ref_total'],
-                 promotes_outputs=['L_equals_W', 'fuelburn', 'CL', 'CD', 'CM', 'cg'])
+                 user_specified_Sref=self.options['user_specified_Sref']),
+                 promotes_inputs=['v', 'rho', 'empty_cg', 'total_weight', 'speed_of_sound', 'Mach_number', 'W0', 'load_factor', 'S_ref_total'],
+                 promotes_outputs=['L_equals_W', 'CL', 'CD', 'CM', 'cg','enough_power'])

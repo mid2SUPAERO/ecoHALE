@@ -40,4 +40,5 @@ class FailureExact(ExplicitComponent):
         self.declare_partials('failure', 'vonmises', val=np.eye(((self.ny-1)*num_failure_criteria)) / self.sigma)
 
     def compute(self, inputs, outputs):
+            
         outputs['failure'] = inputs['vonmises'] / self.sigma - 1

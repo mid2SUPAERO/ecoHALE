@@ -54,12 +54,12 @@ class SpatialBeamAlone(Group):
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],   
                 promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass'])
         else:
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'A_int'],
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'A_int'],   
                 promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass', ])
 
         promotes = []
@@ -67,15 +67,11 @@ class SpatialBeamAlone(Group):
             promotes = promotes + list(set(['nodes', 'element_mass', 'load_factor']))
         if surface['distributed_fuel_weight']:
             promotes = promotes + list(set(['nodes', 'load_factor']))
-        if 'n_point_masses' in surface.keys():
-            promotes = promotes + list(set(['point_mass_locations',
-                'point_masses', 'nodes', 'load_factor', 'engine_thrusts']))
 
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
             promotes_inputs=['local_stiff_transformed', 'forces', 'loads'] + promotes,
             promotes_outputs=['disp'])
-
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_funcs',
                 SpatialBeamFunctionals(surface=surface),

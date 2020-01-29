@@ -3,6 +3,8 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
+from openaerostruct.HALE.fctMultiMatos import*
+
 
 coeffs_2 = np.array([
     [ 1., -1.],
@@ -39,6 +41,7 @@ class LocalStiff(ExplicitComponent):
         self.add_input('Iy', shape=ny - 1, units='m**4')
         self.add_input('Iz', shape=ny - 1, units='m**4')
         self.add_input('element_lengths', shape=ny - 1, units='m')
+        self.add_input('mrho', val=1000, units='kg/m**3') #ED
 
         self.add_output('local_stiff', shape=(ny - 1, 12, 12))
 
@@ -50,13 +53,16 @@ class LocalStiff(ExplicitComponent):
         self.declare_partials('local_stiff', 'Iy', rows=rows, cols=cols)
         self.declare_partials('local_stiff', 'Iz', rows=rows, cols=cols)
         self.declare_partials('local_stiff', 'element_lengths', rows=rows, cols=cols)
+#        self.declare_partials('local_stiff', 'mrho', method='fd', step=0.1, step_calc='abs')
+        self.declare_partials('local_stiff', 'mrho', method='cs')
 
     def compute(self, inputs, outputs):
         surface = self.options['surface']
+        puissanceMM = surface['puissanceMM']
 
         ny = self.ny
-        E = surface['E']
-        G = surface['G']
+        E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
 
         A  = inputs['A']
         Iy = inputs['Iy']
@@ -87,9 +93,11 @@ class LocalStiff(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
+        puissanceMM = surface['puissanceMM']
         ny = surface['mesh'].shape[1]
-        E = surface['E']
-        G = surface['G']
+        E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        
 
         A  = inputs['A']
         Iy = inputs['Iy']
@@ -102,12 +110,14 @@ class LocalStiff(ExplicitComponent):
         derivs_Iz = partials['local_stiff', 'Iz'].reshape((ny - 1, 12, 12))
         derivs_J = partials['local_stiff', 'J'].reshape((ny - 1, 12, 12))
         derivs_L = partials['local_stiff', 'element_lengths'].reshape((ny - 1, 12, 12))
+#        derivs_mrho = partials['local_stiff', 'mrho'].reshape((ny - 1, 12, 12))
 
         derivs_A[:] = 0.
         derivs_Iy[:] = 0.
         derivs_Iz[:] = 0.
         derivs_J[:] = 0.
         derivs_L[:] = 0.
+#        derivs_mrho[:] = 0.
 
         for i in range(2):
             for j in range(2):

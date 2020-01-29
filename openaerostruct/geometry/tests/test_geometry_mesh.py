@@ -36,7 +36,7 @@ class Test(unittest.TestCase):
 
         comp = GeometryMesh(surface=surface)
 
-        run_test(self, comp, complex_flag=True, method='cs')
+        run_test(self, comp)
 
 
 if __name__ == '__main__':

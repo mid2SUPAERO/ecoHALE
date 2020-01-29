@@ -29,7 +29,7 @@ class VLMFunctionals(Group):
 
         self.add_subsystem('liftdrag',
             LiftDrag(surface=surface),
-            promotes_inputs=['alpha', 'beta', 'sec_forces'],
+            promotes_inputs=['alpha', 'sec_forces'],
             promotes_outputs=['L', 'D'])
 
         self.add_subsystem('coeffs',

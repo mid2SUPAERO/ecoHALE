@@ -30,6 +30,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as manimation
+import sqlitedict
 
 #####################
 # User-set parameters
@@ -64,6 +65,7 @@ class Display(object):
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
         self.ax = plt.subplot2grid((5, 8), (0, 0), rowspan=5,
                                    colspan=4, projection='3d')
+        self.ax.set_aspect('equal')
 
         self.num_iters = 0
         self.show_wing = True
@@ -139,7 +141,6 @@ class Display(object):
         self.obj = []
         self.struct_masses = []
         self.cg = []
-        self.point_mass_locations = []
 
         # find the names of all surfaces
         pt_names = []
@@ -152,15 +153,9 @@ class Display(object):
             if 'loads' in key:
                 pt_names.append(key.split('.')[0])
 
-        # This logic isn't guaranteed to always be in the same order.
-        # Hardcoding for now because this script is already non-general.
-        # if pt_names:
-        #     self.pt_names = pt_names = list(set(pt_names))
-        #     pt_name = pt_names[0]
-
-        self.pt_names = pt_names = ['AS_point_0', 'AS_point_1']
-        pt_name = self.pt_names[0]
-
+        if pt_names:
+            self.pt_names = pt_names = list(set(pt_names))
+            pt_name = pt_names[0]
         self.names = names
         n_names = len(names)
 
@@ -260,14 +255,6 @@ class Display(object):
                     self.cg.append(case.outputs['{pt_name}.cg'.format(pt_name=pt_name)])
                 else:
                     self.cg.append(case.outputs['cg'])
-
-            # If there are point masses, save them
-            try:
-                self.point_mass_locations.append(case.outputs['point_mass_locations'])
-                self.point_masses_exist = True
-            except:
-                self.point_masses_exist = False
-                pass
 
         self.fem_origin_dict = {}
         self.yield_stress_dict = {}
@@ -441,8 +428,6 @@ class Display(object):
                 for j in range(n_names):
                     self.def_mesh[i*n_names+j] -= center / n_names
                 self.cg[i] -= center / n_names
-                if self.point_masses_exist:
-                    self.point_mass_locations[i] -= center / n_names
 
         # recenter mesh points for better viewing
         for i in range(self.num_iters):
@@ -690,11 +675,6 @@ class Display(object):
                 # cg = self.cg[self.curr_pos]
                 # self.ax.scatter(cg[0], cg[1], cg[2], s=100, color='r')
 
-                if self.point_masses_exist:
-                    for point_mass_loc in self.point_mass_locations[self.curr_pos]:
-                        self.ax.scatter(point_mass_loc[0], point_mass_loc[1], point_mass_loc[2], s=100, color='b')
-                        if self.symmetry:
-                            self.ax.scatter(point_mass_loc[0], -point_mass_loc[1], point_mass_loc[2], s=100, color='b')
 
         lim = 0.
         for j in range(n_names):

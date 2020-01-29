@@ -57,7 +57,7 @@ class CenterOfGravity(ExplicitComponent):
             self.declare_partials('cg', name + '_structural_mass')
 
         self.add_input('total_weight', val=1000., units='N')
-        self.add_input('fuelburn', val=1.5, units='kg')
+#        self.add_input('fuelburn', val=1.5, units='kg')
         self.add_input('W0', val=123., units='kg')
         self.add_input('load_factor', val=1.05)
         self.add_input('empty_cg', val=np.ones((3)), units='m')
@@ -66,7 +66,7 @@ class CenterOfGravity(ExplicitComponent):
 
         self.declare_partials('cg', 'total_weight')
         self.declare_partials('cg', 'W0')
-        self.declare_partials('cg', 'fuelburn')
+#        self.declare_partials('cg', 'fuelburn')
         self.declare_partials('cg', 'load_factor')
         self.declare_partials('cg', 'empty_cg', rows=arange, cols=arange)
 
@@ -85,14 +85,15 @@ class CenterOfGravity(ExplicitComponent):
 
         # Compute the total cg of the aircraft based on the empty weight cg and
         # the structures cg. Here we assume the fuel weight is at the cg.
-        outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] / g - inputs['fuelburn'])
+#        outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] / g - inputs['fuelburn'])
+        outputs['cg'] = (W0_cg + spar_cg) / (inputs['total_weight'] / g )
 
     def compute_partials(self, inputs, partials):
 
         g = grav_constant * inputs['load_factor']
         W0 = inputs['W0']
         cg = inputs['empty_cg']
-        fb = inputs['fuelburn']
+#        fb = inputs['fuelburn']
         tw = inputs['total_weight']
         W0_cg = W0 * cg
 
@@ -104,16 +105,24 @@ class CenterOfGravity(ExplicitComponent):
             name = surface['name']
             spar_cg = spar_cg + inputs[name + '_cg_location'] * inputs[name + '_structural_mass']
 
-        partials['cg', 'total_weight'] = - g * (W0_cg + spar_cg) / (tw - fb * g) ** 2
-        partials['cg', 'fuelburn'] = g**2 * (W0_cg + spar_cg) / (tw - fb * g) ** 2
-        partials['cg', 'load_factor'] =  grav_constant * tw * (W0_cg + spar_cg) / (tw - fb * g)**2
-        partials['cg', 'empty_cg'] = W0 / (tw / g - fb)
+#        partials['cg', 'total_weight'] = - g * (W0_cg + spar_cg) / (tw - fb * g) ** 2
+        partials['cg', 'total_weight'] = - g * (W0_cg + spar_cg) / (tw) ** 2
+#        partials['cg', 'fuelburn'] = g**2 * (W0_cg + spar_cg) / (tw - fb * g) ** 2
+#        partials['cg', 'load_factor'] =  grav_constant * tw * (W0_cg + spar_cg) / (tw - fb * g)**2
+        partials['cg', 'load_factor'] =  grav_constant * tw * (W0_cg + spar_cg) / (tw)**2
+#        partials['cg', 'empty_cg'] = W0 / (tw / g - fb)
+        partials['cg', 'empty_cg'] = W0 / (tw / g)
 
-        partials['cg', 'W0'] = cg / (tw / g - fb)
+#        partials['cg', 'W0'] = cg / (tw / g - fb)
+        partials['cg', 'W0'] = cg / (tw / g)
 
         for surface in self.options['surfaces']:
             name = surface['name']
+#            partials['cg', name + '_cg_location'] = -g * inputs[name + '_structural_mass'] / \
+#                (fb * g - tw)
             partials['cg', name + '_cg_location'] = -g * inputs[name + '_structural_mass'] / \
-                (fb * g - tw)
+                (- tw)
+#            partials['cg', name + '_structural_mass'] = - inputs[name + '_cg_location'] * \
+#                g / (fb * g - tw)
             partials['cg', name + '_structural_mass'] = - inputs[name + '_cg_location'] * \
-                g / (fb * g - tw)
+                g / (- tw)
