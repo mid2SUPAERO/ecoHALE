@@ -1,0 +1,7 @@
+1) instal openMDAO
+2) clone or download the branch downloadEcoHALE
+3) in your ecoHALE folder use with python the command "pip install -e ."
+4) make sure you have (or otherwise add) an environmental variable named PythonPath containing the location of that ecoHALE folder
+5) run ecoHALE/openaerostruct/HALE/fonctionPrincipale.py (runs for 4 minutes on my desk PC and 20 minutes on my old laptop)
+you should get an optimum of 14000 kg of CO2
+6) run ecoHALE/openaerostruct/HALE/seeOptim.py with the name of the .db file you just created to see the convergence graphs.
