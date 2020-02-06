@@ -71,7 +71,7 @@ for case in range(0,len(cases),1):
     limhauterho=8220
 
     try:
-        resu=fctOptim(505,cases[case][0],cases[case][1],cases[case][2],cases[case][3])  
+        resu=fctOptim(510,cases[case][0],cases[case][1],cases[case][2],cases[case][3])  
     ##            resu=fctOptim(mrhof+1,hour,limbasserho,limhauterho) #ED2 
     ##            resu=fctOptim(mrhof+1,1,limbasserho,limhauterho,epmin)  
         weight=resu[0]
