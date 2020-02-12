@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-#cr = CaseReader("aerostructMrhoi504sk0.003sr0.001sn60tc0.19000000000000003.db")
-cr = CaseReader("aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db")
+#cr = CaseReader("chord1.4/aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db")
+cr = CaseReader("aerostructMrhoi500sk0.0012sr0.0001sn60tc0.11ed5.db")
 
 driver_cases = cr.list_cases('driver')
 
@@ -85,18 +85,18 @@ plt.ylabel('mass')
 
 plt.show()
 
-plt.plot(mrho)
+plt.plot([i*1000 for i in mrho])
 plt.xlabel('iteration')
-plt.ylabel('mrho')
-plt.ylim((0.5,0.6))
+plt.ylabel('density (kg/m3)')
+plt.ylim((450,2050))
 #plt.xlim((0,250))
 
 plt.show()
 
 #/plt.plot(co2)
-plt.semilogy(co2)
+plt.semilogy([i*10000 for i in co2])
 plt.xlabel('iteration')
-plt.ylabel('co2')
+plt.ylabel('co2 (kg)')
 #plt.xlim((0,150))
 
 plt.show()
@@ -111,32 +111,32 @@ plt.show()
 
 plt.plot(span)
 plt.xlabel('iteration')
-plt.ylabel('span')
+plt.ylabel('span (m)')
 #plt.xlim((0,150))
 
 plt.show()
 
 plt.plot(chord)
 plt.xlabel('iteration')
-plt.ylabel('chord')
+plt.ylabel('chord (m)')
 #plt.xlim((0,150))
-plt.ylim((0,10))
+#plt.ylim((0,10))
 
 plt.show()
 
 plt.plot(skinThicknessRoot)
 plt.plot(skinThicknessTip)
 plt.xlabel('iteration')
-plt.ylabel('skin')
+plt.ylabel('skin (mm)')
 #plt.xlim((250,300))
 #plt.ylim((0,4))
 
 plt.show()
 
-plt.plot(sparThicknessRoot)
-plt.plot(sparThicknessTip)
+plt.plot([i/10 for i in sparThicknessRoot])
+plt.plot([i/10 for i in sparThicknessTip])
 plt.xlabel('iteration')
-plt.ylabel('spar')
+plt.ylabel('spar (mm)')
 #plt.xlim((250,300))
 #plt.ylim((0,4))
 

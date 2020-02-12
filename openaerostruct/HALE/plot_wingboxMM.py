@@ -46,7 +46,7 @@ class Display(object):
     def __init__(self, args):
 
 #        self.db_name = args[1]
-        self.db_name = "work/passageHALE/aerostructMrhoi7596p1limh8220.db"
+        self.db_name = "chord1.4/aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db"
 #        self.db_name = "aerostructMrhoi5676p1limh8220.db"
 
         
@@ -211,29 +211,29 @@ class Display(object):
                     self.t_over_c.append(case.outputs[name+'.t_over_c'])
                     self.struct_masses.append(case.outputs[name+'.structural_mass'])
 
-                    vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_names[1], surf_name=name)
+                    vm_var_name = '{pt_name}.{surf_name}_perf.vonmises'.format(pt_name=pt_names[0], surf_name=name)
                     self.vonmises.append(np.max(case.outputs[vm_var_name], axis=1))
 
                     def_mesh_var_name = '{pt_name}.coupled.{surf_name}.def_mesh'.format(pt_name=pt_name, surf_name=name)
                     self.def_mesh.append(case.outputs[def_mesh_var_name])
 
-                    def_mesh_var_name = '{pt_name}.coupled.{surf_name}.def_mesh'.format(pt_name=pt_names[1], surf_name=name)
+                    def_mesh_var_name = '{pt_name}.coupled.{surf_name}.def_mesh'.format(pt_name=pt_names[0], surf_name=name)
                     self.def_mesh_maneuver.append(case.outputs[def_mesh_var_name])
 
                     normals_var_name = '{pt_name}.coupled.{surf_name}.normals'.format(pt_name=pt_name, surf_name=name)
                     normals.append(case.outputs[normals_var_name])
 
-                    normals_var_name = '{pt_name}.coupled.{surf_name}.normals'.format(pt_name=pt_names[1], surf_name=name)
+                    normals_var_name = '{pt_name}.coupled.{surf_name}.normals'.format(pt_name=pt_names[0], surf_name=name)
                     normals_maneuver.append(case.outputs[normals_var_name])
 
                     widths_var_name = '{pt_name}.coupled.{surf_name}.widths'.format(pt_name=pt_name, surf_name=name)
                     widths.append(case.outputs[widths_var_name])
 
-                    widths_var_name = '{pt_name}.coupled.{surf_name}.widths'.format(pt_name=pt_names[1], surf_name=name)
+                    widths_var_name = '{pt_name}.coupled.{surf_name}.widths'.format(pt_name=pt_names[0], surf_name=name)
                     widths_maneuver.append(case.outputs[widths_var_name])
 
                     sec_forces.append(case.outputs[pt_name+'.coupled.aero_states.' + name + '_sec_forces'])
-                    sec_forces_maneuver.append(case.outputs[pt_names[1]+'.coupled.aero_states.' + name + '_sec_forces'])
+                    sec_forces_maneuver.append(case.outputs[pt_names[0]+'.coupled.aero_states.' + name + '_sec_forces'])
 
                     cl_var_name = '{pt_name}.{surf_name}_perf.CL1'.format(pt_name=pt_name, surf_name=name)
                     self.CL.append(case.outputs[cl_var_name])
@@ -254,7 +254,7 @@ class Display(object):
 
             if self.show_wing:
                 alpha.append(case.outputs['alpha'] * np.pi / 180.)
-                alpha_maneuver.append(case.outputs['alpha_maneuver'] * np.pi / 180.)
+#                alpha_maneuver.append(case.outputs['alpha_maneuver'] * np.pi / 180.)
                 rho.append(case.outputs['rho'])
                 rho_maneuver.append(case.outputs['rho'])
                 v.append(case.outputs['v'])
@@ -394,7 +394,8 @@ class Display(object):
 
                     lift = (-forces[:, 0] * sina + forces[:, 2] * cosa) / \
                         widths[i*n_names+j]/0.5/rho[i][0]/v[i][0]**2
-                    a_maneuver = alpha_maneuver[i]
+                    a_maneuver = 0
+#                    a_maneuver = alpha_maneuver[i]
                     cosa_maneuver = np.cos(a_maneuver)
                     sina_maneuver = np.sin(a_maneuver)
                     forces_maneuver = np.sum(sec_forces_maneuver[i*n_names+j], axis=0)
