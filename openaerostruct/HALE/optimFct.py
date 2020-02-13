@@ -22,7 +22,7 @@ from math import atan, pi
 from random import randint
 
 
-def fctOptim(mrhoi,skin,spar,span,toverc,emisDiv): 
+def optimFct(mrhoi,skin,spar,span,toverc,emisDiv): 
 #def fctOptim(mrhoi,skin,):  #ED2
     
 #    puissanceMM=1 #ED2
@@ -460,5 +460,5 @@ def fctOptim(mrhoi,skin,spar,span,toverc,emisDiv):
     print('computing time is',totaltime)
     print('co2 emissions are',prob['emitted_co2'][0])
     
-    
-    return prob['wing.structural_mass'][0], totaltime, prob['mrho'][0],prob['emitted_co2'][0];
+    maxconstraint=max(abs(prob['AS_point_0.L_equals_W']),prob['AS_point_1.wing_perf.failure'],prob['AS_point_0.enough_power'],max(prob['acceptableThickness']),prob['AS_point_1.wing_perf.buckling'])
+    return prob['wing.structural_mass'][0], totaltime, prob['mrho'][0],prob['emitted_co2'][0], maxconstraint;
