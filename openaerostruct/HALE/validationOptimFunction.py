@@ -391,8 +391,8 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     
     prob.driver = ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = 'SLSQP'
-    prob.driver.options['tol'] = 1e-6
-    prob.driver.options['maxiter']=250
+    prob.driver.options['tol'] = 1e-4
+    prob.driver.options['maxiter']=1000
     #prob.driver.options['tol'] = 1e-3
 #    prob.driver.options['debug_print'] = ['desvars','ln_cons','nl_cons','totals']
     

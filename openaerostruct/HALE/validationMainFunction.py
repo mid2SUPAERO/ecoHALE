@@ -4,7 +4,7 @@ Created on Mon May 13 13:08:36 2019
 
 @author: e.duriez
 """
-from fonctionOptim import fctOptim
+from validationOptimFunction import fctOptim
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -16,14 +16,11 @@ skinRange=np.arange(0.002,0.0045,0.001)
 sparRange=np.arange(0.0001,0.0004,0.0001)
 
 
-#50
-#0.08
-#0.001
-#0.001
-#spanRange=[25,45,65]
-#tcRange=[0.07,0.11,0.19]
-#skinRange=[0.0005,0.002,0.004]
-#sparRange=[0.0001]
+
+#spanRange=[25]
+#tcRange=[0.05]
+#skinRange=[0.003]
+#sparRange=[0.00030000000000000003]
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),4),dtype=object)
 for i in range(0,len(skinRange),1):
