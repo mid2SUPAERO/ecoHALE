@@ -5,7 +5,7 @@ Created on Tue May 21 17:12:30 2019
 @author: e.duriez
 """
 
-###VERSION WITH FIXED MATERIAL FOR ARTICLE PURPOSE !!!!!
+###VERSION WITH FIXED MATERIAL FOR VALIDATION PURPOSE !!!!!
 
 import numpy as np
 from openaerostruct.geometry.utils import generate_mesh
@@ -22,7 +22,7 @@ from math import atan, pi
 from random import randint
 
 
-def optimFct(mrhoi,skin,spar,span,toverc,emisDiv): 
+def fctOptim(mrhoi,skin,spar,span,toverc): 
 #def fctOptim(mrhoi,skin,):  #ED2
     
 #    puissanceMM=1 #ED2
@@ -33,8 +33,7 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
 #    sandw3=material(483,42.5e9,16.3e9,586e6/1.5,46.8,"sandw3")
     sandw4=material(504.5,42.5e9,16.3e9,586e6/1.5,44.9,"sandw4")
 #    sandw5=material(574.5,42.5e9,16.3e9,586e6/1.5,39.3,"sandw5")
-#    sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,40.3,"sandw5")  #newMatos
-    sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,44.9/emisDiv,"sandw5") #newMatos
+    sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,40.3,"sandw5")
     sandw6=material(529,42.5e9,16.3e9,237e6/1.5,42.75,"sandw6")
 
 
@@ -367,7 +366,7 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
 #    prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
-    prob.model.add_design_var('mrho', lower=400, upper=8000, scaler=0.001) #ED
+    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
 #    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
     
 #    prob.model.add_constraint('AS_point_0.CL', equals=0.5)
@@ -380,7 +379,6 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
     prob.model.add_constraint('AS_point_0.enough_power', upper=0.) #Make sure needed power stays below the solar power producible by the wing
     prob.model.add_constraint('acceptableThickness', upper=0.) #Make sure skin thickness fits in the wing (to avoid negative spar mass)
     prob.model.add_constraint('AS_point_1.wing_perf.buckling', upper=0.)
-#    prob.model.add_constraint('AS_point_0.coupled.wing.S_ref', upper=150.) #POART
     
 #    prob.model.add_constraint('fuel_vol_delta.fuel_vol_delta', lower=0.)
     
@@ -393,16 +391,12 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
     
     prob.driver = ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = 'SLSQP'
-<<<<<<< HEAD:openaerostruct/HALE/optimFct.py
-    prob.driver.options['tol'] = 1e-4 #POART
-=======
     prob.driver.options['tol'] = 1e-4
->>>>>>> validation:openaerostruct/HALE/validationOptimFunction.py
     prob.driver.options['maxiter']=1000
     #prob.driver.options['tol'] = 1e-3
 #    prob.driver.options['debug_print'] = ['desvars','ln_cons','nl_cons','totals']
     
-    recorder = SqliteRecorder("aerostructMrhoi"+str(mrhoi)+"sk"+str(skin)+"sr"+str(spar)+"sn"+str(span)+"tc"+str(toverc)+"ed"+str(emisDiv)+".db")
+    recorder = SqliteRecorder("aerostructMrhoi"+str(mrhoi)+"sk"+str(skin)+"sr"+str(spar)+"sn"+str(span)+"tc"+str(toverc)+".db")
     prob.driver.add_recorder(recorder)
     
     # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.
@@ -453,8 +447,8 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
 #
 #    data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
 #    print(data)  #ED2   
-    from openmdao.api import view_model
-    view_model(prob)
+#    from openmdao.api import view_model
+#    view_model(prob)
     
     
     prob.run_driver()
@@ -464,5 +458,5 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
     print('computing time is',totaltime)
     print('co2 emissions are',prob['emitted_co2'][0])
     
-    maxconstraint=max(abs(prob['AS_point_0.L_equals_W']),prob['AS_point_1.wing_perf.failure'],prob['AS_point_0.enough_power'],max(prob['acceptableThickness']),prob['AS_point_1.wing_perf.buckling'])
-    return prob['wing.structural_mass'][0], totaltime, prob['mrho'][0],prob['emitted_co2'][0], maxconstraint;
+    
+    return prob['wing.structural_mass'][0], totaltime, prob['mrho'][0],prob['emitted_co2'][0];

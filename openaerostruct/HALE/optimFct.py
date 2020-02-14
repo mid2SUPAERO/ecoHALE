@@ -393,11 +393,7 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
     
     prob.driver = ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = 'SLSQP'
-<<<<<<< HEAD:openaerostruct/HALE/optimFct.py
     prob.driver.options['tol'] = 1e-4 #POART
-=======
-    prob.driver.options['tol'] = 1e-4
->>>>>>> validation:openaerostruct/HALE/validationOptimFunction.py
     prob.driver.options['maxiter']=1000
     #prob.driver.options['tol'] = 1e-3
 #    prob.driver.options['debug_print'] = ['desvars','ln_cons','nl_cons','totals']
