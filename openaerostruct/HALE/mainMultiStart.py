@@ -73,10 +73,13 @@ for case in range(0,len(cases),1):
         
 optimumsCO2=np.amin(resuCO2,axis=1)      
 optimumsIndex=np.argmin(resuCO2,axis=1)
+optimumsWeight=[]
+optimumsMrho=[]
+optimumsCases=[]
 for i in range(len(divRange)):
-    optimumsWeight=resuWeight[i][optimumsIndex[i]]
-    optimumsMrho=resuWeight[i][optimumsIndex[i]]
-    optimumsCases=resuWeight[i][optimumsIndex[i]]
+    optimumsWeight.append(resuWeight[i][optimumsIndex[i]])
+    optimumsMrho.append(resuMrho[i][optimumsIndex[i]])
+    optimumsCases.append(resuCases[i][optimumsIndex[i]])
 
 print(optimumsCO2)
 print(optimumsMrho)
