@@ -172,7 +172,7 @@ plt.show()
 plt.plot(caseP,weightP,'ob')
 plt.xlabel('case')
 plt.ylabel('weight')
-plt.ylim((0,60))
+#   plt.ylim((0,60))
 
 plt.show()
 
