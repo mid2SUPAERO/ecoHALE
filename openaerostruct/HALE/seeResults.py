@@ -4,6 +4,7 @@ Created on Mon May 13 13:08:36 2019
 
 @author: e.duriez
 """
+from openmdao.api import Problem, ScipyOptimizeDriver, SqliteRecorder, CaseReader
 from optimFct import optimFct
 import matplotlib.pyplot as plt
 import os
@@ -11,13 +12,10 @@ import numpy as np
 
 #define x0
 spanRange=np.arange(50,70,5) #4
-#spanRange=[spanRange[3]]
 tcRange=np.arange(0.11,0.18,0.03) #3
-#tcRange=[tcRange[2]]
 skinRange=np.arange(0.0010,0.0017,0.0001) #7
-skinRange=[skinRange[4]]
+skinRange=skinRange[:3]
 mrhoRange=[500,1250,2000] #3
-mrhoRange=[mrhoRange[2]]
 divRange=np.arange(1,1.6,0.1)  #CHANGE MAT
 
 #spanRange=np.arange(40,80,10) #4
@@ -52,29 +50,34 @@ resuCO2=[[] for i in range(len(divRange))]
 resuCases=[[] for i in range(len(divRange))]
 
 
-for case in range(0,len(cases),1):
+for casenbr in range(0,len(cases),1):
 
-    try:
-        resu=optimFct(cases[case][1],cases[case][0],0.0001,cases[case][2],cases[case][3],cases[case][4])   #CHANGE MAT
-        weight=resu[0]
-        time=resu[1]
-        rhorho=resu[2]
-        co2=resu[3]
-        maxconstraint=resu[4]
-    except:
-        weight=0
-        time=0
-        rhorho=0
-        co2=0
-        maxconstraint=1
+    cr = CaseReader("sk10a12/aerostructMrhoi"+str(cases[casenbr][1])+"sk"+str(cases[casenbr][0])+"sr"+str(0.0001)+"sn"+str(cases[casenbr][2])+"tc"+str(cases[casenbr][3])+"ed"+str(cases[casenbr][4])+".db")
+    driver_cases = cr.list_cases('driver')
+    iterations=len(driver_cases)
+    
+    case = cr.get_case(driver_cases[-1])
+    design_vars = case.get_design_vars()
+    objective= case.get_objectives()
+    constraints= case.get_constraints()
+    rhorho=design_vars['mrho'][0] 
+    weight=case.outputs['wing.structural_mass'][0] 
+    co2=objective['emitted_co2'][0] 
+    
+    failure=constraints['AS_point_1.wing_perf.failure'][0]
+    power=constraints['AS_point_0.enough_power'][0]
+    lift=constraints['AS_point_0.L_equals_W'][0]
+    buckling=constraints['AS_point_1.wing_perf.buckling'][0]
+    acceptableThickness=constraints['acceptableThickness']
+
+    maxconstraint=max(abs(lift),failure,power,max(acceptableThickness),buckling)    
 
     if maxconstraint < 1e-3:
-        resuWeight[case % len(divRange)].append(weight)
-        resuTime[case % len(divRange)].append(time)
-        resuMrho[case % len(divRange)].append(rhorho)
-        resuCO2[case % len(divRange)].append(co2)
-        resuCases[case % len(divRange)].append(cases[case])
-
+        resuWeight[casenbr % len(divRange)].append(weight)
+        resuMrho[casenbr % len(divRange)].append(rhorho)
+        resuCO2[casenbr % len(divRange)].append(co2)
+        resuCases[casenbr % len(divRange)].append(cases[casenbr])
+        
 optimumsCO2=[min(resuCO2[i]) for i in np.arange(0,len(divRange))]   
 optimumsIndex=[np.argmin(resuCO2[i]) for i in np.arange(0,len(divRange))]
 optimumsWeight=[]
@@ -87,3 +90,4 @@ for i in range(len(divRange)):
 
 print(optimumsCO2)
 print(optimumsMrho)
+
