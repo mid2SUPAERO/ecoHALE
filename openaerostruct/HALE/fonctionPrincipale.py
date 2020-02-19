@@ -20,6 +20,11 @@ import numpy as np
 #0.08
 #0.001
 #0.001
+#spanRange=[25]
+#tcRange=[0.05]
+#skinRange=[0.003]
+#sparRange=[0.00030000000000000003]
+
 spanRange=[25]
 tcRange=[0.05]
 skinRange=[0.003]
