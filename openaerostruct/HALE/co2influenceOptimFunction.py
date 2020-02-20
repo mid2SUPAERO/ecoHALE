@@ -22,7 +22,7 @@ from math import atan, pi
 from random import randint
 
 
-def optimFct(mrhoi,skin,spar,span,toverc): 
+def co2OptimFct(mrhoi,skin,spar,span,toverc,emisDiv): 
 #def fctOptim(mrhoi,skin,):  #ED2
     
 #    puissanceMM=1 #ED2
@@ -33,7 +33,8 @@ def optimFct(mrhoi,skin,spar,span,toverc):
 #    sandw3=material(483,42.5e9,16.3e9,586e6/1.5,46.8,"sandw3")
     sandw4=material(504.5,42.5e9,16.3e9,586e6/1.5,44.9,"sandw4")
 #    sandw5=material(574.5,42.5e9,16.3e9,586e6/1.5,39.3,"sandw5")
-    sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,40.3,"sandw5")  #newMatos
+#    sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,40.3,"sandw5")  #newMatos
+    sandw5=material(560.5,42.5e9,16.3e9,586e6/1.5,44.9/emisDiv,"sandw5") #newMatos
     sandw6=material(529,42.5e9,16.3e9,237e6/1.5,42.75,"sandw6")
 
 
