@@ -11,18 +11,12 @@ import os
 import numpy as np
 
 #define x0
-spanRange=np.arange(50,70,5) #4
+spanRange=np.arange(55,70,5) #4
 tcRange=np.arange(0.11,0.18,0.03) #3
+tcRange=[tcRange[0],tcRange[2]]
 skinRange=np.arange(0.0010,0.0017,0.0001) #7
-skinRange=skinRange[:3]
 mrhoRange=[500,1250,2000] #3
 divRange=np.arange(1,1.6,0.1)  #CHANGE MAT
-
-#spanRange=np.arange(40,80,10) #4
-#tcRange=np.arange(0.11,0.18,0.03) #3
-#skinRange=np.arange(0.0012,0.0019,0.0003) #3
-#mrhoRange=[500,1250,2000] #3
-#divRange=np.arange(1,1.6,0.1)  #CHANGE MAT
 
 
 
@@ -52,7 +46,7 @@ resuCases=[[] for i in range(len(divRange))]
 
 for casenbr in range(0,len(cases),1):
 
-    cr = CaseReader("sk10a12/aerostructMrhoi"+str(cases[casenbr][1])+"sk"+str(cases[casenbr][0])+"sr"+str(0.0001)+"sn"+str(cases[casenbr][2])+"tc"+str(cases[casenbr][3])+"ed"+str(cases[casenbr][4])+".db")
+    cr = CaseReader("aerostructMrhoi"+str(cases[casenbr][1])+"sk"+str(cases[casenbr][0])+"sr"+str(0.0001)+"sn"+str(cases[casenbr][2])+"tc"+str(cases[casenbr][3])+"ed"+str(cases[casenbr][4])+".db")
     driver_cases = cr.list_cases('driver')
     iterations=len(driver_cases)
     
@@ -88,6 +82,5 @@ for i in range(len(divRange)):
     optimumsMrho.append(resuMrho[i][optimumsIndex[i]])
     optimumsCases.append(resuCases[i][optimumsIndex[i]])
 
-print(optimumsCO2)
 print(optimumsMrho)
 

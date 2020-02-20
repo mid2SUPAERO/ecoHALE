@@ -449,8 +449,8 @@ def optimFct(mrhoi,skin,spar,span,toverc,emisDiv):
 #
 #    data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
 #    print(data)  #ED2   
-    from openmdao.api import view_model
-    view_model(prob)
+#    from openmdao.api import view_model
+#    view_model(prob)
     
     
     prob.run_driver()

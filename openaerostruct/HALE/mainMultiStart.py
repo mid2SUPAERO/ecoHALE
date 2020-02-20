@@ -10,23 +10,12 @@ import os
 import numpy as np
 
 #define x0
-spanRange=np.arange(50,70,5) #4
-#spanRange=[spanRange[3]]
+spanRange=np.arange(55,70,5) #4
 tcRange=np.arange(0.11,0.18,0.03) #3
-#tcRange=[tcRange[2]]
+tcRange=[tcRange[0],tcRange[2]]
 skinRange=np.arange(0.0010,0.0017,0.0001) #7
-skinRange=[skinRange[4]]
 mrhoRange=[500,1250,2000] #3
-mrhoRange=[mrhoRange[2]]
 divRange=np.arange(1,1.6,0.1)  #CHANGE MAT
-
-#spanRange=np.arange(40,80,10) #4
-#tcRange=np.arange(0.11,0.18,0.03) #3
-#skinRange=np.arange(0.0012,0.0019,0.0003) #3
-#mrhoRange=[500,1250,2000] #3
-#divRange=np.arange(1,1.6,0.1)  #CHANGE MAT
-
-
 
 
 #caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),4),dtype=object)
@@ -42,8 +31,6 @@ for i in range(0,len(skinRange),1):
 
 #cases=np.reshape(caseArray,(len(skinRange)*len(sparRange)*len(spanRange)*len(tcRange),4))
 cases=np.reshape(caseArray,(len(skinRange)*len(mrhoRange)*len(spanRange)*len(tcRange)*len(divRange),5))  #CHANGE MAT
-print(cases)
-
 
 resuWeight=[[] for i in range(len(divRange))]
 resuTime=[[] for i in range(len(divRange))]
@@ -85,5 +72,4 @@ for i in range(len(divRange)):
     optimumsMrho.append(resuMrho[i][optimumsIndex[i]])
     optimumsCases.append(resuCases[i][optimumsIndex[i]])
 
-print(optimumsCO2)
 print(optimumsMrho)

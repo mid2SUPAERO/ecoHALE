@@ -10,7 +10,7 @@ import numpy as np
 
 
 #cr = CaseReader("chord1.4/aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db")
-cr = CaseReader("aerostructMrhoi500sk0.0012sr0.0001sn60tc0.11ed5.db")
+cr = CaseReader("aerostructMrhoi500sk0.0015000000000000002sr0.0001sn50tc0.11ed1.1.db")
 
 driver_cases = cr.list_cases('driver')
 
