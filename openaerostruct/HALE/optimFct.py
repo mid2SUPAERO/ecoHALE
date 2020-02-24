@@ -397,7 +397,7 @@ def optimFct(mrhoi,skin,spar,span,toverc):
     #prob.driver.options['tol'] = 1e-3
 #    prob.driver.options['debug_print'] = ['desvars','ln_cons','nl_cons','totals']
     
-    recorder = SqliteRecorder("aerostructMrhoi"+str(mrhoi)+"sk"+str(skin)+"sr"+str(spar)+"sn"+str(span)+"tc"+str(toverc)+"ed"+str(emisDiv)+".db")
+    recorder = SqliteRecorder("aerostructMrhoi"+str(mrhoi)+"sk"+str(skin)+"sr"+str(spar)+"sn"+str(span)+"tc"+str(toverc)+".db")
     prob.driver.add_recorder(recorder)
     
     # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.

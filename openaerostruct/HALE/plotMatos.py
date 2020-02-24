@@ -30,21 +30,21 @@ nomat=material(50,1e8,1e4,1e5,6000,"noMaterial")
 fakemat=material((2.80e3+7750)/2,(72.5e9+200e9)/2,(27e9+78.5e9)/2,(444.5e6/1.5+562e6/1.5)/2,(13.15*(1-0.426)+2.61*0.426+4.55*(1-0.374)+1.15*0.374)/2,"fakemat")
 nomatEnd=material(10000,5e9,2e9,20e6/1.5,60,"nomatEnd")
 
-materials=[al7075, qiCFRP, steel, gfrp]
+materials=[sandw4, sandw5, sandw6, al7075, qiCFRP, steel, gfrp]
 #materials=[al7075, qiCFRP, steel, gfrp, nomat, fakemat, nomatEnd, sandw4, sandw5, sandw6]
 
 
 
 ##multimaterial young modulus
-#plt.figure(1)    
-#for x in materials:
-#    plt.plot(x.mrho, x.E, 'ro')
-#    
-#plt.ylabel("Young's modulus (Pa)")
-#plt.xlabel('density (kg/m3)')
-#
-#for x in range(1566,7750,10):
-#    plt.plot(x, youngMM(x,materials,1), 'b.')
+plt.figure(1)    
+for x in materials:
+    plt.plot(x.mrho, x.E, 'ro')
+    
+plt.ylabel("Young's modulus (Pa)")
+plt.xlabel('density (kg/m3)')
+
+for x in range(505,7750,10):
+    plt.plot(x, youngMM(x,materials,5), 'b.')
 #    
 #
 ##multimaterial shear modulus
@@ -68,13 +68,13 @@ materials=[al7075, qiCFRP, steel, gfrp]
 #for x in range(1566,7750,10):
 #    plt.plot(x, yieldMM(x,materials,5), 'b.')
     
-#multimaterial co2
-plt.figure(4)    
-for x in materials:
-    plt.plot(x.mrho, x.co2, 'ro')
-    
-plt.ylabel("CO2 emissions (kg/kg)")
-plt.xlabel('density (kg/m3)')
-
-for x in range(1566,7750,1):
-    plt.plot(x, co2MM(x,materials,5), 'b.')
+##multimaterial co2
+#plt.figure(4)    
+#for x in materials:
+#    plt.plot(x.mrho, x.co2, 'ro')
+#    
+#plt.ylabel("CO2 emissions (kg/kg)")
+#plt.xlabel('density (kg/m3)')
+#
+#for x in range(505,7750,1):
+#    plt.plot(x, co2MM(x,materials,5), 'b.')

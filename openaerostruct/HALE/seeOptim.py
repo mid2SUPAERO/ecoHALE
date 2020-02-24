@@ -10,7 +10,7 @@ import numpy as np
 
 
 #cr = CaseReader("chord1.4/aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db")
-cr = CaseReader("aerostructMrhoi500sk0.0015000000000000002sr0.0001sn50tc0.11ed1.1.db")
+cr = CaseReader("articleMats/aerostructMrhoi2000sk0.0014000000000000002sr0.0001sn55tc0.11.db")
 
 driver_cases = cr.list_cases('driver')
 
@@ -80,7 +80,7 @@ print(co2)
 
 plt.semilogy(masse)
 plt.xlabel('iteration')
-plt.ylabel('mass')
+plt.ylabel('wing structural mass (kg)')
 #plt.xlim((0,150))
 
 plt.show()
@@ -88,7 +88,7 @@ plt.show()
 plt.plot([i*1000 for i in mrho])
 plt.xlabel('iteration')
 plt.ylabel('density (kg/m3)')
-plt.ylim((450,2050))
+plt.ylim((500,570))
 #plt.xlim((0,250))
 
 plt.show()
