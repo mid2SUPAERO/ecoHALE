@@ -37,6 +37,9 @@ lift=[]
 tOverC1=[]
 tOverC2=[]
 buckling=[]
+cl=[]
+cd=[]
+efficiency=[]
 
 for i in range(iterations):
 #for i in range(350,380):
@@ -66,7 +69,10 @@ for i in range(iterations):
     tOverC1.append(case.outputs['wing.geometry.t_over_c_cp'])
     tOverC2.append(case.outputs['wing.t_over_c'][0])
     buckling.append(constraints['AS_point_1.wing_perf.buckling'][0])
-
+    cl.append(case.outputs['AS_point_0.CL'][0])
+    cd.append(case.outputs['AS_point_0.CD'][0])
+    efficiency.append(cl[i]/cd[i])
+    
 chordEnd=np.multiply(chord,taper)
 doublemeanchord=np.add(chord,chordEnd)
 meanchord=[x/2 for x in doublemeanchord]
