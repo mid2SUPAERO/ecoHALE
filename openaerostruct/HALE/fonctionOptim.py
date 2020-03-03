@@ -380,7 +380,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_constraint('acceptableThickness', upper=0.) #Make sure skin thickness fits in the wing (to avoid negative spar mass)
     prob.model.add_constraint('AS_point_1.wing_perf.buckling', upper=0.)
     # Surface constarint to avoid snowball effect
-    #prob.model.add_constraint('AS_point_0.coupled.wing.S_ref', upper=200.)
+    prob.model.add_constraint('AS_point_0.coupled.wing.S_ref', upper=200.)
 #    prob.model.add_constraint('fuel_vol_delta.fuel_vol_delta', lower=0.)
     
 #    prob.model.add_design_var('fuel_mass', lower=0., upper=2e5, scaler=1e-5)
