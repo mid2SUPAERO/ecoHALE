@@ -25,15 +25,11 @@ import numpy as np
 #skinRange=[0.003]
 #sparRange=[0.00030000000000000003]
 
-#spanRange=[25]
-#tcRange=[0.05]
-#skinRange=[0.003]
-#sparRange=[0.00030000000000000003]
+spanRange=[25]
+tcRange=[0.05]
+skinRange=[0.003]
+sparRange=[0.00030000000000000003]
 
-spanRange=np.arange(25,70,20)
-tcRange=np.arange(0.05,0.18,0.04)
-skinRange=np.arange(0.002,0.0045,0.001)
-sparRange=np.arange(0.0001,0.0004,0.0001)
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),4),dtype=object)
 for i in range(0,len(skinRange),1):
