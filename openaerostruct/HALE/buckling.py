@@ -9,7 +9,11 @@ from __future__ import division, print_function
 from openmdao.api import ExplicitComponent
 import math
 import numpy as np
-from openaerostruct.HALE.fctMultiMatos import*
+##from openaerostruct.HALE.fctMultiMatos import*
+
+#from openaerostruct.HALE.multiMaterial import YoungMM
+#from openaerostruct.HALE.multiMaterial import ShearMM
+
 
 class BucklingKS(ExplicitComponent):
     """
@@ -51,17 +55,23 @@ class BucklingKS(ExplicitComponent):
         
         self.add_input('top_bending_stress', val=np.zeros(self.ny-1), units='N/m**2')
         self.add_input('skin_thickness', val=np.zeros((self.ny - 1)), units='m')
-        self.add_input('mrho', val=1000, units='kg/m**3')
+        ##self.add_input('mrho', val=1000, units='kg/m**3')
         self.add_input('chord', val=1, units='m')
         self.add_input('taper', val=1, units='m')
+        
+        self.add_input('young', val=1e10, units= 'N/m**2')
+        self.add_input('shear', val=1e10, units= 'N/m**2')
         
         self.add_output('buckling', val=1.)
 
         self.declare_partials('buckling','top_bending_stress')
         self.declare_partials('buckling','skin_thickness')
-        self.declare_partials('buckling', 'mrho', method='cs')
+        ##self.declare_partials('buckling', 'mrho', method='cs')
         self.declare_partials('buckling','chord')
         self.declare_partials('buckling','taper')
+        
+        self.declare_partials('buckling','young')
+        self.declare_partials('buckling','shear')
 
 
     def compute(self, inputs, outputs):
@@ -76,9 +86,12 @@ class BucklingKS(ExplicitComponent):
         chords=rootchord*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))
 
         #b=surface['inter_stringer']
-        mrho = inputs['mrho']
-        G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
-        E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])        
+        ##mrho = inputs['mrho']
+        ##G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
+        ##E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])
+
+        E = inputs['young']
+        G = inputs['shear']        
         
         sigmaBuc=kc*math.pi**2*skin**2/chords**2*G**2/(3*(4*G-E))
         fmax = np.max(tbc/sigmaBuc - 1)
@@ -104,9 +117,12 @@ class BucklingKS(ExplicitComponent):
         taper=inputs['taper']
         chords=rootchord*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))
         #b=surface['inter_stringer']
-        mrho = inputs['mrho']
-        G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
-        E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])        
+        ##mrho = inputs['mrho']
+        ##G = shearMM(mrho,surface['materlist'],surface['puissanceMM'])
+        ##E = youngMM(mrho,surface['materlist'],surface['puissanceMM'])  
+        
+        E = inputs['young']
+        G = inputs['shear']  
         
         sigmaBuc=kc*math.pi**2*skin**2/chords**2*G**2/(3*(4*G-E))
 
@@ -131,4 +147,9 @@ class BucklingKS(ExplicitComponent):
         derivChord=-partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))/2
         partials['buckling', 'chord'] = derivChord[0][i]
         derivTaper = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*rootchord*(1-(np.arange(len(skin))+0.5)/(len(skin)))
-        partials['buckling', 'taper'] =derivTaper[0][i]
+        partials['buckling', 'taper'] = derivTaper[0][i]
+        
+        derivYoung = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(sigmaBuc/(4*G-E))
+        partials['buckling', 'young'] = derivYoung[0][i]
+        derivShear = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(2*sigmaBuc/G-12*sigmaBuc/(3*(4*G-E)))
+        partials['buckling', 'shear'] = derivShear[0][i]
