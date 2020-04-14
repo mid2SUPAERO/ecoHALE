@@ -7,8 +7,8 @@ Created on Wed Apr  8 10:01:37 2020
 
 from __future__ import division, print_function
 from openmdao.api import ExplicitComponent
-import math
-import numpy as np
+##import math
+##import numpy as np
 
 
 class material:
@@ -47,9 +47,8 @@ class YoungMM(ExplicitComponent):
         materlist = surface['materlist']
         rho = inputs['mrho']
         
-        exponent=puissanceMM
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        Emax=0
+        ##Emax=0
         materialsSorted2=materialsSorted
         #    rho=abs(rho)
         if rho<=0.01:
@@ -62,7 +61,7 @@ class YoungMM(ExplicitComponent):
                     mat2=x
                     break
                 else:
-                mat1=x
+                    mat1=x
             if mat2.E<mat1.E:  #case where E decreases with rho
                 exponent=1   #ED
             rhop=(rho-mat1.mrho)/(mat2.mrho-mat1.mrho)
@@ -91,10 +90,9 @@ class YoungMM(ExplicitComponent):
         exponent = surface['puissanceMM']
         materlist = surface['materlist']
         rho = inputs['mrho']
-        
-        exponent=puissanceMM                
+                       
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        Emax=0
+        ##Emax=0
         materialsSorted2=materialsSorted
         #    rho=abs(rho)
         if rho<=0.01:
@@ -107,13 +105,13 @@ class YoungMM(ExplicitComponent):
                     mat2=x
                     break
                 else:
-                mat1=x
+                    mat1=x
             if mat2.E<mat1.E:  #case where E decreases with rho
                 exponent=1   #ED
             rhop=(rho-mat1.mrho)/(mat2.mrho-mat1.mrho)
             scale=(mat2.E-mat1.E)
-            offset=mat1.E
-            angular_return=scale*(rhop**exponent)+offset
+            ##offset=mat1.E
+            ##angular_return=scale*(rhop**exponent)+offset
             """ # suppress function angle for better 
             if rho>=(mat1.mrho+mat2.mrho)/2: #case closer to mat2 than mat1
                 if mat2==materialsSorted2[-1]:     #no angle suppression for last material
@@ -157,9 +155,8 @@ class ShearMM(ExplicitComponent):
         materlist = surface['materlist']
         rho = inputs['mrho']
         
-        exponent=puissanceMM
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        shearmax=0
+        ##shearmax=0
         materialsSorted2=materialsSorted
     #    rho=abs(rho)
         if rho<=0.01:
@@ -202,9 +199,8 @@ class ShearMM(ExplicitComponent):
         materlist = surface['materlist']
         rho = inputs['mrho']
         
-        exponent=puissanceMM
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        shearmax=0
+        ##shearmax=0
         materialsSorted2=materialsSorted
     #    rho=abs(rho)
         if rho<=0.01:
@@ -222,8 +218,8 @@ class ShearMM(ExplicitComponent):
                 exponent=1   #ED
             rhop=(rho-mat1.mrho)/(mat2.mrho-mat1.mrho)
             scale=(mat2.G-mat1.G)
-            offset=mat1.G
-            angular_return=scale*(rhop**exponent)+offset
+            ##offset=mat1.G
+            ##angular_return=scale*(rhop**exponent)+offset
             """ # suppress function angle for better 
             if rho>=(mat1.mrho+mat2.mrho)/2: #case closer to mat2 than mat1
                 if mat2==materialsSorted2[-1]:     #no angle suppression for last material
@@ -267,9 +263,8 @@ class YieldMM(ExplicitComponent):
         materlist = surface['materlist']
         rho = inputs['mrho']
         
-        exponent=puissanceMM
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        yieldmax=0
+        ##yieldmax=0
         materialsSorted2=materialsSorted
     #    rho=abs(rho)
         if rho<=0.01:
@@ -312,9 +307,8 @@ class YieldMM(ExplicitComponent):
         materlist = surface['materlist']
         rho = inputs['mrho']
         
-        exponent=puissanceMM
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        yieldmax=0
+        ##yieldmax=0
         materialsSorted2=materialsSorted
     #    rho=abs(rho)
         if rho<=0.01:
@@ -332,8 +326,8 @@ class YieldMM(ExplicitComponent):
                 exponent=1   #ED
             rhop=(rho-mat1.mrho)/(mat2.mrho-mat1.mrho)
             scale=(mat2.yields-mat1.yields)
-            offset=mat1.yields
-            angular_return=scale*(rhop**exponent)+offset
+            ##offset=mat1.yields
+            ##angular_return=scale*(rhop**exponent)+offset
             """ # suppress function angle for better 
             if rho>=(mat1.mrho+mat2.mrho)/2: #case closer to mat2 than mat1
                 if mat2==materialsSorted2[-1]:     #no angle suppression for last material
@@ -378,9 +372,8 @@ class CO2MM(ExplicitComponent):
         materlist = surface['materlist']
         rho = inputs['mrho']
         
-        exponent=puissanceMM
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        co2max=0
+        ##co2max=0
         materialsSorted2=materialsSorted
     #    rho=abs(rho)
         if rho<=0.01:
@@ -423,9 +416,8 @@ class CO2MM(ExplicitComponent):
         materlist = surface['materlist']
         rho = inputs['mrho']
         
-        exponent=puissanceMM
         materialsSorted=sorted(materlist,key=lambda x: x.mrho)
-        co2max=0
+        ##co2max=0
         materialsSorted2=materialsSorted
     #    rho=abs(rho)
         if rho<=0.01:
@@ -443,8 +435,8 @@ class CO2MM(ExplicitComponent):
                 exponent=1   #ED
             rhop=(rho-mat1.mrho)/(mat2.mrho-mat1.mrho)
             scale=(mat2.co2-mat1.co2)
-            offset=mat1.co2
-            angular_return=scale*(rhop**exponent)+offset
+            ##offset=mat1.co2
+            ##angular_return=scale*(rhop**exponent)+offset
             """ # suppress function angle for better 
             if rho>=(mat1.mrho+mat2.mrho)/2: #case closer to mat2 than mat1
                 if mat2==materialsSorted2[-1]:     #no angle suppression for last material
