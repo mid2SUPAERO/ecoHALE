@@ -13,13 +13,15 @@ from openaerostruct.integration.aerostruct_groups import AerostructGeometry, Aer
 from openmdao.api import IndepVarComp, Problem, ScipyOptimizeDriver, SqliteRecorder, ExecComp, NewtonSolver
 #from openaerostruct.structures.wingbox_fuel_vol_delta import WingboxFuelVolDelta
 from openaerostruct.utils.constants import grav_constant
-from fctMultiMatos import material
+##from fctMultiMatos import material
 from emittedCO2byStructure import structureCO2
 from acceptableThickness import checkThickness
 import os
 import time
 from math import atan, pi
 from random import randint
+
+from multiMaterial import material
 
 
 def fctOptim(mrhoi,skin,spar,span,toverc): 
@@ -444,10 +446,11 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     
     # Set up the problem
     prob.setup()
-#    prob.run_model() #ED2
+    ##prob.run_model() #ED2
 #
-#    data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
-#    print(data)  #ED2   
+    ##data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
+    ##print(data)  #ED2   
+    
     #from openmdao.api import view_model
     #view_model(prob)
     
