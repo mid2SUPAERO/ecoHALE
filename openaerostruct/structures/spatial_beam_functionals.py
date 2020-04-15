@@ -8,8 +8,9 @@ from openaerostruct.structures.non_intersecting_thickness import NonIntersecting
 from openaerostruct.structures.failure_exact import FailureExact
 from openaerostruct.structures.failure_ks import FailureKS
 from openaerostruct.HALE.buckling import BucklingKS
-from openaerostruct.HALE.multiMaterial import YoungMM
-from openaerostruct.HALE.multiMaterial import ShearMM
+
+from openaerostruct.HALE.multiMaterial import YoungMM, ShearMM #VMGM
+
 
 class SpatialBeamFunctionals(Group):
     """ Group that contains the spatial beam functionals used to evaluate
@@ -55,7 +56,7 @@ class SpatialBeamFunctionals(Group):
                      FailureExact(surface=surface),
                      promotes_inputs=['vonmises'],
                      promotes_outputs=['failure'])
-        else:
+        else:          
             self.add_subsystem('failure',
                     FailureKS(surface=surface),
                     promotes_inputs=['vonmises'],
@@ -64,12 +65,17 @@ class SpatialBeamFunctionals(Group):
         self.add_subsystem('YoungMM',
                     YoungMM(surface=surface),
                     promotes_inputs=['mrho'],
-                    promotes_outputs=['young'])   
+                    promotes_outputs=['young']) #VMGM 
         
         self.add_subsystem('ShearMM',
                     ShearMM(surface=surface),
                     promotes_inputs=['mrho'],
-                    promotes_outputs=['shear'])       
+                    promotes_outputs=['shear']) #VMGM
+        
+        ##self.add_subsystem('buckling',
+                    ##BucklingKS(surface=surface),
+                    ##promotes_inputs=['top_bending_stress','mrho','skin_thickness','chord','taper'],
+                    ##promotes_outputs=['buckling'])
             
         self.add_subsystem('buckling',
                     BucklingKS(surface=surface),
