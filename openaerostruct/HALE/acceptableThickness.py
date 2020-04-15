@@ -10,7 +10,7 @@ import numpy as np
 import math
 from openmdao.api import ExplicitComponent
 
-from fctMultiMatos import*
+##from fctMultiMatos import*
 
 
 
