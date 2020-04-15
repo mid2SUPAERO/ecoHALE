@@ -21,7 +21,7 @@ import time
 from math import atan, pi
 from random import randint
 
-from multiMaterial import material
+from multiMaterial import material, CO2MM, YieldMM #VMGM
 
 
 def fctOptim(mrhoi,skin,spar,span,toverc): 
@@ -234,7 +234,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.connect('mrho',name+'.struct_setup.structural_mass.mrho')  #ED
     prob.model.connect('mrho',name+'.struct_setup.assembly.local_stiff.mrho')  #ED
     
-    
+    prob.model.add_subsystem('YieldMM', YieldMM(surface=surface), promotes_inputs=['mrho'], promotes_outputs=['yield']) #VMGM 
     
         
     # Loop through and add a certain number of aerostruct points
@@ -277,7 +277,9 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
             prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
             prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
             prob.model.connect('mrho',com_name+'struct_funcs.vonmises.mrho')  #ED
-            prob.model.connect('mrho',com_name+'struct_funcs.failure.mrho')  #ED
+            ##prob.model.connect('mrho',com_name+'struct_funcs.failure.mrho')  #ED
+
+            prob.model.connect('yield',com_name+'struct_funcs.failure.yield') #VMGM
     
             # Connect aerodyamic mesh to coupled group mesh
             prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
@@ -313,7 +315,10 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #    prob.model.connect('AS_point_0.fuelburn', 'fuel_vol_delta.fuelburn')
     
     # Here we add the co2 objective componenet to the model
-    prob.model.add_subsystem('emittedco2', structureCO2(surfaces=surfaces),promotes_inputs=['mrho'],promotes_outputs=['emitted_co2'])
+    prob.model.add_subsystem('CO2MM', CO2MM(surface=surface), promotes_inputs=['mrho'], promotes_outputs=['co2'])   #VMGM
+    prob.model.add_subsystem('emittedco2', structureCO2(surfaces=surfaces),promotes_inputs=['co2'],promotes_outputs=['emitted_co2'])    #VMGM
+    
+    ##prob.model.add_subsystem('emittedco2', structureCO2(surfaces=surfaces),promotes_inputs=['mrho'],promotes_outputs=['emitted_co2'])
     prob.model.connect('wing.structural_mass', 'emittedco2.mass')
     prob.model.connect('AS_point_0.total_perf.PV_mass', 'emittedco2.PV_mass')
     
@@ -445,11 +450,11 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.driver.recording_options['record_inputs'] = True
     
     # Set up the problem
-    prob.setup()
-    ##prob.run_model() #ED2
+    prob.setup()   
+    ##prob.run_model() #ED2 CHECK PARTIALS
 #
-    ##data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2
-    ##print(data)  #ED2   
+    ##data = prob.check_partials(out_stream=None, compact_print=True, method='cs') #ED2 CHECK PARTIALS
+    ##print(data)  #ED2 CHECK PARTIALS  
     
     #from openmdao.api import view_model
     #view_model(prob)
@@ -462,6 +467,6 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     print('computing time is',totaltime)
     print('co2 emissions are',prob['emitted_co2'][0])
     
-    print('The wing surface is', prob['AS_point_0.coupled.wing.S_ref'][0], '[m2]')
+    print('The wing surface is', prob['AS_point_0.coupled.wing.S_ref'][0], '[m2]')  #VMGM
     
     return prob['wing.structural_mass'][0], totaltime, prob['mrho'][0],prob['emitted_co2'][0];
