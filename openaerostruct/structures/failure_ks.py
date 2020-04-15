@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.HALE.fctMultiMatos import*
+##from openaerostruct.HALE.fctMultiMatos import*
 
 
 class FailureKS(ExplicitComponent):
@@ -52,7 +52,10 @@ class FailureKS(ExplicitComponent):
         self.ny = surface['mesh'].shape[1]
 
         self.add_input('vonmises', val=np.zeros((self.ny-1, num_failure_criteria)), units='N/m**2')
-        self.add_input('mrho', val=1000, units='kg/m**3') #ED
+        ##self.add_input('mrho', val=1000, units='kg/m**3') #ED
+        
+        self.add_input('yield', val=1e10, units= 'N/m**2')  #VMGM
+        
         self.add_output('failure', val=0.)
 
 #        self.sigma = yieldMM(surface['mrho'],surface['materlist'])  #ED
@@ -62,14 +65,19 @@ class FailureKS(ExplicitComponent):
 #        self.declare_partials('*','*')
         self.declare_partials('failure', 'vonmises')
 #        self.declare_partials('failure', 'mrho', method='fd', step=0.1, step_calc='abs')
-        self.declare_partials('failure', 'mrho', method='cs')
-
+        ##self.declare_partials('failure', 'mrho', method='cs')
+        
+        self.declare_partials('failure', 'yield')   #VMGM
+        
     def compute(self, inputs, outputs):
 #        sigma = self.sigma  #ED
-        mrho = inputs['mrho'] #ED
+        ##mrho = inputs['mrho'] #ED
 #        print('failure') #ED
 #        print(mrho)  #ED
-        sigma = yieldMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
+        ##sigma = yieldMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
+        
+        sigma = inputs['yield'] #VMGM
+        
         rho = self.rho
         vonmises = inputs['vonmises']
 
@@ -81,10 +89,12 @@ class FailureKS(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         vonmises = inputs['vonmises']
-        mrho = inputs['mrho']  #ED
+        ##mrho = inputs['mrho']  #ED
 #        sigma = self.sigma
-        sigma = yieldMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
+        ##sigma = yieldMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
         rho = self.rho
+        
+        sigma = inputs['yield'] #VMGM
 
         # Find the location of the max stress constraint
         fmax = np.max(vonmises / sigma - 1)
@@ -105,3 +115,5 @@ class FailureKS(ExplicitComponent):
 
         # Reshape and save them to the jac dict
         partials['failure', 'vonmises'] = derivs.reshape(1, -1)
+        derivYield = -derivs.reshape(1, -1) / sigma #VMGM
+        partials['failure', 'yield'] = derivYield[0][i] #VMGM
