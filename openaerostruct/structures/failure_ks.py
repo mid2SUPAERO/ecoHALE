@@ -108,6 +108,8 @@ class FailureKS(ExplicitComponent):
         tempb0 = ksb / (rho * np.sum(np.exp(rho * (vonmises/sigma - fmax - 1))))
         tempb = np.exp(rho*(vonmises/sigma-fmax-1))*rho*tempb0
         fmaxb = ksb - np.sum(tempb)
+        
+        vm_sigma = vonmises/sigma  #VMGM
 
         # Populate the entries
         derivs = tempb / sigma
@@ -115,5 +117,5 @@ class FailureKS(ExplicitComponent):
 
         # Reshape and save them to the jac dict
         partials['failure', 'vonmises'] = derivs.reshape(1, -1)
-        derivYield = -derivs.reshape(1, -1) / sigma #VMGM
-        partials['failure', 'yield'] = derivYield[0][i] #VMGM
+        derivYield = -partials['failure', 'vonmises'] * vm_sigma.reshape(1, -1) #VMGM
+        partials['failure', 'yield'] = np.sum(derivYield[0]) #VMGM
