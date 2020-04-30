@@ -3,7 +3,7 @@ import numpy as np
 
 from openmdao.api import ExplicitComponent
 
-from openaerostruct.HALE.fctMultiMatos import*
+##from openaerostruct.HALE.fctMultiMatos import*
 
 
 coeffs_2 = np.array([
@@ -41,7 +41,10 @@ class LocalStiff(ExplicitComponent):
         self.add_input('Iy', shape=ny - 1, units='m**4')
         self.add_input('Iz', shape=ny - 1, units='m**4')
         self.add_input('element_lengths', shape=ny - 1, units='m')
-        self.add_input('mrho', val=1000, units='kg/m**3') #ED
+        ##self.add_input('mrho', val=1000, units='kg/m**3') #ED
+        
+        self.add_input('young', val=1e10, units= 'N/m**2')  #VMGM
+        self.add_input('shear', val=1e10, units= 'N/m**2')  #VMGM
 
         self.add_output('local_stiff', shape=(ny - 1, 12, 12))
 
@@ -54,15 +57,21 @@ class LocalStiff(ExplicitComponent):
         self.declare_partials('local_stiff', 'Iz', rows=rows, cols=cols)
         self.declare_partials('local_stiff', 'element_lengths', rows=rows, cols=cols)
 #        self.declare_partials('local_stiff', 'mrho', method='fd', step=0.1, step_calc='abs')
-        self.declare_partials('local_stiff', 'mrho', method='cs')
+        ##self.declare_partials('local_stiff', 'mrho', method='cs')
+        
+        self.declare_partials('local_stiff','young')   #VMGM
+        self.declare_partials('local_stiff','shear')   #VMGM
 
     def compute(self, inputs, outputs):
-        surface = self.options['surface']
-        puissanceMM = surface['puissanceMM']
+        ##surface = self.options['surface']
+        ##puissanceMM = surface['puissanceMM']
 
-        ny = self.ny
-        E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
-        G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        ##ny = self.ny
+        ##E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        ##G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        
+        E = inputs['young'] #VMGM
+        G = inputs['shear'] #VMGM 
 
         A  = inputs['A']
         Iy = inputs['Iy']
@@ -93,11 +102,13 @@ class LocalStiff(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
-        puissanceMM = surface['puissanceMM']
+        ##puissanceMM = surface['puissanceMM']
         ny = surface['mesh'].shape[1]
-        E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
-        G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        ##E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
+        ##G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
         
+        E = inputs['young'] #VMGM
+        G = inputs['shear'] #VMGM 
 
         A  = inputs['A']
         Iy = inputs['Iy']
@@ -111,13 +122,19 @@ class LocalStiff(ExplicitComponent):
         derivs_J = partials['local_stiff', 'J'].reshape((ny - 1, 12, 12))
         derivs_L = partials['local_stiff', 'element_lengths'].reshape((ny - 1, 12, 12))
 #        derivs_mrho = partials['local_stiff', 'mrho'].reshape((ny - 1, 12, 12))
-
+        
+        derivs_E = partials['local_stiff', 'young'].reshape((ny - 1, 12, 12))   #VMGM
+        derivs_G = partials['local_stiff', 'shear'].reshape((ny - 1, 12, 12))   #VMGM
+        
         derivs_A[:] = 0.
         derivs_Iy[:] = 0.
         derivs_Iz[:] = 0.
         derivs_J[:] = 0.
         derivs_L[:] = 0.
 #        derivs_mrho[:] = 0.
+        
+        derivs_E[:] = 0.  #VMGM
+        derivs_G[:] = 0.  #VMGM
 
         for i in range(2):
             for j in range(2):
@@ -126,15 +143,21 @@ class LocalStiff(ExplicitComponent):
 
                 derivs_J[:, 2 + i, 2 + j] = G / L * coeffs_2[i, j]
                 derivs_L[:, 2 + i, 2 + j] = -G * J / L ** 2 * coeffs_2[i, j]
+                
+                derivs_E[:, 0 + i, 0 + j] = A / L * coeffs_2[i, j]  #VMGM
+                derivs_G[:, 2 + i, 2 + j] = J / L * coeffs_2[i, j]  #VMGM
 
         for i in range(4):
             for j in range(4):
                 derivs_Iy[:, 4 + i, 4 + j] = E / L ** 3 * coeffs_y[i, j]
-                derivs_L [:, 4 + i, 4 + j] = -3 * E * Iy / L ** 4 * coeffs_y[i, j]
+                derivs_L[:, 4 + i, 4 + j] = -3 * E * Iy / L ** 4 * coeffs_y[i, j]
 
                 derivs_Iz[:, 8 + i, 8 + j] = E / L ** 3 * coeffs_z[i, j]
-                derivs_L [:, 8 + i, 8 + j] = -3 * E * Iz / L ** 4 * coeffs_z[i, j]
+                derivs_L[:, 8 + i, 8 + j] = -3 * E * Iz / L ** 4 * coeffs_z[i, j]
 
+                derivs_E[:, 4 + i, 4 + j] = Iy / L ** 3 * coeffs_y[i, j]  #VMGM
+                derivs_E[:, 8 + i, 8 + j] = Iz / L ** 3 * coeffs_z[i, j]  #VMGM
+                
         for i in [1, 3]:
             for j in range(4):
                 derivs_Iy[:, 4 + i, 4 + j] = E / L ** 2 * coeffs_y[i, j]
@@ -142,6 +165,10 @@ class LocalStiff(ExplicitComponent):
 
                 derivs_Iz[:, 8 + i, 8 + j] = E / L ** 2 * coeffs_z[i, j]
                 derivs_L[:, 8 + i, 8 + j] = -2 * E * Iz / L ** 3 * coeffs_z[i, j]
+                
+                derivs_E[:, 4 + i, 4 + j] = Iy / L ** 2 * coeffs_y[i, j]  #VMGM
+                derivs_E[:, 8 + i, 8 + j] = Iz / L ** 2 * coeffs_z[i, j]  #VMGM
+                
         for i in range(4):
             for j in [1, 3]:
                 derivs_Iy[:, 4 + i, 4 + j] = E / L ** 2 * coeffs_y[i, j]
@@ -149,6 +176,9 @@ class LocalStiff(ExplicitComponent):
 
                 derivs_Iz[:, 8 + i, 8 + j] = E / L ** 2 * coeffs_z[i, j]
                 derivs_L[:, 8 + i, 8 + j] = -2 * E * Iz / L ** 3 * coeffs_z[i, j]
+                
+                derivs_E[:, 4 + i, 4 + j] = Iy / L ** 2 * coeffs_y[i, j]  #VMGM
+                derivs_E[:, 8 + i, 8 + j] = Iz / L ** 2 * coeffs_z[i, j]  #VMGM
 
         for i in [1, 3]:
             for j in [1, 3]:
@@ -157,3 +187,6 @@ class LocalStiff(ExplicitComponent):
 
                 derivs_Iz[:, 8 + i, 8 + j] = E / L * coeffs_z[i, j]
                 derivs_L[:, 8 + i, 8 + j] = -E * Iz / L ** 2 * coeffs_z[i, j]
+                
+                derivs_E[:, 4 + i, 4 + j] = Iy / L * coeffs_y[i, j]  #VMGM
+                derivs_E[:, 8 + i, 8 + j] = Iz / L * coeffs_z[i, j]  #VMGM
