@@ -15,6 +15,11 @@ import numpy as np
 #skinRange=np.arange(0.002,0.0045,0.001)
 #sparRange=np.arange(0.0001,0.0004,0.0001)
 
+spanRange=np.arange(25,70)
+tcRange=np.arange(0.05,0.18)
+skinRange=np.arange(0.002,0.0045)
+sparRange=np.arange(0.0001,0.0004)
+
 
 #50
 #0.08
@@ -25,10 +30,10 @@ import numpy as np
 #skinRange=[0.003]
 #sparRange=[0.00030000000000000003]
 
-spanRange=[25]
-tcRange=[0.05]
-skinRange=[0.003]
-sparRange=[0.00030000000000000003]
+##spanRange=[25]
+##tcRange=[0.05]
+##skinRange=[0.003]
+##sparRange=[0.00030000000000000003]
 
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),4),dtype=object)
@@ -77,25 +82,25 @@ for case in range(0,len(cases),1):
     limhauterho=8220
 
     #try:
-    resu=fctOptim(505,cases[case][0],cases[case][1],cases[case][2],cases[case][3])  
+    ##resu=fctOptim(505,cases[case][0],cases[case][1],cases[case][2],cases[case][3])  #An error will stop the execution
     #            resu=fctOptim(mrhof+1,hour,limbasserho,limhauterho) #ED2 
     #            resu=fctOptim(mrhof+1,1,limbasserho,limhauterho,epmin)  
-    weight=resu[0]
-    time=resu[1]
-    rhorho=resu[2]
-    co2=resu[3]
+    ##weight=resu[0]  #An error will stop the execution
+    ##time=resu[1]  #An error will stop the execution
+    ##rhorho=resu[2]  #An error will stop the execution
+    ##co2=resu[3]  #An error will stop the execution
     
-    ##try
-        ##resu=fctOptim(505,cases[case][0],cases[case][1],cases[case][2],cases[case][3])
-        ##weight=resu[0]
-        ##time=resu[1]
-        ##rhorho=resu[2]
-        ##co2=resu[3]
-    ##except:
-        ##weight=0
-        ##time=0
-        ##rhorho=0
-        ##co2=0
+    try:  #Make errors equal to 0
+        resu=fctOptim(505,cases[case][0],cases[case][1],cases[case][2],cases[case][3])  #Make errors equal to 0
+        weight=resu[0]  #Make errors equal to 0
+        time=resu[1]  #Make errors equal to 0
+        rhorho=resu[2]  #Make errors equal to 0
+        co2=resu[3]  #Make errors equal to 0
+    except:  #Make errors equal to 0
+        weight=0  #Make errors equal to 0
+        time=0  #Make errors equal to 0
+        rhorho=0  #Make errors equal to 0
+        co2=0  #Make errors equal to 0
 
 #        weight=0
 #        time=0
