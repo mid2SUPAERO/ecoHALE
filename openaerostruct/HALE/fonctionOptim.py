@@ -232,7 +232,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
         
         
     prob.model.connect('mrho',name+'.struct_setup.structural_mass.mrho')  #ED
-    prob.model.connect('mrho',name+'.struct_setup.assembly.local_stiff.mrho')  #ED
+    ##prob.model.connect('mrho',name+'.struct_setup.assembly.local_stiff.mrho')  #ED
     
     prob.model.add_subsystem('YieldMM', YieldMM(surface=surface), promotes_inputs=['mrho'], promotes_outputs=['yield']) #VMGM 
     
@@ -369,7 +369,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.span', lower=1., upper=1000., scaler=0.1)
     prob.model.add_design_var('wing.chord_cp', lower=1.4, upper=500., scaler=1)
-    prob.model.add_design_var('wing.taper', lower=0.3, upper=0.99, scaler=10)
+    ##prob.model.add_design_var('wing.taper', lower=0.3, upper=0.99, scaler=10)
 #    prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
@@ -386,8 +386,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_constraint('AS_point_0.enough_power', upper=0.) #Make sure needed power stays below the solar power producible by the wing
     prob.model.add_constraint('acceptableThickness', upper=0.) #Make sure skin thickness fits in the wing (to avoid negative spar mass)
     prob.model.add_constraint('AS_point_1.wing_perf.buckling', upper=0.)
-    # Surface constarint to avoid snowball effect
-    #prob.model.add_constraint('AS_point_0.coupled.wing.S_ref', upper=200.)
+    prob.model.add_constraint('AS_point_0.coupled.wing.S_ref', upper=200.)   #Surface constarint to avoid snowball effect
 #    prob.model.add_constraint('fuel_vol_delta.fuel_vol_delta', lower=0.)
     
 #    prob.model.add_design_var('fuel_mass', lower=0., upper=2e5, scaler=1e-5)
