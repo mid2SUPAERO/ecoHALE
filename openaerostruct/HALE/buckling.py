@@ -70,7 +70,6 @@ class BucklingKS(ExplicitComponent):
         self.declare_partials('buckling','young')   #VMGM
         self.declare_partials('buckling','shear')   #VMGM
 
-
     def compute(self, inputs, outputs):
         surface = self.options['surface']
         rho=self.options['rho']
@@ -142,24 +141,11 @@ class BucklingKS(ExplicitComponent):
         partials['buckling', 'top_bending_stress'] = -derivs.reshape(-1)  #  "-" because tbc = - input...   again in next line
         partials['buckling', 'skin_thickness'] = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*2*(sigmaBuc/skin)
         derivChord=-partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))/2
-        partials['buckling', 'chord'] = derivChord[0][i]
+        partials['buckling', 'chord'] = np.sum(derivChord[0])
         derivTaper = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*rootchord*(1-(np.arange(len(skin))+0.5)/(len(skin)))
-        partials['buckling', 'taper'] = derivTaper[0][i]
+        partials['buckling', 'taper'] = np.sum(derivTaper[0])
         
         derivYoung = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(sigmaBuc/(4*G-E)) #VMGM
-        partials['buckling', 'young'] = derivYoung[0][i]    #VMGM
+        partials['buckling', 'young'] = np.sum(derivYoung[0])    #VMGM
         derivShear = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(2*sigmaBuc/G-12*sigmaBuc/(3*(4*G-E))) #VMGM
-        partials['buckling', 'shear'] = derivShear[0][i]    #VMGM
-        
-        # Sumatory of partials
-        #partials['buckling', 'top_bending_stress'] = -derivs.reshape(-1)  #  "-" because tbc = - input...   again in next line
-        #partials['buckling', 'skin_thickness'] = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*2*(sigmaBuc/skin)
-        #derivChord=-partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*(1-(1-taper)*(1-(np.arange(len(skin))+0.5)/(len(skin))))/2
-        #partials['buckling', 'chord'] = sum(derivChord[0])
-        #derivTaper = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(-2)*(sigmaBuc/chords)*rootchord*(1-(np.arange(len(skin))+0.5)/(len(skin)))
-        #partials['buckling', 'taper'] = sum(derivTaper[0])
-        
-        #derivYoung = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(sigmaBuc/(4*G-E)) #VMGM
-        #partials['buckling', 'young'] = sum(derivYoung[0])   #VMGM
-        #derivShear = -partials['buckling', 'top_bending_stress']*(-tbc/sigmaBuc)*(2*sigmaBuc/G-12*sigmaBuc/(3*(4*G-E))) #VMGM
-        #partials['buckling', 'shear'] = sum(derivShear[0])    #VMGM
+        partials['buckling', 'shear'] = np.sum(derivShear[0])    #VMGM
