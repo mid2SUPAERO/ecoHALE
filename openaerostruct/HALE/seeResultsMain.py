@@ -18,10 +18,15 @@ import numpy as np
 #mrhoRange=[500,1250,2000] #3
 #sparRange=[0.0001] #1
 
-spanRange=np.arange(25,70,20)
-tcRange=np.arange(0.05,0.18,0.04)
-skinRange=np.arange(0.002,0.0045,0.001)
-sparRange=np.arange(0.0001,0.0004,0.0001)
+spanRange=np.arange(25,70)
+tcRange=np.arange(0.05,0.18)
+skinRange=np.arange(0.002,0.0045)
+sparRange=np.arange(0.0001,0.0004)
+
+##spanRange=np.arange(25,70,20)
+##tcRange=np.arange(0.05,0.18,0.04)
+##skinRange=np.arange(0.002,0.0045,0.001)
+##sparRange=np.arange(0.0001,0.0004,0.0001)
 mrhoRange=[505]
 
 
