@@ -30,9 +30,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,\
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as manimation
-import sqlitedict
+##import sqlitedict
 
-from fctMultiMatos import yieldMM
+##from fctMultiMatos import yieldMM
 
 #####################
 # User-set parameters
@@ -270,8 +270,10 @@ class Display(object):
             for name in names:
                 surface = cr.system_metadata[name]['component_options']['surface']
 #                self.yield_stress_dict[name + '_yield_stress'] = surface['yield']
-                self.yield_stress_dict[name + '_yield_stress'] = yieldMM(self.mrhos[-1],surface['materlist'],surface['puissanceMM'])
-
+                ##self.yield_stress_dict[name + '_yield_stress'] = yieldMM(self.mrhos[-1],surface['materlist'],surface['puissanceMM'])
+                
+                self.yield_stress_dict[name + '_yield_stress'] = case.outputs['yield']
+                
                 # self.fem_origin_dict[name + '_fem_origin'] = surface['fem_origin']
 
                 self.fem_origin_dict[name + '_fem_origin'] = (surface['data_x_upper'][0].real *(surface['data_y_upper'][0].real-surface['data_y_lower'][0].real) + \
