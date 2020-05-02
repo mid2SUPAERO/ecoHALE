@@ -12,7 +12,7 @@ import numpy as np
 ##cr = CaseReader("aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db")
 #cr = CaseReader("aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.16999999999999998.db")
 
-cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn42tc0.05.db")
+cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn119tc0.05.db")
 
 driver_cases = cr.list_cases('driver')
 
@@ -41,7 +41,6 @@ tOverC2=[]
 buckling=[]
 cl=[]
 cd=[]
-efficiency=[]
 
 for i in range(iterations):
 #for i in range(350,380):
@@ -73,7 +72,6 @@ for i in range(iterations):
     buckling.append(constraints['AS_point_1.wing_perf.buckling'][0])
     cl.append(case.outputs['AS_point_0.CL'][0])
     cd.append(case.outputs['AS_point_0.CD'][0])
-    efficiency.append(cl[i]/cd[i])
     
 chordEnd=np.multiply(chord,taper)
 doublemeanchord=np.add(chord,chordEnd)
