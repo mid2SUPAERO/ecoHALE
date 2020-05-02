@@ -276,7 +276,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
             com_name = point_name + '.' + name + '_perf.'
             prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
             prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
-            prob.model.connect('mrho',com_name+'struct_funcs.vonmises.mrho')  #ED
+            ##prob.model.connect('mrho',com_name+'struct_funcs.vonmises.mrho')  #ED
             ##prob.model.connect('mrho',com_name+'struct_funcs.failure.mrho')  #ED
 
             prob.model.connect('yield',com_name+'struct_funcs.failure.yield') #VMGM
@@ -369,7 +369,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.span', lower=1., upper=1000., scaler=0.1)
     prob.model.add_design_var('wing.chord_cp', lower=1.4, upper=500., scaler=1)
-    ##prob.model.add_design_var('wing.taper', lower=0.3, upper=0.99, scaler=10)
+    prob.model.add_design_var('wing.taper', lower=0.3, upper=0.99, scaler=10)
 #    prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
@@ -440,7 +440,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
         'AS_point_0.total_perf.total_weight', 
         'AS_point_0.CL',
         'AS_point_0.CD',
-        
+        'yield'  #VMGM
         ]
     
     prob.driver.recording_options['record_objectives'] = True
