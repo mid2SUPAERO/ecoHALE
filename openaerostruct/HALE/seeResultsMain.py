@@ -5,7 +5,7 @@ Created on Mon May 13 13:08:36 2019
 @author: e.duriez
 """
 from openmdao.api import Problem, ScipyOptimizeDriver, SqliteRecorder, CaseReader
-from optimFct import optimFct
+from fonctionOptim import fctOptim
 import matplotlib.pyplot as plt
 import os
 import numpy as np
