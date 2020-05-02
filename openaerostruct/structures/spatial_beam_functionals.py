@@ -40,7 +40,7 @@ class SpatialBeamFunctionals(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('vonmises',
                      VonMisesWingbox(surface=surface),
-                     promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
+                     promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp','young','shear'],
                      promotes_outputs=['vonmises','top_bending_stress'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
