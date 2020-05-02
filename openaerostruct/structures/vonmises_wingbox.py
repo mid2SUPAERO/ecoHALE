@@ -5,7 +5,7 @@ from openmdao.api import ExplicitComponent
 
 from openaerostruct.structures.utils import norm, unit
 
-from openaerostruct.HALE.fctMultiMatos import*
+##from openaerostruct.HALE.fctMultiMatos import*
 
 
 class VonMisesWingbox(ExplicitComponent):
@@ -66,8 +66,11 @@ class VonMisesWingbox(ExplicitComponent):
         self.add_input('hbottom', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hfront', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hrear', val=np.zeros((self.ny - 1)), units='m')
-        self.add_input('mrho', val=1000, units='kg/m**3') #ED
-
+        ##self.add_input('mrho', val=1000, units='kg/m**3') #ED
+        
+        self.add_input('young', val=1e10, units= 'N/m**2')  #VMGM
+        self.add_input('shear', val=1e10, units= 'N/m**2')  #VMGM
+        
         self.add_output('vonmises', val=np.zeros((self.ny-1, 4)),units='N/m**2')
         self.add_output('top_bending_stress', val=np.zeros((self.ny-1)),units='N/m**2')
 
@@ -86,7 +89,7 @@ class VonMisesWingbox(ExplicitComponent):
         hfront = inputs['hfront']
         hrear = inputs['hrear']
         spar_thickness = inputs['spar_thickness']
-        mrho= inputs['mrho']  #ED
+        ##mrho= inputs['mrho']  #ED
         vonmises = outputs['vonmises']
         tbs = outputs['top_bending_stress']
 		
@@ -97,9 +100,12 @@ class VonMisesWingbox(ExplicitComponent):
 
 #        E = self.E
 #        G = self.G
-        E = youngMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
-        G = shearMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
-
+        ##E = youngMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
+        ##G = shearMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
+        
+        E = inputs['young'] #VMGM
+        G = inputs['shear'] #VMGM 
+        
         num_elems = self.ny - 1
         for ielem in range(num_elems):
 
