@@ -1,5 +1,0 @@
-emittedCO2
-failure
-vonMises_wingbox
-local_stiff
-buckling
