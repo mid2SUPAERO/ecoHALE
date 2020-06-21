@@ -15,10 +15,15 @@ import numpy as np
 #skinRange=np.arange(0.002,0.0045,0.001)
 #sparRange=np.arange(0.0001,0.0004,0.0001)
 
-spanRange=np.arange(25,70)
-tcRange=np.arange(0.05,0.18)
-skinRange=np.arange(0.002,0.0045)
-sparRange=np.arange(0.0001,0.0004)
+#spanRange=np.arange(25,70)
+#tcRange=np.arange(0.05,0.18)
+#skinRange=np.arange(0.002,0.0045)
+#sparRange=np.arange(0.0001,0.0004)
+
+spanRange=np.arange(50,101,25)
+tcRange=np.arange(0.05,0.18,0.08)
+skinRange=np.arange(0.002,0.0045,0.002)
+sparRange=np.arange(0.0001,0.0004,0.0002)
 
 
 #50
