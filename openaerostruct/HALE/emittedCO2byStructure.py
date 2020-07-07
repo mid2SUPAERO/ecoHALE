@@ -25,7 +25,7 @@ class structureCO2(ExplicitComponent):
         self.add_input('mass', val=100, units='kg')#ED
         self.add_input('PV_mass', val=100, units='kg')#ED
         
-        self.add_input('co2', val=1e10, units='N/m**2') #VMGM
+        self.add_input('co2', val=50, units='kg/kg') #VMGM
         
         #code added for debug
 #        self.ny=len(surface['t_over_c_cp']) #TODELETE

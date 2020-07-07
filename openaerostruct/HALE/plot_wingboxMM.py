@@ -46,8 +46,9 @@ class Display(object):
     def __init__(self, args):
 
 #        self.db_name = args[1]
-        self.db_name = "work/passageHALE/aerostructMrhoi7596p1limh8220.db"
+        #self.db_name = "work/passageHALE/aerostructMrhoi7596p1limh8220.db"
 #        self.db_name = "aerostructMrhoi5676p1limh8220.db"
+        self.db_name = "aerostructMrhoi505sk0.004sr0.00030000000000000003sn100tc0.13.db"
 
         
         try:
@@ -70,7 +71,7 @@ class Display(object):
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
         self.ax = plt.subplot2grid((5, 8), (0, 0), rowspan=5,
                                    colspan=4, projection='3d')
-        self.ax.set_aspect('equal')
+        #self.ax.set_aspect('equal')
 
         self.num_iters = 0
         self.show_wing = True
@@ -254,7 +255,7 @@ class Display(object):
 
             if self.show_wing:
                 alpha.append(case.outputs['alpha'] * np.pi / 180.)
-                alpha_maneuver.append(case.outputs['alpha_maneuver'] * np.pi / 180.)
+                alpha_maneuver.append(case.outputs['alpha_gust'] * np.pi / 180.)
                 rho.append(case.outputs['rho'])
                 rho_maneuver.append(case.outputs['rho'])
                 v.append(case.outputs['v'])

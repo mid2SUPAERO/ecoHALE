@@ -5,7 +5,6 @@ from openaerostruct.structures.local_stiff import LocalStiff
 from openaerostruct.structures.local_stiff_permuted import LocalStiffPermuted
 from openaerostruct.structures.local_stiff_transformed import LocalStiffTransformed
 
-
 class AssembleKGroup(Group):
     """ Assemble that there compact local stiffness matrix. """
 
@@ -23,8 +22,7 @@ class AssembleKGroup(Group):
 
         comp = LocalStiff(surface=surface)
 #        self.add_subsystem('local_stiff', comp, promotes=['*'])
-        
-        self.add_subsystem('local_stiff', comp, promotes_inputs=['A','J','Iy','Iz','element_lengths','young','shear'], promotes_outputs=['*'])
+        self.add_subsystem('local_stiff', comp, promotes_inputs=['A','J','Iy','Iz','element_lengths'], promotes_outputs=['*'])
 
         comp = LocalStiffPermuted(surface=surface)
         self.add_subsystem('local_stiff_permuted', comp, promotes=['*'])

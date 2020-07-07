@@ -101,6 +101,10 @@ class CoupledAS(Group):
             promotes = promotes + list(set(['nodes', 'element_mass', 'load_factor']))
 #        if surface['distributed_fuel_weight']:
 #            promotes = promotes + list(set(['nodes', 'load_factor']))
+        if 'n_point_masses' in surface.keys():
+            promotes = promotes + list(set(['point_mass_locations',
+                'point_masses', 'nodes', 'load_factor']))
+    
         promotes = promotes + list(set(['nodes', 'load_factor'])) #ED
         self.add_subsystem('struct_states',
             SpatialBeamStates(surface=surface),
@@ -137,7 +141,7 @@ class CoupledPerformance(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('struct_funcs',
                 SpatialBeamFunctionals(surface=surface),
-                promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness','skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp','mrho'], promotes_outputs=['vonmises', 'failure','buckling'])
+                promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness','skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'], promotes_outputs=['vonmises', 'failure','buckling'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
@@ -201,6 +205,11 @@ class AerostructPoint(Group):
             # needed to converge the aerostructural system.
             coupled_AS_group = CoupledAS(surface=surface)
             
+            if 'n_point_masses' in surface.keys() or surface['struct_weight_relief']:
+                prom_in = ['load_factor']
+            else:
+                prom_in = []
+                
             promotes = []
             # if surface['distributed_fuel_weight']:
                 # promotes = ['load_factor']
@@ -259,7 +268,7 @@ class AerostructPoint(Group):
             # the coupled system
             perf_group = CoupledPerformance(surface=surface)
 
-            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=['rho', 'v', 'alpha', 're', 'Mach_number','mrho'])
+            self.add_subsystem(name + '_perf', perf_group, promotes_inputs=['rho', 'v', 'alpha', 're', 'Mach_number'])
 
         # Add functionals to evaluate performance of the system.
         # Note that only the interesting results are promoted here; not all

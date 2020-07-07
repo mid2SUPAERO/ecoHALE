@@ -37,7 +37,9 @@ class TotalLoads(ExplicitComponent):
         if surface['struct_weight_relief']:
             self.add_input('struct_weight_loads', val=np.zeros((self.ny, 6)), units='N')
         self.add_input('PV_weight_loads', val=np.zeros((self.ny, 6)), units='N')
-
+        if 'n_point_masses' in surface.keys():
+            self.add_input('loads_from_point_masses', val=np.zeros((self.ny, 6)), units='N')
+            
         self.add_output('total_loads', val=np.ones((self.ny, 6)), units='N')
 
         arange = np.arange(self.ny * 6)
@@ -52,6 +54,10 @@ class TotalLoads(ExplicitComponent):
         self.declare_partials('total_loads', 'PV_weight_loads',
             rows=arange, cols=arange, val=1.)
 
+        if 'n_point_masses' in surface.keys():
+            self.declare_partials('total_loads', 'loads_from_point_masses',
+                rows=arange, cols=arange, val=1.)
+
     def compute(self, inputs, outputs):
         outputs['total_loads'] = inputs['loads']
 
@@ -59,3 +65,6 @@ class TotalLoads(ExplicitComponent):
             outputs['total_loads'] += inputs['struct_weight_loads']
 
         outputs['total_loads'] += inputs['PV_weight_loads']
+
+        if 'n_point_masses' in self.surface.keys():
+            outputs['total_loads'] += inputs['loads_from_point_masses']

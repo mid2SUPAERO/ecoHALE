@@ -83,7 +83,7 @@ class YoungMM(ExplicitComponent):
                 closest_mat=mat1.E
     #        return cor_fact*closest_mat+(1-cor_fact)*angular_return """
             outputs['young'] = angular_return
-            
+
     def compute_partials(self, inputs, partials):
         
         surface = self.options['surface']
@@ -251,7 +251,7 @@ class YieldMM(ExplicitComponent):
         #self.add_input('puissanceMM', val=1)
         #self.add_input('materlist')
         
-        self.add_output('yield', val=1e10, units= 'N/m**2')
+        self.add_output('yield', val=1e8, units= 'N/m**2')
         
         self.declare_partials('yield','mrho')
         #self.declare_partials('young','puissanceMM')
@@ -360,7 +360,7 @@ class CO2MM(ExplicitComponent):
         #self.add_input('puissanceMM', val=1)
         #self.add_input('materlist')
         
-        self.add_output('co2', val=1e10, units= 'N/m**2')
+        self.add_output('co2', val=50, units= 'kg/kg')
         
         self.declare_partials('co2','mrho')
         #self.declare_partials('young','puissanceMM')

@@ -11,8 +11,14 @@ import numpy as np
 #cr = CaseReader("aerostructMrhoi504sk0.003sr0.001sn60tc0.19000000000000003.db")
 ##cr = CaseReader("aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db")
 #cr = CaseReader("aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.16999999999999998.db")
-
-cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn119tc0.05.db")
+##cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn100tc0.13.db")
+##cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn50tc0.05.db")
+##cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn75tc0.05.db")
+#cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn100tc0.13.db")
+#cr = CaseReader("aerostructMrhoi505sk0.002sr0.00030000000000000003sn50tc0.05.db")
+#cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn100tc0.05.db")
+cr = CaseReader("aerostructMrhoi505sk0.004sr0.0001sn100tc0.13.db")
+#cr = CaseReader("aerostructMrhoi505sk0.004sr0.0001sn75tc0.13.db")
 
 driver_cases = cr.list_cases('driver')
 
@@ -41,6 +47,22 @@ tOverC2=[]
 buckling=[]
 cl=[]
 cd=[]
+efficiency=[]
+point_masses=[]
+point_mass_locations=[]
+engine_location=[]
+totalWeight=[]
+PVmass=[]
+twist=[]
+twistcp=[]
+mesh=[]
+chordcp=[]
+forces=[]
+loads=[]
+vm=[]
+sparThickness=[]
+skinThickness=[]
+tbs=[]
 
 for i in range(iterations):
 #for i in range(350,380):
@@ -72,6 +94,20 @@ for i in range(iterations):
     buckling.append(constraints['AS_point_1.wing_perf.buckling'][0])
     cl.append(case.outputs['AS_point_0.CL'][0])
     cd.append(case.outputs['AS_point_0.CD'][0])
+    point_masses.append(case.outputs['point_masses'][0])
+    point_mass_locations.append(case.outputs['point_mass_locations'][0])
+    engine_location.append(design_vars['engine_location'][0])
+    totalWeight.append(case.outputs['AS_point_0.total_perf.total_weight'][0])
+    PVmass.append(case.outputs['AS_point_0.total_perf.PV_mass'][0])
+    twistcp.append(design_vars['wing.twist_cp'])
+    twist.append(case.outputs['wing.geometry.twist'][0])
+    mesh.append(case.outputs['AS_point_0.coupled.wing.def_mesh'][0])
+    chordcp.append(design_vars['wing.chord_cp'])
+    loads.append(case.outputs['AS_point_0.coupled.wing_loads.loads'][0])
+    forces.append(case.outputs['AS_point_0.coupled.aero_states.wing_sec_forces'])
+    vm.append(case.outputs['AS_point_0.wing_perf.vonmises'][0])
+    sparThickness.append(case.outputs['wing.spar_thickness'][0])
+    skinThickness.append(case.outputs['wing.skin_thickness'][0])
     
 chordEnd=np.multiply(chord,taper)
 doublemeanchord=np.add(chord,chordEnd)

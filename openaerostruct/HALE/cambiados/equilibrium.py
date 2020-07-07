@@ -104,17 +104,21 @@ class Equilibrium(ExplicitComponent):
             name = surface['name']
             structural_mass += inputs[name + '_structural_mass']
             PVdensity = surface['densityPV']  #works only if there is only one surface... otherwise, some sort of mean depending on each surface's surface could be made. Same modification has to be made in partials.
+            prop_density = surface['prop_density']
             mppt_density = surface['mppt_density']
+            payload_power = surface['payload_power']
             productivityPV = surface['productivityPV']
 
         PVmass=PVsurf*PVdensity
         S_ref_tot = inputs['S_ref_total']
         produced_power = PVsurf*productivityPV
         mppt_mass = produced_power*mppt_density
+        prop_power = produced_power-payload_power
+        prop_mass = prop_power*prop_density
 		
 
 #        tot_weight = (structural_mass + inputs['fuelburn'] + W0) * g
-        tot_weight = (structural_mass + W0 + PVmass + mppt_mass) * g
+        tot_weight = (structural_mass + W0 + PVmass + mppt_mass + prop_mass) * g
         outputs['PV_mass'] = PVmass
         outputs['total_weight'] = tot_weight
         outputs['L_equals_W'] = 1 - (0.5 * rho * v**2 * S_ref_tot) * inputs['CL'] / tot_weight
@@ -134,17 +138,21 @@ class Equilibrium(ExplicitComponent):
             name = surface['name']
             structural_mass += inputs[name + '_structural_mass']
             PVdensity = surface['densityPV']
+            prop_density = surface['prop_density']
             mppt_density = surface['mppt_density']
+            payload_power = surface['payload_power']
             productivityPV = surface['productivityPV']
 
         partials['PV_mass','PV_surface'] = PVdensity
         S_ref_tot = inputs['S_ref_total']
         produced_power = PVsurf*productivityPV
         mppt_mass = produced_power*mppt_density
+        prop_power = produced_power-payload_power
+        prop_mass = prop_power*prop_density
         PVmass = PVsurf*PVdensity
 
 #        tot_weight = (structural_mass + inputs['fuelburn'] + W0) * g
-        tot_weight = (structural_mass + W0 + PVsurf*PVdensity + mppt_mass) * g
+        tot_weight = (structural_mass + W0 + PVsurf*PVdensity + mppt_mass + prop_mass) * g
 
 
         L = inputs['CL'] * (0.5 * rho * v**2 * S_ref_tot)
@@ -154,17 +162,17 @@ class Equilibrium(ExplicitComponent):
 #        partials['total_weight', 'load_factor'] = (inputs['fuelburn'] + \
 #            inputs['W0'] + structural_mass) * grav_constant
         partials['total_weight', 'load_factor'] = ( \
-            inputs['W0'] + structural_mass + PVmass + mppt_mass) * grav_constant*1.1
+            inputs['W0'] + structural_mass + PVmass + mppt_mass + prop_mass) * grav_constant*1.1
 
-        partials['total_weight', 'PV_surface'] = g*(PVdensity + mppt_density*productivityPV)
+        partials['total_weight', 'PV_surface'] = g*(PVdensity + mppt_density*productivityPV + productivityPV*prop_density)
 
 #        partials['L_equals_W', 'fuelburn'] = L / tot_weight**2 * g
         partials['L_equals_W', 'W0'] = L / tot_weight**2 * g
-        partials['L_equals_W', 'PV_surface'] = L / tot_weight**2 * g * (PVdensity + mppt_density*productivityPV)
+        partials['L_equals_W', 'PV_surface'] = L / tot_weight**2 * g * (PVdensity + mppt_density*productivityPV + productivityPV*prop_density)
 #        partials['L_equals_W', 'load_factor'] = L / tot_weight**2 * (inputs['fuelburn'] + \
 #            inputs['W0'] + structural_mass) * grav_constant
         partials['L_equals_W', 'load_factor'] = L / tot_weight**2 * ( \
-            inputs['W0'] + structural_mass + PVsurf*PVdensity + mppt_mass) * grav_constant*1.1
+            inputs['W0'] + structural_mass + PVsurf*PVdensity + mppt_mass + prop_mass) * grav_constant*1.1
         partials['L_equals_W', 'rho'] = -.5 * S_ref_tot * v**2 * inputs['CL'] / tot_weight
         partials['L_equals_W', 'v'] = - rho * S_ref_tot * v * inputs['CL'] / tot_weight
         partials['L_equals_W', 'CL'] = - .5 * rho * v**2 * S_ref_tot / tot_weight

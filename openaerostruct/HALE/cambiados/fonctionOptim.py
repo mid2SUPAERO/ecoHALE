@@ -187,21 +187,21 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     speed_sound=297 #m/s
     indep_var_comp = IndepVarComp()
 #    indep_var_comp.add_output('Mach_number', val=np.array([0.85, 0.64]))
-    indep_var_comp.add_output('Mach_number', val=np.array([speed/speed_sound, (speed**2+gust_speed**2)**0.5/speed_sound, 0]))
+    indep_var_comp.add_output('Mach_number', val=np.array([speed/speed_sound, (speed**2+gust_speed**2)**0.5/speed_sound]))
 #    indep_var_comp.add_output('v', val=np.array([.85 * 295.07, .64 * 340.294]), units='m/s')
-    indep_var_comp.add_output('v', val=np.array([speed, (speed**2+gust_speed**2)**0.5, 0]), units='m/s')
+    indep_var_comp.add_output('v', val=np.array([speed, (speed**2+gust_speed**2)**0.5]), units='m/s')
     indep_var_comp.add_output('re',val=np.array([rho_air*speed*10./(1.4*1e-5), \
-                              rho_air*speed*10./(1.4*1e-5), 0]),  units='1/m') #L=10m,
-    indep_var_comp.add_output('rho', val=np.array([0.055, 0.055, 1.225]), units='kg/m**3')
+                              rho_air*speed*10./(1.4*1e-5)]),  units='1/m') #L=10m,
+    indep_var_comp.add_output('rho', val=np.array([0.055, 0.055]), units='kg/m**3')
 #    indep_var_comp.add_output('speed_of_sound', val= np.array([295.07, 340.294]), units='m/s')
-    indep_var_comp.add_output('speed_of_sound', val= np.array([speed_sound, speed_sound, 340]), units='m/s')
+    indep_var_comp.add_output('speed_of_sound', val= np.array([speed_sound, speed_sound]), units='m/s')
     
 #    indep_var_comp.add_output('CT', val=0.53/3600, units='1/s')
 #    indep_var_comp.add_output('R', val=14.307e6, units='m')
 #    indep_var_comp.add_output('W0', val=148000 + surf_dict['Wf_reserve'],  units='kg')
     indep_var_comp.add_output('W0_without_point_masses', val=20.5,  units='kg')
     
-    indep_var_comp.add_output('load_factor', val=np.array([1., 1., 1.]))
+    indep_var_comp.add_output('load_factor', val=np.array([1., 1.]))
     indep_var_comp.add_output('alpha', val=0., units='deg')
     indep_var_comp.add_output('alpha_gust', val=atan(gust_speed/speed)*180/pi, units='deg')
 #    indep_var_comp.add_output('alpha_maneuver', val=[15.+0.j], units='deg') #TODELETE
@@ -217,11 +217,11 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
          promotes=['*'])
     
     
-    #point_masses = np.array([[100]])  #VMGM
+    ##point_masses = np.array([[100]])  #VMGM
 
     ##point_mass_locations_span = np.array([[0.25, -0.10, 0.]])  #VMGM
     
-    #indep_var_comp.add_output('point_masses', val=point_masses, units='kg')  #VMGM
+    ##indep_var_comp.add_output('point_masses', val=point_masses, units='kg')  #VMGM
     #indep_var_comp.add_output('point_mass_locations_span', val=point_mass_locations_span)  #VMGM
     indep_var_comp.add_output('engine_location', val=-0.3)  #VMGM
     
@@ -262,7 +262,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.connect(name + '.nodes', 'nodes')  #VMGM
 
     # Loop through and add a certain number of aerostruct points
-    for i in range(3):
+    for i in range(2):
 #    for i in range(1):
     
         point_name = 'AS_point_{}'.format(i)
@@ -338,7 +338,6 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
             
     prob.model.connect('alpha', 'AS_point_0' + '.alpha')
     prob.model.connect('alpha_gust', 'AS_point_1' + '.alpha')
-    prob.model.connect('alpha', 'AS_point_2' + '.alpha')  #VMGM
 #    prob.model.connect('alpha_maneuver', 'AS_point_1' + '.alpha')
     
 #    # Here we add the fuel volume constraint componenet to the model
@@ -384,12 +383,6 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.connect('wing.chord_cp','AS_point_1.wing_perf.struct_funcs.chord')
     prob.model.connect('wing.taper','AS_point_1.wing_perf.struct_funcs.taper')
     
-    prob.model.connect('wing.struct_setup.PV_areas', 'AS_point_2.coupled.wing.struct_states.PV_areas')  #VMGM
-    prob.model.connect('AS_point_0.total_perf.PV_mass', 'AS_point_2.coupled.wing.struct_states.PV_mass')  #VMGM
-
-    prob.model.connect('wing.chord_cp','AS_point_2.wing_perf.struct_funcs.chord')  #VMGM
-    prob.model.connect('wing.taper','AS_point_2.wing_perf.struct_funcs.taper')  #VMGM
-    
 #    comp = ExecComp('fuel_diff = (fuel_mass - fuelburn) / fuelburn')
 #    prob.model.add_subsystem('fuel_diff', comp,
 #        promotes_inputs=['fuel_mass'],
@@ -398,7 +391,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
         
     prob.model.add_objective('emitted_co2', scaler=1e-4)
     
-    prob.model.add_design_var('wing.twist_cp', lower=-30., upper=30., scaler=0.1)  #VMGM
+    prob.model.add_design_var('wing.twist_cp', lower=-30., upper=30., scaler=0.1)
 #    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e4)
 #    prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
@@ -425,8 +418,6 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_constraint('AS_point_1.wing_perf.buckling', upper=0.)
     # Surface constarint to avoid snowball effect
     prob.model.add_constraint('AS_point_0.coupled.wing.S_ref', upper=200.)  #VMGM
-    prob.model.add_constraint('AS_point_2.wing_perf.failure', upper=0.)  #VMGM
-    prob.model.add_constraint('AS_point_2.wing_perf.buckling', upper=0.)  #VMGM
 #    prob.model.add_constraint('fuel_vol_delta.fuel_vol_delta', lower=0.)
     
 #    prob.model.add_design_var('fuel_mass', lower=0., upper=2e5, scaler=1e-5)
@@ -449,23 +440,20 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     # We could also just use prob.driver.recording_options['includes']=['*'] here, but for large meshes the database file becomes extremely large. So we just select the variables we need.
     prob.driver.recording_options['includes'] = [
         'alpha', 'rho', 'v', 'cg',
-        'alpha_gust', #
-        'AS_point_1.cg', 'AS_point_0.cg', #
+#        'AS_point_1.cg', 'AS_point_0.cg',
         'AS_point_0.cg', #ED
         'AS_point_0.coupled.wing_loads.loads',
-        'AS_point_1.coupled.wing_loads.loads', #
-        'AS_point_2.coupled.wing_loads.loads', #
+#        'AS_point_1.coupled.wing_loads.loads',
         'AS_point_0.coupled.wing.normals',
-        'AS_point_1.coupled.wing.normals', #
+#        'AS_point_1.coupled.wing.normals',
         'AS_point_0.coupled.wing.widths',
-        'AS_point_1.coupled.wing.widths', #
+#        'AS_point_1.coupled.wing.widths',
         'AS_point_0.coupled.aero_states.wing_sec_forces',
-        'AS_point_1.coupled.aero_states.wing_sec_forces', #
-        'AS_point_2.coupled.aero_states.wing_sec_forces', #
+#        'AS_point_1.coupled.aero_states.wing_sec_forces',
         'AS_point_0.wing_perf.CL1',
-        'AS_point_1.wing_perf.CL1', #
+#        'AS_point_1.wing_perf.CL1',
         'AS_point_0.coupled.wing.S_ref',
-        'AS_point_1.coupled.wing.S_ref', #
+#        'AS_point_1.coupled.wing.S_ref',
         'wing.geometry.twist',
         'wing.geometry.mesh.taper.taper',
         'wing.geometry.mesh.stretch.span',
@@ -476,9 +464,9 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
         'wing.t_over_c',
         'wing.structural_mass',
         'AS_point_0.wing_perf.vonmises',
-        'AS_point_1.wing_perf.vonmises', #
+#        'AS_point_1.wing_perf.vonmises',
         'AS_point_0.coupled.wing.def_mesh',
-        'AS_point_1.coupled.wing.def_mesh', #
+#        'AS_point_1.coupled.wing.def_mesh',
         'AS_point_0.total_perf.PV_mass', 
         'AS_point_0.total_perf.total_weight', 
         'AS_point_0.CL',
@@ -504,8 +492,6 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     #view_model(prob)
     
     prob.run_driver()
-    print("tbs0",prob['AS_point_0.wing_perf.struct_funcs.vonmises.top_bending_stress'])
-    ##print (prob.model.list_outputs(values=False, implicit=False))
     print('The wingbox mass (including the wing_weight_ratio) is', prob['wing.structural_mass'][0], '[kg]')
     endtime=time.time()
     totaltime=endtime-starttime

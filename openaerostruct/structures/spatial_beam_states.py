@@ -5,6 +5,7 @@ from openaerostruct.structures.disp import Disp
 from openaerostruct.structures.wing_weight_loads import StructureWeightLoads
 from openaerostruct.structures.pv_loads import PVLoads
 from openaerostruct.structures.total_loads import TotalLoads
+from openaerostruct.structures.compute_point_mass_loads import ComputePointMassLoads
 
 class SpatialBeamStates(Group):
     """ Group that contains the spatial beam states. """
@@ -29,7 +30,14 @@ class SpatialBeamStates(Group):
 #                     promotes_inputs=['nodes', 'load_factor', 'fuel_vols', 'fuel_mass'],
 #                     promotes_outputs=['fuel_weight_loads'])
 #            wingbox_promotes.append('fuel_weight_loads')
-
+            
+        if 'n_point_masses' in surface.keys():
+            self.add_subsystem('point_masses',
+                     ComputePointMassLoads(surface=surface),
+                     promotes_inputs=['point_mass_locations', 'point_masses', 'nodes', 'load_factor'],
+                     promotes_outputs=['loads_from_point_masses'])
+            wingbox_promotes.append('loads_from_point_masses')
+            
         self.add_subsystem('pv_loads',
                  PVLoads(surface=surface),
                  promotes_inputs=['nodes', 'load_factor', 'PV_areas', 'PV_mass'],

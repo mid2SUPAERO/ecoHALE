@@ -9,9 +9,6 @@ from openaerostruct.structures.failure_exact import FailureExact
 from openaerostruct.structures.failure_ks import FailureKS
 from openaerostruct.HALE.buckling import BucklingKS
 
-from openaerostruct.HALE.multiMaterial import YoungMM, ShearMM #VMGM
-
-
 class SpatialBeamFunctionals(Group):
     """ Group that contains the spatial beam functionals used to evaluate
     performance. """
@@ -21,7 +18,6 @@ class SpatialBeamFunctionals(Group):
 
     def setup(self):
         surface = self.options['surface']
-
         # Commented out energy for now since we haven't ever used its output
         # self.add_subsystem('energy',
         #          Energy(surface=surface),
@@ -40,7 +36,7 @@ class SpatialBeamFunctionals(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('vonmises',
                      VonMisesWingbox(surface=surface),
-                     promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp','young','shear'],
+                     promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'],
                      promotes_outputs=['vonmises','top_bending_stress'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
@@ -56,28 +52,13 @@ class SpatialBeamFunctionals(Group):
                      FailureExact(surface=surface),
                      promotes_inputs=['vonmises'],
                      promotes_outputs=['failure'])
-        else:          
+        else:
             self.add_subsystem('failure',
                     FailureKS(surface=surface),
                     promotes_inputs=['vonmises'],
                     promotes_outputs=['failure'])
- 
-        self.add_subsystem('YoungMM',
-                    YoungMM(surface=surface),
-                    promotes_inputs=['mrho'],
-                    promotes_outputs=['young']) #VMGM 
-        
-        self.add_subsystem('ShearMM',
-                    ShearMM(surface=surface),
-                    promotes_inputs=['mrho'],
-                    promotes_outputs=['shear']) #VMGM
-        
-        ##self.add_subsystem('buckling',
-                    ##BucklingKS(surface=surface),
-                    ##promotes_inputs=['top_bending_stress','mrho','skin_thickness','chord','taper'],
-                    ##promotes_outputs=['buckling'])
             
         self.add_subsystem('buckling',
                     BucklingKS(surface=surface),
-                    promotes_inputs=['top_bending_stress','shear','young','skin_thickness','chord','taper'],
+                    promotes_inputs=['top_bending_stress','skin_thickness','chord','taper'],
                     promotes_outputs=['buckling'])

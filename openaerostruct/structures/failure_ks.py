@@ -54,7 +54,7 @@ class FailureKS(ExplicitComponent):
         self.add_input('vonmises', val=np.zeros((self.ny-1, num_failure_criteria)), units='N/m**2')
         ##self.add_input('mrho', val=1000, units='kg/m**3') #ED
         
-        self.add_input('yield', val=1e10, units= 'N/m**2')  #VMGM
+        self.add_input('yield', val=1e8, units= 'N/m**2')  #VMGM
         
         self.add_output('failure', val=0.)
 

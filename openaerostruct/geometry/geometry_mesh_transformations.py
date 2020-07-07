@@ -166,7 +166,7 @@ class ScaleX(ExplicitComponent):
         te = mesh[-1]
         le = mesh[ 0]
         quarter_chord = 0.25 * te + 0.75 * le
-
+ 
         outputs['mesh'] = np.einsum('ijk,j->ijk', mesh - quarter_chord, chord_dist) + quarter_chord
 
     def compute_partials(self, inputs, partials):
