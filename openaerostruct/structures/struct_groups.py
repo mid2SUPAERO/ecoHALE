@@ -47,20 +47,20 @@ class SpatialBeamAlone(Group):
             self.add_subsystem('wingbox_group',
                 WingboxGroup(surface=surface),
                 promotes_inputs=['mesh', 't_over_c'],
-                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
+                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear', 'Qx', 'Aspars'] + wingbox_promotes)
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
         if surface['fem_model_type'] == 'tube':
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],   
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'Aspars'],   
                 promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass'])
         else:
             self.add_subsystem('struct_setup',
                 SpatialBeamSetup(surface=surface),
-                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'A_int'],   
-                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass', ])
+                promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'A_int', 'Aspars'],   
+                promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass', 'spars_mass'])
 
         promotes = []
         if surface['struct_weight_relief']:
@@ -83,5 +83,5 @@ class SpatialBeamAlone(Group):
         else:
             self.add_subsystem('struct_funcs',
                 SpatialBeamFunctionals(surface=surface),
-                promotes_inputs=['spar_thickness', 'disp','Qz', 'J', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes'],
+                promotes_inputs=['spar_thickness', 'disp','Qz', 'J', 'A_enc', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'skin_thickness', 'Qx'],
                 promotes_outputs=['vonmises', 'failure'])
