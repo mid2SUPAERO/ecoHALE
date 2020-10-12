@@ -52,4 +52,4 @@ class WingboxGroup(Group):
         self.add_subsystem('wingbox',
             SectionPropertiesWingbox(surface=surface),
             promotes_inputs=['spar_thickness', 'skin_thickness', 't_over_c', 'fem_chords', 'fem_twists', 'streamwise_chords'],
-            promotes_outputs=['A', 'Iy', 'Qz', 'Iz', 'J', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear'])
+            promotes_outputs=['A', 'Iy', 'Qz', 'Iz', 'J', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear', 'Qx', 'Aspars'])
