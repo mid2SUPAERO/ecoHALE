@@ -71,7 +71,7 @@ class AerostructGeometry(Group):
             self.add_subsystem('wingbox_group',
                 WingboxGroup(surface=surface),
                 promotes_inputs=['mesh', 't_over_c'],
-                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear'] + wingbox_promotes)
+                promotes_outputs=['A', 'Iy', 'Iz', 'J', 'Qz', 'A_enc', 'A_int', 'htop', 'hbottom', 'hfront', 'hrear', 'Qx', 'Aspars'] + wingbox_promotes)
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
@@ -84,8 +84,8 @@ class AerostructGeometry(Group):
             SpatialBeamSetup(surface=surface),
 #            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J','mrho'] + promotes,   #ED
 #            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'] + promotes,   #ED
-            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J'],   #ED
-            promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass'])
+            promotes_inputs=['mesh', 'A', 'Iy', 'Iz', 'J', 'Aspars'],   #ED
+            promotes_outputs=['nodes', 'local_stiff_transformed', 'structural_mass', 'cg_location', 'element_mass', 'spars_mass'])
 
 
 class CoupledAS(Group):
@@ -141,7 +141,7 @@ class CoupledPerformance(Group):
         elif surface['fem_model_type'] == 'wingbox':
             self.add_subsystem('struct_funcs',
                 SpatialBeamFunctionals(surface=surface),
-                promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness','skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp'], promotes_outputs=['vonmises', 'failure','buckling'])
+                promotes_inputs=['Qz', 'J', 'A_enc', 'spar_thickness','skin_thickness', 'htop', 'hbottom', 'hfront', 'hrear', 'nodes', 'disp', 'Qx'], promotes_outputs=['vonmises', 'failure','buckling'])
         else:
             raise NameError('Please select a valid `fem_model_type` from either `tube` or `wingbox`.')
 
