@@ -97,7 +97,9 @@ class SectionPropertiesWingbox(ExplicitComponent):
         self.add_output('hbottom', val=np.ones((self.ny - 1),  dtype = complex),units='m')
         self.add_output('hfront', val=np.ones((self.ny - 1),  dtype = complex),units='m')
         self.add_output('hrear', val=np.ones((self.ny - 1),  dtype = complex),units='m')
-
+        self.add_output('Qx', val=np.ones((self.ny - 1),  dtype = complex),units='m**3')  #VMGM
+        self.add_output('Aspars', val=np.ones((self.ny - 1),  dtype = complex),units='m**2')  #VMGM
+        
         self.declare_partials('*', '*', method='cs')
 
     def compute(self, inputs, outputs):
@@ -199,6 +201,8 @@ class SectionPropertiesWingbox(ExplicitComponent):
         first_moment_area_rear_spar = (data_y_upper[-1] - data_y_lower[-1] - 2 * skin_thickness) * spar_thickness * (data_y_upper[-1] + data_y_lower[-1]) / 2
         area_spars = ((data_y_upper[0] - data_y_lower[0] - 2 * skin_thickness) + (data_y_upper[-1] - data_y_lower[-1] - 2 * skin_thickness)) * spar_thickness
 
+        outputs['Aspars'] = area_spars  #VMGM
+
         area = np.sum(upper_area, axis=0) + np.sum(lower_area, axis=0) + area_spars
 
         outputs['A'] = area
@@ -269,3 +273,28 @@ class SectionPropertiesWingbox(ExplicitComponent):
         outputs['hbottom'] = hbottom
         outputs['hfront'] = hfront
         outputs['hrear'] = hrear
+    
+        # Compute the Q required for in-plane shear stress due to in-plane bending  #VMGM
+        x_up_add = data_x_upper[1:] + data_x_upper[:-1]  #VMGM
+        x_low_add = data_x_lower[1:] + data_x_lower[:-1]  #VMGM
+
+        # Compute area moment of inertia about z axis  #VMGM
+        # First compute centroid and area  #VMGM
+        first_moment_area_upper_z = (x_up_add/2) * skin_thickness * x_up_diff  #VMGM
+        first_moment_area_lower_z = (x_low_add/2) * skin_thickness * x_low_diff  #VMGM
+        first_moment_area_front_spar_z = (data_y_upper[0] - data_y_lower[0] - 2 * skin_thickness) * spar_thickness * (data_x_upper[0] + spar_thickness/2)  #VMGM
+        first_moment_area_rear_spar_z = (data_y_upper[-1] - data_y_lower[-1] - 2 * skin_thickness) * spar_thickness * (data_x_upper[-1] - spar_thickness/2)  #VMGM
+
+        centroid_z = (np.sum(first_moment_area_upper_z, axis=0) + np.sum(first_moment_area_lower_z, axis=0) + first_moment_area_front_spar_z + first_moment_area_rear_spar_z) / area  #VMGM        
+        
+        distance_up = x_up_add/2 - centroid_z
+        distance_up[distance_up > 0] = 0
+        distance_low = x_low_add/2 - centroid_z
+        distance_low[distance_low > 0] = 0
+        
+        Q_front = (data_y_upper[0] - data_y_lower[0] - 2 * skin_thickness) * spar_thickness * (centroid_z - (data_x_upper[0] + spar_thickness/2))  #VMGM
+
+        Q_front += np.sum(distance_up * skin_thickness * x_up_diff, axis=0)  #VMGM
+        Q_front += np.sum(distance_low * skin_thickness * x_low_diff, axis=0)  #VMGM
+
+        outputs['Qx'] = Q_front  #VMGM
