@@ -209,7 +209,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     
 #    indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
     
-    indep_var_comp.add_output('mrho', val=mrhoi, units='kg/m**3')
+    indep_var_comp.add_output('mrho', val=np.array([mrhoi,mrhoi]), units='kg/m**3')
 #    indep_var_comp.add_output('mrho', val=[1570.+0.j], units='kg/m**3') #TODELETE
     
     prob.model.add_subsystem('prob_vars',
@@ -307,6 +307,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
             prob.model.connect('yield',com_name+'struct_funcs.failure.yield')  #VMGM
             prob.model.connect('young',com_name+'struct_funcs.buckling.young')  #VMGM
             prob.model.connect('shear',com_name+'struct_funcs.buckling.shear')  #VMGM
+            prob.model.connect(name + '.t_over_c', com_name+'struct_funcs.buckling.t_over_c')  #VMGM
             
             # Connect aerodyamic mesh to coupled group mesh
             prob.model.connect(name + '.mesh', point_name + '.coupled.' + name + '.mesh')
@@ -326,6 +327,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
             prob.model.connect(name + '.hbottom', com_name + 'hbottom')
             prob.model.connect(name + '.hfront', com_name + 'hfront')
             prob.model.connect(name + '.hrear', com_name + 'hrear')
+            prob.model.connect(name + '.Qx', com_name + 'Qx')
     
             prob.model.connect(name + '.spar_thickness', com_name + 'spar_thickness')
             prob.model.connect(name + '.skin_thickness', com_name + 'skin_thickness')
@@ -351,7 +353,8 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_subsystem('emittedco2', structureCO2(surfaces=surfaces),promotes_inputs=['co2'],promotes_outputs=['emitted_co2'])  #VMGM
     ##prob.model.connect('co2', 'emittedco2.co2')  #VMGM
     prob.model.connect('wing.structural_mass', 'emittedco2.mass')
-    prob.model.connect('AS_point_0.total_perf.PV_mass', 'emittedco2.PV_mass')   
+    prob.model.connect('AS_point_0.total_perf.PV_mass', 'emittedco2.PV_mass')  
+    prob.model.connect('wing.spars_mass', 'emittedco2.spars_mass')  #VMGM
 #    prob.model.connect('wing.twist_cp', 'emittedco2.twist') #TODELETE    
 #    prob.model.connect('wing.spar_thickness_cp', 'emittedco2.spar_thickness') #TODELETE    
 #    prob.model.connect('wing.skin_thickness_cp', 'emittedco2.skin_thickness') #TODELETE    
@@ -398,7 +401,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
         
     prob.model.add_objective('emitted_co2', scaler=1e-4)
     
-    prob.model.add_design_var('wing.twist_cp', lower=-30., upper=30., scaler=0.1)  #VMGM
+    prob.model.add_design_var('wing.twist_cp', lower=-20., upper=20., scaler=0.1)  #VMGM
 #    prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
     prob.model.add_design_var('wing.spar_thickness_cp', lower=0.0001, upper=0.1, scaler=1e4)
 #    prob.model.add_design_var('wing.skin_thickness_cp', lower=0.0001, upper=0.1, scaler=1e3)
@@ -409,7 +412,7 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
 #    prob.model.add_design_var('wing.taper', lower=0.01, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
 #    prob.model.add_design_var('alpha_maneuver', lower=-15., upper=15)
-    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
+    prob.model.add_design_var('mrho', lower=504.5, upper=10000, scaler=0.001) #ED
 #    prob.model.add_design_var('mrho', lower=mrhoi, upper=mrhoi, scaler=0.001) #ED
     ##prob.model.add_design_var('point_mass_locations_span', lower=-1, upper=1, scaler=10)  #VMGM
     prob.model.add_design_var('engine_location', lower=-1, upper=0, scaler=10.)  #VMGM
@@ -504,8 +507,8 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     #view_model(prob)
     
     prob.run_driver()
+    ##print (prob.model.list_outputs(values=False, implicit=False))  #VMGM
     print("tbs0",prob['AS_point_0.wing_perf.struct_funcs.vonmises.top_bending_stress'])
-    ##print (prob.model.list_outputs(values=False, implicit=False))
     print('The wingbox mass (including the wing_weight_ratio) is', prob['wing.structural_mass'][0], '[kg]')
     endtime=time.time()
     totaltime=endtime-starttime
