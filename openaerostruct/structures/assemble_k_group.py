@@ -22,7 +22,7 @@ class AssembleKGroup(Group):
 
         comp = LocalStiff(surface=surface)
 #        self.add_subsystem('local_stiff', comp, promotes=['*'])
-        self.add_subsystem('local_stiff', comp, promotes_inputs=['A','J','Iy','Iz','element_lengths'], promotes_outputs=['*'])
+        self.add_subsystem('local_stiff', comp, promotes_inputs=['A','J','Iy','Iz','element_lengths','Aspars'], promotes_outputs=['*'])
 
         comp = LocalStiffPermuted(surface=surface)
         self.add_subsystem('local_stiff_permuted', comp, promotes=['*'])
