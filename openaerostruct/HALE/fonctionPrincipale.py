@@ -26,29 +26,32 @@ import numpy as np
 #sparRange=[0.00030000000000000003]
 
 ##spanRange=[50]
-##tcRange=[0.05]
-##skinRange=[0.002]
-##sparRange=[0.0001]
+##tcRange=[0.13]
+##skinRange=[0.004]
+##sparRange=[0.00030000000000000003]
 
-###spanRange=np.arange(50,101,25)
-###tcRange=np.arange(0.05,0.18,0.08)
-###skinRange=np.arange(0.002,0.0045,0.002)
-###sparRange=np.arange(0.0001,0.0004,0.0002)
-
-spanRange=[100]
+mrhoRange=[600]
+spanRange=[75]
 tcRange=[0.13]
 skinRange=[0.004]
 sparRange=[0.0001]
 
-caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),4),dtype=object)
+##mrhoRange=np.arange(505,600,50)
+##spanRange=np.arange(50,101,25)
+##tcRange=np.arange(0.05,0.18,0.08)
+##skinRange=np.arange(0.002,0.0045,0.002)
+##sparRange=np.arange(0.0001,0.0004,0.0002)
+
+caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),len(mrhoRange),5),dtype=object)
 for i in range(0,len(skinRange),1):
     for j in range(0,len(sparRange),1):
         for k in range(0,len(spanRange),1):
             for l in range(0,len(tcRange),1):
-                caseArray[i,j,k,l,]=[skinRange[i],sparRange[j],spanRange[k],tcRange[l]]
+                for m in range (0,len(mrhoRange),1):
+                    caseArray[i,j,k,l,m]=[skinRange[i],sparRange[j],spanRange[k],tcRange[l],mrhoRange[m]]
 
 
-cases=np.reshape(caseArray,(len(skinRange)*len(sparRange)*len(spanRange)*len(tcRange),4))
+cases=np.reshape(caseArray,(len(skinRange)*len(sparRange)*len(spanRange)*len(tcRange)*len(mrhoRange),5))
 print(cases)
 
 
@@ -82,19 +85,19 @@ for case in range(0,len(cases),1):
     #mrhof=mrhof2/50
     #limbasserho=60
     #limhauterho=200
-    limbasserho=55
-    limhauterho=8220
+    ##limbasserho=55
+    ##limhauterho=8220
     
-    ##resu=fctOptim(505,cases[case][0],cases[case][1],cases[case][2],cases[case][3])  
+    resu=fctOptim(cases[case][4],cases[case][0],cases[case][1],cases[case][2],cases[case][3])   
     #            resu=fctOptim(mrhof+1,hour,limbasserho,limhauterho) #ED2 
     #            resu=fctOptim(mrhof+1,1,limbasserho,limhauterho,epmin)  
-    ##weight=resu[0]
-    ##time=resu[1]
-    ##rhorho=resu[2]
-    ##co2=resu[3]
-
+    weight=resu[0]
+    time=resu[1]
+    rhorho=resu[2]
+    co2=resu[3]
+    """
     try:
-        resu=fctOptim(505,cases[case][0],cases[case][1],cases[case][2],cases[case][3])  
+        resu=fctOptim(cases[case][4],cases[case][0],cases[case][1],cases[case][2],cases[case][3])  
     #            resu=fctOptim(mrhof+1,hour,limbasserho,limhauterho) #ED2 
     #            resu=fctOptim(mrhof+1,1,limbasserho,limhauterho,epmin)  
         weight=resu[0]
@@ -106,6 +109,7 @@ for case in range(0,len(cases),1):
         time=0
         rhorho=0
         co2=0
+    """
 
 #        weight=0
 #        time=0
