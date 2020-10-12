@@ -43,8 +43,9 @@ class LocalStiff(ExplicitComponent):
         self.add_input('element_lengths', shape=ny - 1, units='m')
         ##self.add_input('mrho', val=1000, units='kg/m**3') #ED
         
-        self.add_input('young', val=1e10, units= 'N/m**2')  #VMGM
-        self.add_input('shear', val=1e10, units= 'N/m**2')  #VMGM
+        self.add_input('young', val=np.array([1e10,1e10]), units= 'N/m**2')  #VMGM
+        self.add_input('shear', val=np.array([1e10,1e10]), units= 'N/m**2')  #VMGM
+        self.add_input('Aspars', shape=ny - 1, units='m**2')  #VMGM
 
         self.add_output('local_stiff', shape=(ny - 1, 12, 12))
 
@@ -59,8 +60,9 @@ class LocalStiff(ExplicitComponent):
 #        self.declare_partials('local_stiff', 'mrho', method='fd', step=0.1, step_calc='abs')
         ##self.declare_partials('local_stiff', 'mrho', method='cs')
         
-        self.declare_partials('local_stiff','young')   #VMGM
-        self.declare_partials('local_stiff','shear')   #VMGM
+        self.declare_partials('local_stiff','young', method='cs')   #VMGM
+        self.declare_partials('local_stiff','shear', method='cs')   #VMGM
+        self.declare_partials('local_stiff','Aspars', rows=rows, cols=cols)   #VMGM
 
     def compute(self, inputs, outputs):
         ##surface = self.options['surface']
@@ -70,8 +72,11 @@ class LocalStiff(ExplicitComponent):
         ##E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
         ##G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
         
-        E = inputs['young'] #VMGM
-        G = inputs['shear'] #VMGM 
+        Espar = inputs['young'][0]  #VMGM
+        Gspar = inputs['shear'][0]  #VMGM 
+        Eskin = inputs['young'][1]  #VMGM
+        Gskin = inputs['shear'][1]  #VMGM 
+        Aspars = inputs['Aspars']  #VMGM
 
         A  = inputs['A']
         Iy = inputs['Iy']
@@ -83,13 +88,13 @@ class LocalStiff(ExplicitComponent):
 
         for i in range(2):
             for j in range(2):
-                outputs['local_stiff'][:, 0 + i, 0 + j] = E * A / L * coeffs_2[i, j]
-                outputs['local_stiff'][:, 2 + i, 2 + j] = G * J / L * coeffs_2[i, j]
+                outputs['local_stiff'][:, 0 + i, 0 + j] = (Espar * Aspars + Eskin * (A - Aspars)) / L * coeffs_2[i, j]
+                outputs['local_stiff'][:, 2 + i, 2 + j] = Gspar * J / L * coeffs_2[i, j]
 
         for i in range(4):
             for j in range(4):
-                outputs['local_stiff'][:, 4 + i, 4 + j] = E * Iy / L ** 3 * coeffs_y[i, j]
-                outputs['local_stiff'][:, 8 + i, 8 + j] = E * Iz / L ** 3 * coeffs_z[i, j]
+                outputs['local_stiff'][:, 4 + i, 4 + j] = Espar * Iy / L ** 3 * coeffs_y[i, j]
+                outputs['local_stiff'][:, 8 + i, 8 + j] = Eskin * Iz / L ** 3 * coeffs_z[i, j]
 
         for i in [1, 3]:
             for j in range(4):
@@ -107,8 +112,12 @@ class LocalStiff(ExplicitComponent):
         ##E = youngMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
         ##G = shearMM(inputs['mrho'],surface['materlist'],puissanceMM)  #ED
         
-        E = inputs['young'] #VMGM
-        G = inputs['shear'] #VMGM 
+        Espar = inputs['young'][0]  #VMGM
+        Gspar = inputs['shear'][0]  #VMGM 
+        Eskin = inputs['young'][1]  #VMGM
+        Gskin = inputs['shear'][1]  #VMGM 
+        Aspars = inputs['Aspars']  #VMGM
+        Aspars = inputs['Aspars']  #VMGM
 
         A  = inputs['A']
         Iy = inputs['Iy']
@@ -123,8 +132,11 @@ class LocalStiff(ExplicitComponent):
         derivs_L = partials['local_stiff', 'element_lengths'].reshape((ny - 1, 12, 12))
 #        derivs_mrho = partials['local_stiff', 'mrho'].reshape((ny - 1, 12, 12))
         
-        derivs_E = partials['local_stiff', 'young'].reshape((ny - 1, 12, 12))   #VMGM
-        derivs_G = partials['local_stiff', 'shear'].reshape((ny - 1, 12, 12))   #VMGM
+        ##derivs_Espar = partials['local_stiff', 'young'][0].reshape((ny - 1, 12, 12))   #VMGM
+        ##derivs_Eskin = partials['local_stiff', 'young'][1].reshape((ny - 1, 12, 12))   #VMGM
+        ##derivs_Gspar = partials['local_stiff', 'shear'][0].reshape((ny - 1, 12, 12))   #VMGM
+        ##derivs_Gskin = partials['local_stiff', 'shear'][1].reshape((ny - 1, 12, 12))   #VMGM
+        derivs_Aspars = partials['local_stiff', 'Aspars'].reshape((ny - 1, 12, 12))  #VMGM
         
         derivs_A[:] = 0.
         derivs_Iy[:] = 0.
@@ -133,60 +145,65 @@ class LocalStiff(ExplicitComponent):
         derivs_L[:] = 0.
 #        derivs_mrho[:] = 0.
         
-        derivs_E[:] = 0.  #VMGM
-        derivs_G[:] = 0.  #VMGM
+        ##derivs_Espar[:] = 0.  #VMGM
+        ##derivs_Eskin[:] = 0.  #VMGM
+        ##derivs_Gspar[:] = 0.  #VMGM
+        ##derivs_Gskin[:] = 0.  #VMGM
+        derivs_Aspars[:] = 0.  #VMGM
 
         for i in range(2):
             for j in range(2):
-                derivs_A[:, 0 + i, 0 + j] = E / L * coeffs_2[i, j]
-                derivs_L[:, 0 + i, 0 + j] = -E * A / L ** 2 * coeffs_2[i, j]
+                derivs_A[:, 0 + i, 0 + j] = Eskin / L * coeffs_2[i, j]
+                derivs_L[:, 0 + i, 0 + j] = -(Espar * Aspars + Eskin * (A - Aspars)) / L ** 2 * coeffs_2[i, j]
 
-                derivs_J[:, 2 + i, 2 + j] = G / L * coeffs_2[i, j]
-                derivs_L[:, 2 + i, 2 + j] = -G * J / L ** 2 * coeffs_2[i, j]
+                derivs_J[:, 2 + i, 2 + j] = Gspar / L * coeffs_2[i, j]
+                derivs_L[:, 2 + i, 2 + j] = -Gspar * J / L ** 2 * coeffs_2[i, j]
                 
-                derivs_E[:, 0 + i, 0 + j] = A / L * coeffs_2[i, j]  #VMGM
-                derivs_G[:, 2 + i, 2 + j] = J / L * coeffs_2[i, j]  #VMGM
+                ##derivs_Espar[:, 0 + i, 0 + j] = Aspars / L * coeffs_2[i, j]  #VMGM
+                ##derivs_Eskin[:, 0 + i, 0 + j] = (A - Aspars) / L * coeffs_2[i, j]  #VMGM
+                ##derivs_Gspar[:, 2 + i, 2 + j] = J / L * coeffs_2[i, j]  #VMGM
+                derivs_Aspars[:, 0 + i, 0 + j] = (Espar - Eskin) / L * coeffs_2[i, j]  #VMGM
 
         for i in range(4):
             for j in range(4):
-                derivs_Iy[:, 4 + i, 4 + j] = E / L ** 3 * coeffs_y[i, j]
-                derivs_L[:, 4 + i, 4 + j] = -3 * E * Iy / L ** 4 * coeffs_y[i, j]
+                derivs_Iy[:, 4 + i, 4 + j] = Espar / L ** 3 * coeffs_y[i, j]
+                derivs_L[:, 4 + i, 4 + j] = -3 * Espar * Iy / L ** 4 * coeffs_y[i, j]
 
-                derivs_Iz[:, 8 + i, 8 + j] = E / L ** 3 * coeffs_z[i, j]
-                derivs_L[:, 8 + i, 8 + j] = -3 * E * Iz / L ** 4 * coeffs_z[i, j]
+                derivs_Iz[:, 8 + i, 8 + j] = Eskin / L ** 3 * coeffs_z[i, j]
+                derivs_L[:, 8 + i, 8 + j] = -3 * Eskin * Iz / L ** 4 * coeffs_z[i, j]
 
-                derivs_E[:, 4 + i, 4 + j] = Iy / L ** 3 * coeffs_y[i, j]  #VMGM
-                derivs_E[:, 8 + i, 8 + j] = Iz / L ** 3 * coeffs_z[i, j]  #VMGM
+                ##derivs_Espar[:, 4 + i, 4 + j] = Iy / L ** 3 * coeffs_y[i, j]  #VMGM
+                ##derivs_Eskin[:, 8 + i, 8 + j] = Iz / L ** 3 * coeffs_z[i, j]  #VMGM
                 
         for i in [1, 3]:
             for j in range(4):
-                derivs_Iy[:, 4 + i, 4 + j] = E / L ** 2 * coeffs_y[i, j]
-                derivs_L[:, 4 + i, 4 + j] = -2 * E * Iy / L ** 3 * coeffs_y[i, j]
+                derivs_Iy[:, 4 + i, 4 + j] = Espar / L ** 2 * coeffs_y[i, j]
+                derivs_L[:, 4 + i, 4 + j] = -2 * Espar * Iy / L ** 3 * coeffs_y[i, j]
 
-                derivs_Iz[:, 8 + i, 8 + j] = E / L ** 2 * coeffs_z[i, j]
-                derivs_L[:, 8 + i, 8 + j] = -2 * E * Iz / L ** 3 * coeffs_z[i, j]
+                derivs_Iz[:, 8 + i, 8 + j] = Eskin / L ** 2 * coeffs_z[i, j]
+                derivs_L[:, 8 + i, 8 + j] = -2 * Eskin * Iz / L ** 3 * coeffs_z[i, j]
                 
-                derivs_E[:, 4 + i, 4 + j] = Iy / L ** 2 * coeffs_y[i, j]  #VMGM
-                derivs_E[:, 8 + i, 8 + j] = Iz / L ** 2 * coeffs_z[i, j]  #VMGM
+                ##derivs_Espar[:, 4 + i, 4 + j] = Iy / L ** 2 * coeffs_y[i, j]  #VMGM
+                ##derivs_Eskin[:, 8 + i, 8 + j] = Iz / L ** 2 * coeffs_z[i, j]  #VMGM
                 
         for i in range(4):
             for j in [1, 3]:
-                derivs_Iy[:, 4 + i, 4 + j] = E / L ** 2 * coeffs_y[i, j]
-                derivs_L[:, 4 + i, 4 + j] = -2 * E * Iy / L ** 3 * coeffs_y[i, j]
+                derivs_Iy[:, 4 + i, 4 + j] = Espar / L ** 2 * coeffs_y[i, j]
+                derivs_L[:, 4 + i, 4 + j] = -2 * Espar * Iy / L ** 3 * coeffs_y[i, j]
 
-                derivs_Iz[:, 8 + i, 8 + j] = E / L ** 2 * coeffs_z[i, j]
-                derivs_L[:, 8 + i, 8 + j] = -2 * E * Iz / L ** 3 * coeffs_z[i, j]
+                derivs_Iz[:, 8 + i, 8 + j] = Eskin / L ** 2 * coeffs_z[i, j]
+                derivs_L[:, 8 + i, 8 + j] = -2 * Eskin * Iz / L ** 3 * coeffs_z[i, j]
                 
-                derivs_E[:, 4 + i, 4 + j] = Iy / L ** 2 * coeffs_y[i, j]  #VMGM
-                derivs_E[:, 8 + i, 8 + j] = Iz / L ** 2 * coeffs_z[i, j]  #VMGM
+                ##derivs_Espar[:, 4 + i, 4 + j] = Iy / L ** 2 * coeffs_y[i, j]  #VMGM
+                ##derivs_Eskin[:, 8 + i, 8 + j] = Iz / L ** 2 * coeffs_z[i, j]  #VMGM
 
         for i in [1, 3]:
             for j in [1, 3]:
-                derivs_Iy[:, 4 + i, 4 + j] = E / L * coeffs_y[i, j]
-                derivs_L[:, 4 + i, 4 + j] = -E * Iy / L ** 2 * coeffs_y[i, j]
+                derivs_Iy[:, 4 + i, 4 + j] = Espar / L * coeffs_y[i, j]
+                derivs_L[:, 4 + i, 4 + j] = -Espar * Iy / L ** 2 * coeffs_y[i, j]
 
-                derivs_Iz[:, 8 + i, 8 + j] = E / L * coeffs_z[i, j]
-                derivs_L[:, 8 + i, 8 + j] = -E * Iz / L ** 2 * coeffs_z[i, j]
+                derivs_Iz[:, 8 + i, 8 + j] = Eskin / L * coeffs_z[i, j]
+                derivs_L[:, 8 + i, 8 + j] = -Eskin * Iz / L ** 2 * coeffs_z[i, j]
                 
-                derivs_E[:, 4 + i, 4 + j] = Iy / L * coeffs_y[i, j]  #VMGM
-                derivs_E[:, 8 + i, 8 + j] = Iz / L * coeffs_z[i, j]  #VMGM
+                ##derivs_Espar[:, 4 + i, 4 + j] = Iy / L * coeffs_y[i, j]  #VMGM
+                ##derivs_Eskin[:, 8 + i, 8 + j] = Iz / L * coeffs_z[i, j]  #VMGM
