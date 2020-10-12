@@ -21,24 +21,25 @@ import numpy as np
 ##tcRange=np.arange(0.05,0.18,0.04)
 ##skinRange=np.arange(0.002,0.0045,0.001)
 ##sparRange=np.arange(0.0001,0.0004,0.0001)
-mrhoRange=[505]
 
+##mrhoRange=[505]
+mrhoRange=np.arange(505,600,50)
 spanRange=np.arange(50,101,25)
 tcRange=np.arange(0.05,0.18,0.08)
 skinRange=np.arange(0.002,0.0045,0.002)
 sparRange=np.arange(0.0001,0.0004,0.0002)
 
 
-caseArray=np.zeros((len(skinRange),len(mrhoRange),len(spanRange),len(tcRange),len(sparRange),5),dtype=object) #CHANGE MAT
+caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),len(mrhoRange),5),dtype=object)
 for i in range(0,len(skinRange),1):
-    for j in range(0,len(mrhoRange),1):
+    for j in range(0,len(sparRange),1):
         for k in range(0,len(spanRange),1):
             for l in range(0,len(tcRange),1):
-                for m in range(0,len(sparRange),1):   #CHANGE BAT
-                    caseArray[i,j,k,l,m,]=[skinRange[i],mrhoRange[j],spanRange[k],tcRange[l],sparRange[m]]  #CHANGE MAT
+                for m in range (0,len(mrhoRange),1):
+                    caseArray[i,j,k,l,m]=[skinRange[i],sparRange[j],spanRange[k],tcRange[l],mrhoRange[m]]
 
 
-cases=np.reshape(caseArray,(len(skinRange)*len(mrhoRange)*len(spanRange)*len(tcRange)*len(sparRange),5))  #CHANGE MAT
+cases=np.reshape(caseArray,(len(skinRange)*len(sparRange)*len(spanRange)*len(tcRange)*len(mrhoRange),5))
 print(cases)
 
 
@@ -55,7 +56,7 @@ resuBuckling=[]
 for casenbr in range(0,len(cases),1):
 
 #    cr = CaseReader("articleMats/aerostructMrhoi"+str(cases[casenbr][1])+"sk"+str(cases[casenbr][0])+"sr"+str(cases[casenbr][4])+"sn"+str(cases[casenbr][2])+"tc"+str(cases[casenbr][3])+".db")
-    cr = CaseReader("aerostructMrhoi"+str(cases[casenbr][1])+"sk"+str(cases[casenbr][0])+"sr"+str(cases[casenbr][4])+"sn"+str(cases[casenbr][2])+"tc"+str(cases[casenbr][3])+".db")
+    cr = CaseReader("aerostructMrhoi"+str(cases[casenbr][4])+"sk"+str(cases[casenbr][0])+"sr"+str(cases[casenbr][1])+"sn"+str(cases[casenbr][2])+"tc"+str(cases[casenbr][3])+".db")
     driver_cases = cr.list_cases('driver')
     iterations=len(driver_cases)
     
