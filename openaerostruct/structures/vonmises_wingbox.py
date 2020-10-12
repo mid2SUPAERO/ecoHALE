@@ -67,12 +67,14 @@ class VonMisesWingbox(ExplicitComponent):
         self.add_input('hfront', val=np.zeros((self.ny - 1)), units='m')
         self.add_input('hrear', val=np.zeros((self.ny - 1)), units='m')
         ##self.add_input('mrho', val=1000, units='kg/m**3') #ED
-        
-        self.add_input('young', val=1e10, units= 'N/m**2')  #VMGM
-        self.add_input('shear', val=1e10, units= 'N/m**2')  #VMGM
+        self.add_input('skin_thickness', val=np.zeros((self.ny - 1)), units='m')  #VMGM
+        self.add_input('Qx', val=np.zeros((self.ny - 1)), units='m**3')  #VMGM        
+        self.add_input('young', val=np.array([1e10,1e10]), units= 'N/m**2')  #VMGM
+        self.add_input('shear', val=np.array([1e10,1e10]), units= 'N/m**2')  #VMGM
         
         self.add_output('vonmises', val=np.zeros((self.ny-1, 4)),units='N/m**2')
         self.add_output('top_bending_stress', val=np.zeros((self.ny-1)),units='N/m**2')
+        self.add_output('horizontal_shear', val=np.zeros((self.ny-1)),units='N/m**2')  #VMGM
 
         self.tssf = surface['strength_factor_for_upper_skin']
 
@@ -92,6 +94,9 @@ class VonMisesWingbox(ExplicitComponent):
         ##mrho= inputs['mrho']  #ED
         vonmises = outputs['vonmises']
         tbs = outputs['top_bending_stress']
+        hs = outputs['horizontal_shear']  #VMGM
+        skin_thickness = inputs['skin_thickness']  #VMGM
+        Qz = inputs['Qx']  #VMGM
 		
         # Only use complex type for these arrays if we're using cs to check derivs
         dtype = type(disp[0, 0])
@@ -103,8 +108,10 @@ class VonMisesWingbox(ExplicitComponent):
         ##E = youngMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
         ##G = shearMM(mrho,self.surface['materlist'],self.surface['puissanceMM'])  #ED
         
-        E = inputs['young'] #VMGM
-        G = inputs['shear'] #VMGM 
+        Espar = inputs['young'][0]  #VMGM
+        Gspar = inputs['shear'][0]  #VMGM 
+        Eskin = inputs['young'][1]  #VMGM
+        Gskin = inputs['shear'][1]  #VMGM 
         
         num_elems = self.ny - 1
         for ielem in range(num_elems):
@@ -127,26 +134,27 @@ class VonMisesWingbox(ExplicitComponent):
             r1x, r1y, r1z = T.dot(disp[ielem+1, 3:])
 
             # this is stress = modulus * strain; positive is tensile
-            axial_stress = E * (u1x - u0x) / L
+            axial_stress = Espar * (u1x - u0x) / L
 
             # this is Torque / (2 * thickness_min * Area_enclosed)
-            torsion_stress = G * J[ielem] / L * (r1x - r0x) / 2 / spar_thickness[ielem] / A_enc[ielem]
+            torsion_stress = Gspar * J[ielem] / L * (r1x - r0x) / 2 / spar_thickness[ielem] / A_enc[ielem]
 
             # this is moment * h / I
-            top_bending_stress = E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * htop[ielem]
+            top_bending_stress = Eskin / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * htop[ielem]
 
             # this is moment * h / I
-            bottom_bending_stress = - E / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * hbottom[ielem]
+            bottom_bending_stress = - Eskin / (L**2) * (6 * u0y + 2 * r0z * L - 6 * u1y + 4 * r1z * L ) * hbottom[ielem]
 
             # this is moment * h / I
-            front_bending_stress = - E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hfront[ielem]
+            front_bending_stress = - Espar / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hfront[ielem]
 
             # this is moment * h / I
-            rear_bending_stress = E / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hrear[ielem] 
+            rear_bending_stress = Espar / (L**2) * (-6 * u0z + 2 * r0y * L + 6 * u1z + 4 * r1y * L ) * hrear[ielem] 
 
             # shear due to bending (VQ/It) note: the I used to get V cancels the other I
-            vertical_shear =  E / (L**3) *(-12 * u0y - 6 * r0z * L + 12 * u1y - 6 * r1z * L ) * Qy[ielem] / (2 * spar_thickness[ielem])
+            vertical_shear =  Espar / (L**3) *(-12 * u0y - 6 * r0z * L + 12 * u1y - 6 * r1z * L ) * Qy[ielem] / (2 * spar_thickness[ielem])
 
+            horizontal_shear =  Eskin / (L**3) *(-12 * u0z - 6 * r0y * L + 12 * u1z - 6 * r1y * L ) * Qz[ielem] / (2 * skin_thickness[ielem])  #VMGM
             # print("==========",ielem,"================")
             # print("vertical_shear", vertical_shear)
             # print("top",top_bending_stress)
@@ -163,3 +171,4 @@ class VonMisesWingbox(ExplicitComponent):
             vonmises[ielem, 3] = np.sqrt((rear_bending_stress + axial_stress)**2 + 3*(torsion_stress+vertical_shear)**2) / self.tssf
 
             tbs[ielem] = top_bending_stress
+            hs[ielem] = horizontal_shear  #VMGM
