@@ -8,26 +8,11 @@ from openmdao.api import Problem, ScipyOptimizeDriver, SqliteRecorder, CaseReade
 import matplotlib.pyplot as plt
 import numpy as np
 
-#cr = CaseReader("aerostructMrhoi504sk0.003sr0.001sn60tc0.19000000000000003.db")
-##cr = CaseReader("aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.05.db")
-#cr = CaseReader("aerostructMrhoi505sk0.003sr0.00030000000000000003sn25tc0.16999999999999998.db")
-##cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn100tc0.13.db")
-##cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn50tc0.05.db")
-##cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn75tc0.05.db")
-####cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn50tc0.13.db")
-#cr = CaseReader("aerostructMrhoi600sk0.004sr0.0001sn75tc0.13.db")
-#cr = CaseReader("aerostructMrhoi555sk0.004sr0.0001sn100tc0.05.db")
-###cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn50tc0.13.db")
-###cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn50tc0.05.db")
-#cr = CaseReader("aerostructMrhoi505sk0.002sr0.00030000000000000003sn50tc0.05.db")
-#cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn100tc0.05.db")
-##cr = CaseReader("aerostructMrhoi505sk0.004sr0.0001sn100tc0.13.db")
-#cr = CaseReader("aerostructMrhoi505sk0.004sr0.0001sn75tc0.13.db")
+cr = CaseReader("aerostructMrhoi555sk0.002sr0.00030000000000000003sn50tc0.13.db")
 
 driver_cases = cr.list_cases('driver')
 
 iterations=len(driver_cases)
-#$iterations=3
 
 mrho=[]
 masse=[]
@@ -67,6 +52,7 @@ vm=[]
 sparThickness=[]
 skinThickness=[]
 tbs=[]
+widths=[]
 
 for i in range(iterations):
 #for i in range(350,380):
@@ -112,17 +98,21 @@ for i in range(iterations):
     vm.append(case.outputs['AS_point_0.wing_perf.vonmises'][0])
     sparThickness.append(case.outputs['wing.spar_thickness'][0])
     skinThickness.append(case.outputs['wing.skin_thickness'][0])
+    widths.append(case.outputs['AS_point_0.coupled.wing.widths'])
     
 chordEnd=np.multiply(chord,taper)
 doublemeanchord=np.add(chord,chordEnd)
 meanchord=[x/2 for x in doublemeanchord]
 surf=np.multiply(meanchord,span)
 
+lift_dist = np.sum(forces[-1], axis=0)[:,2]/widths[-1]
+AR = span[-1]**2/surface0[-1]
+cl_cd = cl[-1]**(3/2)/cd[-1]
+total_mass = totalWeight[-1]/9.81
 
-
-print(mrho)
+#print(mrho)
 #print(masse)
-print(co2)
+#print(co2)
 
 plt.semilogy(masse)
 plt.xlabel('iteration')
@@ -263,3 +253,42 @@ plt.show()
 #plt.xlim((0,150))
 #
 #plt.show()
+
+plt.plot(mesh[-1][:,1],twist[-1],'b')
+plt.plot(-mesh[-1][:,1],twist[-1],'b')
+plt.xlabel('span')
+plt.ylabel('twist')
+plt.xlim((-span[-1]/2,span[-1]/2))
+plt.show()
+
+plt.plot(mesh[-1][1:,1],sparThickness[-1],'b')
+plt.plot(-mesh[-1][1:,1],sparThickness[-1],'b')
+plt.xlabel('span')
+plt.ylabel('spar thickness')
+plt.xlim((-span[-1]/2,span[-1]/2))
+plt.show()
+
+plt.plot(mesh[-1][1:,1],skinThickness[-1],'b')
+plt.plot(-mesh[-1][1:,1],skinThickness[-1],'b')
+plt.xlabel('span')
+plt.ylabel('skin thickness')
+plt.xlim((-span[-1]/2,span[-1]/2))
+plt.show()
+
+plt.plot(mesh[-1][1:,1],tOverC2[-1],'b')
+plt.plot(-mesh[-1][1:,1],tOverC2[-1],'b')
+plt.xlabel('span')
+plt.ylabel('t/c')
+plt.xlim((-span[-1]/2,span[-1]/2))
+plt.show()
+
+ellip_lift = 2*totalWeight[-1]/(0.5*span[-1]*np.pi)*np.sqrt(1-(-mesh[-1][1:,1]/(0.5*span[-1]))**2)
+
+plt.plot(mesh[-1][1:,1],lift_dist,'b')
+plt.plot(-mesh[-1][1:,1],lift_dist,'b')
+plt.plot(mesh[-1][1:,1],ellip_lift,'c--')
+plt.plot(-mesh[-1][1:,1],ellip_lift,'c--')
+plt.xlabel('span')
+plt.ylabel('lift')
+plt.xlim((-span[-1]/2,span[-1]/2))
+plt.show()

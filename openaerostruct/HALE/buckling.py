@@ -83,7 +83,6 @@ class BucklingKS(ExplicitComponent):
         rho=self.options['rho']
         tbc=-inputs['top_bending_stress'] #"-" to turn compression into positive value
         skin=inputs['skin_thickness']
-        kc=surface['buckling_coef']
 
         rootchord=inputs['chord']/2 # half the chord between two spars
         taper=inputs['taper']
@@ -137,10 +136,10 @@ class BucklingKS(ExplicitComponent):
             
             if Z[i] < 6.986480987:
                 ks.append(5.5)
-                k.append(kc)
+                k.append(4)
             elif Z[i] >= 6.986480987 and Z[i] < 21.40391211:
                 ks.append(2.22368421*Z[i]**0.4658402443)
-                k.append(kc)
+                k.append(4)
             else:
                 ks.append(2.22368421*Z[i]**0.4658402443)
                 k.append(Z[i]**0.8889373/3.80772)
@@ -157,10 +156,10 @@ class BucklingKS(ExplicitComponent):
         for i in range(Z.shape[0]):
             if Z[i] < 6.986480987:
                 ks[i] = 5.5
-                k[i] = kc
+                k[i] = 4
             elif Z[i] >= 6.986480987 and Z[i] < 21.40391211:
                 ks[i] = 2.22368421*Z[i]**0.4658402443
-                k[i] = kc
+                k[i] = 4
             else:
                 ks[i] = 2.22368421*Z[i]**0.4658402443
                 k[i] = Z[i]**0.8889373/3.80772
@@ -170,10 +169,10 @@ class BucklingKS(ExplicitComponent):
         for i in range(Z.shape[0]):
             if Z[i] < 2:
                 ks[i] = 5.5
-                k[i] = kc
+                k[i] = 4
             elif Z[i] >= 2 and Z[i] < 6:
                 ks[i] = 10**(3.1929 - np.sqrt(2.4526**2 - (np.log10(Z[i]) - 0.3010)**2))
-                k[i] = kc
+                k[i] = 4
             elif Z[i] >= 6 and Z[i] < 22.4051:
                 ks[i] = 10**(3.1929 - np.sqrt(2.4526**2 - (np.log10(Z[i]) - 0.3010)**2))
                 k[i] = 10**(2.0548 - np.sqrt(1.4527**2 - (np.log10(Z[i]) - 0.7782)**2))
@@ -190,8 +189,8 @@ class BucklingKS(ExplicitComponent):
         fmax = np.max((hs/tauBuc)**2 + tbc/sigmaBuc - 1)
 
         nlog, nsum, nexp = np.log, np.sum, np.exp
-        ks = 1 / rho * nlog(nsum(nexp(rho * ((hs/tauBuc)**2 + tbc/sigmaBuc - 1 - fmax))))
-        outputs['buckling'] = fmax + ks 
+        k_s = 1 / rho * nlog(nsum(nexp(rho * ((hs/tauBuc)**2 + tbc/sigmaBuc - 1 - fmax))))
+        outputs['buckling'] = fmax + k_s 
         
         
 #        if math.floor(outputs['buckling'])==-586244:  #TODELETE

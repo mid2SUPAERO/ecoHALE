@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn50tc0.13.db")
-#cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn50tc0.13.db")
+#cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn50tc0.13.db")
+cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn50tc0.13.db")
 
 driver_cases = cr.list_cases('driver')
 

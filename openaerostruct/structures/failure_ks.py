@@ -95,6 +95,7 @@ class FailureKS(ExplicitComponent):
         ks = 1 / rho * nlog(nsum(nexp(rho * (vm_sigma - 1 - fmax))))
         outputs['failure'] = fmax + ks
 
+    """
     def compute_partials(self, inputs, partials):
         vonmises = inputs['vonmises']
         ##mrho = inputs['mrho']  #ED

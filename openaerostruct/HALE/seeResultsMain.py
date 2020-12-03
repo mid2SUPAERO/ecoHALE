@@ -9,26 +9,11 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 
-#define x0
-#spanRange=np.arange(55,70,5) #3
-#tcRange=np.arange(0.11,0.18,0.03) #3
-#tcRange=[tcRange[0],tcRange[2]] #2
-#skinRange=np.arange(0.0010,0.0017,0.0001) #7
-#mrhoRange=[500,1250,2000] #3
-#sparRange=[0.0001] #1
-
-##spanRange=np.arange(25,70,20)
-##tcRange=np.arange(0.05,0.18,0.04)
-##skinRange=np.arange(0.002,0.0045,0.001)
-##sparRange=np.arange(0.0001,0.0004,0.0001)
-
-##mrhoRange=[505]
 mrhoRange=np.arange(505,600,50)
 spanRange=np.arange(50,101,25)
 tcRange=np.arange(0.05,0.18,0.08)
 skinRange=np.arange(0.002,0.0045,0.002)
 sparRange=np.arange(0.0001,0.0004,0.0002)
-
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),len(mrhoRange),5),dtype=object)
 for i in range(0,len(skinRange),1):
@@ -38,10 +23,8 @@ for i in range(0,len(skinRange),1):
                 for m in range (0,len(mrhoRange),1):
                     caseArray[i,j,k,l,m]=[skinRange[i],sparRange[j],spanRange[k],tcRange[l],mrhoRange[m]]
 
-
 cases=np.reshape(caseArray,(len(skinRange)*len(sparRange)*len(spanRange)*len(tcRange)*len(mrhoRange),5))
 print(cases)
-
 
 resuWeight=[]
 resuTime=[]
@@ -98,5 +81,3 @@ optimumEngine=resuEngine[optimumIndex]  #VMGM
 
 print(optimumCO2)
 print(optimumCase)
-
-
