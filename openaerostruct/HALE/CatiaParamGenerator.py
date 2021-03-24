@@ -11,7 +11,9 @@ import numpy as np
 import os
 
 #cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn50tc0.13.db")
-cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn50tc0.13.db")
+#cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn50tc0.13.db")
+#cr = CaseReader("aerostructMrhoi504.5sk0.004sr0.00030000000000000003sn50tc0.16999999999999998.db")
+cr = CaseReader("aerostructMrhoi600sk0.002sr0.0001sn50tc0.11.db") #BEST
 
 driver_cases = cr.list_cases('driver')
 

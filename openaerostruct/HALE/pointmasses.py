@@ -20,7 +20,7 @@ class PointMassLocations(ExplicitComponent):
         self.n_point_masses = surface['n_point_masses']     
         
         self.add_input('span', val=50, units='m')
-        self.add_input('engine_location', val=-0.2)
+        self.add_input('engine_location', val=np.zeros(self.n_point_masses))
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         
         self.add_output('point_mass_locations', val=np.zeros((self.n_point_masses, 3)), units='m')
@@ -30,14 +30,17 @@ class PointMassLocations(ExplicitComponent):
         self.declare_partials('point_mass_locations', 'nodes', method='cs')
 
     def compute(self, inputs, outputs):
+        surface = self.options['surface']
         span = inputs['span']
         engine_location = inputs['engine_location']
         nodes = inputs['nodes']
         point_mass_locations = outputs['point_mass_locations'] 
+        n_point_masses = surface['n_point_masses']
         
-        point_mass_locations[0][1] = engine_location*span/2
-        point_mass_locations[0][0] = (point_mass_locations[0][1]-nodes[-1][1])/(nodes[0][1]-nodes[-1][1])*(nodes[0][0]-nodes[-1][0]) + nodes[-1][0]
-        point_mass_locations[0][2] = (point_mass_locations[0][1]-nodes[-1][1])/(nodes[0][1]-nodes[-1][1])*(nodes[0][2]-nodes[-1][2]) + nodes[-1][2]  
+        for i in range(n_point_masses):
+            point_mass_locations[i][1] = engine_location[i] * span/2
+            point_mass_locations[i][0] = (point_mass_locations[i][1]-nodes[-1][1])/(nodes[0][1]-nodes[-1][1])*(nodes[0][0]-nodes[-1][0]) + nodes[-1][0]
+            point_mass_locations[i][2] = (point_mass_locations[i][1]-nodes[-1][1])/(nodes[0][1]-nodes[-1][1])*(nodes[0][2]-nodes[-1][2]) + nodes[-1][2]  
 
     ##def compute_partials(self, inputs, partials):
         ##span = inputs['span']
@@ -59,8 +62,10 @@ class PointMasses(ExplicitComponent):
         self.add_input('PV_surface', val=30., units='m**2')       
         
         self.add_output('point_masses', val=np.zeros((self.n_point_masses)), units='kg')
+        self.add_output('prop_mass', val=5, units='kg')
 
         self.declare_partials('point_masses', 'PV_surface')
+        self.declare_partials('prop_mass', 'PV_surface')
 
     def compute(self, inputs, outputs):
         surface = self.options['surface']
@@ -72,12 +77,20 @@ class PointMasses(ExplicitComponent):
         produced_power = PVsurf*productivityPV
         prop_power = produced_power-payload_power
         prop_mass = prop_power*prop_density
-        outputs['point_masses'] = prop_mass/(2*n_point_masses)
+        outputs['prop_mass'] = prop_mass
+        motor_mass = prop_mass/(2*n_point_masses)
+        point_masses = outputs['point_masses']
+        
+        for i in range(n_point_masses):
+            point_masses[i] = motor_mass
         
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
         productivityPV = surface['productivityPV']
         prop_density = surface['prop_density']
         n_point_masses = surface['n_point_masses']
+        partials['prop_mass', 'PV_surface'] = productivityPV*prop_density
+        partial = partials['point_masses', 'PV_surface']
         
-        partials['point_masses', 'PV_surface'] = productivityPV*prop_density/(2*n_point_masses)
+        for i in range(n_point_masses):
+            partial[i] = productivityPV*prop_density/(2*n_point_masses)

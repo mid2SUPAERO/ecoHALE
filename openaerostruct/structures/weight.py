@@ -42,11 +42,13 @@ class Weight(ExplicitComponent):
         self.add_output('element_mass', val=np.zeros((self.ny-1)), units='kg')
         self.add_output('spars_mass', val=0., units='kg')  #VMGM
 
-        self.declare_partials('structural_mass', ['A','nodes','mrho','Aspars'])
+        self.declare_partials('structural_mass', ['A','nodes','Aspars','mrho'])
 #        self.declare_partials('structural_mass', ['A','nodes'])
 #        self.declare_partials('structural_mass', 'mrho', method='fd', step=10, step_calc='abs')
 #        self.declare_partials('element_mass', 'mrho', method='fd', step=10, step_calc='abs')
-        self.declare_partials('element_mass', 'mrho')
+        self.declare_partials('element_mass', 'mrho', method='cs')
+        ###self.declare_partials('structural_mass', 'mrho', method='cs')
+        ###self.declare_partials('spars_mass', 'mrho', method='cs')
 
         row_col = np.arange(self.ny-1, dtype=int)
         self.declare_partials('element_mass','A', rows=row_col, cols=row_col)
@@ -60,7 +62,7 @@ class Weight(ExplicitComponent):
             cols[i*dimensions*2:(i+1)*dimensions*2] = np.linspace(i*dimensions,i*dimensions+(dimensions*2-1),dimensions*2)
         self.declare_partials('element_mass','nodes', rows=rows, cols=cols)
         
-        self.declare_partials('spars_mass', ['A','nodes','mrho','Aspars'])  #VMGM
+        self.declare_partials('spars_mass', ['A','nodes','Aspars','mrho'])  #VMGM
 
         self.set_check_partial_options('*', method='cs', step=1e-40)
 
@@ -70,13 +72,18 @@ class Weight(ExplicitComponent):
         mrho = inputs['mrho']
         wwr = self.surface['wing_weight_ratio']
         Aspars = inputs['Aspars']  #VMGM
+        Nmaterial = self.surface['Nmaterial']
 
         # Calculate the volume and weight of the structure
         element_spar_volumes = norm(nodes[1:, :] - nodes[:-1, :], axis=1) * Aspars
         element_skin_volumes = norm(nodes[1:, :] - nodes[:-1, :], axis=1) * (A - Aspars)
 
         # nodes[1:, :] - nodes[:-1, :] this is the delta array of the difference between the points
-        element_mass = element_spar_volumes * mrho[0] * wwr + element_skin_volumes * mrho[1] * wwr
+        if Nmaterial == 1:
+            element_mass = element_spar_volumes * mrho[0] * wwr + element_skin_volumes * mrho[0] * wwr
+        else:
+            element_mass = element_spar_volumes * mrho[0] * wwr + element_skin_volumes * mrho[1] * wwr
+        
         weight = np.sum(element_mass)
         weight_spars = np.sum(element_spar_volumes * mrho[0] * wwr)  #VMGM
 
@@ -90,7 +97,8 @@ class Weight(ExplicitComponent):
             
         outputs['structural_mass'] = weight
         outputs['element_mass'] = element_mass
-        outputs['spars_mass'] = weight_spars  #VMGM
+        # outputs['spars_mass'] = weight_spars  #VMGM
+        outputs['spars_mass'] = 1.2*weight_spars  #VMGM
 
     def compute_partials(self, inputs, partials):
 
@@ -100,6 +108,7 @@ class Weight(ExplicitComponent):
         wwr = self.surface['wing_weight_ratio']
         ny = self.ny
         Aspars = inputs['Aspars']  #VMGM
+        Nmaterial = self.surface['Nmaterial']
 
         # Calculate the volume and weight of the structure
         const0 = nodes[1:, :] - nodes[:-1, :]
@@ -109,8 +118,13 @@ class Weight(ExplicitComponent):
         volume_spar = np.sum(element_spar_volumes) 
         volume_skin = np.sum(element_skin_volumes)
         const2 = mrho[0] * wwr
-        const3 = mrho[1] * wwr
-        weight = volume_spar * const2 + volume_skin * const3
+        
+        if Nmaterial == 1:
+            const3 = mrho[0] * wwr
+        else:
+            const3 = mrho[1] * wwr
+            
+        # weight = volume_spar * const2 + volume_skin * const3
 
         # First we will solve for dweight_dA
         # Calculate the volume and weight of the total structure
@@ -118,7 +132,12 @@ class Weight(ExplicitComponent):
 
         # Multiply by the material density and force of gravity
         dweight_dA = norms * const3
-        dweight_dmrho = np.array([volume_spar * wwr, volume_skin * wwr])
+        
+        if Nmaterial == 1:
+            dweight_dmrho = np.array([(volume_spar + volume_skin) * wwr, 0])
+        else:
+            dweight_dmrho = np.array([volume_spar * wwr, volume_skin * wwr])
+            
         dweight_dAspars = norms * const2 - norms * const3  #VMGM
 
         # Account for symmetry
@@ -136,7 +155,12 @@ class Weight(ExplicitComponent):
         # Here we're using results from AD to compute the derivative
         # Initialize the reverse seeds.
         nodesb = np.zeros(nodes.shape)
-        tempb = (const0) * (Aspars * mrho[0] / norms).reshape(-1, 1) + (const0) * ((A - Aspars) * mrho[1] / norms).reshape(-1, 1)
+        
+        if Nmaterial == 1:
+            tempb = (const0) * (Aspars * mrho[0] / norms).reshape(-1, 1) + (const0) * ((A - Aspars) * mrho[0] / norms).reshape(-1, 1)
+        else:
+            tempb = (const0) * (Aspars * mrho[0] / norms).reshape(-1, 1) + (const0) * ((A - Aspars) * mrho[1] / norms).reshape(-1, 1)
+            
         nodesb[1:, :] += tempb
         nodesb[:-1, :] -= tempb
 
@@ -151,9 +175,14 @@ class Weight(ExplicitComponent):
 
         # Element_weight Partials
         partials['element_mass','A'] = const1 * const3
-        partials['element_mass', 'mrho'] = np.transpose(np.array([element_spar_volumes * wwr, element_skin_volumes * wwr])) 
+        """
+        if Nmaterial == 1:
+            partials['element_mass', 'mrho'] = np.transpose(np.array([element_spar_volumes * wwr, element_skin_volumes * wwr])) 
+        else:
+            partials['element_mass', 'mrho'] = np.transpose(np.array([(element_spar_volumes + element_skin_volumes) * wwr, 0])) 
+            
         partials['element_mass', 'Aspars'] = const1 * const2 - const1 * const3
-        
+        """
         precalc = np.sum(np.power(const0,2),axis=1)
         d__dprecalc = 0.5 * precalc**(-.5)
 
@@ -179,6 +208,9 @@ class Weight(ExplicitComponent):
             nodesb2 *= 2.
             
         partials['spars_mass','A'] = 0.
-        partials['spars_mass','mrho'] = dsparsweight_dmrho
-        partials['spars_mass','Aspars'] = dsparsweight_dAspars
-        partials['spars_mass','nodes'] = nodesb2.reshape(1, -1)
+        # partials['spars_mass','mrho'] = dsparsweight_dmrho
+        # partials['spars_mass','Aspars'] = dsparsweight_dAspars
+        # partials['spars_mass','nodes'] = nodesb2.reshape(1, -1)
+        partials['spars_mass','mrho'] = 1.2*dsparsweight_dmrho
+        partials['spars_mass','Aspars'] = 1.2*dsparsweight_dAspars
+        partials['spars_mass','nodes'] = 1.2*nodesb2.reshape(1, -1)

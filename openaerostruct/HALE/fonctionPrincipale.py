@@ -4,22 +4,20 @@ Created on Mon May 13 13:08:36 2019
 
 @author: e.duriez
 """
+
+
 from fonctionOptim import fctOptim
 import matplotlib.pyplot as plt
 import os
 import numpy as np
 
-#mrhoRange = np.arange(505,600,50)
-#spanRange = np.arange(50,101,25)
-#tcRange = np.arange(0.05,0.18,0.08)
-#skinRange = np.arange(0.002,0.0045,0.002)
-#sparRange = np.arange(0.0001,0.0004,0.0002)
 
-mrhoRange = np.array([555])
-spanRange = np.array([50])
-tcRange = np.array([0.13])
-skinRange = np.array([0.002])
-sparRange = np.array([0.00030000000000000003])
+mrhoRange = np.arange(500,601,100)
+spanRange=np.arange(25,76,25)
+tcRange=np.arange(0.05,0.18,0.06)
+skinRange=np.arange(0.002,0.0041,0.001)
+sparRange=np.arange(0.001,0.0031,0.001)
+
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),len(mrhoRange),5),dtype=object)
 for i in range(0,len(skinRange),1):
@@ -28,7 +26,6 @@ for i in range(0,len(skinRange),1):
             for l in range(0,len(tcRange),1):
                 for m in range (0,len(mrhoRange),1):
                     caseArray[i,j,k,l,m]=[skinRange[i],sparRange[j],spanRange[k],tcRange[l],mrhoRange[m]]
-
 
 cases=np.reshape(caseArray,(len(skinRange)*len(sparRange)*len(spanRange)*len(tcRange)*len(mrhoRange),5))
 print(cases)
@@ -105,5 +102,4 @@ plt.show()
 plt.plot(caseP,co2P,'ob')
 plt.xlabel('case')
 plt.ylabel('co2')
-plt.ylim((0,20000))
 plt.show()
