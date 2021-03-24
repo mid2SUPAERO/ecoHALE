@@ -86,3 +86,5 @@ limitations under the License.
 ecoHALE tutorial
 -------
 https://youtu.be/s5952bI_Jw0
+
+![CADmodel](openaerostruct/docs/CADmodel.jpg)
