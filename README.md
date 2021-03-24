@@ -83,7 +83,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-ecoHALE tutorial
+ecoHALE
 -------
 The CO2 footprint optimization of a solar-powered High Altitude Long Endurance (HALE) drone is studied.
 This optimization is performed using a modified version of OpenAeroStruct. 
