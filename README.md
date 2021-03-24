@@ -90,7 +90,7 @@ This optimization is performed using a modified version of OpenAeroStruct.
 This version includes material choice optimization for the structure of the HALE in the MDO approach. 
 The simple HALE model developed shows acceptable agreement with more complex models.
 
-Tutorial:
+Introduction and tutorial:
 https://youtu.be/s5952bI_Jw0
 
 ![Convergence Graphs](openaerostruct/docs/convergence_graphs.png)
