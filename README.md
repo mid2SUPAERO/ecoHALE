@@ -87,4 +87,5 @@ ecoHALE tutorial
 -------
 https://youtu.be/s5952bI_Jw0
 
+![Convergence Graphs](openaerostruct/docs/convergence_graphs.png)
 ![CADmodel](openaerostruct/docs/CADmodel.jpg)
