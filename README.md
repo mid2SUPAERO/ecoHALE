@@ -83,5 +83,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-### ecoHALE tutorial
+ecoHALE tutorial
+-------
 https://youtu.be/s5952bI_Jw0
