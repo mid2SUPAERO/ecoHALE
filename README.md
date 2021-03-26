@@ -11,7 +11,7 @@ a multidisciplinary design optimization framework.
 
 The CO2 footprint optimization of a High Altitude Long Endurance (HALE) drone is studied. 
 The  environmental  impact of a solar-powered drone comes mainly from the materials used and the building procedure.
-For this reason, this tool includes material choice optimization for the structure of the HALE in the MDO approach. 
+For this reason, the EcoHALE tool includes material choice optimization for the structure of the HALE in the MDO approach. 
 The simple HALE model developed shows acceptable agreement with more complex models.
 
 ![Convergence Graphs](openaerostruct/docs/convergence_graphs.png)
