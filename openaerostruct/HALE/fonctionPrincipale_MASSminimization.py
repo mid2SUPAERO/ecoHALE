@@ -12,11 +12,11 @@ import os
 import numpy as np
 
 
-mrhoRange = np.arange(500,601,100)
-spanRange=np.arange(25,76,25)
-tcRange=np.arange(0.05,0.18,0.06)
-skinRange=np.arange(0.002,0.0041,0.001)
-sparRange=np.arange(0.001,0.0031,0.001)
+mrhoRange = np.array([504.5])
+spanRange = np.array([25])
+tcRange = np.array([0.17])
+skinRange = np.array([0.003])
+sparRange = np.array([0.001])
 
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),len(mrhoRange),5),dtype=object)

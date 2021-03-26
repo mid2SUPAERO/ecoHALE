@@ -10,10 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-#cr = CaseReader("aerostructMrhoi505sk0.004sr0.00030000000000000003sn50tc0.13.db")
-#cr = CaseReader("aerostructMrhoi505sk0.002sr0.0001sn50tc0.13.db")
-#cr = CaseReader("aerostructMrhoi504.5sk0.004sr0.00030000000000000003sn50tc0.16999999999999998.db")
-cr = CaseReader("aerostructMrhoi600sk0.002sr0.0001sn50tc0.11.db") #BEST
+cr = CaseReader("aerostructMrhoi600sk0.002sr0.002sn100tc0.13.db")  # File to read
 
 driver_cases = cr.list_cases('driver')
 
@@ -25,7 +22,7 @@ t_c=[]
 rootChord=[]
 point_masses=[]
 point_mass_locations=[]
-engine_location=[]
+motor_location=[]
 twist=[]
 mesh=[]
 sparThickness=[]
@@ -42,7 +39,7 @@ for i in range(iterations):
     rootChord.append(case.inputs['wing.geometry.mesh.scale_x.chord'][0])
     point_masses.append(case.outputs['point_masses'][0])
     point_mass_locations.append(case.outputs['point_mass_locations'][0])
-    engine_location.append(design_vars['engine_location'][0])
+    motor_location.append(design_vars['motor_location'][0])
     twist.append(case.outputs['wing.geometry.twist'][0])
     mesh.append(case.outputs['AS_point_0.coupled.wing.def_mesh'][0])
     sparThickness.append(case.outputs['wing.spar_thickness'][0])

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-cr = CaseReader("aerostructMrhoi600sk0.002sr0.002sn100tc0.13.db")  # File to read
+cr = CaseReader("aerostructMrhoi504.5sk0.003sr0.001sn25tc0.17.db")  # File to read
 
 
 driver_cases = cr.list_cases('driver')
@@ -19,8 +19,6 @@ driver_cases = cr.list_cases('driver')
 iterations=len(driver_cases)
 
 # Values for all the iterations:
-co2=[]  # CO2 emissions [T]
-
 mrho=[]  # Material density [g/cm3]
 taper=[]  # Taper ratio
 span=[]  # Span [m]
@@ -68,8 +66,6 @@ for i in range(iterations):
     design_vars = case.get_design_vars()
     objective= case.get_objectives()
     constraints= case.get_constraints()
-    
-    co2.append(objective['emitted_co2'][0])
     
     mrho.append(design_vars['mrho'])
     taper.append(case.inputs['wing.geometry.mesh.taper.taper'][0])
@@ -126,18 +122,6 @@ total_mass = totalWeight[-1]/9.81   # Total final mass [kg]
 total_mass_it = [x/9.81 for x in totalWeight]   # Total mass per iteration [kg]
 
 mrho_kgm3 = [x*1000 for x in mrho]      # Material density per iteration [kg/m^3]
-co2_kg = [x*1e3 for x in co2]     # Total CO2 emissions per iteration [kg]
-
-
-# CO2 emissions convergence graph 
-plt.plot(co2_kg)
-plt.xlabel('iteration')
-plt.ylabel('CO2 emissions (kg)')
-plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-#plt.xlim((0,100))
-#plt.ylim((5000,27500))
-#plt.savefig('co2emissions.png', dpi=300)
-plt.show()
 
 
 # Total mass convergence graph 

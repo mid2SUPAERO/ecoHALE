@@ -20,34 +20,27 @@ class PointMassLocations(ExplicitComponent):
         self.n_point_masses = surface['n_point_masses']     
         
         self.add_input('span', val=50, units='m')
-        self.add_input('engine_location', val=np.zeros(self.n_point_masses))
+        self.add_input('motor_location', val=np.zeros(self.n_point_masses))
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         
         self.add_output('point_mass_locations', val=np.zeros((self.n_point_masses, 3)), units='m')
 
         self.declare_partials('point_mass_locations', 'span', method='cs')
-        self.declare_partials('point_mass_locations', 'engine_location', method='cs')
+        self.declare_partials('point_mass_locations', 'motor_location', method='cs')
         self.declare_partials('point_mass_locations', 'nodes', method='cs')
 
     def compute(self, inputs, outputs):
         surface = self.options['surface']
         span = inputs['span']
-        engine_location = inputs['engine_location']
+        motor_location = inputs['motor_location']
         nodes = inputs['nodes']
         point_mass_locations = outputs['point_mass_locations'] 
         n_point_masses = surface['n_point_masses']
         
         for i in range(n_point_masses):
-            point_mass_locations[i][1] = engine_location[i] * span/2
+            point_mass_locations[i][1] = motor_location[i] * span/2
             point_mass_locations[i][0] = (point_mass_locations[i][1]-nodes[-1][1])/(nodes[0][1]-nodes[-1][1])*(nodes[0][0]-nodes[-1][0]) + nodes[-1][0]
             point_mass_locations[i][2] = (point_mass_locations[i][1]-nodes[-1][1])/(nodes[0][1]-nodes[-1][1])*(nodes[0][2]-nodes[-1][2]) + nodes[-1][2]  
-
-    ##def compute_partials(self, inputs, partials):
-        ##span = inputs['span']
-        ##engines_location = inputs['engine_location']
-        
-        ##partials['point_mass_locations', 'span'] = [0,engines_location,0]
-        ##partials['point_mass_locations', 'engine_location'] = [0,span,0]
     
         
 class PointMasses(ExplicitComponent):

@@ -6,17 +6,17 @@ Created on Mon May 13 13:08:36 2019
 """
 
 
-from fonctionOptim_MASSminimization import fctOptim
+from fonctionOptim_CO2minimization import fctOptim
 import matplotlib.pyplot as plt
 import os
 import numpy as np
 
 
-mrhoRange = np.arange(500,601,100)
-spanRange=np.arange(25,76,25)
-tcRange=np.arange(0.05,0.18,0.06)
-skinRange=np.arange(0.002,0.0041,0.001)
-sparRange=np.arange(0.001,0.0031,0.001)
+mrhoRange = np.array([600])
+spanRange = np.array([100])
+tcRange = np.array([0.13])
+skinRange = np.array([0.002])
+sparRange = np.array([0.002])
 
 
 caseArray=np.zeros((len(skinRange),len(sparRange),len(spanRange),len(tcRange),len(mrhoRange),5),dtype=object)

@@ -19,7 +19,7 @@ driver_cases = cr.list_cases('driver')
 iterations=len(driver_cases)
 
 # Values for all the iterations:
-co2=[]  # CO2 emissions [T]
+co2=[]  # CO2 emissions [10^4 kg]
 
 mrho=[]  # Material density [g/cm3]
 taper=[]  # Taper ratio
@@ -126,7 +126,7 @@ total_mass = totalWeight[-1]/9.81   # Total final mass [kg]
 total_mass_it = [x/9.81 for x in totalWeight]   # Total mass per iteration [kg]
 
 mrho_kgm3 = [x*1000 for x in mrho]      # Material density per iteration [kg/m^3]
-co2_kg = [x*1e3 for x in co2]     # Total CO2 emissions per iteration [kg]
+co2_kg = [x*1e4 for x in co2]     # Total CO2 emissions per iteration [kg]
 
 
 # CO2 emissions convergence graph 

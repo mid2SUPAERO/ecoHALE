@@ -312,7 +312,8 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.connect('wing.taper','AS_point_2.wing_perf.struct_funcs.taper')  #VMGM
     
     # Objective function      
-    prob.model.add_objective('emitted_co2', scaler=1e-3)
+    #prob.model.add_objective('emitted_co2', scaler=1e-4)
+    prob.model.add_objective('AS_point_0.total_perf.total_weight', scaler=1e-3)
     
     # Design variables
     prob.model.add_design_var('wing.twist_cp', lower=-15., upper=15., scaler=0.1)  #VMGM
@@ -322,7 +323,8 @@ def fctOptim(mrhoi,skin,spar,span,toverc):
     prob.model.add_design_var('wing.chord_cp', lower=1.4, upper=500., scaler=1)
     prob.model.add_design_var('wing.taper', lower=0.3, upper=0.99, scaler=10)
     prob.model.add_design_var('wing.geometry.t_over_c_cp', lower=0.01, upper=0.4, scaler=10.)
-    prob.model.add_design_var('mrho', lower=500, upper=8000, scaler=0.001) #ED
+    prob.model.add_design_var('mrho', lower=504.5, upper=504.5, scaler=0.001) #ED
+    #prob.model.add_design_var('mrho', lower=500, upper=8000, scaler=0.001) #ED
     prob.model.add_design_var('motor_location', lower=-1, upper=0, scaler=10.)  #VMGM
     
     # Constraints
