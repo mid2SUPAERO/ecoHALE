@@ -1,10 +1,6 @@
 EcoHALE
 =======
 
-[![Build Status](https://travis-ci.org/mdolab/OpenAeroStruct.svg?branch=master)](https://travis-ci.org/mdolab/OpenAeroStruct)
-[![Coverage Status](https://coveralls.io/repos/github/mdolab/OpenAeroStruct/badge.svg?branch=master)](https://coveralls.io/github/mdolab/OpenAeroStruct?branch=master)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/mdolab/OpenAeroStruct.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/mdolab/OpenAeroStruct/context:python)
-
 EcoHALE is a low-fidelity multidisciplinary optimization tool for High Altitude Long Endurance (HALE) aircraft,
 developed from OpenAeroStruct. While OpenAeroStruct is a tool for aerostructural optimization based on OpenMDAO,
 a multidisciplinary design optimization framework.
