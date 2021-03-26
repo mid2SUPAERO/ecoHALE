@@ -22,7 +22,9 @@ Then do:
 
 `pip install -e .`
 
-If you encounter any problems while using OpenAeroStruct, please create an issue on this GitHub repository.
+Please note that this repository is provided as is without any guaranteed support.
+If you would like to highlight issues, ask questions, or make changes, please do so using GitHub Issues and Pull Requests.
+The developers will address them at their discretion.
 
 OpenAeroStruct Documentation
 ----------------------------
@@ -50,7 +52,7 @@ For a detailed introduction and a quick start tutorial please visit:
 Version Information
 -------------------
 
-This version of OpenAeroStruct requires [OpenMDAO](https://github.com/OpenMDAO/openmdao) v2.5+.
+This version of OpenAeroStruct requires [OpenMDAO](https://github.com/OpenMDAO/openmdao) v2.5+. It also requires the folloing packages: `numpy, scipy, matplotlib`.
 If you are looking to use the previous version of OpenAeroStruct which uses OpenMDAO 1.7.4, use OpenAeroStruct v1.0 from [here](https://github.com/mdolab/OpenAeroStruct/releases).
 
 How to use
