@@ -56,25 +56,25 @@ If you are looking to use the previous version of OpenAeroStruct which uses Open
 How to use
 ----------
 
-Please go to the folder [openaerostruct/HALE](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE) and then:
+Please go to the folder [openaerostruct/HALE](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE) and then:
 
-   * The optimization can be launched from the file [fonctionPrincipale.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/fonctionPrincipale.py). 
-   * To modify some of the optimization parameters use [fonctionOptim.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/fonctionOptim.py).
-   * To compare the results of a multi-start optimization and check which of them have converged properly, use [seeResultsMain.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/seeResultsMain.py).
-   * The detailed results of one particular optimization can be analysed using [seeOptim.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/seeOptim.py).
-   * The file [CatiaParamGenerator.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/CatiaParamGenerator.py) can be used to generate a TXT file that can be imported into [HALE.CATPart](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/HALE.CATPart) in order to plot the aircraft.
+   * The optimization can be launched from the file [fonctionPrincipale.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/fonctionPrincipale.py). 
+   * To modify some of the optimization parameters use [fonctionOptim.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/fonctionOptim.py).
+   * To compare the results of a multi-start optimization and check which of them have converged properly, use [seeResultsMain.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/seeResultsMain.py).
+   * The detailed results of one particular optimization can be analysed using [seeOptim.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/seeOptim.py).
+   * The file [CatiaParamGenerator.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/CatiaParamGenerator.py) can be used to generate a TXT file that can be imported into [HALE.CATPart](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/HALE.CATPart) in order to plot the aircraft.
 
 For the paper entitled "HALE multidisciplinary ecodesign optimization with material selection" specific files have been created:
 
    * Section 3.1, "Mass minimization problem (validation withFBHALE)": 
-     * [fonctionPrincipale_MASSminimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/fonctionPrincipale_MASSminimization.py)
-     * [fonctionOptim_MASSminimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/fonctionOptim_MASSminimization.py)
-     * [seeOptim_MASSminimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/seeOptim_MASSminimization.py)
+     * [fonctionPrincipale_MASSminimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/fonctionPrincipale_MASSminimization.py)
+     * [fonctionOptim_MASSminimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/fonctionOptim_MASSminimization.py)
+     * [seeOptim_MASSminimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/seeOptim_MASSminimization.py)
 
    * Section 3.2, "CO2 footprint minimization problem": 
-     * [fonctionPrincipale_CO2minimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/fonctionPrincipale_CO2minimization.py)
-     * [fonctionOptim_CO2minimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/fonctionOptim_CO2minimization.py)
-     * [seeOptim_CO2minimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/dowloadEcohale/openaerostruct/HALE/seeOptim_CO2minimization.py)
+     * [fonctionPrincipale_CO2minimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/fonctionPrincipale_CO2minimization.py)
+     * [fonctionOptim_CO2minimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/fonctionOptim_CO2minimization.py)
+     * [seeOptim_CO2minimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/seeOptim_CO2minimization.py)
 	
 License
 -------
