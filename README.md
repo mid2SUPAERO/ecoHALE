@@ -64,7 +64,7 @@ Please go to the folder [openaerostruct/HALE](https://github.com/mid2SUPAERO/eco
    * The detailed results of one particular optimization can be analysed using [seeOptim.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/seeOptim.py).
    * The file [CatiaParamGenerator.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/CatiaParamGenerator.py) can be used to generate a TXT file that can be imported into [HALE.CATPart](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/HALE.CATPart) in order to plot the aircraft.
 
-For the paper entitled "HALE multidisciplinary ecodesign optimization with material selection" specific files have been created:
+For the article entitled "HALE multidisciplinary ecodesign optimization with material selection" specific files have been created:
 
    * Section 3.1, "Mass minimization problem (validation withFBHALE)": 
      * [fonctionPrincipale_MASSminimization.py](https://github.com/mid2SUPAERO/ecoHALE/tree/downloadEcohale/openaerostruct/HALE/fonctionPrincipale_MASSminimization.py)
