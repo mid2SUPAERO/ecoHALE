@@ -36,7 +36,7 @@ Improvements with respect to the original version of OpenAeroStruct:
    * Material choice among a discrete catalogue.
    * Batteries modelling.
    * Solar panels modelling.
-   * Buckling constarint.
+   * Buckling constraint.
 
 Video Introduction
 ------------------
@@ -65,13 +65,13 @@ Please go to the folder [openaerostruct/HALE](https://github.com/mid2SUPAERO/eco
 For the paper entitled "HALE multidisciplinary ecodesign optimization with material selection" specific files have been created:
 
    * Section 3.1, "Mass minimization problem (validation withFBHALE)": 
-	* *fonctionPrincipale_MASSminimization.py*
-	* *fonctionOptim_MASSminimization.py*
-	* *seeOptim_MASSminimization.py*
+     * *fonctionPrincipale_MASSminimization.py*
+     * *fonctionOptim_MASSminimization.py*
+     * *seeOptim_MASSminimization.py*
    * Section 3.2, "CO2 footprint minimization problem": 
-	* *fonctionPrincipale_CO2minimization.py*
-	* *fonctionOptim_CO2minimization.py*
-	* *seeOptim_CO2minimization.py*
+     * *fonctionPrincipale_CO2minimization.py*
+     * *fonctionOptim_CO2minimization.py*
+     * *seeOptim_CO2minimization.py*
 	
 License
 -------
