@@ -14,6 +14,8 @@ The  environmental  impact of a solar-powered drone comes mainly from the materi
 For this reason, the EcoHALE tool includes material choice optimization for the structure of the drone in the MDO approach. 
 The simple HALE model developed shows acceptable agreement with more complex models.
 
+The analysis and optimization results can be visualized using included tools, producing figures such as these:
+
 ![Convergence Graphs](openaerostruct/docs/convergence_graphs.png)
 ![CADmodel](openaerostruct/docs/CADmodel.jpg)
 
