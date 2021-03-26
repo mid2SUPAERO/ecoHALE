@@ -12,7 +12,8 @@ The simple HALE model developed shows acceptable agreement with more complex mod
 
 The analysis and optimization results can be visualized using included tools, producing figures such as these:
 
-![Convergence Graphs and CAD model](openaerostruct/docs/convergence_CADmodel.png)
+![Convergence Graphs](openaerostruct/docs/convergence_graphs.png)
+![CAD Model](openaerostruct/docs/CADmodel.jpg)
 
 Install EcoHALE version of OpenAeroStruct by cloning this repository and entering the folder it generates.
 Then do:
