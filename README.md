@@ -70,6 +70,7 @@ For the paper entitled "HALE multidisciplinary ecodesign optimization with mater
      * *fonctionPrincipale_MASSminimization.py*
      * *fonctionOptim_MASSminimization.py*
      * *seeOptim_MASSminimization.py*
+
    * Section 3.2, "CO2 footprint minimization problem": 
      * *fonctionPrincipale_CO2minimization.py*
      * *fonctionOptim_CO2minimization.py*
